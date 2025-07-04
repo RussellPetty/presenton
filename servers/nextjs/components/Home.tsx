@@ -545,8 +545,8 @@ export default function Home() {
                                     Selected Models
                                 </h3>
                                 <p className="text-sm text-blue-700">
-                                    Using {llmConfig.LLM === 'ollama' ? llmConfig.MODEL ?? '_____' : PROVIDER_CONFIGS[llmConfig.LLM!].textModels[0].label} for text
-                                    generation and {PROVIDER_CONFIGS[llmConfig.LLM!].imageModels[0].label} for
+                                    Using {llmConfig.LLM === 'ollama' ? llmConfig.MODEL ?? '_____' : PROVIDER_CONFIGS[llmConfig.LLM!]?.textModels?.[0]?.label ?? 'Unknown'} for text
+                                    generation and {PROVIDER_CONFIGS[llmConfig.LLM!]?.imageModels?.[0]?.label ?? 'Unknown'} for
                                     images
                                 </p>
                                 <p className="text-sm text-blue-600 mt-2 opacity-75">
@@ -563,24 +563,24 @@ export default function Home() {
                                 <div className="flex items-start gap-3">
                                     <Info className="w-5 h-5 text-blue-600 mt-1" />
                                     <h3 className="text-lg font-medium text-gray-900">
-                                        {PROVIDER_CONFIGS[llmConfig.LLM!].apiGuide.title}
+                                        {PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.title ?? 'API Guide'}
                                     </h3>
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
                                 <div className="space-y-4">
                                     <ol className="list-decimal list-inside space-y-2 text-gray-600">
-                                        {PROVIDER_CONFIGS[llmConfig.LLM!].apiGuide.steps.map((step, index) => (
+                                        {PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.steps?.map((step, index) => (
                                             <li key={index} className="text-sm">
                                                 {step}
                                             </li>
-                                        ))}
+                                        )) || <li className="text-sm">No steps available</li>}
                                     </ol>
 
                                     <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                                        {PROVIDER_CONFIGS[llmConfig.LLM!].apiGuide.videoUrl && (
+                                        {PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.videoUrl && (
                                             <Link
-                                                href={PROVIDER_CONFIGS[llmConfig.LLM!].apiGuide.videoUrl!}
+                                                href={PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.videoUrl!}
                                                 target="_blank"
                                                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                                             >
@@ -589,14 +589,16 @@ export default function Home() {
                                                 <ExternalLink className="w-3 h-3" />
                                             </Link>
                                         )}
-                                        <Link
-                                            href={PROVIDER_CONFIGS[llmConfig.LLM!].apiGuide.docsUrl}
-                                            target="_blank"
-                                            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                                        >
-                                            <span>Official Documentation</span>
-                                            <ExternalLink className="w-3 h-3" />
-                                        </Link>
+                                        {PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.docsUrl && (
+                                            <Link
+                                                href={PROVIDER_CONFIGS[llmConfig.LLM!]?.apiGuide?.docsUrl}
+                                                target="_blank"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                                            >
+                                                <span>Official Documentation</span>
+                                                <ExternalLink className="w-3 h-3" />
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             </AccordionContent>

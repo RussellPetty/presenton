@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import ollama
 from sqlmodel import SQLModel
 from contextlib import asynccontextmanager
@@ -57,3 +58,6 @@ async def update_env_middleware(request: Request, call_next):
 
 
 app.include_router(presentation_router)
+
+# Mount static files to serve user-generated presentations
+app.mount("/static", StaticFiles(directory=os.getenv("APP_DATA_DIRECTORY", "/app/user_data")), name="static")

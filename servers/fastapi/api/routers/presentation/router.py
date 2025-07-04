@@ -1,6 +1,8 @@
 from typing import Annotated, List, Optional
 import uuid
-from fastapi import APIRouter, BackgroundTasks, Body, File, Form, UploadFile
+import os
+from fastapi import APIRouter, BackgroundTasks, Body, File, Form, UploadFile, HTTPException
+from fastapi.responses import FileResponse
 
 from api.models import SessionModel
 from api.request_utils import RequestUtils
@@ -388,4 +390,34 @@ async def pull_ollama_model(name: str, background_tasks: BackgroundTasks):
         logging_service,
         log_metadata,
         background_tasks=background_tasks,
+    )
+
+
+@presentation_router.get("/presentation/download/{presentation_id}")
+async def download_presentation(presentation_id: str):
+    """Download presentation file by ID"""
+    request_utils = RequestUtils(f"{route_prefix}/presentation/download")
+    logging_service, log_metadata = await request_utils.initialize_logger(
+        presentation_id=presentation_id,
+    )
+    
+    # Find the presentation file
+    app_data_dir = os.getenv("APP_DATA_DIRECTORY", "/app/user_data")
+    presentation_dir = os.path.join(app_data_dir, presentation_id)
+    
+    if not os.path.exists(presentation_dir):
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    
+    # Find the .pptx file in the directory
+    pptx_files = [f for f in os.listdir(presentation_dir) if f.endswith('.pptx')]
+    if not pptx_files:
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    
+    file_path = os.path.join(presentation_dir, pptx_files[0])
+    filename = pptx_files[0]
+    
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
