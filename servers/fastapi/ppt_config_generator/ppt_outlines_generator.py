@@ -1,10 +1,12 @@
 from typing import Optional
 
-from api.utils.model_utils import get_large_model, get_llm_client
+from api.utils.model_utils import get_large_model, get_llm_client, get_selected_llm_provider
 from api.utils.variable_length_models import (
     get_presentation_markdown_model_with_n_slides,
 )
+from api.utils.schema_utils import get_vertex_ai_compatible_schema, debug_schema_compatibility
 from ppt_config_generator.models import PresentationMarkdownModel
+from api.models import SelectedLLMProvider
 
 
 def get_prompt_template(prompt: str, n_slides: int, language: str, content: str):
@@ -57,11 +59,48 @@ async def generate_ppt_content(
     client = get_llm_client()
     model = get_large_model()
     response_model = get_presentation_markdown_model_with_n_slides(n_slides)
-
-    response = await client.beta.chat.completions.parse(
-        model=model,
-        temperature=0.2,
-        messages=get_prompt_template(prompt, n_slides, language, content),
-        response_format=response_model,
-    )
-    return response.choices[0].message.parsed
+    
+    # Handle Google Vertex AI schema compatibility
+    llm_provider = get_selected_llm_provider()
+    print(f"Using LLM provider: {llm_provider}")
+    
+    try:
+        if llm_provider == SelectedLLMProvider.GOOGLE:
+            # Convert schema for Vertex AI compatibility
+            vertex_schema = get_vertex_ai_compatible_schema(response_model)
+            debug_schema_compatibility(vertex_schema, f"PresentationModel_{n_slides}_slides")
+            
+            # Use the converted schema for Google
+            response = await client.beta.chat.completions.parse(
+                model=model,
+                temperature=0.2,
+                messages=get_prompt_template(prompt, n_slides, language, content),
+                response_format={"type": "json_schema", "json_schema": {"schema": vertex_schema}},
+            )
+        else:
+            # Use standard Pydantic model for OpenAI and other providers
+            response = await client.beta.chat.completions.parse(
+                model=model,
+                temperature=0.2,
+                messages=get_prompt_template(prompt, n_slides, language, content),
+                response_format=response_model,
+            )
+        
+        print("OpenAI API call successful")
+        return response.choices[0].message.parsed
+        
+    except Exception as e:
+        print(f"Error in OpenAI API call: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        
+        # Log additional debug info for Google provider
+        if llm_provider == SelectedLLMProvider.GOOGLE:
+            print("Google Vertex AI error - Schema debug info:")
+            try:
+                vertex_schema = get_vertex_ai_compatible_schema(response_model)
+                debug_schema_compatibility(vertex_schema, f"ERROR_DEBUG_PresentationModel_{n_slides}_slides")
+            except Exception as schema_error:
+                print(f"Schema generation error: {schema_error}")
+        
+        # Re-raise the original exception
+        raise
