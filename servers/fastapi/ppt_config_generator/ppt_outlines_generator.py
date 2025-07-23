@@ -71,11 +71,12 @@ async def generate_ppt_content(
             debug_schema_compatibility(vertex_schema, f"PresentationModel_{n_slides}_slides")
             
             # Use the converted schema for Google
+            # Note: Google Vertex AI through OpenAI-compatible endpoint still needs proper schema formatting
             response = await client.beta.chat.completions.parse(
                 model=model,
                 temperature=0.2,
                 messages=get_prompt_template(prompt, n_slides, language, content),
-                response_format={"type": "json_schema", "json_schema": {"schema": vertex_schema}},
+                response_format={"type": "json_schema", "json_schema": {"name": f"PresentationModel_{n_slides}_slides", "schema": vertex_schema}},
             )
         else:
             # Use standard Pydantic model for OpenAI and other providers
