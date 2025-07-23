@@ -88,7 +88,35 @@ async def generate_ppt_content(
             )
         
         print("OpenAI API call successful")
-        return response.choices[0].message.parsed
+        
+        # Check if parsing was successful
+        parsed_response = response.choices[0].message.parsed
+        if parsed_response is None:
+            print("Error: API call succeeded but parsing failed (parsed response is None)")
+            print(f"Raw response content: {response.choices[0].message.content}")
+            print(f"Response model: {response.choices[0].message.model}")
+            
+            # Try to parse manually for Google provider
+            if llm_provider == SelectedLLMProvider.GOOGLE:
+                print("Attempting manual parsing for Google Vertex AI response...")
+                try:
+                    import json
+                    raw_content = response.choices[0].message.content
+                    if raw_content:
+                        # Try to parse the JSON content manually
+                        parsed_json = json.loads(raw_content)
+                        # Convert back to Pydantic model
+                        parsed_response = response_model(**parsed_json)
+                        print("Manual parsing successful!")
+                    else:
+                        raise ValueError("No content in response")
+                except Exception as parse_error:
+                    print(f"Manual parsing failed: {parse_error}")
+                    raise ValueError(f"Failed to parse response: {parse_error}") from parse_error
+            else:
+                raise ValueError("API response parsing failed - parsed content is None")
+        
+        return parsed_response
         
     except Exception as e:
         print(f"Error in OpenAI API call: {str(e)}")
