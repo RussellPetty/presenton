@@ -9,13 +9,25 @@ from ppt_config_generator.models import PresentationMarkdownModel
 from api.models import SelectedLLMProvider
 
 
-def get_prompt_template(prompt: str, n_slides: int, language: str, content: str):
+def get_prompt_template(prompt: str, n_slides: int, language: str, content: str, for_google: bool = False):
+    json_instruction = """
+                Respond with a JSON object that has this exact structure:
+                {
+                    "title": "presentation title here",
+                    "notes": ["note1", "note2"],
+                    "slides": [
+                        {"title": "slide title", "body": "slide content in markdown"},
+                        {"title": "slide title", "body": "slide content in markdown"}
+                    ]
+                }
+                """ if for_google else "Format the output in the specified JSON schema with structured markdown content."
+
     return [
         {
             "role": "system",
-            "content": """
+            "content": f"""
                 Create a presentation based on the provided prompt, number of slides, output language, and additional informational details.
-                Format the output in the specified JSON schema with structured markdown content.
+                {json_instruction}
     
                 # Steps
 
@@ -65,15 +77,41 @@ async def generate_ppt_content(
     print(f"Using LLM provider: {llm_provider}")
     
     try:
-        # Use standard Pydantic model for all providers initially
-        # Google's OpenAI-compatible endpoint should handle this the same way
-        response = await client.beta.chat.completions.parse(
-            model=model,
-            temperature=0.2,
-            messages=get_prompt_template(prompt, n_slides, language, content),
-            response_format=response_model,
-        )
+        if llm_provider == SelectedLLMProvider.GOOGLE:
+            # Google Vertex AI needs uppercase schema types and proper formatting
+            print("Using Google Vertex AI - converting schema format...")
+            vertex_schema = get_vertex_ai_compatible_schema(response_model)
+            debug_schema_compatibility(vertex_schema, f"PresentationModel_{n_slides}_slides")
+            
+            # Use raw JSON completion instead of parse for Google
+            response = await client.chat.completions.create(
+                model=model,
+                temperature=0.2,
+                messages=get_prompt_template(prompt, n_slides, language, content, for_google=True),
+                response_format={"type": "json_object"},
+            )
+            
+            # Parse the response manually since we're not using .parse()
+            raw_content = response.choices[0].message.content
+            if raw_content:
+                import json
+                parsed_json = json.loads(raw_content)
+                parsed_response = response_model(**parsed_json)
+                print("Google Vertex AI response parsed successfully")
+                return parsed_response
+            else:
+                raise ValueError("Empty response from Google Vertex AI")
+                
+        else:
+            # Use standard Pydantic model for OpenAI and other providers
+            response = await client.beta.chat.completions.parse(
+                model=model,
+                temperature=0.2,
+                messages=get_prompt_template(prompt, n_slides, language, content, for_google=False),
+                response_format=response_model,
+            )
         
+        # This block only executes for non-Google providers
         print("OpenAI API call successful")
         
         # Check if parsing was successful
@@ -83,7 +121,7 @@ async def generate_ppt_content(
             print(f"Raw response content: {response.choices[0].message.content}")
             print(f"Response role: {response.choices[0].message.role}")
             
-            # Try to parse manually for any provider when .parsed is None
+            # Try to parse manually when .parsed is None
             print("Attempting manual parsing of JSON response...")
             try:
                 import json
