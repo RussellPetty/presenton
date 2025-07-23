@@ -65,27 +65,14 @@ async def generate_ppt_content(
     print(f"Using LLM provider: {llm_provider}")
     
     try:
-        if llm_provider == SelectedLLMProvider.GOOGLE:
-            # Convert schema for Vertex AI compatibility
-            vertex_schema = get_vertex_ai_compatible_schema(response_model)
-            debug_schema_compatibility(vertex_schema, f"PresentationModel_{n_slides}_slides")
-            
-            # Use the converted schema for Google
-            # Note: Google Vertex AI through OpenAI-compatible endpoint still needs proper schema formatting
-            response = await client.beta.chat.completions.parse(
-                model=model,
-                temperature=0.2,
-                messages=get_prompt_template(prompt, n_slides, language, content),
-                response_format={"type": "json_schema", "json_schema": {"name": f"PresentationModel_{n_slides}_slides", "schema": vertex_schema}},
-            )
-        else:
-            # Use standard Pydantic model for OpenAI and other providers
-            response = await client.beta.chat.completions.parse(
-                model=model,
-                temperature=0.2,
-                messages=get_prompt_template(prompt, n_slides, language, content),
-                response_format=response_model,
-            )
+        # Use standard Pydantic model for all providers initially
+        # Google's OpenAI-compatible endpoint should handle this the same way
+        response = await client.beta.chat.completions.parse(
+            model=model,
+            temperature=0.2,
+            messages=get_prompt_template(prompt, n_slides, language, content),
+            response_format=response_model,
+        )
         
         print("OpenAI API call successful")
         
@@ -94,27 +81,34 @@ async def generate_ppt_content(
         if parsed_response is None:
             print("Error: API call succeeded but parsing failed (parsed response is None)")
             print(f"Raw response content: {response.choices[0].message.content}")
-            print(f"Response model: {response.choices[0].message.model}")
+            print(f"Response role: {response.choices[0].message.role}")
             
-            # Try to parse manually for Google provider
-            if llm_provider == SelectedLLMProvider.GOOGLE:
-                print("Attempting manual parsing for Google Vertex AI response...")
-                try:
-                    import json
-                    raw_content = response.choices[0].message.content
-                    if raw_content:
-                        # Try to parse the JSON content manually
-                        parsed_json = json.loads(raw_content)
-                        # Convert back to Pydantic model
-                        parsed_response = response_model(**parsed_json)
-                        print("Manual parsing successful!")
-                    else:
-                        raise ValueError("No content in response")
-                except Exception as parse_error:
-                    print(f"Manual parsing failed: {parse_error}")
-                    raise ValueError(f"Failed to parse response: {parse_error}") from parse_error
-            else:
-                raise ValueError("API response parsing failed - parsed content is None")
+            # Try to parse manually for any provider when .parsed is None
+            print("Attempting manual parsing of JSON response...")
+            try:
+                import json
+                raw_content = response.choices[0].message.content
+                if raw_content:
+                    print(f"Raw content length: {len(raw_content)} characters")
+                    print(f"Raw content preview: {raw_content[:200]}...")
+                    
+                    # Try to parse the JSON content manually
+                    parsed_json = json.loads(raw_content)
+                    print(f"JSON parsed successfully. Keys: {list(parsed_json.keys())}")
+                    
+                    # Convert back to Pydantic model
+                    parsed_response = response_model(**parsed_json)
+                    print("Manual parsing successful!")
+                else:
+                    raise ValueError("No content in response")
+            except Exception as parse_error:
+                print(f"Manual parsing failed: {parse_error}")
+                print(f"Raw content type: {type(raw_content) if 'raw_content' in locals() else 'undefined'}")
+                if hasattr(parse_error, '__traceback__'):
+                    import traceback
+                    print("Traceback:")
+                    traceback.print_exc()
+                raise ValueError(f"Failed to parse response: {parse_error}") from parse_error
         
         return parsed_response
         
