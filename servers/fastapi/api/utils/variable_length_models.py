@@ -11,8 +11,8 @@ from ppt_config_generator.models import (
 class SlideMarkdownModelWithValidation(SlideMarkdownModel):
     title: str = Field(
         description="Title of the slide in about 3 to 5 words",
-        min_length=10,
-        max_length=50,
+        min_length=3,
+        max_length=100,
     )
 
 
