@@ -4,16 +4,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    ports:  
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    ports:
       # You can replace 5000 with any other port number of your choice to run Presenton on a different port number.
-      - "5000:80"
+      - "8000:80"
     volumes:  
       - ./user_data:/app/user_data
     environment:

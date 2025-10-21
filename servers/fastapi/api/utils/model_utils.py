@@ -59,7 +59,7 @@ def get_large_model():
     if selected_llm == SelectedLLMProvider.OPENAI:
         return "gpt-4.1"
     elif selected_llm == SelectedLLMProvider.GOOGLE:
-        return "gemini-2.0-flash"
+        return "gemini-2.5-flash"
     else:
         return os.getenv("MODEL")
 
@@ -69,7 +69,7 @@ def get_small_model():
     if selected_llm == SelectedLLMProvider.OPENAI:
         return "gpt-4.1-mini"
     elif selected_llm == SelectedLLMProvider.GOOGLE:
-        return "gemini-2.0-flash"
+        return "gemini-2.5-flash"
     else:
         return os.getenv("MODEL")
 
@@ -79,6 +79,6 @@ def get_nano_model():
     if selected_llm == SelectedLLMProvider.OPENAI:
         return "gpt-4.1-nano"
     elif selected_llm == SelectedLLMProvider.GOOGLE:
-        return "gemini-2.0-flash"
+        return "gemini-2.5-flash"
     else:
         return os.getenv("MODEL")

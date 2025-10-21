@@ -86,16 +86,19 @@ async def generate_ppt_content(
             # Use raw JSON completion instead of parse for Google
             response = await client.chat.completions.create(
                 model=model,
-                temperature=0.2,
+                temperature=0.0,  # Lower temperature for more deterministic JSON output
                 messages=get_prompt_template(prompt, n_slides, language, content, for_google=True),
                 response_format={"type": "json_object"},
             )
-            
+
             # Parse the response manually since we're not using .parse()
             raw_content = response.choices[0].message.content
             if raw_content:
                 import json
                 parsed_json = json.loads(raw_content)
+                # Truncate title if too long
+                if 'title' in parsed_json and len(parsed_json['title']) > 50:
+                    parsed_json['title'] = parsed_json['title'][:50]
                 parsed_response = response_model(**parsed_json)
                 print("Google Vertex AI response parsed successfully")
                 return parsed_response
@@ -133,7 +136,11 @@ async def generate_ppt_content(
                     # Try to parse the JSON content manually
                     parsed_json = json.loads(raw_content)
                     print(f"JSON parsed successfully. Keys: {list(parsed_json.keys())}")
-                    
+
+                    # Truncate title if too long
+                    if 'title' in parsed_json and len(parsed_json['title']) > 50:
+                        parsed_json['title'] = parsed_json['title'][:50]
+
                     # Convert back to Pydantic model
                     parsed_response = response_model(**parsed_json)
                     print("Manual parsing successful!")

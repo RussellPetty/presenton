@@ -29,6 +29,7 @@ from ppt_generator.models.llm_models import (
     LLM_CONTENT_TYPE_MAPPING,
 )
 from ppt_generator.models.slide_model import SlideModel
+from ppt_generator.slide_to_pptx_converter import convert_slides_to_pptx
 
 
 class GeneratePresentationHandler(FetchAssetsOnPresentationGenerationMixin):
@@ -138,21 +139,16 @@ class GeneratePresentationHandler(FetchAssetsOnPresentationGenerationMixin):
 
         if self.data.export_as == "pptx":
             print("-" * 40)
-            print("Fetching Slide Metadata for Export")
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"http://localhost/api/slide-metadata",
-                    json={
-                        "url": f"http://localhost/presentation?id={self.presentation_id}",
-                        "theme": self.theme["name"],
-                        "customColors": self.theme["colors"],
-                    },
-                ) as response:
-                    export_request_body = await response.json()
+            print("Converting Slides to PPTX Model")
+            # Use Python converter instead of Puppeteer scraping
+            pptx_model = convert_slides_to_pptx(slide_models, self.theme["name"])
 
             print("-" * 40)
             print("Exporting Presentation")
-            export_request_body["presentation_id"] = self.presentation_id
+            export_request_body = {
+                "presentation_id": self.presentation_id,
+                "pptx_model": pptx_model.model_dump(mode="json")
+            }
             export_request = ExportAsRequest(**export_request_body)
 
             presentation_and_path = await ExportAsPptxHandler(export_request).post(
