@@ -156,6 +156,16 @@ def convert_type6(slide: SlideModel, theme: dict) -> PptxSlideModel:
     for idx, item in enumerate(items):
         x = 80 + (idx * (col_width + spacing))
 
+        # Background card
+        shapes.append(PptxAutoShapeBoxModel(
+            position=PptxPositionModel(left=x - 10, top=start_y - 10, width=col_width + 20, height=370),
+            shape=PptxBoxShapeEnum.RECTANGLE,
+            fill=PptxFillModel(color="F8F9FA"),
+            stroke=PptxStrokeModel(color="E9ECEF", thickness=1),
+            border_radius=12,
+            shadow=PptxShadowModel(radius=8, offset=2, color="000000", opacity=0.1, angle=90)
+        ))
+
         # Heading
         shapes.append(PptxTextBoxModel(
             position=PptxPositionModel(left=x, top=start_y, width=col_width, height=50),
@@ -215,6 +225,16 @@ def convert_type7(slide: SlideModel, theme: dict) -> PptxSlideModel:
 
     for idx, item in enumerate(items):
         x, y = positions[idx]
+
+        # Background card
+        shapes.append(PptxAutoShapeBoxModel(
+            position=PptxPositionModel(left=x - 10, top=y - 10, width=box_width + 20, height=box_height + 20),
+            shape=PptxBoxShapeEnum.RECTANGLE,
+            fill=PptxFillModel(color="F8F9FA"),
+            stroke=PptxStrokeModel(color="E9ECEF", thickness=1),
+            border_radius=12,
+            shadow=PptxShadowModel(radius=8, offset=2, color="000000", opacity=0.1, angle=90)
+        ))
 
         # Icon (if exists)
         if idx < len(icons):
@@ -298,6 +318,16 @@ def convert_type8(slide: SlideModel, theme: dict) -> PptxSlideModel:
 
     for idx, item in enumerate(items):
         x, y = positions[idx]
+
+        # Background card
+        shapes.append(PptxAutoShapeBoxModel(
+            position=PptxPositionModel(left=x - 10, top=y - 10, width=540, height=180),
+            shape=PptxBoxShapeEnum.RECTANGLE,
+            fill=PptxFillModel(color="F8F9FA"),
+            stroke=PptxStrokeModel(color="E9ECEF", thickness=1),
+            border_radius=12,
+            shadow=PptxShadowModel(radius=8, offset=2, color="000000", opacity=0.1, angle=90)
+        ))
 
         # Icon (if exists)
         if idx < len(icons):
