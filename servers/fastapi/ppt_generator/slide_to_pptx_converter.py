@@ -80,7 +80,7 @@ def convert_type1(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=80, width=560, height=80),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.title,
                 font=PptxFontModel(name="Inter", size=44, bold=True, color=theme["title"])
             )]
@@ -92,7 +92,7 @@ def convert_type1(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=200, width=560, height=400),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.body,
                 font=PptxFontModel(name="Inter", size=18, bold=False, color=theme["body"])
             )]
@@ -125,7 +125,7 @@ def convert_type6(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=60, width=1120, height=70),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.title,
                 font=PptxFontModel(name="Inter", size=40, bold=True, color=theme["title"])
             )]
@@ -139,7 +139,7 @@ def convert_type6(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=80, top=150, width=1120, height=60),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=slide.content.description,
                     font=PptxFontModel(name="Inter", size=16, bold=False, color=theme["body"])
                 )]
@@ -161,7 +161,7 @@ def convert_type6(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x, top=start_y, width=col_width, height=50),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.heading,
                     font=PptxFontModel(name="Inter", size=20, bold=True, color=theme["heading"])
                 )]
@@ -173,7 +173,7 @@ def convert_type6(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x, top=start_y + 60, width=col_width, height=300),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.description,
                     font=PptxFontModel(name="Inter", size=14, bold=False, color=theme["body"])
                 )]
@@ -192,7 +192,7 @@ def convert_type7(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=60, width=1120, height=70),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.title,
                 font=PptxFontModel(name="Inter", size=40, bold=True, color=theme["title"])
             )]
@@ -235,7 +235,7 @@ def convert_type7(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x + 100, top=y + 30, width=400, height=40),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.heading,
                     font=PptxFontModel(name="Inter", size=18, bold=True, color=theme["heading"])
                 )]
@@ -247,7 +247,7 @@ def convert_type7(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x + 100, top=y + 80, width=400, height=100),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.description,
                     font=PptxFontModel(name="Inter", size=14, bold=False, color=theme["body"])
                 )]
@@ -266,7 +266,7 @@ def convert_type8(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=60, width=1120, height=70),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.title,
                 font=PptxFontModel(name="Inter", size=40, bold=True, color=theme["title"])
             )]
@@ -278,7 +278,7 @@ def convert_type8(slide: SlideModel, theme: dict) -> PptxSlideModel:
         position=PptxPositionModel(left=80, top=150, width=1120, height=60),
         paragraphs=[PptxParagraphModel(
             alignment=1,
-            runs=[PptxTextRunModel(
+            text_runs=[PptxTextRunModel(
                 text=slide.content.description,
                 font=PptxFontModel(name="Inter", size=16, bold=False, color=theme["body"])
             )]
@@ -318,7 +318,7 @@ def convert_type8(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x + 90, top=y + 25, width=410, height=35),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.heading,
                     font=PptxFontModel(name="Inter", size=16, bold=True, color=theme["heading"])
                 )]
@@ -330,7 +330,7 @@ def convert_type8(slide: SlideModel, theme: dict) -> PptxSlideModel:
             position=PptxPositionModel(left=x + 90, top=y + 65, width=410, height=90),
             paragraphs=[PptxParagraphModel(
                 alignment=1,
-                runs=[PptxTextRunModel(
+                text_runs=[PptxTextRunModel(
                     text=item.description,
                     font=PptxFontModel(name="Inter", size=13, bold=False, color=theme["body"])
                 )]
