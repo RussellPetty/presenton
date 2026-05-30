@@ -24,6 +24,7 @@ from utils.asset_directory_utils import (
     normalize_slide_asset_url,
 )
 from utils.icon_weights import DEFAULT_ICON_WEIGHT
+from services.chat.branding_assets import apply_brand_assets_to_content
 from utils.process_slides import (
     process_old_and_new_slides_and_fetch_assets,
     process_slide_and_fetch_assets,
@@ -245,9 +246,19 @@ class PresentationChatMemoryLayer:
     decoupled from storage details.
     """
 
-    def __init__(self, sql_session: AsyncSession, presentation_id: uuid.UUID):
+    def __init__(
+        self,
+        sql_session: AsyncSession,
+        presentation_id: uuid.UUID,
+        branding: dict[str, Any] | None = None,
+        partners: list[dict[str, Any]] | None = None,
+        uploaded_images: list[dict[str, Any]] | None = None,
+    ):
         self._sql_session = sql_session
         self._presentation_id = presentation_id
+        self._branding = branding or None
+        self._partners = partners or None
+        self._uploaded_images = uploaded_images or None
 
     async def get(self, key: str) -> Any:
         if key != "presentation_outline":
@@ -458,6 +469,23 @@ class PresentationChatMemoryLayer:
             return normalize_slide_asset_url(icons[0])
         return normalize_slide_asset_url("/static/icons/placeholder.svg")
 
+    def _apply_brand_assets(self, content: Any) -> None:
+        """Pin real brand/uploaded images into a slide's image slots before the
+        image processor would otherwise generate stock photos. Never fatal."""
+        if not (self._branding or self._partners or self._uploaded_images):
+            return
+        try:
+            changed = apply_brand_assets_to_content(
+                content,
+                self._branding,
+                self._partners,
+                self._uploaded_images,
+            )
+            if changed:
+                LOGGER.info("Pinned %s real brand/uploaded image(s) on slide save", changed)
+        except Exception:
+            LOGGER.exception("apply_brand_assets failed; falling back to generation")
+
     async def save_slide(
         self,
         *,
@@ -512,6 +540,9 @@ class PresentationChatMemoryLayer:
                 }
 
             updated_content = copy.deepcopy(content)
+            # Pin the user's/partners' real logo/headshot (and uploaded images) so
+            # they aren't replaced by AI-generated/stock images on save.
+            self._apply_brand_assets(updated_content)
             new_assets = await process_old_and_new_slides_and_fetch_assets(
                 image_generation_service=image_generation_service,
                 old_slide_content=existing_slide.content or {},
@@ -566,6 +597,9 @@ class PresentationChatMemoryLayer:
             self._sql_session.add(slide)
 
         new_slide_content = copy.deepcopy(content)
+        # Pin the user's/partners' real logo/headshot (and uploaded images) so they
+        # aren't replaced by AI-generated/stock images on save.
+        self._apply_brand_assets(new_slide_content)
         new_slide = SlideModel(
             presentation=self._presentation_id,
             layout_group=self._resolve_layout_group(presentation=presentation),

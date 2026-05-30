@@ -21,6 +21,7 @@ from services.chat.schemas import (
     WebSearchInput,
 )
 from services.chat.presentation_context_store import PresentationContextStore
+from services.chat.branding_assets import sanitize_brand
 
 LOGGER = logging.getLogger(__name__)
 
@@ -334,10 +335,10 @@ class ChatTools:
         }
 
     async def _get_branding_profiles(self, _: dict[str, Any]) -> dict[str, Any]:
-        user_profile = self._sanitize_brand(self._branding)
+        user_profile = sanitize_brand(self._branding)
         partner_profiles: list[dict[str, Any]] = []
         for partner in self._partners or []:
-            sanitized = self._sanitize_brand(partner)
+            sanitized = sanitize_brand(partner)
             if sanitized:
                 partner_profiles.append(sanitized)
 
@@ -451,64 +452,6 @@ class ChatTools:
             "query": payload.query,
             "answer": answer or "No results found.",
         }
-
-    # Whitelist of branding keys safe/useful to expose to the model. Maps several
-    # incoming field-name variants (broker user branding + partner records) to a
-    # single clean output key. Image data is exposed only as URLs (never base64).
-    _BRAND_FIELD_MAP: dict[str, tuple[str, ...]] = {
-        "name": ("fullName", "name", "full_name"),
-        "company_name": ("companyName", "company", "company_name"),
-        "title": ("title",),
-        "email": ("email",),
-        "phone": ("phone",),
-        "nmls": ("nmls",),
-        "company_nmls": ("companyNmls", "company_nmls"),
-        "license": ("license",),
-        "disclaimer": ("disclaimer",),
-        "logo_url": ("logoUrl", "logo_url", "logo"),
-        "headshot_url": ("headshotUrl", "headshot_url", "headshot"),
-        "meeting_link": ("meetingLink", "meeting_link"),
-        "website": ("website",),
-        "primary_color": ("primaryColor", "primary_color"),
-        "secondary_color": ("secondaryColor", "secondary_color"),
-        "type": ("type", "role"),
-    }
-
-    @classmethod
-    def _sanitize_brand(cls, raw: Any) -> dict[str, Any] | None:
-        if not isinstance(raw, dict):
-            return None
-
-        def clean_str(value: Any, limit: int = 2000) -> str | None:
-            if not isinstance(value, str):
-                return None
-            text = value.strip()
-            if not text or len(text) > limit:
-                # Drop empties and oversized values (e.g. inlined base64 blobs).
-                return None
-            return text
-
-        profile: dict[str, Any] = {}
-        for out_key, in_keys in cls._BRAND_FIELD_MAP.items():
-            for in_key in in_keys:
-                if in_key in raw:
-                    cleaned = clean_str(raw.get(in_key))
-                    if cleaned:
-                        profile[out_key] = cleaned
-                        break
-
-        social_raw = raw.get("socialLinks") or raw.get("social_links")
-        if isinstance(social_raw, dict):
-            socials = {
-                key: clean_str(value)
-                for key, value in social_raw.items()
-                if isinstance(key, str) and clean_str(value)
-            }
-            socials = {k: v for k, v in socials.items() if v}
-            if socials:
-                profile["social_links"] = socials
-
-        return profile or None
 
     async def _get_available_layouts(self, _: dict[str, Any]) -> dict[str, Any]:
         layouts = await self._memory.get_available_layouts()

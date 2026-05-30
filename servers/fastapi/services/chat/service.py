@@ -66,7 +66,13 @@ class PresentationChatService:
         self._conversation_id = conversation_id
 
         self._conversation_store = ChatConversationStore(sql_session, user_id)
-        self._memory = PresentationContextStore(sql_session, presentation_id)
+        self._memory = PresentationContextStore(
+            sql_session,
+            presentation_id,
+            branding=branding,
+            partners=partners,
+            uploaded_images=uploaded_images,
+        )
         self._tools = ChatTools(
             self._memory,
             branding=branding,
