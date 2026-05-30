@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -22,6 +23,8 @@ from models.sql.presentation import PresentationModel
 from services.chat import ChatTurnResult, PresentationChatService
 from services.chat import sql_chat_history
 from utils.request_scope import Scope, get_scope
+
+LOGGER = logging.getLogger(__name__)
 
 CHAT_ROUTER = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -113,6 +116,11 @@ async def chat_message_stream(
         conversation_id=payload.conversation_id,
         branding=payload.branding,
         partners=payload.partners,
+    )
+    LOGGER.info(
+        "chat stream: branding=%s partners=%d",
+        bool(payload.branding),
+        len(payload.partners or []),
     )
 
     async def inner():

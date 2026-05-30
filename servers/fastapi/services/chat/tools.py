@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -17,6 +18,7 @@ from services.chat.schemas import (
     SaveSlideInput,
     SearchSlidesInput,
     SetPresentationThemeInput,
+    WebSearchInput,
 )
 from services.chat.presentation_context_store import PresentationContextStore
 
@@ -41,6 +43,7 @@ class ChatTools:
             "getSlideAtIndex": self._get_slide_at_index,
             "getPresentationThemeCatalog": self._get_presentation_theme_catalog,
             "getBrandingProfiles": self._get_branding_profiles,
+            "webSearch": self._web_search,
             "getAvailableLayouts": self._get_available_layouts,
             "getContentSchemaFromLayoutId": self._get_content_schema_from_layout_id,
             "generateAssets": self._generate_assets,
@@ -112,6 +115,18 @@ class ChatTools:
                     "never invent contact details or NMLS numbers."
                 ),
                 schema=NoArgsInput,
+                strict=True,
+            ),
+            Tool(
+                name="webSearch",
+                description=(
+                    "Search the web with Google for current, real-world information not in the "
+                    "deck—recent mortgage/market rates, statistics, news, prices, dates, or facts. "
+                    "Returns a concise, grounded answer. Use it whenever the user asks for "
+                    "up-to-date or external information, then put the verified facts into slide "
+                    "content. Do not guess at time-sensitive numbers."
+                ),
+                schema=WebSearchInput,
                 strict=True,
             ),
             Tool(
@@ -326,6 +341,45 @@ class ChatTools:
                 "and the text fields (name, company, title, email, phone, nmls, disclaimer, etc.) "
                 "verbatim. Do not invent or alter contact details, NMLS, license, or disclaimers."
             ),
+        }
+
+    async def _web_search(self, args: dict[str, Any]) -> dict[str, Any]:
+        payload = WebSearchInput(**args)
+        # Run an isolated, Google-grounded generation (no function tools) so the
+        # built-in search tool never has to coexist with our function tools in the
+        # same request — Gemini does not reliably allow that combination.
+        from llmai import WebSearchTool, get_client
+        from llmai.shared import SystemMessage, UserMessage
+        from utils.llm_config import get_llm_config
+        from utils.llm_provider import get_model
+        from utils.llm_utils import extract_text
+
+        client = get_client(config=get_llm_config())
+        model = get_model()
+
+        def _run() -> Any:
+            return client.generate(
+                model=model,
+                messages=[
+                    SystemMessage(
+                        content=(
+                            "You are a web research assistant. Use Google Search to answer with "
+                            "current, factual information. Be concise; include key numbers, dates, "
+                            "and the source site(s)."
+                        )
+                    ),
+                    UserMessage(content=payload.query),
+                ],
+                tools=[WebSearchTool()],
+            )
+
+        response = await asyncio.to_thread(_run)
+        answer = (extract_text(response.content) or "").strip()
+        if len(answer) > 4000:
+            answer = answer[:4000] + "…"
+        return {
+            "query": payload.query,
+            "answer": answer or "No results found.",
         }
 
     # Whitelist of branding keys safe/useful to expose to the model. Maps several

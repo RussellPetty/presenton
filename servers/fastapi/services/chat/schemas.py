@@ -47,6 +47,10 @@ class GetContentSchemaFromLayoutIdInput(StrictSchemaModel):
     model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
 
+class WebSearchInput(StrictSchemaModel):
+    query: str = Field(min_length=1, max_length=1000)
+
+
 class GenerateImageInput(StrictSchemaModel):
     prompt: str = Field(min_length=1, max_length=4000)
 

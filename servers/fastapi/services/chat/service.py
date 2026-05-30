@@ -519,6 +519,7 @@ class PresentationChatService:
             "getSlideAtIndex": "Opening the requested slide",
             "getPresentationThemeCatalog": "Checking available themes",
             "getBrandingProfiles": "Looking up your branding",
+            "webSearch": "Searching the web",
             "getAvailableLayouts": "Checking available layouts",
             "getContentSchemaFromLayoutId": "Checking the layout schema",
             "generateAssets": "Generating slide assets",
