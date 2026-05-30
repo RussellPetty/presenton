@@ -42,15 +42,7 @@ const Header = () => {
     >
       <Wrapper className="px-5 sm:px-10 lg:px-20">
         <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/dashboard" })}>
-              <img
-                src="/logo-with-bg.png"
-                alt="Presentation logo"
-                className="h-[40px] w-[40px]"
-              />
-            </Link>
-          </div>
+          <div className="flex items-center gap-3" />
           <div className="flex items-center">
             {showHeaderBack ? (
               <Link

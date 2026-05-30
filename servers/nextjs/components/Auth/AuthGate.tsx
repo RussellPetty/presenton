@@ -185,9 +185,8 @@ export default function AuthGate() {
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6">
         <div className="relative z-10 w-full max-w-md">
           <div className="rounded-2xl border border-[#EDEEEF] bg-white p-8 text-center shadow-xl">
-            <img src="/Logo.png" alt="Presenton" className="mx-auto mb-5 h-12 opacity-95" />
             <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-[#7C51F8]" />
-            <h1 className="font-syne text-lg font-semibold text-black">Presenton</h1>
+            <h1 className="font-syne text-lg font-semibold text-black">Presentation AI</h1>
             <p className="mt-3 font-syne text-sm text-[#000000CC]">Preparing your workspace…</p>
             <div className="mt-6 flex justify-center gap-1.5">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#5146E5]" />
@@ -219,9 +218,6 @@ export default function AuthGate() {
       <section className="relative z-10 w-full max-w-xl rounded-2xl border border-[#E1E1E5] bg-white p-7 shadow-xl sm:p-10">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[4px] bg-[#F4F3FF] p-3">
-              <img src="/logo-with-bg.png" alt="" className="h-10 w-10 object-contain" />
-            </div>
             <div>
               <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7A5AF8]">
                 Secure instance

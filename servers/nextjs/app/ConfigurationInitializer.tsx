@@ -146,13 +146,7 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
       <div className="flex min-h-screen items-center justify-center bg-white p-4">
         <div className="w-full max-w-md">
           <div className="rounded-2xl border border-[#EDEEEF] bg-white p-8 text-center shadow-xl">
-            {/* Logo/Branding */}
             <div className="mb-6">
-              <img
-                src="/Logo.png"
-                alt="PresentOn"
-                className="mx-auto mb-4 h-12 opacity-90"
-              />
               <div className="mx-auto h-1 w-16 rounded-full bg-[#7C51F8]" />
             </div>
 
