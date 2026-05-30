@@ -112,6 +112,35 @@ controls) so the app renders with no login. Remove it once `AUTH_MODE=clerk` wor
 `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY_ID` (secret),
 `SUPABASE_S3_SECRET_ACCESS_KEY` (secret), bucket names.
 
+## Current validation deployment (broker-marketplace / production)
+
+Live record of the running setup (secrets live only in Railway, never here):
+
+| Item | Value |
+|------|-------|
+| Railway project | `broker-marketplace` (`ec2ff9b6-…`), env `production` |
+| Railway service | `presenton` (`a4788576-…`) |
+| Public URL | https://presenton-production-60a3.up.railway.app |
+| Public port | `PORT=8080` (nginx) |
+| Supabase project | `marketplace` (`ykpmcgklarfoqsorbdgf`), schema `presenton`, role `presenton_app` |
+| DB host | `aws-1-us-east-2.pooler.supabase.com:5432` (session pooler) |
+| LLM | `LLM=google`, `GOOGLE_MODEL=gemini-3.1-flash-lite` (key reused from the `Production!` service) |
+| Images | `IMAGE_PROVIDER=pexels` (key reused from `Production!`) |
+| `NEXT_PUBLIC_URL` | `http://127.0.0.1:8080` (internal nginx port for server-side export/schema fetches; start.js also defaults it) |
+| Auth | `DISABLE_AUTH=true` for this validation pass; flip to `AUTH_MODE=clerk` after the frontend bridge lands |
+| Clerk issuer (for later) | `https://clerk.broker-marketplace.com` |
+
+**✅ Validated 2026-05-30:** end-to-end deploy works — Alembic migrations created all
+tables in the `presenton` schema, FastAPI serves DB-backed endpoints, and a full
+3-slide deck generated via Gemini 3.1 Flash Lite + Pexels + Chromium PPTX export and
+persisted to Supabase (`presenton.presentations`/`slides`). Deploy-specific fixes
+required (all committed): Dockerfile cache mounts removed (Railway builder), `$PORT`
+nginx bind, `sslmode=require` → encrypt-without-verify (Supabase pooler cert), and
+internal fetches (`/schema`, `/api/template*`) routed to the nginx port instead of
+hardcoded `:80`.
+
+Validation pass is `CAN_CHANGE_KEYS=true` (skips strict model checks at boot); switch to `false` once confirmed. To move to real auth: build the frontend token bridge (Phase 1 frontend), create a Clerk JWT template, then set `AUTH_MODE=clerk`, `CLERK_ISSUER`, `NEXT_PUBLIC_PARENT_ORIGIN`, and remove `DISABLE_AUTH`.
+
 ## 5. Verify
 1. Deploy; logs show Alembic running and "Migrations run successfully".
 2. In Supabase, the `presenton` schema now contains Presenton's tables + `alembic_version`.
