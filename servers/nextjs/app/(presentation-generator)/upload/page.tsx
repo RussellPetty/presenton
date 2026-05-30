@@ -40,7 +40,7 @@ const page = () => {
     <div className="relative min-h-screen">
       <Header />
       <div className="flex flex-col items-center justify-center  mb-8 ">
-        <h1 className="text-[64px] relative leading-[112%] font-semibold font-syne text-[#101323] ">
+        <h1 className="text-[40px] sm:text-[64px] relative leading-[112%] font-semibold font-syne text-[#101323] ">
           Generate
 
           <svg className="absolute top-[-4rem] left-[-5rem]" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -54,7 +54,7 @@ const page = () => {
           </svg>
 
         </h1>
-        <p className="text-xl  font-syne text-[#101323CC]">Turn prompts or documents into presentations with AI</p>
+        <p className="text-base sm:text-xl px-4 text-center font-syne text-[#101323CC]">Turn prompts or documents into presentations with AI</p>
       </div>
 
       <UploadPage />

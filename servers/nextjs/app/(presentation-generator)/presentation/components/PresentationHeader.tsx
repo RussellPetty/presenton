@@ -453,7 +453,7 @@ const PresentationHeader = ({
             "disabled:pointer-events-none disabled:opacity-100 disabled:hover:bg-transparent"
           )}
         >
-          <h2 className="min-w-0 flex-1 font-unbounded text-lg w-[450px] leading-snug text-[#101323]">
+          <h2 className="min-w-0 flex-1 font-unbounded text-lg md:w-[450px] leading-snug text-[#101323]">
             <MarkdownRenderer
               content={presentationData?.title || "Presentation"}
               className="mb-0 min-w-0 overflow-hidden text-ellipsis line-clamp-1 text-sm text-[#101323] prose-p:my-0 prose-headings:my-0"
@@ -472,8 +472,8 @@ const PresentationHeader = ({
 
   return (
     <>
-      <div className="py-[18px] px-4 sticky top-0 bg-white z-50 shadow-sm font-syne flex justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
+      <div className="py-3 px-3 md:py-[18px] md:px-4 sticky top-0 bg-white z-50 shadow-sm font-syne flex flex-wrap justify-between items-center gap-2 gap-y-2 md:gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           {presentationData && !isStreaming && !isEditingTitle ? (
             <ToolTip content="Rename presentation">{titleBlock}</ToolTip>
           ) : (
@@ -481,7 +481,7 @@ const PresentationHeader = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
           {isPresentationSaving && (
             <div className="flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -491,9 +491,9 @@ const PresentationHeader = ({
             type="button"
             onClick={() => router.push("/dashboard")}
             aria-label="Back to Library"
-            className="text-sm px-[18px] py-2.5 gap-1.5 flex items-center border border-[#EDEEEF] bg-[#F6F6F9] hover:bg-[#EFEFF3] duration-300 rounded-[88px] font-medium font-syne text-black"
+            className="text-sm px-2.5 md:px-[18px] py-2 md:py-2.5 gap-1.5 flex items-center border border-[#EDEEEF] bg-[#F6F6F9] hover:bg-[#EFEFF3] duration-300 rounded-[88px] font-medium font-syne text-black"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Library
+            <ArrowLeft className="h-4 w-4 shrink-0" /> <span className="hidden md:inline">Back to Library</span>
           </button>
           {presentationData &&
             presentationData.slides &&
@@ -504,7 +504,7 @@ const PresentationHeader = ({
               />
             )}
 
-          <div className="flex items-center gap-2 bg-[#F6F6F9] px-3.5 h-[38px] border border-[#EDECEC] rounded-[80px]">
+          <div className="flex items-center gap-2 bg-[#F6F6F9] px-2.5 md:px-3.5 h-[34px] md:h-[38px] border border-[#EDECEC] rounded-[80px]">
             <ToolTip content="Regenerate Presentation">
               <button
                 type="button"
@@ -569,7 +569,7 @@ const PresentationHeader = ({
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <button
-                className="flex  items-center gap-[7px] px-[18px] py-[11px] rounded-[53px] text-sm font-semibold text-[#101323]"
+                className="flex items-center gap-[7px] px-3 md:px-[18px] py-2 md:py-[11px] rounded-[53px] text-sm font-semibold text-[#101323]"
                 style={{
                   background:
                     "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
