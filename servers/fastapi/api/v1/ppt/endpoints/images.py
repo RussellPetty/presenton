@@ -10,9 +10,14 @@ from utils.asset_directory_utils import (
     get_images_directory,
     normalize_slide_asset_url,
 )
-from utils.get_env import get_pexels_api_key_env, get_pixabay_api_key_env
+from utils.get_env import (
+    get_pexels_api_key_env,
+    get_pixabay_api_key_env,
+    is_supabase_storage_enabled,
+)
 from utils.image_provider import get_selected_image_provider
 from utils.request_scope import Scope, get_scope
+from services.object_storage import offload_local_image
 from enums.image_provider import ImageProvider
 import os
 import uuid
@@ -104,6 +109,8 @@ async def generate_image(
         return normalize_slide_asset_url(image) if isinstance(image, str) else image
 
     image.user_id = scope.user_id
+    if is_supabase_storage_enabled():
+        image.path = await offload_local_image(image.path, scope.user_id)
     sql_session.add(image)
     await sql_session.commit()
 
@@ -151,6 +158,9 @@ async def upload_image(
 
         with open(image_path, "wb") as f:
             f.write(await file.read())
+
+        if is_supabase_storage_enabled():
+            image_path = await offload_local_image(image_path, scope.user_id)
 
         image_asset = ImageAsset(
             path=image_path, is_uploaded=True, user_id=scope.user_id

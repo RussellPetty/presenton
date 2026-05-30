@@ -10,7 +10,9 @@ from utils.asset_directory_utils import (
     normalize_slide_asset_url,
 )
 from utils.dict_utils import get_dict_at_path, get_dict_paths_with_key, set_dict_at_path
+from utils.get_env import is_supabase_storage_enabled
 from utils.icon_weights import DEFAULT_ICON_WEIGHT, normalize_icon_weight
+from services.object_storage import offload_local_image
 
 
 async def process_slide_and_fetch_assets(
@@ -18,6 +20,7 @@ async def process_slide_and_fetch_assets(
     slide: SlideModel,
     outline_image_urls: Optional[List[str]] = None,
     icon_weight: str = DEFAULT_ICON_WEIGHT,
+    user_id: Optional[str] = None,
 ) -> List[ImageAsset]:
 
     async_tasks = []
@@ -68,9 +71,13 @@ async def process_slide_and_fetch_assets(
             image_dict = get_dict_at_path(slide.content, asset_path)
             if isinstance(result, ImageAsset):
                 return_assets.append(result)
-                image_dict["__image_url__"] = filesystem_image_path_to_app_data_url(
-                    result.path
-                )
+                if is_supabase_storage_enabled() and user_id:
+                    result.path = await offload_local_image(result.path, user_id)
+                    image_dict["__image_url__"] = result.path
+                else:
+                    image_dict["__image_url__"] = filesystem_image_path_to_app_data_url(
+                        result.path
+                    )
             else:
                 image_dict["__image_url__"] = normalize_slide_asset_url(result)
             set_dict_at_path(slide.content, asset_path, image_dict)
@@ -95,6 +102,7 @@ async def process_old_and_new_slides_and_fetch_assets(
     old_slide_content: dict,
     new_slide_content: dict,
     icon_weight: str = DEFAULT_ICON_WEIGHT,
+    user_id: Optional[str] = None,
 ) -> List[ImageAsset]:
     resolved_icon_weight = normalize_icon_weight(icon_weight)
     # Finds all old images
@@ -190,7 +198,15 @@ async def process_old_and_new_slides_and_fetch_assets(
             fetched_image = new_images[i]
             if isinstance(fetched_image, ImageAsset):
                 new_assets.append(fetched_image)
-                image_url = filesystem_image_path_to_app_data_url(fetched_image.path)
+                if is_supabase_storage_enabled() and user_id:
+                    fetched_image.path = await offload_local_image(
+                        fetched_image.path, user_id
+                    )
+                    image_url = fetched_image.path
+                else:
+                    image_url = filesystem_image_path_to_app_data_url(
+                        fetched_image.path
+                    )
             else:
                 image_url = normalize_slide_asset_url(fetched_image)
             new_image_dicts[i]["__image_url__"] = image_url

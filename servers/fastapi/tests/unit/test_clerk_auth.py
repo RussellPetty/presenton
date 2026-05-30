@@ -36,7 +36,7 @@ def stub_jwks(monkeypatch, keypair):
             return _SigningKey(self._key)
 
     monkeypatch.setattr(
-        clerk_auth, "_get_jwk_client", lambda: _Client(keypair.public_key())
+        clerk_auth, "_client_for", lambda _url: _Client(keypair.public_key())
     )
     return keypair
 
@@ -114,10 +114,16 @@ def test_authorized_party_allowlist(monkeypatch, stub_jwks):
     assert clerk_auth.verify_clerk_token(bad) is None
 
 
-def test_no_config_returns_none(monkeypatch):
-    # No JWKS configured at all -> cannot verify -> None (clean 401 upstream).
-    monkeypatch.setattr(clerk_auth, "_get_jwk_client", lambda: None)
-    assert clerk_auth.verify_clerk_token("anything") is None
+def test_untrusted_issuer_rejected(monkeypatch, stub_jwks):
+    # A valid token whose iss isn't in CLERK_ISSUER is rejected before key lookup.
+    monkeypatch.setenv("CLERK_ISSUER", "https://other.clerk.accounts.dev")
+    token = _make_token(stub_jwks)  # iss = ISSUER, not in the allow-list
+    assert clerk_auth.verify_clerk_token(token) is None
+
+
+def test_malformed_token_returns_none(monkeypatch):
+    monkeypatch.setenv("CLERK_ISSUER", "https://example.clerk.accounts.dev")
+    assert clerk_auth.verify_clerk_token("not-a-jwt") is None
 
 
 def test_empty_token_returns_none():

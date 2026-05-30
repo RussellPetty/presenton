@@ -169,7 +169,21 @@ async def upload_font(
         # Save the uploaded file
         with open(font_path, "wb") as buffer:
             shutil.copyfileobj(font_file.file, buffer)
-        
+
+        # Persist to Supabase Storage so the font survives container restarts;
+        # synced back to the local fonts dir on startup (the renderer reads local).
+        from utils.get_env import is_supabase_storage_enabled
+
+        if is_supabase_storage_enabled():
+            from services import object_storage
+
+            try:
+                await object_storage.upload_file(
+                    f"fonts/{unique_filename}", font_path, "application/octet-stream"
+                )
+            except Exception:
+                pass
+
         # Generate accessible URL
         font_url = absolute_fastapi_asset_url(f"/app_data/fonts/{unique_filename}")
         

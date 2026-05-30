@@ -10,6 +10,7 @@ When STORAGE_BACKEND is not 'supabase' these helpers are unused and the app keep
 writing to the local filesystem under APP_DATA_DIRECTORY (unchanged).
 """
 
+import mimetypes
 import os
 import uuid
 
@@ -98,6 +99,28 @@ async def download_to_path(key: str, dest_path: str) -> str:
     return dest_path
 
 
+# Long TTL for image URLs embedded in slide content (decks are viewed/edited over
+# time, and the headless export renderer fetches them). Non-sensitive deck imagery.
+IMAGE_SIGNED_URL_TTL = 31_536_000  # ~1 year
+
+
+async def offload_local_image(local_path: str, user_id: str) -> str:
+    """Upload a locally-rendered image to the private bucket and return a
+    long-lived signed URL, deleting the local temp copy (stateless). Used at
+    image-generation/upload time so slide content + assets reference Storage."""
+    ext = os.path.splitext(local_path)[1] or ".png"
+    filename = os.path.basename(local_path) or f"{uuid.uuid4()}{ext}"
+    key = build_key(user_id, "images", filename)
+    content_type = mimetypes.guess_type(local_path)[0] or "image/png"
+    await upload_file(key, local_path, content_type)
+    url = await create_signed_url(key, expires_in=IMAGE_SIGNED_URL_TTL)
+    try:
+        os.remove(local_path)
+    except OSError:
+        pass
+    return url
+
+
 async def delete(key: str) -> None:
     url, skey, bucket = _config()
     async with httpx.AsyncClient(timeout=30) as client:
@@ -108,13 +131,54 @@ async def delete(key: str) -> None:
             resp.raise_for_status()
 
 
+async def list_keys(prefix: str) -> list[str]:
+    """List object keys under a folder `prefix` (e.g. "fonts")."""
+    url, skey, bucket = _config()
+    folder = prefix.strip("/")
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{url}/storage/v1/object/list/{bucket}",
+            json={"prefix": folder, "limit": 1000},
+            headers={**_headers(skey), "Content-Type": "application/json"},
+        )
+        resp.raise_for_status()
+        items = resp.json() or []
+    keys: list[str] = []
+    for it in items:
+        name = it.get("name")
+        if name and it.get("id") and not name.endswith("/"):
+            keys.append(f"{folder}/{name}")
+    return keys
+
+
+async def sync_prefix_to_dir(prefix: str, local_dir: str) -> int:
+    """Download every object under `prefix` into `local_dir` (skipping files that
+    already exist locally). Used at startup to repopulate fonts on a fresh
+    (stateless) container. Returns the number of files downloaded."""
+    os.makedirs(local_dir, exist_ok=True)
+    count = 0
+    for key in await list_keys(prefix):
+        dest = os.path.join(local_dir, os.path.basename(key))
+        if os.path.exists(dest):
+            continue
+        try:
+            await download_to_path(key, dest)
+            count += 1
+        except Exception:
+            pass
+    return count
+
+
 __all__ = [
     "is_supabase_storage_enabled",
     "build_key",
     "upload_bytes",
     "upload_file",
+    "offload_local_image",
     "create_signed_url",
     "download_to_path",
+    "list_keys",
+    "sync_prefix_to_dir",
     "delete",
     "StorageConfigError",
 ]

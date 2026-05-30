@@ -93,6 +93,19 @@ async def app_lifespan(_: FastAPI):
     os.makedirs(get_app_data_directory_env(), exist_ok=True)
     await migrate_database_on_startup()
     await create_db_and_tables()
+    # Stateless container: repopulate uploaded fonts from Supabase Storage so the
+    # renderer finds them locally. Best-effort — never block startup.
+    from utils.get_env import is_supabase_storage_enabled
+
+    if is_supabase_storage_enabled():
+        try:
+            from services import object_storage
+            from api.v1.ppt.endpoints.fonts import get_fonts_directory
+
+            synced = await object_storage.sync_prefix_to_dir("fonts", get_fonts_directory())
+            logger.info("Synced %s font(s) from Supabase Storage", synced)
+        except Exception as exc:  # pragma: no cover - best effort
+            logger.warning("Font sync from storage skipped: %s", exc)
     # Clerk mode delegates identity to the parent app; there is no single-user
     # login to seed from AUTH_USERNAME/AUTH_PASSWORD.
     if not is_clerk_auth_enabled():

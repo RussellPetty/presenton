@@ -61,6 +61,7 @@ async def edit_slide(
         slide.content,
         edited_slide_content,
         icon_weight=presentation.get_layout().icon_weight,
+        user_id=scope.user_id,
     )
 
     # Stamp ownership on any newly created assets before they're persisted

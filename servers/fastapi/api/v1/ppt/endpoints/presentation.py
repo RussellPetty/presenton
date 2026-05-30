@@ -445,6 +445,7 @@ async def stream_presentation(
                         else None
                     ),
                     icon_weight=icon_weight,
+                    user_id=user_id,
                 )
             )
             async_assets_generation_tasks.append(asset_task)
@@ -938,6 +939,7 @@ async def generate_presentation_handler(
                         slide,
                         outline_image_urls=image_urls_for_batch[offset],
                         icon_weight=layout_model.icon_weight,
+                        user_id=user_id,
                     )
                 )
                 for offset, slide in enumerate(batch_slides)

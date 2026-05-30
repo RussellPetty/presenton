@@ -108,9 +108,19 @@ def is_clerk_auth_enabled() -> bool:
 
 
 def get_clerk_issuer_env():
-    """Clerk instance issuer, e.g. https://<slug>.clerk.accounts.dev (no trailing slash)."""
-    value = os.getenv("CLERK_ISSUER")
-    return value.strip().rstrip("/") if value and value.strip() else None
+    """First configured Clerk issuer (back-compat). Prefer get_clerk_issuers()."""
+    issuers = get_clerk_issuers()
+    return issuers[0] if issuers else None
+
+
+def get_clerk_issuers() -> list[str]:
+    """Allow-list of trusted Clerk issuers (comma-separated CLERK_ISSUER).
+
+    Supports embedding from multiple Clerk instances (e.g. a dev instance for the
+    local broker app and a prod custom-domain instance). Each token is verified
+    against the JWKS of its own `iss`, but only if `iss` is in this list."""
+    raw = os.getenv("CLERK_ISSUER") or ""
+    return [i.strip().rstrip("/") for i in raw.split(",") if i.strip()]
 
 
 def get_clerk_jwks_url_env():
