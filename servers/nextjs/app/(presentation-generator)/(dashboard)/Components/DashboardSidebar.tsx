@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette } from "lucide-react";
+import { LayoutDashboard, Star, Brain, Palette } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -15,15 +15,10 @@ export const defaultNavItems = [
 
 
 ];
-export const BelongingNavItems = [
-    { key: "settings" as const, label: "Settings", icon: Settings },
-]
-
 const DashboardSidebar = () => {
 
 
     const pathname = usePathname();
-    const activeTab = pathname.split("?")[0].split("/").pop();
 
 
 
@@ -85,34 +80,6 @@ const DashboardSidebar = () => {
                         </Link>
                     </div>
                 </nav>
-            </div>
-
-            <div className=" pt-5 border-t border-[#E1E1E5]  font-syne "
-            >
-                {BelongingNavItems.map(({ key, label: itemLabel, icon: Icon }) => {
-                    const isActive = activeTab === key;
-                    return (
-                        <Link
-                            prefetch={false}
-                            key={key}
-                            href={`/${key}`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors ",
-                                isActive ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label={itemLabel}
-                            title={itemLabel}
-                        >
-                            {/* <div className="flex items-center  ">
-                                <img src={imageProviderIcon} alt="image provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                                <img src={textProviderIcon} alt="text provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                            </div> */}
-                            <Settings className={`h-4 w-4 ${isActive ? "text-[#5146E5]" : "text-slate-600"}`} />
-                            <span className="text-[11px] text-slate-800">{itemLabel}</span>
-                        </Link>
-                    );
-                })}
-
             </div>
 
         </aside>
