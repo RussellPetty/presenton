@@ -103,6 +103,13 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
         ) ?? undefined
       : undefined;
   const effectiveExportCookie = exportCookie ?? exportCookieFromHash;
+  const exportTokenFromHash =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get(
+          "exportToken"
+        ) ?? undefined
+      : undefined;
+  const effectiveExportToken = exportTokenFromHash;
 
   const dispatch = useDispatch();
   const { presentationData } = useSelector(
@@ -129,8 +136,11 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
 
   const fetchUserSlides = async () => {
     try {
-      const data = effectiveExportCookie
-        ? await fetchPresentationForExport(presentation_id, effectiveExportCookie)
+      const data = (effectiveExportCookie || effectiveExportToken)
+        ? await fetchPresentationForExport(presentation_id, {
+            cookie: effectiveExportCookie,
+            token: effectiveExportToken,
+          })
         : await DashboardApi.getPresentation(presentation_id);
       const normalizedData = normalizeBackendAssetUrls(data);
       dispatch(setPresentationData(normalizedData));
@@ -157,13 +167,14 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
 
   const fetchPresentationForExport = async (
     id: string,
-    cookieHeader: string
+    auth: { cookie?: string; token?: string }
   ) => {
+    const headers: Record<string, string> = {};
+    if (auth.cookie) headers["x-export-cookie"] = auth.cookie;
+    if (auth.token) headers["x-export-token"] = auth.token;
     const response = await fetch(`/api/export-presentation-data/${id}`, {
       method: "GET",
-      headers: {
-        "x-export-cookie": cookieHeader,
-      },
+      headers,
       cache: "no-store",
     });
 

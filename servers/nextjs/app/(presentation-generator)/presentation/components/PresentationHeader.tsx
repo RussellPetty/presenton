@@ -22,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
+import { getHeader } from "../../services/api/header";
 import { useDispatch, useSelector } from "react-redux";
 
 import { RootState } from "@/store/store";
@@ -232,6 +233,7 @@ const PresentationHeader = ({
       } else {
         const response = await fetch("/api/export-presentation", {
           method: "POST",
+          headers: await getHeader(),
           body: JSON.stringify({
             format: "pptx",
             id: presentation_id,
@@ -297,6 +299,7 @@ const PresentationHeader = ({
       } else {
         const response = await fetch("/api/export-presentation", {
           method: "POST",
+          headers: await getHeader(),
           body: JSON.stringify({
             format: "pdf",
             id: presentation_id,

@@ -27,18 +27,26 @@ export async function GET(
   }
 
   const exportCookie = request.headers.get("x-export-cookie")?.trim();
-  if (!exportCookie) {
+  const exportToken = request.headers.get("x-export-token")?.trim();
+  if (!exportCookie && !exportToken) {
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
 
   const presentationUrl = `${getFastApiBaseUrl()}/api/v1/ppt/presentation/${id}`;
 
+  // Clerk mode: forward the broker token as a bearer (FastAPI verifies it and
+  // scopes to the owner). Single-user mode: forward the session cookie.
+  const upstreamHeaders: Record<string, string> = {};
+  if (exportToken) {
+    upstreamHeaders["Authorization"] = `Bearer ${exportToken}`;
+  } else if (exportCookie) {
+    upstreamHeaders["Cookie"] = exportCookie;
+  }
+
   try {
     const response = await fetch(presentationUrl, {
       method: "GET",
-      headers: {
-        Cookie: exportCookie,
-      },
+      headers: upstreamHeaders,
       cache: "no-store",
     });
 

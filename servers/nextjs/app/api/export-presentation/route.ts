@@ -33,6 +33,13 @@ function buildExportDownloadUrl(outPath: string): string {
 export async function POST(req: NextRequest) {
   const { format, id, title } = await req.json();
   const cookieHeader = req.headers.get("cookie") ?? "";
+  // Clerk mode: the caller forwards its Clerk bearer; pass it through so the
+  // headless export render can authenticate its presentation-data fetch
+  // (FastAPI verifies the token and scopes to the owner). No cookie exists.
+  const authHeader = req.headers.get("authorization") ?? "";
+  const authToken = /^bearer\s+/i.test(authHeader)
+    ? authHeader.replace(/^bearer\s+/i, "").trim()
+    : "";
 
   if (!id) {
     return NextResponse.json(
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
       presentationId: id,
       title,
       cookieHeader,
+      authToken,
     });
 
     return NextResponse.json({

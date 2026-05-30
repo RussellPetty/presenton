@@ -147,6 +147,7 @@ export async function runBundledPresentationExport(params: {
   title: string | undefined;
   format: BundledPresentationExportFormat;
   cookieHeader?: string;
+  authToken?: string;
 }): Promise<BundledPresentationExportResult> {
   return runBundledPresentationExportLocked(params);
 }
@@ -156,8 +157,9 @@ async function runBundledPresentationExportLocked(params: {
   title: string | undefined;
   format: BundledPresentationExportFormat;
   cookieHeader?: string;
+  authToken?: string;
 }): Promise<BundledPresentationExportResult> {
-  const { presentationId, title, format, cookieHeader } = params;
+  const { presentationId, title, format, cookieHeader, authToken } = params;
   const exportRoot = getExportPackageRoot();
   const entrypoint = await resolveExportEntrypoint(exportRoot);
   const converter = bundledConverterPath(exportRoot);
@@ -177,9 +179,14 @@ async function runBundledPresentationExportLocked(params: {
     q.set("fastapiUrl", fastapiUrl);
   }
   const basePptUrl = `${nextjsUrl}/pdf-maker?${q.toString()}`;
-  const pptUrl = cookieHeader?.trim()
-    ? `${basePptUrl}#exportCookie=${encodeURIComponent(cookieHeader)}`
-    : basePptUrl;
+  // Carry auth into the render via the URL fragment (never sent to a server /
+  // not logged): the broker Clerk token (clerk mode) and/or the session cookie
+  // (single-user mode). PdfMakerPage reads it and authenticates its data fetch.
+  const hashParams = new URLSearchParams();
+  if (cookieHeader?.trim()) hashParams.set("exportCookie", cookieHeader);
+  if (authToken?.trim()) hashParams.set("exportToken", authToken);
+  const hash = hashParams.toString();
+  const pptUrl = hash ? `${basePptUrl}#${hash}` : basePptUrl;
 
   const tempBase =
     process.env.TEMP_DIRECTORY?.trim() || path.join(os.tmpdir(), "presenton");
