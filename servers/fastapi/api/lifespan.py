@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from migrations import migrate_database_on_startup
 from services.database import create_db_and_tables, dispose_engines
-from utils.get_env import get_app_data_directory_env
+from utils.get_env import get_app_data_directory_env, is_clerk_auth_enabled
 from utils.model_availability import (
     check_llm_and_image_provider_api_or_model_availability,
 )
@@ -93,7 +93,10 @@ async def app_lifespan(_: FastAPI):
     os.makedirs(get_app_data_directory_env(), exist_ok=True)
     await migrate_database_on_startup()
     await create_db_and_tables()
-    _bootstrap_auth_from_env()
+    # Clerk mode delegates identity to the parent app; there is no single-user
+    # login to seed from AUTH_USERNAME/AUTH_PASSWORD.
+    if not is_clerk_auth_enabled():
+        _bootstrap_auth_from_env()
     await check_llm_and_image_provider_api_or_model_availability()
     yield
     # Shutdown: release all database connections to prevent stale/leaked pools.

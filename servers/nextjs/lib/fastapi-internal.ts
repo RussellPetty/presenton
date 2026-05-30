@@ -17,6 +17,13 @@ export function getFastApiBaseUrl(): string {
  * Uses AUTH_USERNAME/AUTH_PASSWORD env (docker-compose) when set.
  */
 export function getFastApiAuthHeaders(): Record<string, string> {
+  // Clerk mode: single-user Basic creds don't exist; trusted internal calls use
+  // the shared INTERNAL_API_SECRET that SessionAuthMiddleware accepts.
+  if (process.env.AUTH_MODE?.trim().toLowerCase() === "clerk") {
+    const secret = process.env.INTERNAL_API_SECRET?.trim();
+    return secret ? { Authorization: `Bearer ${secret}` } : {};
+  }
+
   const user = process.env.AUTH_USERNAME?.trim();
   const pass = process.env.AUTH_PASSWORD?.trim();
   if (user && pass) {

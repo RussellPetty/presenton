@@ -1,15 +1,33 @@
+import hmac
+
 from fastapi import Request
 from starlette.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.concurrency import run_in_threadpool
 
-from utils.get_env import get_can_change_keys_env, is_disable_auth_enabled
+from utils.clerk_auth import verify_clerk_token
+from utils.get_env import (
+    get_can_change_keys_env,
+    get_internal_api_secret_env,
+    is_clerk_auth_enabled,
+    is_disable_auth_enabled,
+)
 from utils.simple_auth import (
     get_auth_status,
     get_basic_auth_credentials_from_request,
+    get_bearer_token_from_request,
     get_session_token_from_request,
     verify_credentials,
 )
 from utils.user_config import update_env_with_user_config
+
+
+# Synthetic identity for trusted internal service-to-service calls (MCP, export
+# renderer, template SSR) that present INTERNAL_API_SECRET but carry no Clerk user.
+INTERNAL_SERVICE_USER_ID = "__internal_service__"
+# Header an internal caller may set alongside the secret to act as a specific
+# user (e.g. the export renderer re-fetching a deck on its owner's behalf).
+INTERNAL_USER_ID_HEADER = "X-Presenton-User-Id"
 
 
 class UserConfigEnvUpdateMiddleware(BaseHTTPMiddleware):
@@ -55,6 +73,37 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
+        if is_clerk_auth_enabled():
+            return await self._dispatch_clerk(request, call_next)
+
+        return await self._dispatch_single_user(request, call_next)
+
+    async def _dispatch_clerk(self, request: Request, call_next):
+        token = get_bearer_token_from_request(request)
+        if not token:
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+        # Trusted internal service-to-service calls present the shared secret
+        # instead of a Clerk user token, and may impersonate a specific user.
+        internal_secret = get_internal_api_secret_env()
+        if internal_secret and hmac.compare_digest(token, internal_secret):
+            impersonated = (request.headers.get(INTERNAL_USER_ID_HEADER) or "").strip()
+            user_id = impersonated or INTERNAL_SERVICE_USER_ID
+            request.state.external_user_id = user_id
+            request.state.auth_username = user_id
+            request.state.is_internal_service = True
+            return await call_next(request)
+
+        # Verify off the event loop: the first call per `kid` fetches JWKS.
+        external_user_id = await run_in_threadpool(verify_clerk_token, token)
+        if not external_user_id:
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+        request.state.external_user_id = external_user_id
+        request.state.auth_username = external_user_id
+        return await call_next(request)
+
+    async def _dispatch_single_user(self, request: Request, call_next):
         auth_status = get_auth_status(get_session_token_from_request(request))
         if not auth_status["configured"]:
             return JSONResponse(

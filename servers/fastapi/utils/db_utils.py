@@ -1,5 +1,9 @@
 import os
-from utils.get_env import get_app_data_directory_env, get_database_url_env
+from utils.get_env import (
+    get_app_data_directory_env,
+    get_database_url_env,
+    get_db_schema_env,
+)
 from urllib.parse import urlsplit, urlunsplit, parse_qsl
 import ssl
 
@@ -96,6 +100,17 @@ def get_database_url_and_connect_args() -> tuple[str, dict]:
             )
     except Exception:
         pass
+
+    # Route all Presenton tables through a dedicated Postgres schema when
+    # DB_SCHEMA is set (e.g. sharing a Supabase project with another app).
+    # asyncpg applies this as a per-connection `search_path`. Keep `public` in
+    # the path so built-in types/extensions stay resolvable; unqualified CREATE
+    # TABLE lands in the first entry (the dedicated schema).
+    schema = get_db_schema_env()
+    if schema and "postgresql" in database_url:
+        server_settings = connect_args.get("server_settings", {})
+        server_settings["search_path"] = f"{schema}, public"
+        connect_args["server_settings"] = server_settings
 
     return database_url, connect_args
 

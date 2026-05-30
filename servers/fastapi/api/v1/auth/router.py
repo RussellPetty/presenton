@@ -1,21 +1,28 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
+from utils.clerk_auth import verify_clerk_token
 from utils.simple_auth import (
     clear_session_cookie,
     create_session_token,
     get_auth_status,
     get_basic_auth_credentials_from_request,
+    get_bearer_token_from_request,
     get_session_token_from_request,
     is_auth_configured,
     set_session_cookie,
     setup_initial_credentials,
     verify_credentials,
 )
-from utils.get_env import is_disable_auth_enabled
+from utils.get_env import is_clerk_auth_enabled, is_disable_auth_enabled
 
 API_V1_AUTH_ROUTER = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
+
+# Credential endpoints (setup/login/logout) are meaningless in Clerk mode: the
+# parent app owns identity. They return 410 Gone instead of silently 404ing.
+CLERK_AUTH_DETAIL = "Authentication is managed by the parent application"
 
 
 class AuthCredentialsRequest(BaseModel):
@@ -27,6 +34,11 @@ class AuthCredentialsRequest(BaseModel):
 async def get_status(request: Request):
     if is_disable_auth_enabled():
         return {"configured": True, "authenticated": True, "username": "electron"}
+    if is_clerk_auth_enabled():
+        sub = await run_in_threadpool(
+            verify_clerk_token, get_bearer_token_from_request(request)
+        )
+        return {"configured": True, "authenticated": bool(sub), "username": sub}
     token = get_session_token_from_request(request)
     return get_auth_status(token)
 
@@ -35,6 +47,14 @@ async def get_status(request: Request):
 async def verify_session(request: Request):
     if is_disable_auth_enabled():
         return {"authenticated": True, "username": "electron"}
+
+    if is_clerk_auth_enabled():
+        sub = await run_in_threadpool(
+            verify_clerk_token, get_bearer_token_from_request(request)
+        )
+        if not sub:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return {"authenticated": True, "username": sub}
 
     auth_status = get_auth_status(get_session_token_from_request(request))
     if not auth_status["configured"]:
@@ -59,6 +79,8 @@ async def verify_session(request: Request):
 
 @API_V1_AUTH_ROUTER.post("/setup")
 async def setup_credentials(body: AuthCredentialsRequest, request: Request):
+    if is_clerk_auth_enabled():
+        raise HTTPException(status_code=410, detail=CLERK_AUTH_DETAIL)
     if is_auth_configured():
         raise HTTPException(status_code=409, detail="Credentials already configured")
 
@@ -79,6 +101,8 @@ async def setup_credentials(body: AuthCredentialsRequest, request: Request):
 
 @API_V1_AUTH_ROUTER.post("/login")
 async def login(body: AuthCredentialsRequest, request: Request):
+    if is_clerk_auth_enabled():
+        raise HTTPException(status_code=410, detail=CLERK_AUTH_DETAIL)
     if not is_auth_configured():
         raise HTTPException(status_code=428, detail="Login setup is required")
 
@@ -96,6 +120,8 @@ async def login(body: AuthCredentialsRequest, request: Request):
 
 @API_V1_AUTH_ROUTER.post("/logout")
 async def logout(request: Request):
+    if is_clerk_auth_enabled():
+        raise HTTPException(status_code=410, detail=CLERK_AUTH_DETAIL)
     response = JSONResponse({"success": True})
     clear_session_cookie(response, request)
     return response

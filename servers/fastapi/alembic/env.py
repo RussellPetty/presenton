@@ -54,15 +54,45 @@ def _get_url() -> str:
     return to_sync_sqlalchemy_url(url)
 
 
+def _get_schema() -> str | None:
+    """Dedicated Postgres schema for Presenton tables (DB_SCHEMA), or None."""
+    from utils.get_env import get_db_schema_env
+
+    return get_db_schema_env()
+
+
+def _prepare_schema(connection, schema: str) -> None:
+    """Ensure the dedicated schema exists and point this connection's
+    search_path at it, so migrations and the alembic_version table land in
+    `schema` instead of `public`. Postgres-only; a no-op for other dialects."""
+    if connection.dialect.name != "postgresql":
+        return
+
+    from sqlalchemy import text
+
+    try:
+        connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+    except Exception as exc:  # pragma: no cover - depends on DB privileges
+        # The schema may already exist and be owned by a more privileged role
+        # (the recommended Supabase setup grants the app role rights on it).
+        # Proceed; migrations fail loudly later if it genuinely is missing.
+        print(f"[alembic] could not ensure schema '{schema}': {exc}")
+
+    connection.execute(text(f'SET search_path TO "{schema}", public'))
+
+
 def run_migrations_offline() -> None:
     """Generate SQL script without connecting to the database."""
     url = _get_url()
+    schema = _get_schema()
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        version_table_schema=schema,
+        include_schemas=bool(schema),
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -78,11 +108,16 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+    schema = _get_schema()
     with connectable.connect() as connection:
+        if schema:
+            _prepare_schema(connection, schema)
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            version_table_schema=schema,
+            include_schemas=bool(schema),
         )
         with context.begin_transaction():
             context.run_migrations()

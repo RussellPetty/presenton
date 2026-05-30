@@ -15,6 +15,18 @@ def get_database_url_env():
     return os.getenv("DATABASE_URL")
 
 
+def get_db_schema_env():
+    """Optional Postgres schema that all Presenton tables live in.
+
+    Set this (e.g. DB_SCHEMA=presenton) to isolate Presenton's tables when
+    sharing a Postgres database/project with another app (e.g. a Supabase
+    project also used by broker-marketplace). Ignored for SQLite. The schema
+    must already exist or the DB role must be able to create it (see
+    alembic/env.py)."""
+    value = os.getenv("DB_SCHEMA")
+    return value.strip() if value and value.strip() else None
+
+
 def get_app_data_directory_env():
     return os.getenv("APP_DATA_DIRECTORY")
 
@@ -44,6 +56,53 @@ def get_disable_auth_env():
 
 def is_disable_auth_enabled():
     return _is_truthy(get_disable_auth_env())
+
+
+# --- Clerk auth (iframe embedding) -----------------------------------------
+# When AUTH_MODE=clerk, Presenton trusts a Clerk-issued JWT (verified against
+# the Clerk instance's JWKS) instead of its built-in single-user login. See
+# utils/clerk_auth.py and api/middlewares.py.
+
+
+def get_auth_mode_env():
+    return os.getenv("AUTH_MODE")
+
+
+def is_clerk_auth_enabled() -> bool:
+    return (get_auth_mode_env() or "").strip().lower() == "clerk"
+
+
+def get_clerk_issuer_env():
+    """Clerk instance issuer, e.g. https://<slug>.clerk.accounts.dev (no trailing slash)."""
+    value = os.getenv("CLERK_ISSUER")
+    return value.strip().rstrip("/") if value and value.strip() else None
+
+
+def get_clerk_jwks_url_env():
+    """Explicit JWKS URL; defaults to {CLERK_ISSUER}/.well-known/jwks.json when unset."""
+    value = os.getenv("CLERK_JWKS_URL")
+    return value.strip() if value and value.strip() else None
+
+
+def get_clerk_audience_env():
+    value = os.getenv("CLERK_AUDIENCE")
+    return value.strip() if value and value.strip() else None
+
+
+def get_clerk_authorized_parties_env():
+    """Optional allow-list of `azp` values (comma-separated), or None."""
+    raw = os.getenv("CLERK_AUTHORIZED_PARTIES")
+    if not raw:
+        return None
+    parties = [p.strip() for p in raw.split(",") if p.strip()]
+    return parties or None
+
+
+def get_internal_api_secret_env():
+    """Shared secret for trusted service-to-service calls (MCP, export renderer,
+    template SSR) that have no Clerk user token. See api/middlewares.py."""
+    value = os.getenv("INTERNAL_API_SECRET")
+    return value.strip() if value and value.strip() else None
 
 
 def get_llm_provider_env():

@@ -38,8 +38,12 @@ const canChangeKeys = process.env.CAN_CHANGE_KEYS !== "false";
 const fastapiPort = 8000;
 const nextjsPort = 3000;
 const appmcpPort = 8001;
-/** Must match `listen` in nginx.conf (public HTTP inside the container). */
-const nginxListenPort = 80;
+/**
+ * Public HTTP port nginx listens on. Defaults to 80 (matches nginx.conf), but
+ * PaaS platforms like Railway inject a $PORT the public listener MUST bind to;
+ * `configureNginxListenPort` rewrites nginx.conf's `listen` directive to this.
+ */
+const nginxListenPort = Number(process.env.PORT) || 80;
 
 const appDataDirectory = process.env.APP_DATA_DIRECTORY;
 if (!appDataDirectory) {
@@ -587,6 +591,42 @@ const startServers = async (nginxReadyPromise) => {
   process.exit(exitCode);
 };
 
+/**
+ * Rewrite nginx.conf's public `listen` directive to `listenPort`. Railway (and
+ * similar platforms) route external traffic to an injected $PORT, while nginx
+ * ships listening on 80. Internal upstreams (Next.js/FastAPI/MCP) keep their
+ * fixed loopback ports; only the single public listener moves. No-op when the
+ * port is already 80 or the config file is absent (e.g. local non-container run).
+ */
+const configureNginxListenPort = (listenPort) => {
+  if (listenPort === 80) {
+    return;
+  }
+
+  const nginxConfPath = process.env.NGINX_CONF_PATH || "/etc/nginx/nginx.conf";
+  try {
+    if (!existsSync(nginxConfPath)) {
+      console.warn(
+        `nginx config not found at ${nginxConfPath}; cannot bind public port ${listenPort}`
+      );
+      return;
+    }
+
+    const original = readFileSync(nginxConfPath, "utf8");
+    // Replace only the first `listen <port>;` (the public server block).
+    const updated = original.replace(/\blisten\s+\d+;/, `listen ${listenPort};`);
+    if (updated === original) {
+      console.warn(`No \`listen\` directive found to rewrite in ${nginxConfPath}`);
+      return;
+    }
+
+    writeFileSync(nginxConfPath, updated);
+    console.log(`Configured nginx to listen on port ${listenPort}`);
+  } catch (error) {
+    console.error(`Failed to set nginx listen port to ${listenPort}:`, error);
+  }
+};
+
 // Start nginx service (reverse proxy: see nginx.conf listen + upstream ports)
 const startNginx = () => {
   return new Promise((resolve) => {
@@ -624,6 +664,7 @@ const main = async () => {
     setupUserConfigFromEnv();
   }
 
+  configureNginxListenPort(nginxListenPort);
   const nginxReadyPromise = startNginx();
   startServers(nginxReadyPromise);
   await nginxReadyPromise;

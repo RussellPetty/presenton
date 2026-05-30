@@ -9,7 +9,12 @@ from typing import Optional
 from fastapi import Request
 from starlette.responses import Response
 
-from utils.get_env import get_user_config_path_env, is_disable_auth_enabled
+from utils.get_env import (
+    get_internal_api_secret_env,
+    get_user_config_path_env,
+    is_clerk_auth_enabled,
+    is_disable_auth_enabled,
+)
 from utils.user_config_store import read_user_config_file, update_user_config_file
 
 SESSION_COOKIE_NAME = "presenton_session"
@@ -254,6 +259,14 @@ def get_session_token_from_request(request: Request) -> Optional[str]:
     if cookie_token:
         return cookie_token
 
+    return get_bearer_token_from_request(request)
+
+
+def get_bearer_token_from_request(request: Request) -> Optional[str]:
+    """Return only the `Authorization: Bearer <token>` value (ignores cookies).
+
+    Clerk mode uses this so a stale `presenton_session` cookie can't shadow the
+    Clerk JWT sent in the Authorization header from inside the iframe."""
     auth_header = request.headers.get("Authorization", "")
     if auth_header.lower().startswith("bearer "):
         return auth_header[7:].strip() or None
@@ -307,6 +320,13 @@ def get_internal_auth_headers() -> dict[str, str]:
     """Return auth headers for trusted same-host service-to-service API calls."""
     if is_disable_auth_enabled():
         return {}
+
+    # Clerk mode has no single-user session token; trusted internal callers
+    # (MCP server, export renderer, template SSR) authenticate with the shared
+    # INTERNAL_API_SECRET, which SessionAuthMiddleware accepts as a bypass.
+    if is_clerk_auth_enabled():
+        secret = get_internal_api_secret_env()
+        return {"Authorization": f"Bearer {secret}"} if secret else {}
 
     username = get_configured_auth_username()
     if not username:
