@@ -31,6 +31,7 @@ export class DashboardApi {
         getApiUrl(`/api/v1/ppt/presentation/all`),
         {
           method: "GET",
+          headers: await getHeader(),
         }
       );
 
@@ -53,7 +54,7 @@ export class DashboardApi {
         getApiUrl(`/api/v1/ppt/presentation/${id}`),
         {
           method: "GET",
-          credentials: "include",
+          headers: await getHeader(),
         }
       );
 
