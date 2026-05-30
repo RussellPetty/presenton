@@ -46,6 +46,31 @@ def get_temp_directory_env():
     return os.getenv("TEMP_DIRECTORY")
 
 
+def get_storage_backend_env() -> str:
+    """'local' (default, filesystem under APP_DATA_DIRECTORY) or 'supabase'
+    (Supabase Storage). Gates services/object_storage.py."""
+    return (os.getenv("STORAGE_BACKEND") or "local").strip().lower()
+
+
+def is_supabase_storage_enabled() -> bool:
+    return get_storage_backend_env() == "supabase"
+
+
+def get_supabase_url_env():
+    value = os.getenv("SUPABASE_URL")
+    return value.strip().rstrip("/") if value and value.strip() else None
+
+
+def get_supabase_service_role_key_env():
+    value = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    return value.strip() if value and value.strip() else None
+
+
+def get_supabase_storage_bucket_env() -> str:
+    value = os.getenv("SUPABASE_STORAGE_BUCKET")
+    return value.strip() if value and value.strip() else "presentations"
+
+
 def get_internal_app_base_url() -> str:
     """Loopback base URL for server-side fetches of nginx/Next.js-served pages
     (template `/schema`, `/api/template`, `/api/template/custom`).
