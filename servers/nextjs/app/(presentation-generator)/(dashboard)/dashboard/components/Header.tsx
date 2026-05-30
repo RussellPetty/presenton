@@ -5,7 +5,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 const PATHS_WITH_HEADER_BACK = [
   "/upload",
@@ -27,11 +27,8 @@ const Header = () => {
   const backToTemplates = pathMatches(pathname, "/template-preview");
 
   const backHref = backToUpload ? "/upload" : backToTemplates ? "/templates" : "/dashboard";
-  const backLabel = backToUpload
-    ? "BACK"
-    : backToTemplates
-      ? "BACK"
-      : "BACK";
+  const isLibrary = backHref === "/dashboard";
+  const backLabel = isLibrary ? "Go to Library" : "Back";
 
   return (
     <div className="w-full   sticky top-0 z-50 py-7 "
@@ -47,13 +44,22 @@ const Header = () => {
             {showHeaderBack ? (
               <Link
                 href={backHref}
-                className="text-[#333333] text-xs font-syne font-semibold flex items-center gap-2"
+                style={{
+                  background:
+                    "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                }}
+                className="w-fit rounded-[28px] flex items-center justify-center gap-1.5 py-3 px-5 text-[#101323] font-syne font-semibold text-xs animate-glow-pulse"
                 onClick={() =>
                   trackEvent(MixpanelEvent.Navigation, { from: pathname, to: backHref })
                 }
               >
-                <ArrowLeft className="w-4 h-4 shrink-0 text-[#333333]" aria-hidden />
+                {!isLibrary && (
+                  <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden />
+                )}
                 <span>{backLabel}</span>
+                {isLibrary && (
+                  <ChevronRight className="!w-5 !h-5 shrink-0" aria-hidden />
+                )}
               </Link>
             ) : null}
           </div>
