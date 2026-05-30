@@ -37,6 +37,9 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const pathname = usePathname();
   // State management
   const [loading, setLoading] = useState(true);
+  // On phones the slide canvas and the AI Assistant can't sit side-by-side, so a
+  // mobile-only toggle switches between them (desktop shows both as before).
+  const [mobileTab, setMobileTab] = useState<"slides" | "assistant">("slides");
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isChatSending, setIsChatSending] = useState(false);
@@ -296,8 +299,28 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
         className="relative flex h-full flex-col overflow-hidden"
       >
         <PresentationHeader presentation_id={presentation_id} isPresentationSaving={isSaving} currentSlide={selectedSlide} />
-        <div className="flex flex-1 min-h-0 gap-6 overflow-hidden">
-          <div className="w-[120px] h-full shrink-0 self-start sticky top-0 pt-[18px]">
+        {/* Mobile-only toggle — slides canvas vs AI assistant (can't fit side-by-side on a phone) */}
+        <div className="flex gap-1 px-3 pt-2 md:hidden">
+          {([
+            { key: "slides", label: "Slides" },
+            { key: "assistant", label: "Assistant" },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setMobileTab(tab.key)}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                mobileTab === tab.key
+                  ? "bg-[#5146E5] text-white"
+                  : "bg-white text-[#667085] ring-1 ring-inset ring-slate-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-1 min-h-0 gap-0 md:gap-6 overflow-hidden">
+          <div className="hidden md:block w-[120px] h-full shrink-0 self-start sticky top-0 pt-[18px]">
             <SidePanel
               selectedSlide={selectedSlide}
               onSlideClick={handleSlideClick}
@@ -305,7 +328,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               loading={loading}
             />
           </div>
-          <div className="w-full min-w-0 h-full flex-1 pt-[18px]">
+          <div
+            className={`${
+              mobileTab === "slides" ? "block" : "hidden"
+            } md:block w-full min-w-0 h-full flex-1 pt-[18px]`}
+          >
             <div
               ref={slidesScrollContainerRef}
               className="font-inter h-full overflow-y-auto hide-scrollbar scroll-pt-[18px]"
@@ -353,7 +380,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               </div>
             </div>
           </div>
-          <div className="w-full max-w-[370px] h-full shrink-0 self-start sticky top-0">
+          <div
+            className={`${
+              mobileTab === "assistant" ? "block" : "hidden"
+            } md:block w-full md:max-w-[370px] h-full shrink-0 self-start sticky top-0`}
+          >
             <Chat
               presentationId={presentation_id}
               currentSlide={selectedSlide}

@@ -26,7 +26,7 @@ const DashboardSidebar = () => {
 
     return (
         <aside
-            className="sticky top-0 h-screen w-[115px] flex flex-col justify-between bg-[#F6F6F9] backdrop-blur border-r border-[#E1E1E5] px-4  py-8"
+            className="sticky top-0 h-screen w-[72px] md:w-[115px] flex flex-col justify-between bg-[#F6F6F9] backdrop-blur border-r border-[#E1E1E5] px-2 md:px-4 py-4 md:py-8"
             aria-label="Dashboard sidebar"
         >
             <div>
