@@ -90,6 +90,14 @@ async def app_lifespan(_: FastAPI):
     availability.
     """
     _configure_application_logging()
+    # Preserve Gemini thought-signatures across chat tool-call rounds (patches the
+    # pinned llmai GoogleClient). Must run before any LLM client is created.
+    try:
+        from utils.llmai_google_patch import apply as apply_thought_signature_patch
+
+        apply_thought_signature_patch()
+    except Exception as exc:  # pragma: no cover - never fatal
+        logger.warning("thought-signature patch not applied: %s", exc)
     os.makedirs(get_app_data_directory_env(), exist_ok=True)
     await migrate_database_on_startup()
     await create_db_and_tables()
