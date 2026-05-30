@@ -975,6 +975,7 @@ async def generate_presentation_handler(
             presentation.title or str(uuid.uuid4()),
             request.export_as,
             cookie_header=export_cookie_header,
+            user_id=user_id,
         )
 
         response = PresentationPathAndEditPath(
@@ -1144,6 +1145,7 @@ async def edit_presentation_with_new_content(
         presentation.title or str(uuid.uuid4()),
         data.export_as,
         cookie_header=_build_export_cookie_header(request_http),
+        user_id=scope.user_id,
     )
 
     return PresentationPathAndEditPath(
@@ -1191,6 +1193,7 @@ async def derive_presentation_from_existing_one(
         new_presentation.title or str(uuid.uuid4()),
         data.export_as,
         cookie_header=_build_export_cookie_header(request_http),
+        user_id=scope.user_id,
     )
 
     return PresentationPathAndEditPath(
