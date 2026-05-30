@@ -6,6 +6,7 @@ import {
   Redo2,
   Undo2,
   RotateCcw,
+  ArrowLeft,
   ArrowRightFromLine,
   ArrowUpRight,
   Pencil,
@@ -483,6 +484,14 @@ const PresentationHeader = ({
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            aria-label="Back to Library"
+            className="text-sm px-[18px] py-2.5 gap-1.5 flex items-center border border-[#EDEEEF] bg-[#F6F6F9] hover:bg-[#EFEFF3] duration-300 rounded-[88px] font-medium font-syne text-black"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Library
+          </button>
           {presentationData &&
             presentationData.slides &&
             !presentationData.slides[0].layout.includes("custom") && (
