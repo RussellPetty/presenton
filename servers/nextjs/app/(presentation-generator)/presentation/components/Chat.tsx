@@ -3,13 +3,14 @@
 import {
   ChevronDown,
   ChevronRight,
+  ImageIcon,
   Loader2,
   LocateFixed,
   MessageCircleMore,
-  Plus,
   RefreshCw,
   Send,
   Square,
+  X,
 } from "lucide-react";
 import React, {
   FormEvent,
@@ -24,6 +25,9 @@ import { notify } from "@/components/ui/sonner";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { PresentationChatApi } from "../../services/api/chat";
 import type { ChatStreamTrace } from "../../services/api/chat";
+import { ImagesApi } from "../../services/api/images";
+
+type ChatAttachment = { url: string; name: string; id?: string };
 
 const suggestions: { id: string; icon: ReactNode; suggestion: string }[] = [
   {
@@ -499,6 +503,8 @@ const Chat = ({
   onFollowModeChange,
 }: ChatProps) => {
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -514,6 +520,7 @@ const Chat = ({
   >({});
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastFollowedTraceRef = useRef<string | null>(null);
@@ -897,12 +904,60 @@ const Chat = ({
     abortControllerRef.current?.abort();
   };
 
+  const handleAttachClick = () => {
+    if (isSending || isHistoryLoading || isUploadingImage) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFilesSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!files.length) return;
+
+    setIsUploadingImage(true);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+          notify.error("Unsupported file", "Please attach an image file.");
+          continue;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+          notify.error("Image too large", "Please attach an image under 15MB.");
+          continue;
+        }
+        const asset = await ImagesApi.uploadImage(file);
+        const url = (asset as { file_url?: string })?.file_url;
+        if (url) {
+          setAttachments((previous) => [
+            ...previous,
+            { url, name: file.name, id: (asset as { id?: string })?.id },
+          ]);
+        }
+      }
+    } catch (error) {
+      notify.error(
+        "Upload failed",
+        error instanceof Error ? error.message : "Could not upload the image."
+      );
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((previous) => previous.filter((_, i) => i !== index));
+  };
+
   const submitMessage = async (rawMessage: string) => {
     const trimmedMessage = rawMessage.trim();
 
     if (!trimmedMessage || isSending || isHistoryLoading) {
       return;
     }
+
+    const attachmentsForRequest = attachments;
 
     if (!presentationId) {
       notify.error("Presentation not ready", "The presentation is not ready yet.");
@@ -932,6 +987,7 @@ const Chat = ({
       [assistantMessageId]: false,
     }));
     setInput("");
+    setAttachments([]);
     setErrorMessage(null);
     setIsSending(true);
     setActiveAssistantMessageId(assistantMessageId);
@@ -947,6 +1003,9 @@ const Chat = ({
           presentation_id: presentationId,
           message: buildBackendMessage(trimmedMessage),
           conversation_id: conversationId ?? undefined,
+          uploaded_images: attachmentsForRequest.length
+            ? attachmentsForRequest.map((a) => ({ url: a.url, name: a.name }))
+            : undefined,
         },
         {
           onChunk: (chunk) => {
@@ -1316,16 +1375,56 @@ const Chat = ({
           placeholder="Improve your slides..."
           aria-invalid={Boolean(errorMessage)}
         />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFilesSelected}
+        />
+        {attachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {attachments.map((attachment, index) => (
+              <div
+                key={`${attachment.url}-${index}`}
+                className="group relative h-12 w-12 overflow-hidden rounded-[6px] border border-[#EDEEEF]"
+                title={attachment.name}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attachment.url}
+                  alt={attachment.name}
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(index)}
+                  className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl-[6px] bg-black/60 text-white"
+                  aria-label={`Remove ${attachment.name}`}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              disabled
-              className="inline-flex h-[28px] items-center rounded-[64px] border border-[#EDEEEF] bg-white px-3 py-1 opacity-50"
-              aria-label="Attach files"
-              title="Attachments are not supported yet"
+              onClick={handleAttachClick}
+              disabled={isSending || isHistoryLoading || isUploadingImage}
+              className="inline-flex h-[28px] items-center gap-1 rounded-[64px] border border-[#EDEEEF] bg-white px-3 py-1 text-[11px] font-medium text-[#667085] transition-colors hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Attach image"
+              title="Attach an image for the assistant to use"
             >
-              <Plus className="h-3 w-3 text-black" />
+              {isUploadingImage ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <ImageIcon className="h-3 w-3 text-black" />
+              )}
+              <span>Image</span>
             </button>
             <button
               type="button"

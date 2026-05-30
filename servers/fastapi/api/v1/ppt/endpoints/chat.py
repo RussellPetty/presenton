@@ -93,6 +93,7 @@ async def chat_message(
         conversation_id=payload.conversation_id,
         branding=payload.branding,
         partners=payload.partners,
+        uploaded_images=payload.uploaded_images,
     )
     result = await service.generate_reply(payload.message)
     return ChatMessageResponse(
@@ -116,6 +117,7 @@ async def chat_message_stream(
         conversation_id=payload.conversation_id,
         branding=payload.branding,
         partners=payload.partners,
+        uploaded_images=payload.uploaded_images,
     )
     LOGGER.info(
         "chat stream: branding=%s partners=%d",

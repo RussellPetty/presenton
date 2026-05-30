@@ -33,16 +33,23 @@ class ChatTools:
         memory: PresentationContextStore,
         branding: dict[str, Any] | None = None,
         partners: list[dict[str, Any]] | None = None,
+        uploaded_images: list[dict[str, Any]] | None = None,
+        sql_session: Any | None = None,
+        user_id: str | None = None,
     ):
         self._memory = memory
         self._branding = branding or None
         self._partners = partners or None
+        self._uploaded_images = uploaded_images or None
+        self._sql_session = sql_session
+        self._user_id = user_id
         self._tool_handlers: dict[str, ToolHandler] = {
             "getPresentationOutline": self._get_presentation_outline,
             "searchSlides": self._search_slides,
             "getSlideAtIndex": self._get_slide_at_index,
             "getPresentationThemeCatalog": self._get_presentation_theme_catalog,
             "getBrandingProfiles": self._get_branding_profiles,
+            "getMyImages": self._get_my_images,
             "webSearch": self._web_search,
             "getAvailableLayouts": self._get_available_layouts,
             "getContentSchemaFromLayoutId": self._get_content_schema_from_layout_id,
@@ -113,6 +120,18 @@ class ChatTools:
                     "closing slide', or 'use <realtor name>'s branding'. "
                     "Use the returned logo/headshot URLs as image values and the text fields verbatim; "
                     "never invent contact details or NMLS numbers."
+                ),
+                schema=NoArgsInput,
+                strict=True,
+            ),
+            Tool(
+                name="getMyImages",
+                description=(
+                    "List the user's own images available to place on slides: images attached to "
+                    "the current message plus their uploaded/generated image library. Call this when "
+                    "the user says 'use this image/photo', 'the image I uploaded', 'add my photo', or "
+                    "'use one of my images'. Set the target slide image's __image_url__ to the chosen "
+                    "image's url — do NOT generate or stock-search an image when the user wants their own."
                 ),
                 schema=NoArgsInput,
                 strict=True,
@@ -340,6 +359,56 @@ class ChatTools:
                 "Use these real values on slides: put logo_url/headshot_url into image fields "
                 "and the text fields (name, company, title, email, phone, nmls, disclaimer, etc.) "
                 "verbatim. Do not invent or alter contact details, NMLS, license, or disclaimers."
+            ),
+        }
+
+    async def _get_my_images(self, _: dict[str, Any]) -> dict[str, Any]:
+        attached: list[dict[str, Any]] = []
+        for item in self._uploaded_images or []:
+            if not isinstance(item, dict):
+                continue
+            url = item.get("url") or item.get("file_url")
+            if isinstance(url, str) and url.strip():
+                entry: dict[str, Any] = {"url": url.strip()}
+                name = item.get("name")
+                if isinstance(name, str) and name.strip():
+                    entry["name"] = name.strip()
+                attached.append(entry)
+
+        library: list[dict[str, Any]] = []
+        if self._sql_session is not None and self._user_id:
+            try:
+                from sqlmodel import select
+
+                from models.sql.image_asset import ImageAsset
+                from utils.asset_directory_utils import (
+                    filesystem_image_path_to_app_data_url,
+                )
+
+                result = await self._sql_session.scalars(
+                    select(ImageAsset)
+                    .where(ImageAsset.user_id == self._user_id)
+                    .order_by(ImageAsset.created_at.desc())
+                    .limit(30)
+                )
+                for asset in result:
+                    library.append(
+                        {
+                            "url": filesystem_image_path_to_app_data_url(asset.path),
+                            "kind": "uploaded" if asset.is_uploaded else "generated",
+                            "id": str(asset.id),
+                        }
+                    )
+            except Exception:
+                LOGGER.exception("getMyImages: library lookup failed")
+
+        return {
+            "attached_to_this_message": attached,
+            "library": library,
+            "count": len(attached) + len(library),
+            "message": (
+                "Place a chosen image by setting the slide image's __image_url__ to its url. "
+                "When the user says 'this image', prefer attached_to_this_message."
             ),
         }
 

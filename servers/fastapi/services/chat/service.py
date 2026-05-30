@@ -58,6 +58,7 @@ class PresentationChatService:
         conversation_id: uuid.UUID | None,
         branding: dict[str, Any] | None = None,
         partners: list[dict[str, Any]] | None = None,
+        uploaded_images: list[dict[str, Any]] | None = None,
     ):
         self._sql_session = sql_session
         self._user_id = user_id
@@ -66,7 +67,14 @@ class PresentationChatService:
 
         self._conversation_store = ChatConversationStore(sql_session, user_id)
         self._memory = PresentationContextStore(sql_session, presentation_id)
-        self._tools = ChatTools(self._memory, branding=branding, partners=partners)
+        self._tools = ChatTools(
+            self._memory,
+            branding=branding,
+            partners=partners,
+            uploaded_images=uploaded_images,
+            sql_session=sql_session,
+            user_id=user_id,
+        )
 
     async def generate_reply(self, user_message: str) -> ChatTurnResult:
         conversation_id, messages = await self._prepare_turn_context(user_message)
@@ -519,6 +527,7 @@ class PresentationChatService:
             "getSlideAtIndex": "Opening the requested slide",
             "getPresentationThemeCatalog": "Checking available themes",
             "getBrandingProfiles": "Looking up your branding",
+            "getMyImages": "Checking your images",
             "webSearch": "Searching the web",
             "getAvailableLayouts": "Checking available layouts",
             "getContentSchemaFromLayoutId": "Checking the layout schema",

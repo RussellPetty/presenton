@@ -13,6 +13,9 @@ class ChatMessageRequest(BaseModel):
     # `partners` carries the user's connected realtors' branding profiles.
     branding: Optional[dict[str, Any]] = None
     partners: Optional[list[dict[str, Any]]] = Field(default=None, max_length=50)
+    # Images the user attached to THIS message (already uploaded → hosted URLs) so
+    # the assistant can place them on slides.
+    uploaded_images: Optional[list[dict[str, Any]]] = Field(default=None, max_length=20)
 
     model_config = ConfigDict(extra="forbid")
 

@@ -9,6 +9,7 @@ export interface ChatMessageRequest {
   conversation_id?: string;
   branding?: Record<string, unknown> | null;
   partners?: Record<string, unknown>[] | null;
+  uploaded_images?: { url: string; name?: string }[] | null;
 }
 
 /**
