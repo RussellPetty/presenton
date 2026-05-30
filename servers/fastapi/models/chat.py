@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,6 +8,11 @@ class ChatMessageRequest(BaseModel):
     presentation_id: uuid.UUID
     message: str = Field(min_length=1, max_length=8000)
     conversation_id: Optional[uuid.UUID] = None
+    # Branding context forwarded by the embedding app (broker-marketplace) so the
+    # assistant can place the user's real logo/headshot/contact/NMLS/disclaimer.
+    # `partners` carries the user's connected realtors' branding profiles.
+    branding: Optional[dict[str, Any]] = None
+    partners: Optional[list[dict[str, Any]]] = Field(default=None, max_length=50)
 
     model_config = ConfigDict(extra="forbid")
 

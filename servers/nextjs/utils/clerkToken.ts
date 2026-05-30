@@ -22,6 +22,30 @@ export type PresentonBranding = {
   companyName?: string;
   fontHeading?: string;
   fontBody?: string;
+  // Full profile fields used by the slide assistant ("add my logo/headshot/NMLS").
+  // Optional and forward-compatible: extra keys from the parent are preserved as-is.
+  fullName?: string;
+  company?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  nmls?: string;
+  companyNmls?: string;
+  license?: string;
+  disclaimer?: string;
+  headshotUrl?: string;
+  meetingLink?: string;
+  website?: string;
+  socialLinks?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+/** A connected realtor's branding profile forwarded by the parent app. */
+export type PresentonPartner = {
+  id?: string;
+  name?: string;
+  type?: string;
+  [key: string]: unknown;
 };
 
 export type PresentonPrefill = {
@@ -37,6 +61,7 @@ let _expEpochMs: number | null = null;
 let _initialized = false;
 let _branding: PresentonBranding | null = null;
 let _brandingHandler: ((b: PresentonBranding) => void) | null = null;
+let _partners: PresentonPartner[] | null = null;
 let _prefill: PresentonPrefill | null = null;
 let _prefillHandler: ((p: PresentonPrefill) => void) | null = null;
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -132,6 +157,11 @@ export function getBranding(): PresentonBranding | null {
   return _branding;
 }
 
+/** Connected realtors' branding profiles pushed by the parent (sync; null until set). */
+export function getPartners(): PresentonPartner[] | null {
+  return _partners;
+}
+
 function _setPrefill(p: PresentonPrefill) {
   const content = typeof p.content === "string" ? p.content : undefined;
   const title = typeof p.title === "string" ? p.title : undefined;
@@ -173,6 +203,12 @@ export function initClerkAuthBridge() {
       if (data.branding && typeof data.branding === "object") {
         _branding = data.branding as PresentonBranding;
         if (_brandingHandler) _brandingHandler(_branding);
+      }
+      const partners = (data as { partners?: unknown }).partners;
+      if (Array.isArray(partners)) {
+        _partners = partners.filter(
+          (p): p is PresentonPartner => !!p && typeof p === "object"
+        );
       }
       if ((data as any).prefill && typeof (data as any).prefill === "object") {
         _setPrefill((data as any).prefill as PresentonPrefill);

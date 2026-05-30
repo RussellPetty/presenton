@@ -26,13 +26,21 @@ ToolHandler = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 
 
 class ChatTools:
-    def __init__(self, memory: PresentationContextStore):
+    def __init__(
+        self,
+        memory: PresentationContextStore,
+        branding: dict[str, Any] | None = None,
+        partners: list[dict[str, Any]] | None = None,
+    ):
         self._memory = memory
+        self._branding = branding or None
+        self._partners = partners or None
         self._tool_handlers: dict[str, ToolHandler] = {
             "getPresentationOutline": self._get_presentation_outline,
             "searchSlides": self._search_slides,
             "getSlideAtIndex": self._get_slide_at_index,
             "getPresentationThemeCatalog": self._get_presentation_theme_catalog,
+            "getBrandingProfiles": self._get_branding_profiles,
             "getAvailableLayouts": self._get_available_layouts,
             "getContentSchemaFromLayoutId": self._get_content_schema_from_layout_id,
             "generateAssets": self._generate_assets,
@@ -86,6 +94,22 @@ class ChatTools:
                     "Use this for questions like 'which theme is applied' or "
                     "'what themes are available'. "
                     "Do NOT use getAvailableLayouts for theme questions."
+                ),
+                schema=NoArgsInput,
+                strict=True,
+            ),
+            Tool(
+                name="getBrandingProfiles",
+                description=(
+                    "Get the user's saved branding plus their connected realtors' branding "
+                    "(real values to put ON slides): full name, company, title, email, phone, "
+                    "NMLS/company NMLS, license, logo image URL, headshot image URL, disclaimer, "
+                    "meeting link, website, social links, and brand colors. "
+                    "Call this whenever the user references their own or a partner's brand—e.g. "
+                    "'add my logo', 'use my headshot', 'put my contact info / NMLS / disclaimer on a "
+                    "closing slide', or 'use <realtor name>'s branding'. "
+                    "Use the returned logo/headshot URLs as image values and the text fields verbatim; "
+                    "never invent contact details or NMLS numbers."
                 ),
                 schema=NoArgsInput,
                 strict=True,
@@ -273,6 +297,94 @@ class ChatTools:
             "found": True,
             "slide": slide,
         }
+
+    async def _get_branding_profiles(self, _: dict[str, Any]) -> dict[str, Any]:
+        user_profile = self._sanitize_brand(self._branding)
+        partner_profiles: list[dict[str, Any]] = []
+        for partner in self._partners or []:
+            sanitized = self._sanitize_brand(partner)
+            if sanitized:
+                partner_profiles.append(sanitized)
+
+        if not user_profile and not partner_profiles:
+            return {
+                "found": False,
+                "message": (
+                    "No branding was provided for this session. Ask the user to set their "
+                    "branding in their profile settings, then try again."
+                ),
+                "user": None,
+                "partners": [],
+            }
+
+        return {
+            "found": True,
+            "user": user_profile,
+            "partners": partner_profiles,
+            "message": (
+                "Use these real values on slides: put logo_url/headshot_url into image fields "
+                "and the text fields (name, company, title, email, phone, nmls, disclaimer, etc.) "
+                "verbatim. Do not invent or alter contact details, NMLS, license, or disclaimers."
+            ),
+        }
+
+    # Whitelist of branding keys safe/useful to expose to the model. Maps several
+    # incoming field-name variants (broker user branding + partner records) to a
+    # single clean output key. Image data is exposed only as URLs (never base64).
+    _BRAND_FIELD_MAP: dict[str, tuple[str, ...]] = {
+        "name": ("fullName", "name", "full_name"),
+        "company_name": ("companyName", "company", "company_name"),
+        "title": ("title",),
+        "email": ("email",),
+        "phone": ("phone",),
+        "nmls": ("nmls",),
+        "company_nmls": ("companyNmls", "company_nmls"),
+        "license": ("license",),
+        "disclaimer": ("disclaimer",),
+        "logo_url": ("logoUrl", "logo_url", "logo"),
+        "headshot_url": ("headshotUrl", "headshot_url", "headshot"),
+        "meeting_link": ("meetingLink", "meeting_link"),
+        "website": ("website",),
+        "primary_color": ("primaryColor", "primary_color"),
+        "secondary_color": ("secondaryColor", "secondary_color"),
+        "type": ("type", "role"),
+    }
+
+    @classmethod
+    def _sanitize_brand(cls, raw: Any) -> dict[str, Any] | None:
+        if not isinstance(raw, dict):
+            return None
+
+        def clean_str(value: Any, limit: int = 2000) -> str | None:
+            if not isinstance(value, str):
+                return None
+            text = value.strip()
+            if not text or len(text) > limit:
+                # Drop empties and oversized values (e.g. inlined base64 blobs).
+                return None
+            return text
+
+        profile: dict[str, Any] = {}
+        for out_key, in_keys in cls._BRAND_FIELD_MAP.items():
+            for in_key in in_keys:
+                if in_key in raw:
+                    cleaned = clean_str(raw.get(in_key))
+                    if cleaned:
+                        profile[out_key] = cleaned
+                        break
+
+        social_raw = raw.get("socialLinks") or raw.get("social_links")
+        if isinstance(social_raw, dict):
+            socials = {
+                key: clean_str(value)
+                for key, value in social_raw.items()
+                if isinstance(key, str) and clean_str(value)
+            }
+            socials = {k: v for k, v in socials.items() if v}
+            if socials:
+                profile["social_links"] = socials
+
+        return profile or None
 
     async def _get_available_layouts(self, _: dict[str, Any]) -> dict[str, Any]:
         layouts = await self._memory.get_available_layouts()

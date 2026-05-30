@@ -1,11 +1,29 @@
 import { buildAbsoluteApiRequestUrl, getApiUrl } from "@/utils/api";
 import { ApiResponseHandler } from "./api-error-handler";
 import { getHeader } from "./header";
+import { getBranding, getPartners } from "@/utils/clerkToken";
 
 export interface ChatMessageRequest {
   presentation_id: string;
   message: string;
   conversation_id?: string;
+  branding?: Record<string, unknown> | null;
+  partners?: Record<string, unknown>[] | null;
+}
+
+/**
+ * Attach the current user's branding (and connected realtors' branding) to the
+ * chat request body so the slide assistant can place real logo/headshot/contact/
+ * NMLS/disclaimer values. No-op (undefined) outside the embedded broker app.
+ */
+function withBranding(payload: ChatMessageRequest): ChatMessageRequest {
+  const branding = getBranding();
+  const partners = getPartners();
+  return {
+    ...payload,
+    branding: branding ?? undefined,
+    partners: partners && partners.length ? partners : undefined,
+  };
 }
 
 export interface ChatMessageResponse {
@@ -126,7 +144,7 @@ export class PresentationChatApi {
     const response = await fetch(getApiUrl("/api/v1/ppt/chat/message"), {
       method: "POST",
       headers: await getHeader(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(withBranding(payload)),
       cache: "no-cache",
     });
 
@@ -144,7 +162,7 @@ export class PresentationChatApi {
     const response = await fetch(getApiUrl("/api/v1/ppt/chat/message/stream"), {
       method: "POST",
       headers: await getHeader(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(withBranding(payload)),
       cache: "no-cache",
       signal: options?.signal,
     });

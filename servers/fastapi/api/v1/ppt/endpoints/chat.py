@@ -88,6 +88,8 @@ async def chat_message(
         user_id=scope.user_id,
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
+        branding=payload.branding,
+        partners=payload.partners,
     )
     result = await service.generate_reply(payload.message)
     return ChatMessageResponse(
@@ -109,6 +111,8 @@ async def chat_message_stream(
         user_id=scope.user_id,
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
+        branding=payload.branding,
+        partners=payload.partners,
     )
 
     async def inner():
