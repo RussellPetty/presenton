@@ -70,7 +70,7 @@ export class DashboardApi {
         getApiUrl(`/api/v1/ppt/presentation/${presentation_id}`),
         {
           method: "DELETE",
-          headers: getHeader(),
+          headers: await getHeader(),
         }
       );
 

@@ -86,6 +86,11 @@ export async function getServerAuthStatus(): Promise<AuthStatus> {
  * If configured but not signed in, send to login with a query flag the client turns into a toast.
  */
 export async function requireAppSession() {
+  if (process.env.AUTH_MODE?.trim().toLowerCase() === "clerk") {
+    // Server components can't see the in-iframe Clerk token; FastAPI enforces
+    // auth on the data calls (which carry the bearer) instead.
+    return;
+  }
   if (isAuthDisabled()) {
     return;
   }

@@ -62,7 +62,7 @@ export const useLayoutSaving = (
         getApiUrl(`/api/v1/ppt/template/save`),
         {
           method: "POST",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify({
             template_info_id: template_info_id,
             name: layoutName,

@@ -12,9 +12,23 @@ import { notify } from "@/components/ui/sonner";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { getApiUrl, normalizeBackendAssetUrls } from "@/utils/api";
 import { store } from "@/store/store";
+import { getToken, getTokenSync, isEmbedClerkMode } from "@/utils/clerkToken";
 
 const MAX_STREAM_RETRIES = 3;
 const STREAM_RETRY_DELAY_MS = 1_000;
+
+/**
+ * EventSource can't send Authorization headers, so in embed (Clerk) mode the
+ * token rides as a query param. Non-embed deployments get the URL unchanged.
+ */
+async function withStreamToken(url: string): Promise<string> {
+  if (!isEmbedClerkMode()) return url;
+  await getToken(); // ensure a token has been delivered before opening the stream
+  const token = getTokenSync();
+  if (!token) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}token=${encodeURIComponent(token)}`;
+}
 
 /** Chunk JSON replays each slide as first streamed; don't clobber URLs filled by `slide_assets`. */
 const PLACEHOLDER_ASSET_MARKERS = [
@@ -177,11 +191,14 @@ export const usePresentationStreaming = (
       return true;
     };
 
-    const openStream = () => {
+    const openStream = async () => {
       closeEventSource();
-      eventSource = new EventSource(
+      const streamUrl = await withStreamToken(
         getApiUrl(`/api/v1/ppt/presentation/stream/${presentationId}`)
       );
+      // The effect may have been cleaned up while awaiting the token.
+      if (isClosed) return;
+      eventSource = new EventSource(streamUrl);
 
       eventSource.addEventListener("response", (event) => {
         let data: any;

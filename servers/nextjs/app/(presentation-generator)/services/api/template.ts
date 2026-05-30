@@ -38,7 +38,7 @@ class TemplateService {
 
     static async deleteCustomTemplate(presentationId: string) {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/template-management/delete-templates/${presentationId}`), { method: "DELETE", headers: getHeader() });
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template-management/delete-templates/${presentationId}`), { method: "DELETE", headers: await getHeader() });
             return await ApiResponseHandler.handleResponseWithResult(response, "Failed to delete custom template");
         } catch (error) {
             console.error("Failed to delete custom template", error);
@@ -50,7 +50,7 @@ class TemplateService {
         try {
             const response = await fetch(getApiUrl(`/api/v1/ppt/template/clone`), {
                 method: "POST",
-                headers: getHeader(),
+                headers: await getHeader(),
                 body: JSON.stringify(payload),
             });
             return await ApiResponseHandler.handleResponse(response, "Failed to clone template");
@@ -64,7 +64,7 @@ class TemplateService {
         try {
             const response = await fetch(getApiUrl(`/api/v1/ppt/template/slide-layout/clone`), {
                 method: "POST",
-                headers: getHeader(),
+                headers: await getHeader(),
                 body: JSON.stringify(payload),
             });
             return await ApiResponseHandler.handleResponse(response, "Failed to clone layout");

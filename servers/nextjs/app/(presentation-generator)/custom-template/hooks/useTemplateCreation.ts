@@ -65,7 +65,7 @@ export const useTemplateCreation = () => {
 
             const response = await fetch(getApiUrl(`/api/v1/ppt/fonts/check`), {
                 method: "POST",
-                headers: getHeaderForFormData(),
+                headers: await getHeaderForFormData(),
                 body: formData,
             });
 
@@ -178,7 +178,7 @@ export const useTemplateCreation = () => {
                 getApiUrl(`/api/v1/ppt/template/fonts-upload-and-slides-preview`),
                 {
                     method: "POST",
-                    headers: getHeaderForFormData(),
+                    headers: await getHeaderForFormData(),
                     body: formData,
                 }
             );
@@ -216,7 +216,7 @@ export const useTemplateCreation = () => {
         try {
             const response = await fetch(getApiUrl(`/api/v1/ppt/template/create/init`), {
                 method: "POST",
-                headers: getHeader(),
+                headers: await getHeader(),
                 body: JSON.stringify({
                     pptx_url: state.previewData.modified_pptx_url,
                     slide_image_urls: state.previewData.slide_image_urls,
@@ -292,7 +292,7 @@ export const useTemplateCreation = () => {
                 getApiUrl(`/api/v1/ppt/template/slide-layout/create/start`),
                 {
                     method: "POST",
-                    headers: getHeader(),
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         id: templateId,
                         index: slideIndex,
@@ -314,7 +314,7 @@ export const useTemplateCreation = () => {
             while (Date.now() < deadline) {
                 const statusResponse = await fetch(
                     getApiUrl(`/api/v1/ppt/template/slide-layout/create/job/${encodeURIComponent(jobId)}`),
-                    { headers: getHeader() }
+                    { headers: await getHeader() }
                 );
                 const statusData = await ApiResponseHandler.handleResponse(
                     statusResponse,

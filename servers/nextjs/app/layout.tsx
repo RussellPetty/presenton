@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
+import ClerkAuthBridge from "@/components/ClerkAuthBridge";
 const inter = localFont({
   src: [
     {
@@ -70,6 +71,7 @@ export default function RootLayout({
         className={`${inter.variable} ${syne.variable} ${unbounded.variable} antialiased`}
       >
         <Providers>
+          <ClerkAuthBridge />
           <MixpanelInitializer>
 
             {children}

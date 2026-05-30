@@ -94,7 +94,7 @@ export class PresentationChatApi {
     );
     u.searchParams.set("presentation_id", presentationId);
     const response = await fetch(u.toString(), {
-      headers: getHeader(),
+      headers: await getHeader(),
       cache: "no-cache",
     });
     return await ApiResponseHandler.handleResponse(
@@ -111,7 +111,7 @@ export class PresentationChatApi {
     u.searchParams.set("presentation_id", presentationId);
     u.searchParams.set("conversation_id", conversationId);
     const response = await fetch(u.toString(), {
-      headers: getHeader(),
+      headers: await getHeader(),
       cache: "no-cache",
     });
     return await ApiResponseHandler.handleResponse(
@@ -125,7 +125,7 @@ export class PresentationChatApi {
   ): Promise<ChatMessageResponse> {
     const response = await fetch(getApiUrl("/api/v1/ppt/chat/message"), {
       method: "POST",
-      headers: getHeader(),
+      headers: await getHeader(),
       body: JSON.stringify(payload),
       cache: "no-cache",
     });
@@ -143,7 +143,7 @@ export class PresentationChatApi {
   ): Promise<ChatMessageResponse> {
     const response = await fetch(getApiUrl("/api/v1/ppt/chat/message/stream"), {
       method: "POST",
-      headers: getHeader(),
+      headers: await getHeader(),
       body: JSON.stringify(payload),
       cache: "no-cache",
       signal: options?.signal,

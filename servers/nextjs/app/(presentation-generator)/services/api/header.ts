@@ -1,17 +1,17 @@
-export const getHeader = () => {
+import { getToken } from "@/utils/clerkToken";
+
+export const getHeader = async () => {
+  const token = await getToken();
   return {
     "Content-Type": "application/json",
-    Accept: "application/json",  
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
 
-export const getHeaderForFormData = () => {
+export const getHeaderForFormData = async () => {
+  const token = await getToken();
   return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };

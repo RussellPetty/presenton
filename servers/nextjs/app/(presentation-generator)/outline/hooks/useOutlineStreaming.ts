@@ -5,6 +5,20 @@ import { setOutlines } from "@/store/slices/presentationGeneration";
 import { jsonrepair } from "jsonrepair";
 import { RootState } from "@/store/store";
 import { getApiUrl } from "@/utils/api";
+import { getToken, getTokenSync, isEmbedClerkMode } from "@/utils/clerkToken";
+
+/**
+ * EventSource can't send Authorization headers, so in embed (Clerk) mode the
+ * token rides as a query param. Non-embed deployments get the URL unchanged.
+ */
+async function withStreamToken(url: string): Promise<string> {
+  if (!isEmbedClerkMode()) return url;
+  await getToken(); // ensure a token has been delivered before opening the stream
+  const token = getTokenSync();
+  if (!token) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}token=${encodeURIComponent(token)}`;
+}
 
 const MAX_STREAM_RETRIES = 3;
 const STREAM_RETRY_DELAY_MS = 1_000;
@@ -81,11 +95,14 @@ export const useOutlineStreaming = (presentationId: string | null) => {
       return true;
     };
 
-    const openStream = () => {
+    const openStream = async () => {
       closeEventSource();
-      eventSource = new EventSource(
+      const streamUrl = await withStreamToken(
         getApiUrl(`/api/v1/ppt/outlines/stream/${presentationId}`)
       );
+      // The effect may have been cleaned up while awaiting the token.
+      if (isClosed) return;
+      eventSource = new EventSource(streamUrl);
 
       eventSource.addEventListener("response", (event) => {
         let data: any;

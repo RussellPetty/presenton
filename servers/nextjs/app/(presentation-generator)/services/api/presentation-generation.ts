@@ -16,7 +16,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/files/upload`),
         {
           method: "POST",
-          headers: getHeaderForFormData(),
+          headers: await getHeaderForFormData(),
           body: formData,
           cache: "no-cache",
         }
@@ -38,7 +38,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/files/decompose`),
         {
           method: "POST",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify({
             file_paths: documentKeys,
             language: language ?? null,
@@ -83,7 +83,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/presentation/create`),
         {
           method: "POST",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify({
             content,
             n_slides,
@@ -116,7 +116,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/slide/edit`),
         {
           method: "POST",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify({
             id: slide_id,
             prompt,
@@ -138,7 +138,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/presentation/update`),
         {
           method: "PATCH",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify(body),
           cache: "no-cache",
         }
@@ -157,7 +157,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/presentation/prepare`),
         {
           method: "POST",
-          headers: getHeader(),
+          headers: await getHeader(),
           body: JSON.stringify(presentationData),
           cache: "no-cache",
         }
@@ -179,7 +179,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/images/generate?prompt=${imageGenerate.prompt}`),
         {
           method: "GET",
-          headers: getHeader(),
+          headers: await getHeader(),
           cache: "no-cache",
         }
       );
@@ -197,7 +197,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/images/generated`),
         {
           method: "GET",
-          headers: getHeader(),
+          headers: await getHeader(),
         }
       );
       
@@ -221,7 +221,7 @@ export class PresentationGenerationApi {
         getApiUrl(`/api/v1/ppt/icons/search?${params.toString()}`),
         {
           method: "GET",
-          headers: getHeader(),
+          headers: await getHeader(),
           cache: "no-cache",
         }
       );

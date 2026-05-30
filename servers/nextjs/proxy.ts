@@ -30,6 +30,10 @@ function isAuthDisabled(): boolean {
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
+function isClerkMode(): boolean {
+  return process.env.AUTH_MODE?.trim().toLowerCase() === "clerk";
+}
+
 const SESSION_COOKIE_NAME = "presenton_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
@@ -94,6 +98,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthDisabled()) {
+    return NextResponse.next();
+  }
+
+  if (isClerkMode()) {
+    // FastAPI enforces auth via the bearer token; the cookie probe below is
+    // meaningless cross-origin (the in-iframe Clerk session isn't a Next cookie).
     return NextResponse.next();
   }
 

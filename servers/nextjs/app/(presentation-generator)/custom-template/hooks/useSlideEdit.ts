@@ -31,7 +31,7 @@ export const useSlideEdit = (
           prompt: prompt,
           react_component: slide.react ?? "",
         }),
-        headers: getHeader(),
+        headers: await getHeader(),
       });
 
       if (!response.ok) {

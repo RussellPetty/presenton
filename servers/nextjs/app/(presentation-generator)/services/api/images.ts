@@ -18,7 +18,7 @@ export class ImagesApi {
       formData.append("file", file);
     const response = await fetch(getApiUrl(`/api/v1/ppt/images/upload`), {
       method: "POST",
-      headers: getHeaderForFormData(),
+      headers: await getHeaderForFormData(),
       body: formData,
     });
     return await ApiResponseHandler.handleResponse(response, "Failed to upload image") as ImageAssetResponse;

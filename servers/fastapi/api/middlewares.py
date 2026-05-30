@@ -80,6 +80,11 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
 
     async def _dispatch_clerk(self, request: Request, call_next):
         token = get_bearer_token_from_request(request)
+        # EventSource (SSE) can't send an Authorization header, so for streaming
+        # endpoints only, accept the (short-lived, still-verified) JWT as a
+        # `?token=` query param.
+        if not token and "/stream/" in request.url.path:
+            token = request.query_params.get("token")
         if not token:
             return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 

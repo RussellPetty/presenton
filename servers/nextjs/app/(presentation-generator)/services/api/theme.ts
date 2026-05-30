@@ -11,7 +11,7 @@ class ThemeApi {
     try {
       const response = await fetch(getApiUrl(`/api/v1/ppt/themes/all`), {
         method: "GET",
-        headers: getHeader(),
+        headers: await getHeader(),
         cache: "no-store",
       })
       return await ApiResponseHandler.handleResponse(response, "Failed to get themes")
@@ -25,7 +25,7 @@ class ThemeApi {
 
       const response = await fetch(getApiUrl(`/api/v1/ppt/themes/create`), {
         method: "POST",
-        headers: getHeader(),
+        headers: await getHeader(),
         body: JSON.stringify(theme),
         cache: "no-store",
       })
@@ -40,7 +40,7 @@ class ThemeApi {
     try {
       const response = await fetch(getApiUrl(`/api/v1/ppt/themes/update/${theme.id}`), {
         method: "PATCH",
-        headers: getHeader(),
+        headers: await getHeader(),
         body: JSON.stringify(theme),
         cache: "no-store",
       })
@@ -55,7 +55,7 @@ class ThemeApi {
     try {
       const response = await fetch(getApiUrl(`/api/v1/ppt/themes/delete/${themeId}`), {
         method: "DELETE",
-        headers: getHeader(),
+        headers: await getHeader(),
         cache: "no-store",
       })
       return await ApiResponseHandler.handleResponse(response, "Failed to delete theme")
@@ -76,7 +76,7 @@ class ThemeApi {
       }
       const response = await fetch(getApiUrl(`/api/v1/ppt/theme/generate`), {
         method: "POST",
-        headers: getHeader(),
+        headers: await getHeader(),
         body: JSON.stringify(body),
       })
       return await ApiResponseHandler.handleResponse(response, "Failed to generate theme")
@@ -93,7 +93,7 @@ class ThemeApi {
       formData.append("font_file", font);
       const response: any = await fetch(getApiUrl(`/api/v1/ppt/fonts/upload`), {
         method: "POST",
-        headers: getHeaderForFormData(),
+        headers: await getHeaderForFormData(),
         body: formData,
       })
       return await ApiResponseHandler.handleResponse(response, "Failed to upload font")
@@ -107,7 +107,7 @@ class ThemeApi {
     try {
       const response = await fetch(getApiUrl(`/api/v1/ppt/fonts/uploaded`), {
         method: "GET",
-        headers: getHeader(),
+        headers: await getHeader(),
       })
       return await ApiResponseHandler.handleResponse(response, "Failed to get user fonts")
     }

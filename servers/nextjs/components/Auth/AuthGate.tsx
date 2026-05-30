@@ -6,6 +6,7 @@ import Home from "@/components/Home";
 import { getApiUrl } from "@/utils/api";
 import { formatFastApiDetail, UNAUTHORIZED_DETAIL } from "@/utils/authErrors";
 import { notify } from "@/components/ui/sonner";
+import { isEmbedClerkMode } from "@/utils/clerkToken";
 
 type AuthStatus = {
   configured: boolean;
@@ -26,9 +27,20 @@ export default function AuthGate() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Default to neutral (not mounted) so SSR and the first client render match;
+  // the embed check (which reads window) only runs after mount.
+  const [mounted, setMounted] = useState(false);
+  const [embedMode, setEmbedMode] = useState(false);
   const isSetupMode = useMemo(() => !status.configured, [status.configured]);
 
   useEffect(() => {
+    setMounted(true);
+    if (isEmbedClerkMode()) {
+      // Embedded under Clerk: FastAPI enforces auth via the bearer token, so we
+      // skip the status check and the login/setup UI and render the app directly.
+      setEmbedMode(true);
+      return;
+    }
     void refreshStatus();
   }, []);
 
@@ -179,6 +191,16 @@ export default function AuthGate() {
       setIsSubmitting(false);
     }
   };
+
+  // Embedded under Clerk: render the app directly (auth enforced server-side by
+  // FastAPI via the bearer token). Gated on `mounted` so SSR/first render match.
+  if (mounted && embedMode) {
+    return (
+      <ConfigurationInitializer>
+        <Home />
+      </ConfigurationInitializer>
+    );
+  }
 
   if (isLoading) {
     return (
