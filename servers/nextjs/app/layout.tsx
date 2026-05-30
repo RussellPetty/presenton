@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
 import ClerkAuthBridge from "@/components/ClerkAuthBridge";
+import BrandingTheme from "@/components/BrandingTheme";
 const inter = localFont({
   src: [
     {
@@ -72,6 +73,7 @@ export default function RootLayout({
       >
         <Providers>
           <ClerkAuthBridge />
+          <BrandingTheme />
           <MixpanelInitializer>
 
             {children}
