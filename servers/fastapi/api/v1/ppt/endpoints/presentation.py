@@ -445,7 +445,7 @@ async def stream_presentation(
                         else None
                     ),
                     icon_weight=icon_weight,
-                    user_id=user_id,
+                    user_id=scope.user_id,
                 )
             )
             async_assets_generation_tasks.append(asset_task)
