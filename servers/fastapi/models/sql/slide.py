@@ -8,6 +8,7 @@ class SlideModel(SQLModel, table=True):
     __tablename__ = "slides"
 
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
+    user_id: Optional[str] = Field(default=None, index=True)
     presentation: uuid.UUID = Field(
         sa_column=Column(ForeignKey("presentations.id", ondelete="CASCADE"), index=True)
     )
@@ -22,6 +23,7 @@ class SlideModel(SQLModel, table=True):
     def get_new_slide(self, presentation: uuid.UUID, content: Optional[dict] = None):
         return SlideModel(
             id=uuid.uuid4(),
+            user_id=self.user_id,
             presentation=presentation,
             layout_group=self.layout_group,
             layout=self.layout,

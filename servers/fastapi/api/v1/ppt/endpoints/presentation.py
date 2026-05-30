@@ -46,6 +46,7 @@ from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from models.sse_response import SSECompleteResponse, SSEErrorResponse, SSEResponse
 
 from services.database import get_async_session
+from utils.request_scope import Scope, get_scope
 from services.concurrent_service import CONCURRENT_SERVICE
 from models.sql.presentation import PresentationModel
 from models.sql.async_presentation_generation_status import (
@@ -170,14 +171,16 @@ def _build_export_cookie_header(request: Request) -> Optional[str]:
 
 
 @PRESENTATION_ROUTER.get("/all", response_model=List[PresentationWithSlides])
-async def get_all_presentations(sql_session: AsyncSession = Depends(get_async_session)):
-    query = (
+async def get_all_presentations(scope: Scope = Depends(get_scope)):
+    sql_session = scope.session
+    query = scope.owned(
         select(PresentationModel, SlideModel)
         .join(
             SlideModel,
             (SlideModel.presentation == PresentationModel.id) & (SlideModel.index == 0),
         )
-        .order_by(PresentationModel.created_at.desc())
+        .order_by(PresentationModel.created_at.desc()),
+        PresentationModel,
     )
 
     results = await sql_session.execute(query)
@@ -198,11 +201,10 @@ async def get_all_presentations(sql_session: AsyncSession = Depends(get_async_se
 
 @PRESENTATION_ROUTER.get("/{id}", response_model=PresentationWithSlides)
 async def get_presentation(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID, scope: Scope = Depends(get_scope)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(404, "Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, id)
     slides_result = await sql_session.scalars(
         select(SlideModel)
         .where(SlideModel.presentation == id)
@@ -219,11 +221,10 @@ async def get_presentation(
 
 @PRESENTATION_ROUTER.delete("/{id}", status_code=204)
 async def delete_presentation(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID, scope: Scope = Depends(get_scope)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(404, "Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, id)
 
     await sql_session.delete(presentation)
     await sql_session.commit()
@@ -241,8 +242,9 @@ async def create_presentation(
     include_table_of_contents: Annotated[bool, Body()] = False,
     include_title_slide: Annotated[bool, Body()] = True,
     web_search: Annotated[bool, Body()] = False,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
 
     if n_slides is not None and n_slides < 1:
         raise HTTPException(
@@ -269,6 +271,7 @@ async def create_presentation(
 
     presentation = PresentationModel(
         id=presentation_id,
+        user_id=scope.user_id,
         content=content,
         n_slides=n_slides_to_store,
         language=language_to_store,
@@ -293,14 +296,13 @@ async def prepare_presentation(
     outlines: Annotated[List[SlideOutlineModel], Body()],
     layout: Annotated[PresentationLayoutModel, Body()],
     title: Annotated[Optional[str], Body()] = None,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not outlines:
         raise HTTPException(status_code=400, detail="Outlines are required")
 
-    presentation = await sql_session.get(PresentationModel, presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    presentation = await scope.get_owned(PresentationModel, presentation_id)
 
     presentation_outline_model = PresentationOutlineModel(slides=outlines)
 
@@ -364,11 +366,10 @@ async def prepare_presentation(
 
 @PRESENTATION_ROUTER.get("/stream/{id}", response_model=PresentationWithSlides)
 async def stream_presentation(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID, scope: Scope = Depends(get_scope)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, id)
     if not presentation.structure:
         raise HTTPException(
             status_code=400,
@@ -421,6 +422,7 @@ async def stream_presentation(
 
             slide = SlideModel(
                 presentation=id,
+                user_id=scope.user_id,
                 layout_group=layout.name,
                 layout=slide_layout.id,
                 index=i,
@@ -493,6 +495,8 @@ async def stream_presentation(
         generated_assets = []
         for assets_list in generated_assets_lists:
             generated_assets.extend(assets_list)
+        for asset in generated_assets:
+            asset.user_id = scope.user_id
 
         # Moved this here to make sure new slides are generated before deleting the old ones
         await sql_session.execute(
@@ -526,11 +530,10 @@ async def update_presentation(
     title: Annotated[Optional[str], Body()] = None,
     theme: Annotated[Optional[dict], Body()] = None,
     slides: Annotated[Optional[List[SlideModel]], Body()] = None,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, id)
 
     presentation_update_dict = {}
     if n_slides is not None:
@@ -547,6 +550,8 @@ async def update_presentation(
         for slide in slides:
             slide.presentation = uuid.UUID(slide.presentation)
             slide.id = uuid.UUID(slide.id)
+            # Don't trust client-provided ownership; stamp current user.
+            slide.user_id = scope.user_id
 
         await sql_session.execute(
             delete(SlideModel).where(SlideModel.presentation == presentation.id)
@@ -569,7 +574,7 @@ async def update_presentation(
     )
 async def check_if_api_request_is_valid(
     request: GeneratePresentationRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope,
 ) -> Tuple[uuid.UUID,]:
     presentation_id = uuid.uuid4()
     print(f"Presentation ID: {presentation_id}")
@@ -613,7 +618,9 @@ async def check_if_api_request_is_valid(
             )
         template_id = request.template.replace("custom-", "")
         try:
-            template = await sql_session.get(TemplateModel, uuid.UUID(template_id))
+            # Verify ownership so a user can't generate from another user's
+            # private template (raises 404 if missing or not owned).
+            template = await scope.get_owned(TemplateModel, uuid.UUID(template_id))
             if not template:
                 raise Exception()
         except Exception:
@@ -629,6 +636,7 @@ async def generate_presentation_handler(
     request: GeneratePresentationRequest,
     presentation_id: uuid.UUID,
     async_status: Optional[AsyncPresentationGenerationTaskModel],
+    user_id: str,
     export_cookie_header: Optional[str] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
@@ -846,6 +854,7 @@ async def generate_presentation_handler(
         # Create PresentationModel
         presentation = PresentationModel(
             id=presentation_id,
+            user_id=user_id,
             content=request.content,
             n_slides=final_n_slides,
             language=language_to_use or "",
@@ -904,6 +913,7 @@ async def generate_presentation_handler(
                 slide_layout = slide_layouts[i]
                 slide = SlideModel(
                     presentation=presentation_id,
+                    user_id=user_id,
                     layout_group=layout_model.name,
                     layout=slide_layout.id,
                     index=i,
@@ -945,6 +955,8 @@ async def generate_presentation_handler(
         generated_assets = []
         for assets_list in generated_assets_list:
             generated_assets.extend(assets_list)
+        for asset in generated_assets:
+            asset.user_id = user_id
 
         # 8. Save PresentationModel and Slides
         sql_session.add(presentation)
@@ -1019,14 +1031,16 @@ async def generate_presentation_handler(
 async def generate_presentation_sync(
     request_http: Request,
     request: GeneratePresentationRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     try:
-        (presentation_id,) = await check_if_api_request_is_valid(request, sql_session)
+        (presentation_id,) = await check_if_api_request_is_valid(request, scope)
         return await generate_presentation_handler(
             request,
             presentation_id,
             None,
+            user_id=scope.user_id,
             export_cookie_header=_build_export_cookie_header(request_http),
             sql_session=sql_session,
         )
@@ -1044,12 +1058,14 @@ async def generate_presentation_async(
     request_http: Request,
     request: GeneratePresentationRequest,
     background_tasks: BackgroundTasks,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     try:
-        (presentation_id,) = await check_if_api_request_is_valid(request, sql_session)
+        (presentation_id,) = await check_if_api_request_is_valid(request, scope)
 
         async_status = AsyncPresentationGenerationTaskModel(
+            user_id=scope.user_id,
             status="pending",
             message="Queued for generation",
             data=None,
@@ -1062,6 +1078,7 @@ async def generate_presentation_async(
             request,
             presentation_id,
             async_status=async_status,
+            user_id=scope.user_id,
             export_cookie_header=_build_export_cookie_header(request_http),
             sql_session=sql_session,
         )
@@ -1080,28 +1097,25 @@ async def generate_presentation_async(
 )
 async def check_async_presentation_generation_status(
     id: str = Path(description="ID of the presentation generation task"),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    status = await sql_session.get(AsyncPresentationGenerationTaskModel, id)
-    if not status:
-        raise HTTPException(
-            status_code=404, detail="No presentation generation task found"
-        )
-    return status
+    return await scope.get_owned(AsyncPresentationGenerationTaskModel, id)
 
 
 @PRESENTATION_ROUTER.post("/edit", response_model=PresentationPathAndEditPath)
 async def edit_presentation_with_new_content(
     request_http: Request,
     data: Annotated[EditPresentationRequest, Body()],
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    presentation = await sql_session.get(PresentationModel, data.presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, data.presentation_id)
 
     slides = await sql_session.scalars(
-        select(SlideModel).where(SlideModel.presentation == data.presentation_id)
+        scope.owned(
+            select(SlideModel).where(SlideModel.presentation == data.presentation_id),
+            SlideModel,
+        )
     )
 
     new_slides = []
@@ -1113,9 +1127,9 @@ async def edit_presentation_with_new_content(
         )
         if new_slide_data:
             updated_content = deep_update(each_slide.content, new_slide_data[0].content)
-            new_slides.append(
-                each_slide.get_new_slide(presentation.id, updated_content)
-            )
+            new_slide = each_slide.get_new_slide(presentation.id, updated_content)
+            new_slide.user_id = scope.user_id
+            new_slides.append(new_slide)
             slides_to_delete.append(each_slide.id)
 
     await sql_session.execute(
@@ -1142,17 +1156,20 @@ async def edit_presentation_with_new_content(
 async def derive_presentation_from_existing_one(
     request_http: Request,
     data: Annotated[EditPresentationRequest, Body()],
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    presentation = await sql_session.get(PresentationModel, data.presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, data.presentation_id)
 
     slides = await sql_session.scalars(
-        select(SlideModel).where(SlideModel.presentation == data.presentation_id)
+        scope.owned(
+            select(SlideModel).where(SlideModel.presentation == data.presentation_id),
+            SlideModel,
+        )
     )
 
     new_presentation = presentation.get_new_presentation()
+    new_presentation.user_id = scope.user_id
     new_slides = []
     for each_slide in slides:
         updated_content = None
@@ -1161,9 +1178,9 @@ async def derive_presentation_from_existing_one(
         )
         if new_slide_data:
             updated_content = deep_update(each_slide.content, new_slide_data[0].content)
-        new_slides.append(
-            each_slide.get_new_slide(new_presentation.id, updated_content)
-        )
+        new_slide = each_slide.get_new_slide(new_presentation.id, updated_content)
+        new_slide.user_id = scope.user_id
+        new_slides.append(new_slide)
 
     sql_session.add(new_presentation)
     sql_session.add_all(new_slides)

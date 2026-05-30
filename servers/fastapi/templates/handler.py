@@ -41,6 +41,7 @@ from utils.asset_directory_utils import (
     resolve_app_path_to_filesystem,
     resolve_image_path_to_filesystem,
 )
+from utils.request_scope import Scope, get_scope
 
 
 class TemplateDetail(BaseModel):
@@ -258,8 +259,9 @@ async def get_all_templates(
     include_defaults: bool = Query(
         default=True, description="Whether to include default templates"
     ),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     result = await sql_session.execute(
         select(
             TemplateModel.id,
@@ -270,6 +272,7 @@ async def get_all_templates(
             PresentationLayoutCodeModel,
             PresentationLayoutCodeModel.presentation == TemplateModel.id,
         )
+        .where(TemplateModel.user_id == scope.user_id)
         .group_by(TemplateModel.id, TemplateModel.name)
     )
     rows = result.all()
@@ -293,8 +296,9 @@ async def get_all_templates(
 
 async def get_layouts(
     template_id: str = Path(..., description="The id of the template"),
-    session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    session = scope.session
     if not template_id or not template_id.strip():
         raise HTTPException(status_code=400, detail="Template ID cannot be empty")
 
@@ -305,8 +309,11 @@ async def get_layouts(
         raise HTTPException(status_code=400, detail="Invalid custom template ID") from exc
 
     result = await session.execute(
-        select(PresentationLayoutCodeModel).where(
-            PresentationLayoutCodeModel.presentation == template_id_uuid
+        scope.owned(
+            select(PresentationLayoutCodeModel).where(
+                PresentationLayoutCodeModel.presentation == template_id_uuid
+            ),
+            PresentationLayoutCodeModel,
         )
     )
     layouts_db = result.scalars().all()
@@ -316,7 +323,13 @@ async def get_layouts(
             detail=f"No layouts found for template ID: {template_id}",
         )
 
-    template_meta = await session.get(TemplateModel, template_id_uuid)
+    template_meta_result = await session.execute(
+        scope.owned(
+            select(TemplateModel).where(TemplateModel.id == template_id_uuid),
+            TemplateModel,
+        )
+    )
+    template_meta = template_meta_result.scalars().first()
     template = None
     if template_meta:
         template = TemplateData(
@@ -349,7 +362,7 @@ async def get_template_by_id(
         ...,
         description=f"The id of the template, must be one of {', '.join(DEFAULT_TEMPLATES)} or your custom template",
     ),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
     if id.startswith("custom-"):
         try:
@@ -360,8 +373,8 @@ async def get_template_by_id(
                 detail="Template not found. Please use a valid template.",
             ) from exc
 
-        template = await sql_session.get(TemplateModel, template_id)
-        if not template:
+        template = await scope.session.get(TemplateModel, template_id)
+        if not template or template.user_id != scope.user_id:
             raise HTTPException(
                 status_code=400,
                 detail="Template not found. Please use a valid template.",
@@ -375,9 +388,9 @@ async def get_template_example(
         ...,
         description=f"The id of the template, must be one of {', '.join(DEFAULT_TEMPLATES)} or your custom template",
     ),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    template = await get_template_by_id(id=id, sql_session=sql_session)
+    template = await get_template_by_id(id=id, scope=scope)
     return TemplateExample(**build_template_example(id, template))
 
 
@@ -398,8 +411,9 @@ async def upload_fonts_and_slides_preview(
 
 async def init_create_template(
     request: CreateTemplateInitRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not request.slide_image_urls:
         raise HTTPException(
             status_code=400, detail="At least one slide image is required"
@@ -429,6 +443,7 @@ async def init_create_template(
 
     slide_htmls = pptx_document.slides[: len(request.slide_image_urls)]
     template_create_info = TemplateCreateInfoModel(
+        user_id=scope.user_id,
         fonts=request.fonts or {},
         pptx_url=request.pptx_url,
         slide_image_urls=request.slide_image_urls,
@@ -443,9 +458,10 @@ async def init_create_template(
 async def _create_slide_layout_impl(
     sql_session: AsyncSession,
     request: CreateSlideLayoutRequest,
+    user_id: str,
 ) -> CreateSlideLayoutResponse:
     template_info = await sql_session.get(TemplateCreateInfoModel, request.id)
-    if not template_info:
+    if not template_info or template_info.user_id != user_id:
         raise HTTPException(status_code=400, detail="Template not found")
 
     total_slides = len(template_info.slide_htmls)
@@ -475,29 +491,32 @@ async def _create_slide_layout_impl(
 
 async def create_slide_layout(
     request: CreateSlideLayoutRequest = Body(...),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    return await _create_slide_layout_impl(sql_session, request)
+    return await _create_slide_layout_impl(scope.session, request, scope.user_id)
 
 
 async def create_slide_layout_job_start(
     request: CreateSlideLayoutRequest = Body(...),
+    scope: Scope = Depends(get_scope),
 ):
     req = request.model_copy()
+    user_id = scope.user_id
 
     async def work() -> str:
         async with async_session_maker() as session:
-            result = await _create_slide_layout_impl(session, req)
+            result = await _create_slide_layout_impl(session, req, user_id)
             return result.react_component
 
-    job_id = await start_slide_layout_job(work)
+    job_id = await start_slide_layout_job(work, user_id)
     return SlideLayoutJobStartResponse(job_id=job_id)
 
 
 async def create_slide_layout_job_status(
     job_id: uuid.UUID,
+    scope: Scope = Depends(get_scope),
 ):
-    rec = await get_slide_layout_job(str(job_id))
+    rec = await get_slide_layout_job(str(job_id), scope.user_id)
     if rec is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return SlideLayoutJobStatusResponse(
@@ -537,17 +556,19 @@ async def edit_slide_layout_section(
 
 async def save_template(
     request: SaveTemplateRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not request.layouts:
         raise HTTPException(status_code=400, detail="Layouts are required")
 
     template_info = await sql_session.get(TemplateCreateInfoModel, request.template_info_id)
-    if not template_info:
+    if not template_info or template_info.user_id != scope.user_id:
         raise HTTPException(status_code=400, detail="Template info not found")
 
     template = TemplateModel(
         id=uuid.uuid4(),
+        user_id=scope.user_id,
         name=request.name,
         description=request.description,
     )
@@ -556,6 +577,7 @@ async def save_template(
     sql_session.add_all(
         [
             PresentationLayoutCodeModel(
+                user_id=scope.user_id,
                 presentation=template.id,
                 layout_id=layout.layout_id,
                 layout_name=layout.layout_name,
@@ -578,8 +600,9 @@ async def save_template(
 
 async def clone_template(
     request: CloneTemplateRequest = Body(...),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not request.id or not request.id.strip():
         raise HTTPException(status_code=400, detail="Template ID cannot be empty")
 
@@ -589,7 +612,7 @@ async def clone_template(
         raise HTTPException(status_code=400, detail="Invalid custom template ID") from exc
 
     template = await sql_session.get(TemplateModel, template_id_uuid)
-    if not template:
+    if not template or template.user_id != scope.user_id:
         raise HTTPException(
             status_code=400,
             detail="Template not found. Please use a valid template.",
@@ -597,7 +620,8 @@ async def clone_template(
 
     result = await sql_session.execute(
         select(PresentationLayoutCodeModel).where(
-            PresentationLayoutCodeModel.presentation == template_id_uuid
+            PresentationLayoutCodeModel.presentation == template_id_uuid,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
     )
     layouts_db = result.scalars().all()
@@ -606,6 +630,7 @@ async def clone_template(
 
     new_template = TemplateModel(
         id=uuid.uuid4(),
+        user_id=scope.user_id,
         name=request.name,
         description=template.description
         if request.description is None
@@ -616,6 +641,7 @@ async def clone_template(
     sql_session.add_all(
         [
             PresentationLayoutCodeModel(
+                user_id=scope.user_id,
                 presentation=new_template.id,
                 layout_id=layout.layout_id,
                 layout_name=layout.layout_name,
@@ -638,30 +664,34 @@ async def clone_template(
 
 async def update_template(
     request: UpdateTemplateRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not request.layouts:
         raise HTTPException(status_code=400, detail="Layouts are required")
 
     template = await sql_session.get(TemplateModel, request.id)
-    if not template:
+    if not template or template.user_id != scope.user_id:
         raise HTTPException(status_code=400, detail="Template not found")
 
     existing_layout = await sql_session.scalar(
         select(PresentationLayoutCodeModel).where(
-            PresentationLayoutCodeModel.presentation == request.id
+            PresentationLayoutCodeModel.presentation == request.id,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
     )
     fonts = existing_layout.fonts if existing_layout else None
 
     await sql_session.execute(
         delete(PresentationLayoutCodeModel).where(
-            PresentationLayoutCodeModel.presentation == request.id
+            PresentationLayoutCodeModel.presentation == request.id,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
     )
     sql_session.add_all(
         [
             PresentationLayoutCodeModel(
+                user_id=scope.user_id,
                 presentation=template.id,
                 layout_id=layout.layout_id,
                 layout_name=layout.layout_name,
@@ -683,16 +713,18 @@ async def update_template(
 
 async def save_slide_layout(
     request: SaveSlideLayoutRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     template = await sql_session.get(TemplateModel, request.template_id)
-    if not template:
+    if not template or template.user_id != scope.user_id:
         raise HTTPException(status_code=400, detail="Template not found")
 
     layout = await sql_session.scalar(
         select(PresentationLayoutCodeModel).where(
             PresentationLayoutCodeModel.presentation == request.template_id,
             PresentationLayoutCodeModel.layout_id == request.layout_id,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
     )
     if not layout:
@@ -705,8 +737,9 @@ async def save_slide_layout(
 
 async def clone_slide_layout(
     request: CloneSlideLayoutRequest = Body(...),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
     if not request.template_id or not request.template_id.strip():
         raise HTTPException(status_code=400, detail="Template ID cannot be empty")
 
@@ -716,13 +749,14 @@ async def clone_slide_layout(
         raise HTTPException(status_code=400, detail="Invalid custom template ID") from exc
 
     template = await sql_session.get(TemplateModel, template_id_uuid)
-    if not template:
+    if not template or template.user_id != scope.user_id:
         raise HTTPException(status_code=400, detail="Template not found")
 
     layout = await sql_session.scalar(
         select(PresentationLayoutCodeModel).where(
             PresentationLayoutCodeModel.presentation == template_id_uuid,
             PresentationLayoutCodeModel.layout_id == request.layout_id,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
     )
     if not layout:
@@ -730,6 +764,7 @@ async def clone_slide_layout(
 
     new_layout_code, new_layout_id = _update_layout_id_in_code(layout.layout_code)
     new_layout = PresentationLayoutCodeModel(
+        user_id=scope.user_id,
         presentation=template_id_uuid,
         layout_id=new_layout_id,
         layout_name=request.layout_name or layout.layout_name,

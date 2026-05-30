@@ -5,11 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from models.sql.template import TemplateModel
-from services.database import get_async_session
+from utils.request_scope import Scope, get_scope
 
 LAYOUT_MANAGEMENT_ROUTER = APIRouter(
     prefix="/template-management", tags=["template-management"]
@@ -84,14 +83,14 @@ class TemplateCreateResponse(BaseModel):
     },
 )
 async def save_layouts(
-    request: SaveLayoutsRequest, session: AsyncSession = Depends(get_async_session)
+    request: SaveLayoutsRequest, scope: Scope = Depends(get_scope)
 ):
     """
     Save multiple layouts for presentations.
 
     Args:
         request: JSON request containing array of layout data
-        session: Database session
+        scope: Per-user request scope (DB session + owner user id)
 
     Returns:
         SaveLayoutsResponse with success status and count of saved layouts
@@ -99,6 +98,7 @@ async def save_layouts(
     Raises:
         HTTPException: 400 for validation errors, 500 for server errors
     """
+    session = scope.session
     try:
         if not request.layouts:
             raise HTTPException(status_code=400, detail="Layouts array cannot be empty")
@@ -138,6 +138,7 @@ async def save_layouts(
             stmt = select(PresentationLayoutCodeModel).where(
                 PresentationLayoutCodeModel.presentation == layout_data.presentation,
                 PresentationLayoutCodeModel.layout_id == layout_data.layout_id,
+                PresentationLayoutCodeModel.user_id == scope.user_id,
             )
             result = await session.execute(stmt)
             existing_layout = result.scalar_one_or_none()
@@ -146,9 +147,11 @@ async def save_layouts(
                 existing_layout.layout_name = layout_data.layout_name
                 existing_layout.layout_code = layout_data.layout_code
                 existing_layout.fonts = layout_data.fonts
+                existing_layout.user_id = scope.user_id
                 existing_layout.updated_at = datetime.now()
             else:
                 new_layout = PresentationLayoutCodeModel(
+                    user_id=scope.user_id,
                     presentation=layout_data.presentation,
                     layout_id=layout_data.layout_id,
                     layout_name=layout_data.layout_name,
@@ -192,11 +195,12 @@ async def save_layouts(
     },
 )
 async def get_layouts(
-    presentation: UUID, session: AsyncSession = Depends(get_async_session)
+    presentation: UUID, scope: Scope = Depends(get_scope)
 ):
     """
     Retrieve all layouts for a specific presentation.
     """
+    session = scope.session
     try:
         if not presentation or len(str(presentation).strip()) == 0:
             raise HTTPException(
@@ -204,7 +208,8 @@ async def get_layouts(
             )
 
         stmt = select(PresentationLayoutCodeModel).where(
-            PresentationLayoutCodeModel.presentation == presentation
+            PresentationLayoutCodeModel.presentation == presentation,
+            PresentationLayoutCodeModel.user_id == scope.user_id,
         )
         result = await session.execute(stmt)
         layouts_db = result.scalars().all()
@@ -233,6 +238,8 @@ async def get_layouts(
         fonts_list = sorted(list(aggregated_fonts)) if aggregated_fonts else None
 
         template_meta = await session.get(TemplateModel, presentation)
+        if template_meta and template_meta.user_id != scope.user_id:
+            template_meta = None
         template = None
         if template_meta:
             template = {
@@ -274,15 +281,22 @@ async def get_layouts(
     },
 )
 async def get_presentations_summary(
-    session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
     """Get summary of all presentations with their layout counts."""
+    session = scope.session
     try:
-        stmt = select(
-            PresentationLayoutCodeModel.presentation,
-            func.count(PresentationLayoutCodeModel.id).label("layout_count"),
-            func.max(PresentationLayoutCodeModel.updated_at).label("last_updated_at"),
-        ).group_by(PresentationLayoutCodeModel.presentation)
+        stmt = (
+            select(
+                PresentationLayoutCodeModel.presentation,
+                func.count(PresentationLayoutCodeModel.id).label("layout_count"),
+                func.max(PresentationLayoutCodeModel.updated_at).label(
+                    "last_updated_at"
+                ),
+            )
+            .where(PresentationLayoutCodeModel.user_id == scope.user_id)
+            .group_by(PresentationLayoutCodeModel.presentation)
+        )
 
         result = await session.execute(stmt)
         presentation_data = result.all()
@@ -290,6 +304,8 @@ async def get_presentations_summary(
         presentations = []
         for row in presentation_data:
             template_meta = await session.get(TemplateModel, row.presentation)
+            if template_meta and template_meta.user_id != scope.user_id:
+                template_meta = None
             template = None
             if template_meta:
                 template = {
@@ -336,20 +352,26 @@ async def get_presentations_summary(
 )
 async def create_template(
     request: TemplateCreateRequest,
-    session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    session = scope.session
     try:
         if not request.id or not request.name:
             raise HTTPException(status_code=400, detail="id and name are required")
 
         existing = await session.get(TemplateModel, request.id)
         if existing:
+            if existing.user_id != scope.user_id:
+                raise HTTPException(status_code=404, detail="Template not found")
             existing.name = request.name
             existing.description = request.description
         else:
             session.add(
                 TemplateModel(
-                    id=request.id, name=request.name, description=request.description
+                    id=request.id,
+                    user_id=scope.user_id,
+                    name=request.name,
+                    description=request.description,
                 )
             )
         await session.commit()
@@ -378,15 +400,20 @@ async def create_template(
 @LAYOUT_MANAGEMENT_ROUTER.delete("/delete-templates/{template_id}", status_code=204)
 async def delete_template(
     template_id: UUID,
-    session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    session = scope.session
     try:
         await session.execute(
-            delete(TemplateModel).where(TemplateModel.id == template_id)
+            delete(TemplateModel).where(
+                TemplateModel.id == template_id,
+                TemplateModel.user_id == scope.user_id,
+            )
         )
         await session.execute(
             delete(PresentationLayoutCodeModel).where(
                 PresentationLayoutCodeModel.presentation == template_id,
+                PresentationLayoutCodeModel.user_id == scope.user_id,
             )
         )
         await session.commit()

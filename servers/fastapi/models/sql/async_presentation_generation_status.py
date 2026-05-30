@@ -14,6 +14,7 @@ class AsyncPresentationGenerationTaskModel(SQLModel, table=True):
     id: str = Field(
         default_factory=lambda: f"task-{secrets.token_hex(32)}", primary_key=True
     )
+    user_id: Optional[str] = Field(default=None, index=True)
     status: str
     message: Optional[str] = None
     error: Optional[dict] = Field(sa_column=Column(JSON), default=None)

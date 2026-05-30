@@ -251,7 +251,7 @@ def test_presentation_model_set_structure_updates_slides():
 
 
 def test_chat_conversation_store_ensure_conversation_id():
-    store = ChatConversationStore(sql_session=None)  # type: ignore[arg-type]
+    store = ChatConversationStore(sql_session=None, user_id="user-1")  # type: ignore[arg-type]
     nid = asyncio.run(store.ensure_conversation_id(None))
     assert isinstance(nid, uuid.UUID)
     cid = uuid.uuid4()

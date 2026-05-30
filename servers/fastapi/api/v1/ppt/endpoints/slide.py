@@ -1,11 +1,9 @@
 from typing import Annotated, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from models.sql.presentation import PresentationModel
 from models.sql.slide import SlideModel
-from services.database import get_async_session
 from services.image_generation_service import ImageGenerationService
 from services.mem0_presentation_memory_service import (
     MEM0_PRESENTATION_MEMORY_SERVICE,
@@ -15,6 +13,7 @@ from utils.llm_calls.edit_slide import get_edited_slide_content
 from utils.llm_calls.edit_slide_html import get_edited_slide_html
 from utils.llm_calls.select_slide_type_on_edit import get_slide_layout_from_prompt
 from utils.process_slides import process_old_and_new_slides_and_fetch_assets
+from utils.request_scope import Scope, get_scope
 
 
 SLIDE_ROUTER = APIRouter(prefix="/slide", tags=["Slide"])
@@ -24,14 +23,11 @@ SLIDE_ROUTER = APIRouter(prefix="/slide", tags=["Slide"])
 async def edit_slide(
     id: Annotated[uuid.UUID, Body()],
     prompt: Annotated[str, Body()],
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    slide = await sql_session.get(SlideModel, id)
-    if not slide:
-        raise HTTPException(status_code=404, detail="Slide not found")
-    presentation = await sql_session.get(PresentationModel, slide.presentation)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    slide = await scope.get_owned(SlideModel, id)
+    presentation = await scope.get_owned(PresentationModel, slide.presentation)
 
     memory_context = await MEM0_PRESENTATION_MEMORY_SERVICE.retrieve_context(
         presentation.id,
@@ -67,6 +63,10 @@ async def edit_slide(
         icon_weight=presentation.get_layout().icon_weight,
     )
 
+    # Stamp ownership on any newly created assets before they're persisted
+    for a in new_assets:
+        a.user_id = scope.user_id
+
     # Always assign a new unique id to the slide
     slide.id = uuid.uuid4()
 
@@ -92,15 +92,11 @@ async def edit_slide_html(
     id: Annotated[uuid.UUID, Body()],
     prompt: Annotated[str, Body()],
     html: Annotated[Optional[str], Body()] = None,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    slide = await sql_session.get(SlideModel, id)
-    if not slide:
-        raise HTTPException(status_code=404, detail="Slide not found")
-
-    presentation = await sql_session.get(PresentationModel, slide.presentation)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    slide = await scope.get_owned(SlideModel, id)
+    presentation = await scope.get_owned(PresentationModel, slide.presentation)
 
     html_to_edit = html or slide.html_content
     if not html_to_edit:

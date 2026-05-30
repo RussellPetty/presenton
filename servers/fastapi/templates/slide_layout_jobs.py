@@ -30,6 +30,7 @@ class SlideLayoutJobStatusResponse(BaseModel):
 
 @dataclass
 class _JobRecord:
+    user_id: Optional[str] = None
     status: str = "pending"
     react_component: Optional[str] = None
     error: Optional[str] = None
@@ -64,11 +65,12 @@ async def _prune_if_needed() -> None:
 
 async def start_slide_layout_job(
     work: Callable[[], Awaitable[str]],
+    user_id: str,
 ) -> str:
     await _prune_if_needed()
     job_id = str(uuid.uuid4())
     async with _lock:
-        _jobs[job_id] = _JobRecord()
+        _jobs[job_id] = _JobRecord(user_id=user_id)
 
     async def _runner() -> None:
         try:
@@ -98,12 +100,15 @@ async def start_slide_layout_job(
     return job_id
 
 
-async def get_slide_layout_job(job_id: str) -> Optional[_JobRecord]:
+async def get_slide_layout_job(job_id: str, user_id: str) -> Optional[_JobRecord]:
     async with _lock:
         rec = _jobs.get(job_id)
-        if rec is None:
+        # Treat a job owned by another user as non-existent so its id can't be
+        # probed or its result read across tenants.
+        if rec is None or rec.user_id != user_id:
             return None
         return _JobRecord(
+            user_id=rec.user_id,
             status=rec.status,
             react_component=rec.react_component,
             error=rec.error,

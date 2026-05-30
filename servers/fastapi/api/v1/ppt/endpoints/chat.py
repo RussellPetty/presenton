@@ -3,7 +3,6 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.chat import (
     ChatConversationListItem,
@@ -19,9 +18,10 @@ from models.sse_response import (
     SSETraceResponse,
     SSEResponse,
 )
+from models.sql.presentation import PresentationModel
 from services.chat import ChatTurnResult, PresentationChatService
 from services.chat import sql_chat_history
-from services.database import get_async_session
+from utils.request_scope import Scope, get_scope
 
 CHAT_ROUTER = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -29,10 +29,12 @@ CHAT_ROUTER = APIRouter(prefix="/chat", tags=["Chat"])
 @CHAT_ROUTER.get("/conversations", response_model=list[ChatConversationListItem])
 async def list_chat_conversations(
     presentation_id: uuid.UUID = Query(..., description="Presentation id"),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
+    await scope.get_owned(PresentationModel, presentation_id)
     raw = await sql_chat_history.list_conversations(
-        sql_session, presentation_id=presentation_id
+        sql_session, user_id=scope.user_id, presentation_id=presentation_id
     )
     return [
         ChatConversationListItem(
@@ -48,10 +50,13 @@ async def list_chat_conversations(
 async def get_chat_history(
     presentation_id: uuid.UUID = Query(..., description="Presentation id"),
     conversation_id: uuid.UUID = Query(..., description="Conversation thread id"),
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
+    await scope.get_owned(PresentationModel, presentation_id)
     rows = await sql_chat_history.load_messages_with_meta(
         sql_session,
+        user_id=scope.user_id,
         presentation_id=presentation_id,
         conversation_id=conversation_id,
     )
@@ -74,10 +79,13 @@ async def get_chat_history(
 @CHAT_ROUTER.post("/message", response_model=ChatMessageResponse)
 async def chat_message(
     payload: ChatMessageRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
+    await scope.get_owned(PresentationModel, payload.presentation_id)
     service = PresentationChatService(
         sql_session=sql_session,
+        user_id=scope.user_id,
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
     )
@@ -92,10 +100,13 @@ async def chat_message(
 @CHAT_ROUTER.post("/message/stream")
 async def chat_message_stream(
     payload: ChatMessageRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
+    sql_session = scope.session
+    await scope.get_owned(PresentationModel, payload.presentation_id)
     service = PresentationChatService(
         sql_session=sql_session,
+        user_id=scope.user_id,
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
     )

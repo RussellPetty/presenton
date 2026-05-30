@@ -10,6 +10,7 @@ from utils.datetime_utils import get_current_utc_datetime
 
 class ImageAsset(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True), nullable=False, default=get_current_utc_datetime

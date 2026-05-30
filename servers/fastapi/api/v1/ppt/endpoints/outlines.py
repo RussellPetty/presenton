@@ -5,7 +5,6 @@ import uuid
 import dirtyjson
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.presentation_outline_model import PresentationOutlineModel
 from models.sql.presentation import PresentationModel
@@ -16,7 +15,6 @@ from models.sse_response import (
     SSEStatusResponse,
 )
 from services.temp_file_service import TEMP_FILE_SERVICE
-from services.database import get_async_session
 from services.documents_loader import DocumentsLoader
 from services.mem0_presentation_memory_service import (
     MEM0_PRESENTATION_MEMORY_SERVICE,
@@ -30,18 +28,17 @@ from utils.llm_calls.generate_presentation_outlines import (
     generate_ppt_outline,
     get_messages as get_outline_messages,
 )
+from utils.request_scope import Scope, get_scope
 
 OUTLINES_ROUTER = APIRouter(prefix="/outlines", tags=["Outlines"])
 
 
 @OUTLINES_ROUTER.get("/stream/{id}")
 async def stream_outlines(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID, scope: Scope = Depends(get_scope)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    sql_session = scope.session
+    presentation = await scope.get_owned(PresentationModel, id)
 
     temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
 

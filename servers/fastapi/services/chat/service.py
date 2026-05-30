@@ -53,14 +53,16 @@ class PresentationChatService:
     def __init__(
         self,
         sql_session: AsyncSession,
+        user_id: str,
         presentation_id: uuid.UUID,
         conversation_id: uuid.UUID | None,
     ):
         self._sql_session = sql_session
+        self._user_id = user_id
         self._presentation_id = presentation_id
         self._conversation_id = conversation_id
 
-        self._conversation_store = ChatConversationStore(sql_session)
+        self._conversation_store = ChatConversationStore(sql_session, user_id)
         self._memory = PresentationContextStore(sql_session, presentation_id)
         self._tools = ChatTools(self._memory)
 

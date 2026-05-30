@@ -1,11 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query, Header
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
-from services.database import get_async_session
 from services.image_generation_service import ImageGenerationService
 from utils.asset_directory_utils import (
     filesystem_image_path_to_app_data_url,
@@ -14,6 +12,7 @@ from utils.asset_directory_utils import (
 )
 from utils.get_env import get_pexels_api_key_env, get_pixabay_api_key_env
 from utils.image_provider import get_selected_image_provider
+from utils.request_scope import Scope, get_scope
 from enums.image_provider import ImageProvider
 import os
 import uuid
@@ -93,8 +92,9 @@ async def search_stock_images(
 
 @IMAGES_ROUTER.get("/generate")
 async def generate_image(
-    prompt: str, sql_session: AsyncSession = Depends(get_async_session)
+    prompt: str, scope: Scope = Depends(get_scope)
 ):
+    sql_session = scope.session
     images_directory = get_images_directory()
     image_prompt = ImagePrompt(prompt=prompt)
     image_generation_service = ImageGenerationService(images_directory)
@@ -103,6 +103,7 @@ async def generate_image(
     if not isinstance(image, ImageAsset):
         return normalize_slide_asset_url(image) if isinstance(image, str) else image
 
+    image.user_id = scope.user_id
     sql_session.add(image)
     await sql_session.commit()
 
@@ -121,12 +122,14 @@ def _image_asset_api_dict(asset: ImageAsset) -> dict:
 
 
 @IMAGES_ROUTER.get("/generated")
-async def get_generated_images(sql_session: AsyncSession = Depends(get_async_session)):
+async def get_generated_images(scope: Scope = Depends(get_scope)):
+    sql_session = scope.session
     try:
         images_result = await sql_session.scalars(
-            select(ImageAsset)
-            .where(ImageAsset.is_uploaded == False)
-            .order_by(ImageAsset.created_at.desc())
+            scope.owned(
+                select(ImageAsset).where(ImageAsset.is_uploaded == False),
+                ImageAsset,
+            ).order_by(ImageAsset.created_at.desc())
         )
         return [_image_asset_api_dict(a) for a in images_result]
     except Exception as e:
@@ -137,8 +140,9 @@ async def get_generated_images(sql_session: AsyncSession = Depends(get_async_ses
 
 @IMAGES_ROUTER.post("/upload")
 async def upload_image(
-    file: UploadFile = File(...), sql_session: AsyncSession = Depends(get_async_session)
+    file: UploadFile = File(...), scope: Scope = Depends(get_scope)
 ):
+    sql_session = scope.session
     try:
         new_filename = get_file_name_with_random_uuid(file)
         image_path = os.path.join(
@@ -148,7 +152,9 @@ async def upload_image(
         with open(image_path, "wb") as f:
             f.write(await file.read())
 
-        image_asset = ImageAsset(path=image_path, is_uploaded=True)
+        image_asset = ImageAsset(
+            path=image_path, is_uploaded=True, user_id=scope.user_id
+        )
 
         sql_session.add(image_asset)
         await sql_session.commit()
@@ -161,12 +167,14 @@ async def upload_image(
 
 
 @IMAGES_ROUTER.get("/uploaded")
-async def get_uploaded_images(sql_session: AsyncSession = Depends(get_async_session)):
+async def get_uploaded_images(scope: Scope = Depends(get_scope)):
+    sql_session = scope.session
     try:
         images_result = await sql_session.scalars(
-            select(ImageAsset)
-            .where(ImageAsset.is_uploaded == True)
-            .order_by(ImageAsset.created_at.desc())
+            scope.owned(
+                select(ImageAsset).where(ImageAsset.is_uploaded == True),
+                ImageAsset,
+            ).order_by(ImageAsset.created_at.desc())
         )
         return [_image_asset_api_dict(a) for a in images_result]
     except Exception as e:
@@ -177,14 +185,13 @@ async def get_uploaded_images(sql_session: AsyncSession = Depends(get_async_sess
 
 @IMAGES_ROUTER.delete("/{id}", status_code=204)
 async def delete_uploaded_image_by_id(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID, scope: Scope = Depends(get_scope)
 ):
+    sql_session = scope.session
+    # Verify ownership before touching the filesystem; raises 404 if missing
+    # or owned by another user (outside the try so the 404 isn't masked as 500).
+    image = await scope.get_owned(ImageAsset, id)
     try:
-        # Fetch the asset to get its actual file path
-        image = await sql_session.get(ImageAsset, id)
-        if not image:
-            raise HTTPException(status_code=404, detail="Image not found")
-
         os.remove(image.path)
 
         await sql_session.delete(image)

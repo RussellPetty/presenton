@@ -11,6 +11,7 @@ class TemplateCreateInfoModel(SQLModel, table=True):
     __tablename__ = "template_create_infos"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: str | None = Field(default=None, index=True)
     fonts: dict[str, str] | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),

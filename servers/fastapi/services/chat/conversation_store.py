@@ -7,8 +7,9 @@ from services.chat import sql_chat_history
 
 
 class ChatConversationStore:
-    def __init__(self, sql_session: AsyncSession):
+    def __init__(self, sql_session: AsyncSession, user_id: str):
         self._sql = sql_session
+        self._user_id = user_id
 
     async def load_history(
         self,
@@ -18,6 +19,7 @@ class ChatConversationStore:
     ) -> list[dict[str, str]]:
         messages = await sql_chat_history.load_messages(
             self._sql,
+            user_id=self._user_id,
             presentation_id=presentation_id,
             conversation_id=conversation_id,
         )
@@ -30,6 +32,7 @@ class ChatConversationStore:
         if legacy:
             await sql_chat_history.replace_messages(
                 self._sql,
+                user_id=self._user_id,
                 presentation_id=presentation_id,
                 conversation_id=conversation_id,
                 messages=legacy,
@@ -47,6 +50,7 @@ class ChatConversationStore:
     ) -> None:
         await sql_chat_history.append_turn(
             self._sql,
+            user_id=self._user_id,
             presentation_id=presentation_id,
             conversation_id=conversation_id,
             user_message=user_message,

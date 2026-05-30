@@ -9,11 +9,16 @@ from sqlmodel import select
 
 from models.sql.image_asset import ImageAsset
 from models.sql.key_value import KeyValueSqlModel
-from services.database import get_async_session
 from utils.asset_directory_utils import normalize_slide_asset_url
+from utils.request_scope import Scope, get_scope
 
 THEMES_ROUTER = APIRouter(prefix="/themes", tags=["Themes"])
 THEMES_STORAGE_KEY = "presentation_custom_themes"
+
+
+def _themes_storage_key(user_id: str) -> str:
+    """Per-user namespaced key so each tenant's themes are isolated."""
+    return f"{THEMES_STORAGE_KEY}::{user_id}"
 
 
 class ThemeRequest(BaseModel):
@@ -66,9 +71,11 @@ def _normalize_theme(theme: dict[str, Any]) -> ThemeResponse:
     )
 
 
-async def _get_themes_row(sql_session: AsyncSession) -> Optional[KeyValueSqlModel]:
+async def _get_themes_row(
+    sql_session: AsyncSession, storage_key: str
+) -> Optional[KeyValueSqlModel]:
     return await sql_session.scalar(
-        select(KeyValueSqlModel).where(KeyValueSqlModel.key == THEMES_STORAGE_KEY)
+        select(KeyValueSqlModel).where(KeyValueSqlModel.key == storage_key)
     )
 
 
@@ -105,17 +112,20 @@ async def get_default_themes():
 
 
 @THEMES_ROUTER.get("/all", response_model=List[ThemeResponse])
-async def get_themes(sql_session: AsyncSession = Depends(get_async_session)):
-    row = await _get_themes_row(sql_session)
+async def get_themes(scope: Scope = Depends(get_scope)):
+    sql_session = scope.session
+    row = await _get_themes_row(sql_session, _themes_storage_key(scope.user_id))
     themes = _read_themes_from_row(row)
     return [_normalize_theme(theme) for theme in themes]
 
 
 @THEMES_ROUTER.post("/create", response_model=ThemeResponse)
 async def create_theme(
-    payload: ThemeRequest, sql_session: AsyncSession = Depends(get_async_session)
+    payload: ThemeRequest, scope: Scope = Depends(get_scope)
 ):
-    row = await _get_themes_row(sql_session)
+    sql_session = scope.session
+    storage_key = _themes_storage_key(scope.user_id)
+    row = await _get_themes_row(sql_session, storage_key)
     themes = _read_themes_from_row(row)
     logo_url = payload.logo_url or await _resolve_logo_url(sql_session, payload.logo)
 
@@ -123,7 +133,7 @@ async def create_theme(
         "id": str(uuid.uuid4()),
         "name": payload.name,
         "description": payload.description,
-        "user": "local",
+        "user": scope.user_id,
         "logo": payload.logo,
         "logo_url": logo_url,
         "company_name": payload.company_name,
@@ -135,7 +145,7 @@ async def create_theme(
         row.value = {"themes": themes}
         sql_session.add(row)
     else:
-        sql_session.add(KeyValueSqlModel(key=THEMES_STORAGE_KEY, value={"themes": themes}))
+        sql_session.add(KeyValueSqlModel(key=storage_key, value={"themes": themes}))
 
     await sql_session.commit()
     return _normalize_theme(theme)
@@ -145,9 +155,10 @@ async def create_theme(
 async def update_theme(
     theme_id: str,
     payload: ThemeUpdateRequest,
-    sql_session: AsyncSession = Depends(get_async_session),
+    scope: Scope = Depends(get_scope),
 ):
-    row = await _get_themes_row(sql_session)
+    sql_session = scope.session
+    row = await _get_themes_row(sql_session, _themes_storage_key(scope.user_id))
     if not row:
         raise HTTPException(status_code=404, detail="Theme not found")
 
@@ -178,9 +189,10 @@ async def update_theme(
 
 @THEMES_ROUTER.delete("/delete/{theme_id}", status_code=204)
 async def delete_theme(
-    theme_id: str, sql_session: AsyncSession = Depends(get_async_session)
+    theme_id: str, scope: Scope = Depends(get_scope)
 ):
-    row = await _get_themes_row(sql_session)
+    sql_session = scope.session
+    row = await _get_themes_row(sql_session, _themes_storage_key(scope.user_id))
     if not row:
         return
 

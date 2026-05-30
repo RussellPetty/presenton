@@ -16,6 +16,7 @@ class TemplateModel(SQLModel, table=True):
         primary_key=True,
         description="UUID for the template (matches presentation_id)",
     )
+    user_id: Optional[str] = Field(default=None, index=True)
     name: str = Field(description="Human friendly template name")
     description: Optional[str] = Field(
         default=None, description="Optional template description"

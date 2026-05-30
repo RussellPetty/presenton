@@ -51,11 +51,13 @@ def _parse_created_at(value: Any) -> datetime | None:
 async def load_messages(
     session: AsyncSession,
     *,
+    user_id: str,
     presentation_id: uuid.UUID,
     conversation_id: uuid.UUID,
 ) -> list[dict[str, str]]:
     rows = await load_messages_with_meta(
         session,
+        user_id=user_id,
         presentation_id=presentation_id,
         conversation_id=conversation_id,
     )
@@ -69,6 +71,7 @@ async def load_messages(
 async def load_messages_with_meta(
     session: AsyncSession,
     *,
+    user_id: str,
     presentation_id: uuid.UUID,
     conversation_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
@@ -77,6 +80,7 @@ async def load_messages_with_meta(
             await session.scalars(
                 select(ChatHistoryMessageModel)
                 .where(
+                    ChatHistoryMessageModel.user_id == user_id,
                     ChatHistoryMessageModel.presentation_id == presentation_id,
                     ChatHistoryMessageModel.conversation_id == conversation_id,
                 )
@@ -100,12 +104,14 @@ async def load_messages_with_meta(
 async def replace_messages(
     session: AsyncSession,
     *,
+    user_id: str,
     presentation_id: uuid.UUID,
     conversation_id: uuid.UUID,
     messages: list[dict[str, str]],
 ) -> None:
     await session.execute(
         sa_delete(ChatHistoryMessageModel).where(
+            ChatHistoryMessageModel.user_id == user_id,
             ChatHistoryMessageModel.presentation_id == presentation_id,
             ChatHistoryMessageModel.conversation_id == conversation_id,
         )
@@ -126,6 +132,7 @@ async def replace_messages(
         )
         session.add(
             ChatHistoryMessageModel(
+                user_id=user_id,
                 presentation_id=presentation_id,
                 conversation_id=conversation_id,
                 position=next_position,
@@ -141,6 +148,7 @@ async def replace_messages(
 async def append_turn(
     session: AsyncSession,
     *,
+    user_id: str,
     presentation_id: uuid.UUID,
     conversation_id: uuid.UUID,
     user_message: str,
@@ -149,6 +157,7 @@ async def append_turn(
 ) -> None:
     max_position = await session.scalar(
         select(func.max(ChatHistoryMessageModel.position)).where(
+            ChatHistoryMessageModel.user_id == user_id,
             ChatHistoryMessageModel.presentation_id == presentation_id,
             ChatHistoryMessageModel.conversation_id == conversation_id,
         )
@@ -158,6 +167,7 @@ async def append_turn(
 
     session.add(
         ChatHistoryMessageModel(
+            user_id=user_id,
             presentation_id=presentation_id,
             conversation_id=conversation_id,
             position=next_position,
@@ -168,6 +178,7 @@ async def append_turn(
     )
     session.add(
         ChatHistoryMessageModel(
+            user_id=user_id,
             presentation_id=presentation_id,
             conversation_id=conversation_id,
             position=next_position + 1,
@@ -181,13 +192,16 @@ async def append_turn(
 
 
 async def list_conversations(
-    session: AsyncSession, *, presentation_id: uuid.UUID
+    session: AsyncSession, *, user_id: str, presentation_id: uuid.UUID
 ) -> list[dict[str, Any]]:
     rows = list(
         (
             await session.scalars(
                 select(ChatHistoryMessageModel)
-                .where(ChatHistoryMessageModel.presentation_id == presentation_id)
+                .where(
+                    ChatHistoryMessageModel.user_id == user_id,
+                    ChatHistoryMessageModel.presentation_id == presentation_id,
+                )
                 .order_by(
                     ChatHistoryMessageModel.created_at.desc(),
                     ChatHistoryMessageModel.position.desc(),

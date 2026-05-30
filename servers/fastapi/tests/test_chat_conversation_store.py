@@ -22,7 +22,7 @@ class TestChatConversationStore:
             "services.chat.conversation_store.CHAT_MEMORY_STORE.load_history",
             new=AsyncMock(),
         ) as load_mem0:
-            store = ChatConversationStore(sql_session)
+            store = ChatConversationStore(sql_session, "user-1")
             history = asyncio.run(
                 store.load_history(
                     presentation_id=presentation_id,
@@ -32,6 +32,7 @@ class TestChatConversationStore:
 
         load_sql.assert_awaited_once_with(
             sql_session,
+            user_id="user-1",
             presentation_id=presentation_id,
             conversation_id=conversation_id,
         )
@@ -57,7 +58,7 @@ class TestChatConversationStore:
             "services.chat.conversation_store.sql_chat_history.replace_messages",
             new=AsyncMock(),
         ) as replace_messages:
-            store = ChatConversationStore(sql_session)
+            store = ChatConversationStore(sql_session, "user-1")
             history = asyncio.run(
                 store.load_history(
                     presentation_id=presentation_id,
@@ -69,6 +70,7 @@ class TestChatConversationStore:
         load_mem0.assert_awaited_once()
         replace_messages.assert_awaited_once_with(
             sql_session,
+            user_id="user-1",
             presentation_id=presentation_id,
             conversation_id=conversation_id,
             messages=legacy,
@@ -77,7 +79,7 @@ class TestChatConversationStore:
 
     def test_append_turn_persists_sql_and_mem0(self):
         sql_session = MagicMock()
-        store = ChatConversationStore(sql_session)
+        store = ChatConversationStore(sql_session, "user-1")
         presentation_id = uuid.uuid4()
         conversation_id = uuid.uuid4()
 
@@ -99,6 +101,7 @@ class TestChatConversationStore:
 
         append_sql.assert_awaited_once_with(
             sql_session,
+            user_id="user-1",
             presentation_id=presentation_id,
             conversation_id=conversation_id,
             user_message="Can you improve slide 2?",
@@ -113,7 +116,7 @@ class TestChatConversationStore:
         )
 
     def test_retrieve_semantic_context_delegates_to_chat_memory_store(self):
-        store = ChatConversationStore(MagicMock())
+        store = ChatConversationStore(MagicMock(), "user-1")
         presentation_id = uuid.uuid4()
         conversation_id = uuid.uuid4()
 
