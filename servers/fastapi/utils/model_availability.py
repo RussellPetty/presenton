@@ -238,7 +238,13 @@ async def check_llm_and_image_provider_api_or_model_availability():
             print("-" * 50)
             print("Available models: ", available_models)
             if custom_model not in available_models:
-                raise Exception(f"Model {custom_model} is not available")
+                # Some OpenAI-compatible providers (e.g. xAI/Grok) serve models
+                # via the completions API that their /models endpoint omits.
+                # Warn instead of hard-failing so a valid-but-unlisted model boots.
+                print(
+                    f"WARNING: custom model '{custom_model}' is not in the "
+                    f"provider's /models list; proceeding anyway."
+                )
 
         # Skip image provider and API key checks if image generation is disabled
         if is_image_generation_disabled():
