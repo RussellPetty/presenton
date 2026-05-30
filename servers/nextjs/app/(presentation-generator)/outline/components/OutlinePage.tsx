@@ -62,7 +62,7 @@ const OutlinePage: React.FC = () => {
             {/* Reserves vertical space so content does not sit under the fixed tab bar */}
             <div className="h-[4.75rem] shrink-0 sm:h-[5rem]" aria-hidden />
             <div className="fixed top-26 left-0 right-0 z-50  pb-2">
-              <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-10 lg:px-20">
+              <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-3 px-5 sm:px-10 lg:px-20">
                 <TabsList className="my-4 h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5">
                   <TabsTrigger
                     value={TABS.OUTLINE}
@@ -78,6 +78,12 @@ const OutlinePage: React.FC = () => {
                     Select Template
                   </TabsTrigger>
                 </TabsList>
+                <GenerateButton
+                  loadingState={loadingState}
+                  streamState={streamState}
+                  selectedTemplate={selectedTemplate}
+                  onSubmit={handleSubmit}
+                />
               </div>
             </div>
 
@@ -102,15 +108,6 @@ const OutlinePage: React.FC = () => {
               </TabsContent>
             </div>
           </Tabs>
-
-          <div className="fixed bottom-[26px] right-[26px] z-50">
-            <GenerateButton
-              loadingState={loadingState}
-              streamState={streamState}
-              selectedTemplate={selectedTemplate}
-              onSubmit={handleSubmit}
-            />
-          </div>
         </div>
 
 

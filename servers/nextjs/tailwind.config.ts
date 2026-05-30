@@ -76,10 +76,21 @@ const config: Config = {
             height: "0",
           },
         },
+        "glow-pulse": {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 10px 1px rgba(178, 158, 255, 0.45), 0 0 20px 4px rgba(253, 228, 194, 0.30)",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 18px 4px rgba(178, 158, 255, 0.75), 0 0 34px 10px rgba(253, 228, 194, 0.45)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
       },
       fontFamily: {
         syne: ["var(--font-syne)"],

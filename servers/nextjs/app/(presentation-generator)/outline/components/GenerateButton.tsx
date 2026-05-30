@@ -23,8 +23,8 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
   const getButtonText = () => {
     if (loadingState.isLoading) return loadingState.message;
     if (streamState.isLoading || streamState.isStreaming) return "Loading...";
-    if (!selectedTemplate) return "Select a Template";
-    return "Generate Presentation";
+    if (!selectedTemplate) return "Next: Select a Template";
+    return "Next: Generate Presentation";
   };
 
   return (
@@ -33,7 +33,7 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
       onClick={() => {
         onSubmit();
       }}
-      className=" w-full flex items-center gap-0.5 rounded-[58px] text-sm py-3 px-5 font-instrument_sans font-semibold  text-[#101323] disabled:opacity-50 disabled:cursor-not-allowed font-syne"
+      className={`w-fit shrink-0 whitespace-nowrap flex items-center gap-0.5 rounded-[58px] text-sm py-3 px-5 font-instrument_sans font-semibold text-[#101323] disabled:opacity-50 disabled:cursor-not-allowed font-syne ${isDisabled ? "" : "animate-glow-pulse"}`}
       style={{
         background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
       }}
