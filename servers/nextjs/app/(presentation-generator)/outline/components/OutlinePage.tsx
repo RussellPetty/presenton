@@ -78,12 +78,14 @@ const OutlinePage: React.FC = () => {
                     Select Template
                   </TabsTrigger>
                 </TabsList>
-                <GenerateButton
-                  loadingState={loadingState}
-                  streamState={streamState}
-                  selectedTemplate={selectedTemplate}
-                  onSubmit={handleSubmit}
-                />
+                <div className="hidden sm:block">
+                  <GenerateButton
+                    loadingState={loadingState}
+                    streamState={streamState}
+                    selectedTemplate={selectedTemplate}
+                    onSubmit={handleSubmit}
+                  />
+                </div>
               </div>
             </div>
 
@@ -108,6 +110,17 @@ const OutlinePage: React.FC = () => {
               </TabsContent>
             </div>
           </Tabs>
+
+          {/* On small screens the tab row has no room for the CTA, so keep it
+              pinned bottom-right there; it moves up beside the tabs at sm+. */}
+          <div className="fixed bottom-[26px] right-[26px] z-50 sm:hidden">
+            <GenerateButton
+              loadingState={loadingState}
+              streamState={streamState}
+              selectedTemplate={selectedTemplate}
+              onSubmit={handleSubmit}
+            />
+          </div>
         </div>
 
 
