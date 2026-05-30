@@ -10,7 +10,8 @@
  */
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { onPrefill } from "@/utils/clerkToken";
 import { useRouter, usePathname } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { clearOutlines, setPresentationId } from "@/store/slices/presentationGeneration";
@@ -136,6 +137,17 @@ const UploadPage = () => {
     showProgress: false,
     extra_info: "",
   });
+
+  // When embedded from another tool (e.g. Research AI), the parent posts the
+  // source text via the Clerk bridge's `presenton-prefill` message; prefill the
+  // prompt so the user lands here with their report ready to generate.
+  useEffect(() => {
+    onPrefill((p) => {
+      if (p.content) {
+        setConfig((c) => ({ ...c, prompt: p.content as string }));
+      }
+    });
+  }, []);
 
   const getUploadSnapshotProps = () => {
     const trimmedPrompt = config.prompt.trim();

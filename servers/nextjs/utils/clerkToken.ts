@@ -22,6 +22,11 @@ export type PresentonBranding = {
   fontBody?: string;
 };
 
+export type PresentonPrefill = {
+  content?: string; // source text (e.g. a research report) to prefill generation
+  title?: string;
+};
+
 const EMBED_FLAG_KEY = "presenton_embed_clerk";
 const PARENT_ORIGIN_KEY = "presenton_parent_origin";
 
@@ -30,6 +35,8 @@ let _expEpochMs: number | null = null;
 let _initialized = false;
 let _branding: PresentonBranding | null = null;
 let _brandingHandler: ((b: PresentonBranding) => void) | null = null;
+let _prefill: PresentonPrefill | null = null;
+let _prefillHandler: ((p: PresentonPrefill) => void) | null = null;
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 const _waiters: Array<(t: string | null) => void> = [];
 
@@ -118,6 +125,25 @@ export function onBranding(handler: (b: PresentonBranding) => void) {
   if (_branding) handler(_branding);
 }
 
+function _setPrefill(p: PresentonPrefill) {
+  const content = typeof p.content === "string" ? p.content : undefined;
+  const title = typeof p.title === "string" ? p.title : undefined;
+  if (!content && !title) return;
+  _prefill = { content, title };
+  if (_prefillHandler) _prefillHandler(_prefill);
+}
+
+/** Source text/title the parent wants generation prefilled with (e.g. a research report). */
+export function getPrefill(): PresentonPrefill | null {
+  return _prefill;
+}
+
+/** Register a callback for prefill content pushed by the parent. */
+export function onPrefill(handler: (p: PresentonPrefill) => void) {
+  _prefillHandler = handler;
+  if (_prefill) handler(_prefill);
+}
+
 /** Start listening for the parent's Clerk token. No-op when not embedded. */
 export function initClerkAuthBridge() {
   if (_initialized || typeof window === "undefined") return;
@@ -141,6 +167,12 @@ export function initClerkAuthBridge() {
         _branding = data.branding as PresentonBranding;
         if (_brandingHandler) _brandingHandler(_branding);
       }
+      if ((data as any).prefill && typeof (data as any).prefill === "object") {
+        _setPrefill((data as any).prefill as PresentonPrefill);
+      }
+    }
+    if (data.type === "presenton-prefill") {
+      _setPrefill(data as unknown as PresentonPrefill);
     }
   });
 
