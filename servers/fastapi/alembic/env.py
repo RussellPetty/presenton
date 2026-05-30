@@ -70,15 +70,19 @@ def _prepare_schema(connection, schema: str) -> None:
 
     from sqlalchemy import text
 
+    # Best-effort create for local/dev DBs. In the recommended Supabase setup the
+    # schema is pre-created and the least-privilege role cannot CREATE SCHEMA, so
+    # this raises permission-denied; roll back so the aborted transaction does not
+    # poison the SET below (otherwise: "current transaction is aborted").
     try:
         connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+        connection.commit()
     except Exception as exc:  # pragma: no cover - depends on DB privileges
-        # The schema may already exist and be owned by a more privileged role
-        # (the recommended Supabase setup grants the app role rights on it).
-        # Proceed; migrations fail loudly later if it genuinely is missing.
-        print(f"[alembic] could not ensure schema '{schema}': {exc}")
+        connection.rollback()
+        print(f"[alembic] could not ensure schema '{schema}' (assuming it pre-exists): {exc}")
 
     connection.execute(text(f'SET search_path TO "{schema}", public'))
+    connection.commit()
 
 
 def run_migrations_offline() -> None:
