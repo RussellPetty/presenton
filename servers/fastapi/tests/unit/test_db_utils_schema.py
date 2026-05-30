@@ -3,6 +3,8 @@
 These are DB-free: they only assert how DATABASE_URL + DB_SCHEMA are translated
 into the async engine URL and connect_args (search_path, ssl)."""
 
+import ssl
+
 from utils.db_utils import get_database_url_and_connect_args
 
 
@@ -58,3 +60,25 @@ def test_blank_schema_is_ignored(monkeypatch):
     _, connect_args = get_database_url_and_connect_args()
 
     assert "server_settings" not in connect_args
+
+
+def test_sslmode_require_encrypts_without_verifying(monkeypatch):
+    # 'require' = encrypt but don't verify (matches libpq + works with Supabase's pooler cert).
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@host:5432/db?sslmode=require")
+    monkeypatch.delenv("DB_SCHEMA", raising=False)
+
+    _, connect_args = get_database_url_and_connect_args()
+
+    ctx = connect_args["ssl"]
+    assert ctx.check_hostname is False
+    assert ctx.verify_mode == ssl.CERT_NONE
+
+
+def test_sslmode_verify_full_verifies_cert(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@host:5432/db?sslmode=verify-full")
+
+    _, connect_args = get_database_url_and_connect_args()
+
+    ctx = connect_args["ssl"]
+    assert ctx.check_hostname is True
+    assert ctx.verify_mode == ssl.CERT_REQUIRED

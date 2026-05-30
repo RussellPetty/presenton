@@ -86,8 +86,18 @@ def get_database_url_and_connect_args() -> tuple[str, dict]:
             for k, v in query_params:
                 key_lower = k.lower()
                 if key_lower == "sslmode" and "postgresql+asyncpg" in driver_scheme:
-                    if v.lower() != "disable" and "sqlite" not in database_url:
-                        connect_args["ssl"] = ssl.create_default_context()
+                    mode = (v or "").lower()
+                    if mode != "disable" and "sqlite" not in database_url:
+                        ssl_context = ssl.create_default_context()
+                        # libpq 'require' (and weaker modes) means "encrypt but do
+                        # not verify the server certificate". Supabase's pooler
+                        # presents a cert outside the default CA bundle, so a
+                        # verifying context raises CERTIFICATE_VERIFY_FAILED. Only
+                        # verify when the caller explicitly asks for verify-ca/full.
+                        if mode not in ("verify-ca", "verify-full"):
+                            ssl_context.check_hostname = False
+                            ssl_context.verify_mode = ssl.CERT_NONE
+                        connect_args["ssl"] = ssl_context
 
             database_url = urlunsplit(
                 (
