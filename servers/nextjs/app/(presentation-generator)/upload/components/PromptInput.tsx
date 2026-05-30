@@ -1,6 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
 import { PencilIcon } from "lucide-react";
-import { useState } from "react";
+import { ImprovePromptButton } from "@/components/ImprovePromptButton";
 
 interface PromptInputProps {
   value: string;
@@ -23,9 +23,12 @@ export function PromptInput({ value, onChange }: PromptInputProps) {
 
       }}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <PencilIcon className="w-3.5 h-3.5" />
-        <p className="text-sm font-normal text-[#333333] font-syne ">Write prompt</p>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-2">
+          <PencilIcon className="w-3.5 h-3.5" />
+          <p className="text-sm font-normal text-[#333333] font-syne ">Write prompt</p>
+        </div>
+        <ImprovePromptButton prompt={value} onImproved={onChange} />
       </div>
       <Textarea
         value={value}
