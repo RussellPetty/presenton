@@ -141,6 +141,43 @@ hardcoded `:80`.
 
 Validation pass is `CAN_CHANGE_KEYS=true` (skips strict model checks at boot); switch to `false` once confirmed. To move to real auth: build the frontend token bridge (Phase 1 frontend), create a Clerk JWT template, then set `AUTH_MODE=clerk`, `CLERK_ISSUER`, `NEXT_PUBLIC_PARENT_ORIGIN`, and remove `DISABLE_AUTH`.
 
+## Phase 3 — Supabase Storage (stateless container)
+
+**Foundation: DONE + validated.** `servers/fastapi/services/object_storage.py` does
+upload/sign/download/delete via the Storage REST API + service-role key (reuses
+broker-marketplace's Supabase creds — no S3 keys), against the private `presentations`
+bucket with per-user keys (`{user_id}/{category}/{name}`). Round-trip verified against the
+live bucket. Gated by `STORAGE_BACKEND` (default `local` → filesystem unchanged).
+
+Enable env (Railway `presenton` service): `STORAGE_BACKEND=supabase`,
+`SUPABASE_URL=${{Production.SUPABASE_URL}}`, `SUPABASE_SERVICE_ROLE_KEY` (secret),
+`SUPABASE_STORAGE_BUCKET=presentations`.
+
+**Remaining rewire (one focused, gated pass — touches the working export/image pipeline,
+so do it carefully + validate against the bucket):**
+
+1. **Serving model (private bucket):** add a FastAPI proxy endpoint
+   `GET /api/v1/ppt/assets/{user_id}/{category}/{name}` that ownership-checks (path
+   `user_id` == caller, or internal-service) and streams the object from Storage. Stable
+   URLs (no signed-URL expiry) that work for the browser **and** the headless export
+   renderer (internal auth). (Signed URLs are fine for one-shot export downloads.)
+2. **Images** (`api/v1/ppt/endpoints/images.py` + `utils/process_slides.py`): when supabase,
+   upload generated/uploaded images to `{user_id}/images/{uuid}` and reference them via the
+   proxy URL in slide content; teach `utils/asset_directory_utils.py` URL normalization to
+   pass the proxy path through.
+3. **Exports** (`utils/export_utils.py` + `api/v1/ppt/endpoints/presentation.py` + the Next.js
+   `app/api/export-presentation/file` route): thread `user_id` into `export_presentation`;
+   after the export, upload the pptx/pdf to `{user_id}/exports/{name}` and store the key on
+   `PresentationModel.file_paths`; add a FastAPI download endpoint that ownership-checks and
+   mints a short-lived signed URL (the Next.js route proxies to it).
+4. **Fonts** (`api/v1/ppt/endpoints/fonts.py`): store in Storage; download into the local font
+   dir at render time (fonts are consumed server-side by Chromium/LiteParse).
+5. **nginx**: in supabase mode the `/app_data/*` static + `auth_request` blocks are unused
+   (assets flow through the proxy/Storage); leave or remove.
+6. **Validate** (have the creds + bucket): deploy with `STORAGE_BACKEND=supabase`; generate +
+   export a deck; confirm images render, the export downloads, and both survive a container
+   **restart** (the point of statelessness). Then drop the Railway volume / raise `numReplicas`.
+
 ## 5. Verify
 1. Deploy; logs show Alembic running and "Migrations run successfully".
 2. In Supabase, the `presenton` schema now contains Presenton's tables + `alembic_version`.
