@@ -24,7 +24,15 @@ def _configure_application_logging() -> None:
     """Honor LOG_LEVEL (default INFO) so template/export diagnostics are visible."""
     raw = (os.getenv("LOG_LEVEL") or "INFO").strip().upper()
     level = getattr(logging, raw, logging.INFO)
-    logging.getLogger().setLevel(level)
+    root = logging.getLogger()
+    root.setLevel(level)
+    # Uvicorn only attaches handlers to its own loggers, so app-logger records
+    # (api.*, services.*) would otherwise hit the WARNING-level last-resort handler
+    # and INFO diagnostics would vanish. Attach a root handler so they're visible.
+    if not root.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
+        root.addHandler(handler)
 
 
 def _is_truthy(value: str | None) -> bool:

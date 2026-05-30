@@ -169,10 +169,11 @@ class ChatTools:
             Tool(
                 name="generateAssets",
                 description=(
-                    "Generate multiple media assets in one call. Use for all slide "
-                    "images and icons before saving content; include every needed "
-                    "asset in the assets array instead of calling image/icon tools "
-                    "one at a time."
+                    "Generate NEW decorative/illustrative images and icons you are inventing, "
+                    "in one call (include every needed generated asset in the assets array). "
+                    "NEVER use this for a logo, a headshot, or any image the user provides or "
+                    "calls 'mine'/'my brand'/'this image' — place those EXACT urls from "
+                    "getBrandingProfiles/getMyImages directly into the slide's __image_url__ instead."
                 ),
                 schema=GenerateAssetsInput,
                 strict=True,

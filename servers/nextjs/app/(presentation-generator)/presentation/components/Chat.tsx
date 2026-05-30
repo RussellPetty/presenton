@@ -26,6 +26,7 @@ import MarkdownRenderer from "@/components/MarkDownRender";
 import { PresentationChatApi } from "../../services/api/chat";
 import type { ChatStreamTrace } from "../../services/api/chat";
 import { ImagesApi } from "../../services/api/images";
+import { getBranding } from "@/utils/clerkToken";
 
 type ChatAttachment = { url: string; name: string; id?: string };
 
@@ -950,6 +951,9 @@ const Chat = ({
     setAttachments((previous) => previous.filter((_, i) => i !== index));
   };
 
+  // The user's headshot (from branding) for the chat avatar; falls back to "U".
+  const userHeadshotUrl = getBranding()?.headshotUrl as string | undefined;
+
   const submitMessage = async (rawMessage: string) => {
     const trimmedMessage = rawMessage.trim();
 
@@ -1266,8 +1270,17 @@ const Chat = ({
                       {stripBackendContextFromUserMessage(message.content)}
                     </p>
                   </div>
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF8617] text-sm font-semibold text-white">
-                    U
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FF8617] text-sm font-semibold text-white">
+                    {userHeadshotUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={userHeadshotUrl}
+                        alt="You"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      "U"
+                    )}
                   </div>
                 </div>
               ) : (
