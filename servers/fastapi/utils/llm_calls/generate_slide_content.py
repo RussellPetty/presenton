@@ -31,7 +31,10 @@ You need to generate structured content json based on the schema.
 # General Rules
 - Follow language guidelines.
 - Speaker notes must be plain text (no markdown).
-- Never exceed max character limits; do not clip mid-sentence to fit—rephrase instead.
+- LENGTH IS A HARD LIMIT. Every text field has a `maxLength` in the schema and your value MUST stay under it. Target roughly 80% of each field's maxLength to leave a safety margin; if a value would exceed the limit, rephrase shorter and cut words — never clip mid-sentence.
+- Write concise, scannable slide copy: prefer short phrases and fragments over full sentences, and short sentences over paragraphs. Slides are headlines and bullets, not documents — be brief.
+- Speaker notes are capped too: keep them to 2–3 short sentences that fit within the limit.
+- Count before you commit: if unsure a value fits, choose the shorter wording.
 - Do not use emojis or $schema fields.
 - Follow user instructions literally; do not reinterpret, generalize, or expand them.
 - Apply slide-specific instructions only to the exact slide mentioned (first/second/last/named) and only once.
