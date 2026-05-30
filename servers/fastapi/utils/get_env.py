@@ -46,6 +46,16 @@ def get_temp_directory_env():
     return os.getenv("TEMP_DIRECTORY")
 
 
+def get_internal_app_base_url() -> str:
+    """Loopback base URL for server-side fetches of nginx/Next.js-served pages
+    (template `/schema`, `/api/template`, `/api/template/custom`).
+
+    Defaults via NEXT_PUBLIC_URL, which start.js pins to nginx's internal port
+    (matching $PORT on Railway). The bare `http://127.0.0.1` fallback only works
+    when nginx listens on port 80."""
+    return (os.getenv("NEXT_PUBLIC_URL") or "").strip().rstrip("/") or "http://127.0.0.1"
+
+
 def get_user_config_path_env():
     return os.getenv("USER_CONFIG_PATH")
 
