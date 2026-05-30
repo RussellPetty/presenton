@@ -1,4 +1,4 @@
-import { getHeaderForFormData } from "./header";
+import { getHeader, getHeaderForFormData } from "./header";
 import { ApiResponseHandler } from "./api-error-handler";
 import { ImageAssetResponse } from "./types";
 import { getApiUrl } from "@/utils/api";
@@ -30,7 +30,9 @@ export class ImagesApi {
 
   static async getUploadedImages(): Promise<ImageAssetResponse[]> {
     try {
-    const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`));
+    const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`), {
+      headers: await getHeader(),
+    });
    return await ApiResponseHandler.handleResponse(response, "Failed to get uploaded images") as ImageAssetResponse[];
   } catch (error:any) {
     console.log("Get uploaded images error:", error);
@@ -41,7 +43,8 @@ export class ImagesApi {
   static async deleteImage(image_id: string): Promise<{success: boolean, message?: string}> {
     try {
       const response = await fetch(getApiUrl(`/api/v1/ppt/images/${image_id}`), {
-        method: "DELETE"
+        method: "DELETE",
+        headers: await getHeader(),
       });
       return await ApiResponseHandler.handleResponse(response, "Failed to delete image") as {success: boolean, message?: string};
     } catch (error:any) {
@@ -68,7 +71,7 @@ export class ImagesApi {
         params.set("strict_api_key", "true");
       }
 
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = { ...(await getHeader()) };
       const trimmedApiKey = (options.apiKey || "").trim();
       if (trimmedApiKey) {
         headers["X-Provider-Api-Key"] = trimmedApiKey;

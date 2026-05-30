@@ -16,8 +16,10 @@
 
 export type PresentonBranding = {
   primaryColor?: string;
+  secondaryColor?: string;
   backgroundColor?: string;
   logoUrl?: string;
+  companyName?: string;
   fontHeading?: string;
   fontBody?: string;
 };
@@ -123,6 +125,11 @@ function setToken(token: string, expiresAtEpochSec?: number) {
 export function onBranding(handler: (b: PresentonBranding) => void) {
   _brandingHandler = handler;
   if (_branding) handler(_branding);
+}
+
+/** Latest branding pushed by the parent (sync; null until the first auth message). */
+export function getBranding(): PresentonBranding | null {
+  return _branding;
 }
 
 function _setPrefill(p: PresentonPrefill) {

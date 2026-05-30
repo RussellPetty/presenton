@@ -33,6 +33,7 @@ import ThemeApi from '@/app/(presentation-generator)/services/api/theme'
 import { useFontLoader } from '@/app/(presentation-generator)/hooks/useFontLoad'
 import Link from 'next/link'
 import { MixpanelEvent, trackEvent } from '@/utils/mixpanel'
+import { getBranding, isEmbedClerkMode } from '@/utils/clerkToken'
 
 // Fallback theme used before defaults are loaded from API (unified Theme type)
 const FALLBACK_THEME: Theme = {
@@ -396,11 +397,22 @@ const ThemePanel: React.FC = () => {
       }
     }
 
-    const generatedColors = await generateTheme({ source: "new_theme" })
+    // Embedded (broker) app: seed a new custom theme from the user's Clerk
+    // branding metadata — their brand color drives the palette, plus company
+    // name + logo. Standalone: brand is null, so behavior is unchanged.
+    const brand = isEmbedClerkMode() ? getBranding() : null
+
+    const generatedColors = await generateTheme({
+      primary: brand?.primaryColor,
+      background: brand?.backgroundColor,
+      source: "new_theme",
+    })
 
 
     const theme = {
       ...newTheme,
+      logo_url: brand?.logoUrl || '',
+      company_name: brand?.companyName || '',
       data: {
         ...newTheme.data,
         colors: generatedColors,
@@ -410,11 +422,11 @@ const ThemePanel: React.FC = () => {
     setSelectedTheme(theme)
     setCustomColors(theme.data.colors)
     setCustomFonts(theme.data.fonts)
-    setCustomBrandLogo('')
+    setCustomBrandLogo(brand?.logoUrl || '')
     setIsSheetOpen(true)
     setCurrentStep(1)
 
-    setThemeCompanyName('')
+    setThemeCompanyName(brand?.companyName || '')
     applyTheme(theme)
     trackEvent(MixpanelEvent.Theme_Editor_Opened, {
       pathname,

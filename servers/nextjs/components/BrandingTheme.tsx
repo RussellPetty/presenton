@@ -57,7 +57,7 @@ export default function BrandingTheme() {
             description: "Auto-applied from your brand settings",
             logo: null,
             logo_url: branding.logoUrl ?? null,
-            company_name: null,
+            company_name: branding.companyName ?? null,
             data,
           });
         }
