@@ -312,6 +312,14 @@ if (!process.env.FAST_API_INTERNAL_URL) {
   process.env.FAST_API_INTERNAL_URL = `http://127.0.0.1:${fastapiPort}`;
 }
 
+// The server-side export/schema runtime (Puppeteer) fetches Next.js pages over
+// loopback to extract template schemas and render PDF/PPTX. Default its base URL
+// to nginx's internal port so it works on PaaS that inject $PORT (e.g. Railway),
+// where the legacy default of http://127.0.0.1 (port 80) points at nothing.
+if (!process.env.NEXT_PUBLIC_URL) {
+  process.env.NEXT_PUBLIC_URL = `http://127.0.0.1:${nginxListenPort}`;
+}
+
 //? UserConfig is only setup if API Keys can be changed
 const setupUserConfigFromEnv = () => {
   let existingConfig = readUserConfig();
