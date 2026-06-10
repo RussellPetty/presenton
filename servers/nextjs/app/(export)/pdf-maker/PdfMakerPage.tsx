@@ -110,6 +110,14 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
         ) ?? undefined
       : undefined;
   const effectiveExportToken = exportTokenFromHash;
+  // Set by the FastAPI-side export (generate/edit/derive) when the token is the
+  // internal service secret: names which user's deck the render may fetch.
+  const exportUserIdFromHash =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get(
+          "exportUserId"
+        ) ?? undefined
+      : undefined;
 
   const dispatch = useDispatch();
   const { presentationData } = useSelector(
@@ -140,6 +148,7 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
         ? await fetchPresentationForExport(presentation_id, {
             cookie: effectiveExportCookie,
             token: effectiveExportToken,
+            userId: exportUserIdFromHash,
           })
         : await DashboardApi.getPresentation(presentation_id);
       const normalizedData = normalizeBackendAssetUrls(data);
@@ -167,11 +176,12 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
 
   const fetchPresentationForExport = async (
     id: string,
-    auth: { cookie?: string; token?: string }
+    auth: { cookie?: string; token?: string; userId?: string }
   ) => {
     const headers: Record<string, string> = {};
     if (auth.cookie) headers["x-export-cookie"] = auth.cookie;
     if (auth.token) headers["x-export-token"] = auth.token;
+    if (auth.userId) headers["x-export-user-id"] = auth.userId;
     const response = await fetch(`/api/export-presentation-data/${id}`, {
       method: "GET",
       headers,

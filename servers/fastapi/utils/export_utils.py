@@ -9,7 +9,11 @@ from pathvalidate import sanitize_filename
 from models.presentation_and_path import PresentationAndPath
 from utils.filename_utils import safe_export_basename
 from services.export_task_service import EXPORT_TASK_SERVICE
-from utils.get_env import is_supabase_storage_enabled
+from utils.get_env import (
+    get_internal_api_secret_env,
+    is_clerk_auth_enabled,
+    is_supabase_storage_enabled,
+)
 from utils.runtime_limits import log_memory
 
 
@@ -50,6 +54,18 @@ async def export_presentation(
         export_as=export_as,
     )
     export_url, fastapi_url = _build_presentation_export_url(presentation_id)
+    # Clerk mode: the headless render has no user JWT and session cookies don't
+    # validate, so carry the internal secret + deck owner in the URL fragment
+    # (stays in the local headless browser, never sent to a server or logged).
+    # PdfMakerPage forwards both and the data proxy turns them into
+    # Authorization: Bearer + X-Presenton-User-Id, making the fetch owner-scoped.
+    if is_clerk_auth_enabled() and user_id:
+        internal_secret = get_internal_api_secret_env()
+        if internal_secret:
+            fragment = urlencode(
+                {"exportToken": internal_secret, "exportUserId": user_id}
+            )
+            export_url = f"{export_url}#{fragment}"
     name = (title or "").strip() or str(uuid.uuid4())
     export_result = await EXPORT_TASK_SERVICE.export_from_url(
         url=export_url,
