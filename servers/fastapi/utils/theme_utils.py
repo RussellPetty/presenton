@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from models.theme_data import GeneratedColorPalette
+from models.theme_data import GeneratedColorPalette, ThemeData
 
 IS_DARK_BELOW = 0.65
 BACKGROUND_RETRIES = 200
@@ -353,5 +353,53 @@ def generate_color_palette(
         accent_2_lightness=accent_2.l,
         text_1_lightness=text_1.l,
         text_2_lightness=text_2.l,
+    )
+
+
+def build_theme_data_from_palette(color_palette: GeneratedColorPalette) -> ThemeData:
+    """Map a generated color palette into the ThemeData shape used by slides.
+
+    Shared by the /theme/generate route and the presentation re-brand flow
+    (utils.brand_theme) so both produce an identical theme: is-dark detection,
+    graph-color ordering, card/stroke derivation, and the background_text<-text_1
+    / primary_text<-text_2 convention.
+    """
+    is_dark_theme = color_palette.background_lightness < IS_DARK_BELOW
+    graph_colors = list(color_palette.primary_variations.values())
+
+    if not is_dark_theme:
+        graph_colors.reverse()
+
+    return ThemeData(
+        primary=color_palette.primary,
+        background=color_palette.background,
+        card=color_palette.background_variations[
+            get_lightness_key_at_distance(
+                color_palette.background_lightness,
+                min_distance=1,
+                max_distance=1,
+                prefer_dark=not is_dark_theme,
+            )
+        ],
+        stroke=color_palette.background_variations[
+            get_lightness_key_at_distance(
+                color_palette.background_lightness,
+                min_distance=2,
+                max_distance=2,
+                prefer_dark=not is_dark_theme,
+            )
+        ],
+        background_text=color_palette.text_1,
+        primary_text=color_palette.text_2,
+        graph_0=graph_colors[0],
+        graph_1=graph_colors[1],
+        graph_2=graph_colors[2],
+        graph_3=graph_colors[3],
+        graph_4=graph_colors[4],
+        graph_5=graph_colors[5],
+        graph_6=graph_colors[6],
+        graph_7=graph_colors[7],
+        graph_8=graph_colors[8],
+        graph_9=graph_colors[9],
     )
 

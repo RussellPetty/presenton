@@ -60,6 +60,7 @@ class ChatTools:
             "saveSlide": self._save_slide,
             "deleteSlide": self._delete_slide,
             "setPresentationTheme": self._set_presentation_theme,
+            "applyUserBranding": self._apply_user_branding,
         }
 
     def get_tool_definitions(self) -> list[Tool]:
@@ -211,6 +212,20 @@ class ChatTools:
                     "Only use this when the user explicitly asks to change/apply/switch theme."
                 ),
                 schema=SetPresentationThemeInput,
+                strict=True,
+            ),
+            Tool(
+                name="applyUserBranding",
+                description=(
+                    "Re-skin the whole deck to the signed-in user's saved brand in one step: "
+                    "their colors (a full palette is generated from their primary/secondary/"
+                    "background), their font, and a logo + company-name badge on every slide. "
+                    "Pulls the user's saved branding automatically — takes no arguments. Use "
+                    "when the user asks to apply/use their branding, brand colors, logo, or "
+                    "company look (e.g. 'make this match my brand', 'add my logo and colors'). "
+                    "Reliable and deterministic; prefer it over hand-composing a custom theme."
+                ),
+                schema=NoArgsInput,
                 strict=True,
             ),
         ]
@@ -560,6 +575,12 @@ class ChatTools:
                 else None
             ),
             save_custom_theme=bool(payload.save_custom_theme),
+        )
+
+    async def _apply_user_branding(self, _: dict[str, Any]) -> dict[str, Any]:
+        return await self._memory.apply_user_branding(
+            branding=self._branding,
+            user_id=self._user_id or "local",
         )
 
     @staticmethod

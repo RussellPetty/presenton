@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
+from pydantic import BaseModel
 from constants.presentation import DEFAULT_TEMPLATES, MAX_NUMBER_OF_SLIDES
 from enums.webhook_event import WebhookEvent
 from models.api_error_model import APIErrorModel
@@ -53,6 +54,7 @@ from models.sql.async_presentation_generation_status import (
     AsyncPresentationGenerationTaskModel,
 )
 from utils.asset_directory_utils import get_images_directory
+from utils.brand_theme import apply_brand_theme
 from utils.llm_calls.generate_presentation_structure import (
     generate_presentation_structure,
 )
@@ -573,6 +575,69 @@ async def update_presentation(
         slides=response_slides,
         fonts=fonts,
     )
+
+
+# --- Re-brand a deck to the signed-in user's brand --------------------------
+
+
+class ApplyBrandingPayload(BaseModel):
+    primaryColor: Optional[str] = None
+    backgroundColor: Optional[str] = None
+    secondaryColor: Optional[str] = None
+    logoUrl: Optional[str] = None
+    companyName: Optional[str] = None
+    fontHeading: Optional[str] = None
+    fontBody: Optional[str] = None
+
+
+class ApplyBrandingResponse(BaseModel):
+    presentation_id: str
+    applied: bool
+    theme_name: Optional[str] = None
+    message: Optional[str] = None
+    theme: Optional[dict] = None
+
+
+@PRESENTATION_ROUTER.post("/apply-branding", response_model=ApplyBrandingResponse)
+async def apply_branding_to_presentation(
+    presentation_id: Annotated[uuid.UUID, Body()],
+    branding: Annotated[ApplyBrandingPayload, Body()],
+    scope: Scope = Depends(get_scope),
+) -> ApplyBrandingResponse:
+    """Re-skin an existing deck to the signed-in user's brand.
+
+    Builds a "Brand" theme — a full palette generated from the user's primary/
+    secondary/background colors, plus their logo, company name and font — saves
+    it to the user's theme library and sets it as the presentation's theme.
+    Colors and font then apply deck-wide via CSS vars, and the logo+company
+    badge renders on every slide (V1ContentRender reads theme.logo_url /
+    theme.company_name). Idempotent: re-running updates the same "Brand" theme.
+    Shared engine in utils.brand_theme (also used by the in-editor chat tool).
+    """
+    presentation = await scope.get_owned(PresentationModel, presentation_id)
+    theme = await apply_brand_theme(
+        sql_session=scope.session,
+        user_id=scope.user_id,
+        presentation=presentation,
+        branding=branding.model_dump(),
+    )
+    if theme is None:
+        return ApplyBrandingResponse(
+            presentation_id=str(presentation_id),
+            applied=False,
+            message=(
+                "No brand colors, logo, or company name were provided. "
+                "Set your branding in your profile, then try again."
+            ),
+        )
+    return ApplyBrandingResponse(
+        presentation_id=str(presentation_id),
+        applied=True,
+        theme_name=str(theme.get("name") or "Brand"),
+        theme=theme,
+    )
+
+
 async def check_if_api_request_is_valid(
     request: GeneratePresentationRequest,
     scope: Scope,

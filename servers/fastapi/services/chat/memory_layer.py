@@ -25,6 +25,7 @@ from utils.asset_directory_utils import (
 )
 from utils.icon_weights import DEFAULT_ICON_WEIGHT
 from services.chat.branding_assets import apply_brand_assets_to_content
+from utils.brand_theme import apply_brand_theme
 from utils.process_slides import (
     process_old_and_new_slides_and_fetch_assets,
     process_slide_and_fetch_assets,
@@ -766,6 +767,46 @@ class PresentationChatMemoryLayer:
             "theme_source": selected_source,
             "custom_theme_saved": custom_theme_saved,
             "previous_theme_name": previous_name,
+        }
+
+    async def apply_user_branding(
+        self,
+        *,
+        branding: dict[str, Any] | None,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Re-skin the current deck with the user's saved brand (colors, font,
+        logo, company name) via the shared utils.brand_theme engine — the same
+        engine the /presentation/apply-branding HTTP endpoint uses, so the
+        in-editor assistant and the external MCP agent produce identical results.
+        """
+        presentation = await self._sql_session.get(
+            PresentationModel, self._presentation_id
+        )
+        if not presentation:
+            return {"applied": False, "message": "Presentation not found."}
+
+        theme = await apply_brand_theme(
+            sql_session=self._sql_session,
+            user_id=user_id,
+            presentation=presentation,
+            branding=branding,
+        )
+        if theme is None:
+            return {
+                "applied": False,
+                "message": (
+                    "No brand colors, logo, or company name are set for this user. "
+                    "Ask them to set their branding in Settings, then try again."
+                ),
+            }
+        return {
+            "applied": True,
+            "theme_name": theme.get("name"),
+            "message": (
+                f"Applied the user's brand ('{theme.get('name')}') to the deck — "
+                "colors, font, logo and company name now appear across all slides."
+            ),
         }
 
     async def get_presentation_theme_catalog(self) -> dict[str, Any]:
