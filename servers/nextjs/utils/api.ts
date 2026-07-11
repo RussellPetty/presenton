@@ -175,6 +175,30 @@ function splitPathAndSuffix(value: string): { path: string; suffix: string } {
   };
 }
 
+// True when an absolute http(s) URL points at our own app/backend origin — the
+// origin nginx serves /app_data and /static from. Used to distinguish backend
+// assets (which need runtime path re-resolution) from directly-loadable
+// off-origin URLs such as Supabase Storage signed URLs or CDN images.
+function isOwnBackendOrigin(parsed: URL): boolean {
+  const ownOrigins: string[] = [];
+  if (typeof window !== "undefined" && window.location?.origin) {
+    ownOrigins.push(window.location.origin);
+  }
+  const configured = getConfiguredFastApiUrl();
+  if (configured) {
+    try {
+      ownOrigins.push(new URL(configured).origin);
+    } catch {
+      // ignore malformed NEXT_PUBLIC_FAST_API
+    }
+  }
+  const fromQuery = getFastApiUrlFromQuery();
+  if (fromQuery) {
+    ownOrigins.push(fromQuery);
+  }
+  return ownOrigins.includes(parsed.origin);
+}
+
 // Resolve backend-served asset paths to the runtime-appropriate backend path.
 export function resolveBackendAssetUrl(path?: string): string {
   if (!path) return "";
@@ -202,11 +226,20 @@ export function resolveBackendAssetUrl(path?: string): string {
   if (isAbsoluteHttpUrl(trimmedPath)) {
     try {
       const parsed = new URL(trimmedPath);
-      const servedPath = toBackendServedPath(parsed.pathname);
-      if (hasBackendAssetPrefix(servedPath)) {
-        return resolveBackendPathForRuntime(
-          `${servedPath}${parsed.search}${parsed.hash}`
-        );
+      // Only absolute URLs on our OWN app/backend origin encode a backend-served
+      // path (/app_data, /static) that must be re-resolved for the runtime.
+      // Off-origin URLs — e.g. a Supabase Storage signed URL whose object key
+      // contains an `/images/` segment (`<user>/images/<file>`), or any CDN —
+      // are directly loadable and must pass through untouched; otherwise
+      // toBackendServedPath() strips their host and they 404 (blank image)
+      // under STORAGE_BACKEND=supabase.
+      if (isOwnBackendOrigin(parsed)) {
+        const servedPath = toBackendServedPath(parsed.pathname);
+        if (hasBackendAssetPrefix(servedPath)) {
+          return resolveBackendPathForRuntime(
+            `${servedPath}${parsed.search}${parsed.hash}`
+          );
+        }
       }
       return trimmedPath;
     } catch {
