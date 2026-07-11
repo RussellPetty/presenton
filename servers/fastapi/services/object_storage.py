@@ -82,7 +82,11 @@ async def create_signed_url(key: str, expires_in: int = 3600) -> str:
         signed = resp.json().get("signedURL") or resp.json().get("signedUrl")
     if not signed:
         raise StorageConfigError(f"No signedURL returned for {key}")
-    return f"{url}/storage/v1{signed}"
+    # Supabase may return object paths containing literal spaces. Serialize via
+    # httpx.URL so future slide data stores the same %20 form browsers expose
+    # through HTMLImageElement.src. Existing escapes and the signed query token
+    # are preserved.
+    return str(httpx.URL(f"{url}/storage/v1{signed}"))
 
 
 async def download_to_path(key: str, dest_path: str) -> str:

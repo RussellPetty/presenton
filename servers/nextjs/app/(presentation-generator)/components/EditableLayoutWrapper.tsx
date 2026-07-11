@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { updateSlideImage, updateSlideIcon, updateImageProperties } from '@/store/slices/presentationGeneration';
 import ImageEditor from './ImageEditor';
 import IconsEditor from './IconsEditor';
+import { areMediaUrlsEqual } from '@/utils/mediaAssets';
 
 interface EditableLayoutWrapperProps {
     children: ReactNode;
@@ -22,6 +23,8 @@ interface EditableElement {
     dataPath: string;
     data: any;
     element: HTMLImageElement | SVGElement;
+    propertyKey?: string;
+    legacyPropertyIndex?: number;
 }
 
 const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
@@ -33,7 +36,7 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
 }) => {
     const dispatch = useDispatch();
     const containerRef = useRef<HTMLDivElement>(null);
-    const [editableElements, setEditableElements] = useState<EditableElement[]>([]);
+    const editableElementsRef = useRef<EditableElement[]>([]);
     const [activeEditor, setActiveEditor] = useState<EditableElement | null>(null);
 
     /**
@@ -45,11 +48,17 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
         const matches: { path: string; type: 'image' | 'icon'; data: any }[] = [];
 
         // Check current level for __image_url__ or __icon_url__
-        if (data.__image_url__ && targetUrl.includes(data.__image_url__)) {
+        if (
+            typeof data.__image_url__ === 'string' &&
+            areMediaUrlsEqual(targetUrl, data.__image_url__)
+        ) {
             matches.push({ path, type: 'image', data });
         }
 
-        if (data.__icon_url__ && targetUrl.includes(data.__icon_url__)) {
+        if (
+            typeof data.__icon_url__ === 'string' &&
+            areMediaUrlsEqual(targetUrl, data.__icon_url__)
+        ) {
             matches.push({ path, type: 'icon', data });
         }
 
@@ -99,7 +108,7 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
         const sameUrlElements: Element[] = [];
         allMediaInContainer.forEach((el) => {
             const elUrl = getElementSourceUrl(el);
-            if (elUrl && isMatchingUrl(elUrl, targetUrl)) {
+            if (elUrl && areMediaUrlsEqual(elUrl, targetUrl)) {
                 sameUrlElements.push(el);
             }
         });
@@ -121,49 +130,6 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
     };
 
     /**
-     * Checks if two URLs match using various comparison strategies
-     */
-    const isMatchingUrl = (url1: string, url2: string): boolean => {
-        if (!url1 || !url2) return false;
-
-        // Direct match
-        if (url1 === url2) return true;
-
-        // Remove protocol and domain differences
-        const cleanUrl1 = url1 && url1.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
-        const cleanUrl2 = url2 && url2.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
-
-        if (cleanUrl1 === cleanUrl2) return true;
-
-        // Handle placeholder URLs - be more specific
-        if ((url1.includes('placeholder') && url2.includes('placeholder')) ||
-            (url1.includes('/static/images/') && url2.includes('/static/images/'))) {
-            return url1 === url2; // Require exact match for placeholders
-        }
-
-        // Handle app_data paths - be more specific about filename matching
-        if (url1.includes('/app_data/') || url2.includes('/app_data/')) {
-            const getFilename = (path: string) => path.split('/').pop() || '';
-            const filename1 = getFilename(url1);
-            const filename2 = getFilename(url2);
-            if (filename1 === filename2 && filename1 !== '' && filename1.length > 10) { // Ensure significant filename
-                return true;
-            }
-        }
-
-        // Extract and compare filenames for other URLs - be more restrictive
-        const getFilename = (path: string) => path.split('/').pop() || '';
-        const filename1 = getFilename(url1);
-        const filename2 = getFilename(url2);
-
-        if (filename1 === filename2 && filename1 !== '' && filename1.length > 10) { // Ensure significant filename
-            return true;
-        }
-
-        return false; // Remove the overly permissive substring matching
-    };
-
-    /**
      * Finds and processes images in the DOM, making them editable
      */
     const findAndProcessImages = () => {
@@ -171,11 +137,13 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
 
         const imgElements = containerRef.current.querySelectorAll('img:not([data-editable-processed])');
         const svgElements = containerRef.current.querySelectorAll('svg:not([data-editable-processed])');
+        const allImageElements = Array.from(containerRef.current.querySelectorAll('img'));
         const newEditableElements: EditableElement[] = [];
 
-        imgElements.forEach((img, index) => {
+        imgElements.forEach((img) => {
             const htmlImg = img as HTMLImageElement;
             const src = htmlImg.src;
+            const legacyPropertyIndex = allImageElements.indexOf(htmlImg);
 
             if (src) {
                 const result = findBestDataPath(src, htmlImg, slideData);
@@ -187,15 +155,18 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
                     htmlImg.setAttribute('data-editable-processed', 'true');
 
                     // Add a unique identifier to help with debugging
-                    htmlImg.setAttribute('data-editable-id', `${slideIndex}-${type}-${dataPath}-${index}`);
+                    const editableId = `${slideIndex}-${type}-${dataPath}`;
+                    htmlImg.setAttribute('data-editable-id', editableId);
 
                     const editableElement: EditableElement = {
-                        id: `${slideIndex}-${type}-${dataPath}-${index}`,
+                        id: editableId,
                         type,
                         src,
                         dataPath,
                         data,
-                        element: htmlImg
+                        element: htmlImg,
+                        propertyKey: type === 'image' ? (dataPath || '__root_image__') : undefined,
+                        legacyPropertyIndex: type === 'image' ? legacyPropertyIndex : undefined,
                     };
 
                     newEditableElements.push(editableElement);
@@ -209,14 +180,20 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
 
                     htmlImg.addEventListener('click', clickHandler);
 
-                    const itemIndex = parseInt(`${slideIndex}-${type}-${dataPath}-${index}`.split('-').pop() || '0');
-                    const propertiesData = properties?.[itemIndex];
+                    const propertyKey = dataPath || '__root_image__';
+                    const propertiesData = type === 'image'
+                        ? properties?.[propertyKey] ?? properties?.[legacyPropertyIndex]
+                        : undefined;
 
                     // Add hover effects without changing layout
                     htmlImg.style.cursor = 'pointer';
                     htmlImg.style.transition = 'opacity 0.2s, transform 0.2s';
-                    htmlImg.style.objectFit = propertiesData?.initialObjectFit;
-                    htmlImg.style.objectPosition = `${propertiesData?.initialFocusPoint?.x}% ${propertiesData?.initialFocusPoint?.y}%`;
+                    if (propertiesData?.initialObjectFit) {
+                        htmlImg.style.objectFit = propertiesData.initialObjectFit;
+                    }
+                    if (propertiesData?.initialFocusPoint) {
+                        htmlImg.style.objectPosition = `${propertiesData.initialFocusPoint.x}% ${propertiesData.initialFocusPoint.y}%`;
+                    }
 
                     const mouseEnterHandler = () => {
                         htmlImg.style.opacity = '0.8';
@@ -315,19 +292,19 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
         });
 
 
-        setEditableElements(prev => [...prev, ...newEditableElements]);
+        editableElementsRef.current.push(...newEditableElements);
     };
 
     /**
      * Cleanup function to remove event listeners and reset styles
      */
     const cleanupElements = () => {
-        editableElements.forEach(({ element }) => {
+        editableElementsRef.current.forEach(({ element }) => {
             if ((element as any)._editableCleanup) {
                 (element as any)._editableCleanup();
             }
         });
-        setEditableElements([]);
+        editableElementsRef.current = [];
     };
 
     // Wait for LoadableComponent to render and then process images
@@ -387,6 +364,9 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
 
             // Update the DOM element immediately for visual feedback
             (activeEditor.element as HTMLImageElement).src = newImageUrl;
+            // The installed click handler closes over this object. Keep it in
+            // sync so reopening before React re-renders uses the new selection.
+            activeEditor.src = newImageUrl;
 
             // Update Redux store
             dispatch(updateSlideImage({
@@ -417,19 +397,16 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
         }
     };
     const handleFocusPointClick = (propertiesData: any) => {
-
-        const id = activeEditor?.id;
-        const editableId = document.querySelector(`[data-editable-id="${id}"]`);
-
-        if (editableId) {
-            const editableElement = editableId as HTMLImageElement;
+        if (activeEditor?.element instanceof HTMLImageElement) {
+            const editableElement = activeEditor.element;
             editableElement.style.objectFit = propertiesData.initialObjectFit;
             editableElement.style.objectPosition = `${propertiesData.initialFocusPoint.x}% ${propertiesData.initialFocusPoint.y}%`;
         }
 
+        if (activeEditor?.propertyKey === undefined) return;
         dispatch(updateImageProperties({
             slideIndex,
-            itemIndex: parseInt(activeEditor?.id.split('-').pop() || '0'),
+            itemIndex: activeEditor.propertyKey,
             properties: propertiesData
         }));
 
@@ -445,8 +422,12 @@ const EditableLayoutWrapper: React.FC<EditableLayoutWrapperProps> = ({
                     initialImage={activeEditor.src}
                     slideIndex={slideIndex}
                     promptContent={activeEditor.data?.__image_prompt__ || ''}
-                    imageIdx={0}
-                    properties={null}
+                    imageIdx={activeEditor.propertyKey || activeEditor.legacyPropertyIndex || 0}
+                    properties={properties}
+                    imageProperties={
+                        properties?.[activeEditor.propertyKey || '__root_image__'] ??
+                        properties?.[activeEditor.legacyPropertyIndex ?? 0]
+                    }
                     onClose={handleEditorClose}
                     onImageChange={handleImageChange}
                     onFocusPointClick={handleFocusPointClick}

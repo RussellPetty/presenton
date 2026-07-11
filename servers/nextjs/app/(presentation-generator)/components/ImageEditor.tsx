@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Upload, Loader2, Delete, Trash, Search } from "lucide-react";
+import { Wand2, Upload, Loader2, Trash, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PresentationGenerationApi } from "../services/api/presentation-generation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,16 +21,24 @@ import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { ImagesApi } from "../services/api/images";
 import { ImageAssetResponse } from "../services/api/types";
 import { resolveBackendAssetSource } from "@/utils/api";
+import {
+  getBranding,
+  getPartners,
+  onBranding,
+  onPartners,
+} from "@/utils/clerkToken";
+import { collectBrandPhotoAssets } from "@/utils/mediaAssets";
 
 const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
 
 interface ImageEditorProps {
   initialImage: string | null;
-  imageIdx?: number;
+  imageIdx?: number | string;
   slideIndex: number;
   className?: string;
   promptContent?: string;
   properties?: null | any;
+  imageProperties?: null | any;
   onClose?: () => void;
   onImageChange?: (newImageUrl: string, prompt?: string) => void;
   onFocusPointClick?: (propertiesData: any) => void;
@@ -49,11 +57,14 @@ const ImageEditor = ({
   imageIdx = 0,
   promptContent,
   properties,
+  imageProperties,
   onClose,
   onFocusPointClick,
   onImageChange,
 }: ImageEditorProps) => {
   const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
+  const selectedImageProperties =
+    imageProperties || (properties && properties[imageIdx]);
   const stockImageProvider = useMemo(() => {
     if (llmConfig?.DISABLE_IMAGE_GENERATION) return null;
     const id = (llmConfig?.IMAGE_PROVIDER || "").trim().toLowerCase();
@@ -78,21 +89,19 @@ const ImageEditor = ({
   const [isOpen, setIsOpen] = useState(true);
   const [uploadedImages, setUploadedImages] = useState<ImageAssetResponse[]>([]);
   const [uploadedImagesLoading, setUploadedImagesLoading] = useState(false);
+  const [brandPhotos, setBrandPhotos] = useState(() =>
+    collectBrandPhotoAssets(getBranding(), getPartners())
+  );
   // Focus point and object fit for image editing
   const [isFocusPointMode, setIsFocusPointMode] = useState(false);
   const [focusPoint, setFocusPoint] = useState(
-    (properties &&
-      properties[imageIdx] &&
-      properties[imageIdx].initialFocusPoint) || {
+    selectedImageProperties?.initialFocusPoint || {
       x: 50,
       y: 50,
     }
   );
   const [objectFit, setObjectFit] = useState<"cover" | "contain" | "fill">(
-    (properties &&
-      properties[imageIdx] &&
-      properties[imageIdx].initialObjectFit) ||
-      "cover"
+    selectedImageProperties?.initialObjectFit || "cover"
   );
 
   // Refs
@@ -101,6 +110,13 @@ const ImageEditor = ({
   useEffect(() => {
     setPreviewImages(resolveEditorImageSource(initialImage));
   }, [initialImage]);
+
+  useEffect(() => {
+    setFocusPoint(
+      selectedImageProperties?.initialFocusPoint || { x: 50, y: 50 }
+    );
+    setObjectFit(selectedImageProperties?.initialObjectFit || "cover");
+  }, [initialImage, selectedImageProperties]);
 
   useEffect(() => {
     setPrompt((prev) => (prev.trim() ? prev : promptContent || ""));
@@ -117,6 +133,19 @@ const ImageEditor = ({
       getPreviousGeneratedImage();
     }
   }, [isOpen, stockImageProvider]);
+
+  useEffect(() => {
+    const refreshBrandPhotos = () => {
+      setBrandPhotos(collectBrandPhotoAssets(getBranding(), getPartners()));
+    };
+    const unsubscribeBranding = onBranding(refreshBrandPhotos);
+    const unsubscribePartners = onPartners(refreshBrandPhotos);
+    refreshBrandPhotos();
+    return () => {
+      unsubscribeBranding();
+      unsubscribePartners();
+    };
+  }, []);
 
   // Handle close with animation
   const handleClose = () => {
@@ -375,7 +404,7 @@ const ImageEditor = ({
                   {stockImageProvider ? "Stock search" : "AI Generate"}
                 </TabsTrigger>
                 <TabsTrigger className="font-medium" value="upload">
-                  Upload
+                  Brand / Upload
                 </TabsTrigger>
                 <TabsTrigger className="font-medium" value="edit">
                   Edit
@@ -514,8 +543,40 @@ const ImageEditor = ({
               </TabsContent>
 
               {/* Upload Tab */}
-              <TabsContent value="upload" className="mt-4 space-y-4">
+              <TabsContent value="upload" className="mt-4 space-y-4 overflow-y-auto hide-scrollbar h-[85vh]">
                 <div className="space-y-4">
+                  {brandPhotos.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Brand photos</h3>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Choose your saved headshot or logo, or one from a connected partner.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {brandPhotos.map((asset) => (
+                          <button
+                            type="button"
+                            key={asset.id}
+                            onClick={() => handleImageChange(asset.url)}
+                            className="overflow-hidden rounded-lg border border-gray-200 bg-white text-left hover:border-blue-500 transition-colors"
+                          >
+                            <div className="aspect-[4/3] bg-gray-50">
+                              <img
+                                src={asset.url}
+                                alt={asset.label}
+                                className={cn(
+                                  "w-full h-full",
+                                  asset.kind === "logo" ? "object-contain p-3" : "object-cover"
+                                )}
+                              />
+                            </div>
+                            <span className="block truncate px-2 py-1.5 text-xs font-medium">
+                              {asset.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "border-2 border-dashed rounded-lg p-8 text-center transition-colors",

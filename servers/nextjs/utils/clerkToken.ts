@@ -60,8 +60,9 @@ let _token: string | null = null;
 let _expEpochMs: number | null = null;
 let _initialized = false;
 let _branding: PresentonBranding | null = null;
-let _brandingHandler: ((b: PresentonBranding) => void) | null = null;
+const _brandingHandlers = new Set<(b: PresentonBranding) => void>();
 let _partners: PresentonPartner[] | null = null;
+const _partnersHandlers = new Set<(p: PresentonPartner[]) => void>();
 let _prefill: PresentonPrefill | null = null;
 let _prefillHandler: ((p: PresentonPrefill) => void) | null = null;
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -147,9 +148,10 @@ function setToken(token: string, expiresAtEpochSec?: number) {
 }
 
 /** Register a callback for branding pushed by the parent (idempotent-friendly). */
-export function onBranding(handler: (b: PresentonBranding) => void) {
-  _brandingHandler = handler;
+export function onBranding(handler: (b: PresentonBranding) => void): () => void {
+  _brandingHandlers.add(handler);
   if (_branding) handler(_branding);
+  return () => _brandingHandlers.delete(handler);
 }
 
 /** Latest branding pushed by the parent (sync; null until the first auth message). */
@@ -160,6 +162,13 @@ export function getBranding(): PresentonBranding | null {
 /** Connected realtors' branding profiles pushed by the parent (sync; null until set). */
 export function getPartners(): PresentonPartner[] | null {
   return _partners;
+}
+
+/** Subscribe to connected-partner updates pushed by the embedding app. */
+export function onPartners(handler: (p: PresentonPartner[]) => void): () => void {
+  _partnersHandlers.add(handler);
+  if (_partners) handler(_partners);
+  return () => _partnersHandlers.delete(handler);
 }
 
 function _setPrefill(p: PresentonPrefill) {
@@ -202,13 +211,14 @@ export function initClerkAuthBridge() {
       );
       if (data.branding && typeof data.branding === "object") {
         _branding = data.branding as PresentonBranding;
-        if (_brandingHandler) _brandingHandler(_branding);
+        _brandingHandlers.forEach((handler) => handler(_branding!));
       }
       const partners = (data as { partners?: unknown }).partners;
       if (Array.isArray(partners)) {
         _partners = partners.filter(
           (p): p is PresentonPartner => !!p && typeof p === "object"
         );
+        _partnersHandlers.forEach((handler) => handler(_partners!));
       }
       if ((data as any).prefill && typeof (data as any).prefill === "object") {
         _setPrefill((data as any).prefill as PresentonPrefill);

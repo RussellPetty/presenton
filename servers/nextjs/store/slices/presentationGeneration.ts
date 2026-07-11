@@ -299,7 +299,7 @@ const presentationGenerationSlice = createSlice({
       state,
       action: PayloadAction<{
         slideIndex: number;
-        itemIndex: number;
+        itemIndex: number | string;
         properties: any;
       }>
     ) => {

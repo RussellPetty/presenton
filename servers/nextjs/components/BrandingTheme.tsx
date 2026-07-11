@@ -28,7 +28,7 @@ export default function BrandingTheme() {
   useEffect(() => {
     if (!isEmbedClerkMode()) return;
 
-    onBranding(async (branding: PresentonBranding) => {
+    return onBranding(async (branding: PresentonBranding) => {
       if (appliedRef.current) return;
       if (
         !branding ||
