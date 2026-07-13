@@ -132,8 +132,10 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
     };
 
   
-    // Replace text elements after a short delay to ensure DOM is ready
-    const timer = setTimeout(replaceTextElements, readOnly ? 250 : 1000);
+    // The children have committed before this effect runs, so their DOM is
+    // ready to inspect. Queue one macrotask without the previous 250/1000ms
+    // delay, which exposed raw Markdown on first load and during PDF export.
+    const timer = setTimeout(replaceTextElements, 0);
 
     return () => {
       clearTimeout(timer);

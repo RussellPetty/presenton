@@ -5,6 +5,7 @@ import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import Underline from "@tiptap/extension-underline";
+import MarkdownInlineText from "./MarkdownInlineText";
 import {
   Bold,
   Italic,
@@ -64,7 +65,13 @@ const TiptapText: React.FC<TiptapTextProps> = ({
  
 
   if (!editor) {
-    return <div className={className}>{content || placeholder}</div>;
+    // Match the final editor rendering while Tiptap initializes so block
+    // Markdown prefixes never flash as literal slide text on first load.
+    return (
+      <div className={className}>
+        <MarkdownInlineText content={content || placeholder} />
+      </div>
+    );
   }
 
   return (

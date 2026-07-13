@@ -1,12 +1,29 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { marked } from "marked";
 
 interface MarkdownInlineTextProps {
   content: string;
   className?: string;
   style?: React.CSSProperties;
+}
+
+/**
+ * Slide layouts own their typography, so block-level Markdown such as headings
+ * and quotes must not create nested layout elements inside a title/body field.
+ * The editor already consumes these prefixes when Tiptap initializes; apply the
+ * same normalization in read-only previews and exports.
+ */
+export function normalizeSlideInlineMarkdown(content: string): string {
+  return (content || "")
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^(?:\s*>\s*)+/, "")
+        .replace(/^\s*#{1,6}\s+/, "")
+    )
+    .join("\n");
 }
 
 /**
@@ -18,28 +35,20 @@ const MarkdownInlineText: React.FC<MarkdownInlineTextProps> = ({
   className = "",
   style,
 }) => {
-  const [html, setHtml] = useState("");
+  const normalizedContent = normalizeSlideInlineMarkdown(content);
+  const html = useMemo(() => {
+    try {
+      const parsed = marked.parseInline(normalizedContent, { async: false });
+      return typeof parsed === "string" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, [normalizedContent]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const parse = async () => {
-      try {
-        const parsed = await marked.parseInline(content || "");
-        if (!cancelled) setHtml(parsed);
-      } catch {
-        if (!cancelled) setHtml(content || "");
-      }
-    };
-    void parse();
-    return () => {
-      cancelled = true;
-    };
-  }, [content]);
-
-  if (!html) {
+  if (html === null) {
     return (
       <span className={className} style={style}>
-        {content}
+        {normalizedContent}
       </span>
     );
   }
