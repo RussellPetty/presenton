@@ -56,6 +56,8 @@ jobs:
       - name: Build Electron Linux packages
         working-directory: electron
         env:
+          # electron-builder v26 otherwise attempts an implicit GitHub publish in CI.
+          CI: "false"
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run build:all
 
