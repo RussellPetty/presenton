@@ -141,6 +141,7 @@ export interface TemplateV2Element {
   clip_path?: string | null;
   clipPath?: string | null;
   color?: string | null;
+  icon_type?: string | null;
   child?: TemplateV2Element | null;
   children?: TemplateV2Element[] | null;
   items?: TemplateV2TextRun[][] | null;
@@ -170,6 +171,7 @@ export interface TemplateV2ImportResponse {
   id?: unknown;
   name?: unknown;
   description?: unknown;
+  icon_type?: unknown;
   layouts?: unknown;
   raw_layouts?: unknown;
   assets?: unknown;

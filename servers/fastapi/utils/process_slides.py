@@ -16,8 +16,8 @@ from utils.icon_weights import DEFAULT_ICON_WEIGHT, normalize_icon_weight
 from utils.image_generation_error import image_generation_warning
 
 
-IMAGE_PROMPT_KEYS = ("__image_prompt__", "image_prompt")
-ICON_QUERY_KEYS = ("__icon_query__", "icon_query")
+IMAGE_PROMPT_KEYS = ("__image_prompt__", "image_prompt", "prompt")
+ICON_QUERY_KEYS = ("__icon_query__", "icon_query", "query")
 
 
 def _uses_template_v2_asset_fields(slide: SlideModel) -> bool:

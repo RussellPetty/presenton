@@ -23,6 +23,7 @@ export type LayoutAlignment =
 export type Marker = "bullet" | "number" | "none";
 export type FlexDirection = "row" | "column";
 export type ImageFit = "contain" | "cover" | "fill";
+export type IconType = "bold" | "duotone" | "fill" | "light" | "regular" | "thin";
 export type ChartType =
   | "area"
   | "bar"
@@ -210,6 +211,7 @@ export type ImageElement = ElementBase & {
   color?: string | null;
   prompt?: string | null;
   is_icon?: boolean | null;
+  icon_type?: IconType | null;
 };
 
 export type TextListElement = ElementBase & {

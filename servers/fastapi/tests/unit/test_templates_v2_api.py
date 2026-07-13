@@ -265,6 +265,8 @@ def test_create_template_v2_converts_generates_and_persists(tmp_path, fake_async
     }
     assert template.layouts == expected_layouts
     assert template.assets == {
+        "icon_type": "bold",
+        "icon_weight": "bold",
         "fonts": {"Inter": "Inter"},
         "slide_image_urls": ["/app_data/images/slide-1.png"],
         "images": ["/app_data/pptx-to-json/session/images/photo.png"],
@@ -521,6 +523,8 @@ def test_init_template_v2_persists_assets_without_layouts(tmp_path, fake_async_s
     assert template.layouts is None
     assert template.assets == {
         "pptx_url": "/app_data/uploads/quarterly-review.pptx",
+        "icon_type": "bold",
+        "icon_weight": "bold",
         "fonts": {"Inter": "https://example.com/inter.css"},
         "slide_image_urls": ["/app_data/images/slide-1.png"],
         "images": ["/app_data/pptx-to-json/session/images/photo.png"],
@@ -934,6 +938,30 @@ def test_update_template_v2_metadata_updates_name_and_description(fake_async_ses
     assert response == template
     assert template.name == "Sales Template"
     assert template.description == "Quarterly report deck"
+    assert fake_async_session.added == [template]
+    assert fake_async_session.commit_count == 1
+
+
+def test_update_template_v2_metadata_updates_icon_type(fake_async_session):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(
+        name="Custom",
+        layouts=RAW_LAYOUTS,
+        assets={"fonts": {}, "icon_type": "bold", "icon_weight": "bold"},
+    )
+    fake_async_session._get_results[template_id] = template
+
+    response = asyncio.run(
+        update_template_v2_metadata(
+            template_id,
+            UpdateTemplateV2MetadataRequest(icon_type="thin"),
+            sql_session=fake_async_session,
+        )
+    )
+
+    assert response == template
+    assert template.assets["icon_type"] == "thin"
+    assert template.assets["icon_weight"] == "thin"
     assert fake_async_session.added == [template]
     assert fake_async_session.commit_count == 1
 

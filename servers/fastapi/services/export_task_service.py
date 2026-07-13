@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError, model_validator
 from services.liteparse_service import _command_str, _snippet
 from utils.asset_directory_utils import resolve_app_path_to_filesystem
 from utils.get_env import get_app_data_directory_env, get_temp_directory_env
-from utils.icon_weights import DEFAULT_ICON_WEIGHT, extract_icon_weight_from_settings
+from utils.icon_weights import DEFAULT_ICON_TYPE, extract_icon_type_from_settings
 from utils.runtime_limits import (
     BoundedTextBuffer,
     log_memory,
@@ -126,15 +126,18 @@ class ExtractSchemaSlide(BaseModel):
 class ExtractSchemaDocument(BaseModel):
     name: str
     ordered: bool = False
-    icon_weight: str = DEFAULT_ICON_WEIGHT
+    icon_type: str = DEFAULT_ICON_TYPE
+    icon_weight: str = DEFAULT_ICON_TYPE
     slides: list[ExtractSchemaSlide]
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_icon_weight(cls, data):
+    def normalize_icon_type(cls, data):
         if isinstance(data, dict):
             normalized = dict(data)
-            normalized["icon_weight"] = extract_icon_weight_from_settings(normalized)
+            icon_type = extract_icon_type_from_settings(normalized)
+            normalized["icon_type"] = icon_type
+            normalized["icon_weight"] = icon_type
             return normalized
         return data
 
@@ -690,11 +693,15 @@ class ExportTaskService:
             slide_n = len(slides) if isinstance(slides, list) else "?"
             LOGGER.info(
                 "[export_runtime] extract_schema node finished url=%s "
-                "response_name=%r ordered=%s icon_weight=%s slides=%s",
+                "response_name=%r ordered=%s icon_type=%s slides=%s",
                 url,
                 response_data.get("name") if isinstance(response_data, dict) else None,
                 response_data.get("ordered") if isinstance(response_data, dict) else None,
-                response_data.get("icon_weight") if isinstance(response_data, dict) else None,
+                (
+                    response_data.get("icon_type") or response_data.get("icon_weight")
+                    if isinstance(response_data, dict)
+                    else None
+                ),
                 slide_n,
             )
             return ExtractSchemaDocument(**response_data)

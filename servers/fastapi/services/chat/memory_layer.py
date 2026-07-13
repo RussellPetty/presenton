@@ -30,7 +30,7 @@ from utils.asset_directory_utils import (
     get_images_directory,
     normalize_slide_asset_url,
 )
-from utils.icon_weights import DEFAULT_ICON_WEIGHT
+from utils.icon_weights import DEFAULT_ICON_WEIGHT, extract_icon_type_from_settings
 from utils.outline_utils import get_presentation_title_from_presentation_outline
 from utils.outline_limits import normalize_outline_content
 from utils.process_slides import (
@@ -3076,8 +3076,12 @@ class PresentationChatMemoryLayer:
             template = await self._sql_session.get(TemplateV2, template_id)
             if not template or not isinstance(template.layouts, dict):
                 continue
+            layout_payload = copy.deepcopy(template.layouts)
+            icon_type = extract_icon_type_from_settings(template.assets)
+            layout_payload["icon_type"] = icon_type
+            layout_payload["icon_weight"] = icon_type
             return self._build_template_v2_layout_model(
-                template.layouts,
+                layout_payload,
                 layout_name=f"template-v2-{template.id}",
             )
 
@@ -3154,6 +3158,7 @@ class PresentationChatMemoryLayer:
         return PresentationLayoutModel(
             name=layout_name,
             ordered=False,
+            icon_type=extract_icon_type_from_settings(layout_payload),
             slides=slides,
         )
 

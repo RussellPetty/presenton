@@ -3,6 +3,7 @@
   "name": "Dynamic",
   "description": "Bold, high-contrast layouts with dark textured backgrounds and warm accents for impactful, story-driven presentations.",
   "thumbnail": "static/thumbnail.png",
+  "icon_type": "bold",
   "merged_components": [
     {
       "id": "full_bleed_background",

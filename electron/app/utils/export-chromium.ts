@@ -13,29 +13,58 @@ import { baseDir, getCacheDir, resourceBaseDir } from "./constants";
 import { isWindowsStoreInstall } from "./export-msix-runtime";
 import { safeError, safeLog } from "./safe-console";
 
-function resolveExportChromeBuildId(): string {
-  const configured = process.env.EXPORT_CHROME_BUILD_ID?.trim();
-  if (configured) {
-    return configured;
-  }
-
+function readPackageMetadata(): {
+  exportChromiumBuildId?: string;
+  exportMacChromiumBuildId?: string;
+  exportMacChromiumBuildIds?: Record<string, string>;
+} {
   try {
-    const packageJson = JSON.parse(
+    return JSON.parse(
       fs.readFileSync(path.join(baseDir, "package.json"), "utf8")
-    ) as { exportChromiumBuildId?: string };
-    const packagedBuildId = packageJson.exportChromiumBuildId?.trim();
-    if (packagedBuildId) {
-      return packagedBuildId;
-    }
+    ) as {
+      exportChromiumBuildId?: string;
+      exportMacChromiumBuildId?: string;
+      exportMacChromiumBuildIds?: Record<string, string>;
+    };
   } catch {
-    // Development and partially packaged trees fall back to the pinned build below.
+    return {};
   }
-
-  return "149.0.7827.196";
 }
 
-/** Must match the Chrome revision expected by the bundled presentation-export runtime. */
-const EXPORT_CHROME_BUILD_ID = resolveExportChromeBuildId();
+function resolveExportBrowserConfig(): { browser: Browser; buildId: string } {
+  const packageJson = readPackageMetadata();
+
+  if (process.platform === "darwin") {
+    const configured = process.env.EXPORT_MAC_CHROMIUM_BUILD_ID?.trim();
+    const platformKey = `${process.platform}-${process.arch}`;
+    const packagedBuildId =
+      packageJson.exportMacChromiumBuildIds?.[platformKey]?.trim() ||
+      packageJson.exportMacChromiumBuildId?.trim();
+    const buildId = configured || packagedBuildId;
+    if (buildId) {
+      return { browser: Browser.CHROMIUM, buildId };
+    }
+
+    // Development and partially packaged trees fall back to the checked-in macOS pins.
+    return {
+      browser: Browser.CHROMIUM,
+      buildId: process.arch === "x64" ? "1625072" : "1625085",
+    };
+  }
+
+  const configured = process.env.EXPORT_CHROME_BUILD_ID?.trim();
+  if (configured) {
+    return { browser: Browser.CHROME, buildId: configured };
+  }
+
+  const packagedBuildId = packageJson.exportChromiumBuildId?.trim();
+  return { browser: Browser.CHROME, buildId: packagedBuildId || "149.0.7827.196" };
+}
+
+/** Must match the browser revision expected by the bundled presentation-export runtime. */
+const EXPORT_BROWSER_CONFIG = resolveExportBrowserConfig();
+const EXPORT_BROWSER = EXPORT_BROWSER_CONFIG.browser;
+const EXPORT_BROWSER_BUILD_ID = EXPORT_BROWSER_CONFIG.buildId;
 const BUNDLED_CHROMIUM_MANIFEST = "presenton-runtime.json";
 
 type BundledChromiumManifest = {
@@ -69,10 +98,10 @@ function readBundledChromiumManifest(): BundledChromiumManifest | null {
   const manifestPath = path.join(getBundledExportChromiumCacheRoot(), BUNDLED_CHROMIUM_MANIFEST);
   try {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as BundledChromiumManifest;
-    if (manifest.browser && manifest.browser !== Browser.CHROME) {
+    if (manifest.browser && manifest.browser !== EXPORT_BROWSER) {
       return null;
     }
-    if (manifest.buildId && manifest.buildId !== EXPORT_CHROME_BUILD_ID) {
+    if (manifest.buildId && manifest.buildId !== EXPORT_BROWSER_BUILD_ID) {
       return null;
     }
     if (manifest.nodePlatform && manifest.nodePlatform !== process.platform) {
@@ -99,16 +128,16 @@ function resolveManifestBundledExportChromiumPath(): string | null {
   return isMaterializedChromiumComplete(executablePath) ? executablePath : null;
 }
 
-function resolveExportChromeInstallOptions(cacheDir = resolvePuppeteerCacheRoot()):
-  | { browser: Browser.CHROME; buildId: string; cacheDir: string; platform: NonNullable<ReturnType<typeof detectBrowserPlatform>> }
+function resolveExportBrowserInstallOptions(cacheDir = resolvePuppeteerCacheRoot()):
+  | { browser: Browser; buildId: string; cacheDir: string; platform: NonNullable<ReturnType<typeof detectBrowserPlatform>> }
   | null {
   const platform = detectBrowserPlatform();
   if (!platform) {
     return null;
   }
   return {
-    browser: Browser.CHROME,
-    buildId: EXPORT_CHROME_BUILD_ID,
+    browser: EXPORT_BROWSER,
+    buildId: EXPORT_BROWSER_BUILD_ID,
     cacheDir,
     platform,
   };
@@ -148,8 +177,8 @@ function resolveLegacyInstalledExportChromiumPath(): string | null {
   for (const revisionDir of revisionDirs) {
     const revisionName = path.basename(revisionDir);
     if (
-      revisionName !== EXPORT_CHROME_BUILD_ID &&
-      !revisionName.endsWith(`-${EXPORT_CHROME_BUILD_ID}`)
+      revisionName !== EXPORT_BROWSER_BUILD_ID &&
+      !revisionName.endsWith(`-${EXPORT_BROWSER_BUILD_ID}`)
     ) {
       continue;
     }
@@ -169,7 +198,7 @@ export function resolveInstalledExportChromiumPath(): string | null {
     return manifestBundledPath;
   }
 
-  const bundledOptions = resolveExportChromeInstallOptions(getBundledExportChromiumCacheRoot());
+  const bundledOptions = resolveExportBrowserInstallOptions(getBundledExportChromiumCacheRoot());
   if (bundledOptions) {
     const bundledExpectedPath = computeExecutablePath(bundledOptions);
     if (fs.existsSync(bundledExpectedPath)) {
@@ -178,7 +207,7 @@ export function resolveInstalledExportChromiumPath(): string | null {
 
     const bundledCache = new Cache(bundledOptions.cacheDir);
     for (const installed of bundledCache.getInstalledBrowsers()) {
-      if (installed.browser !== Browser.CHROME || installed.buildId !== bundledOptions.buildId) {
+      if (installed.browser !== EXPORT_BROWSER || installed.buildId !== bundledOptions.buildId) {
         continue;
       }
       if (fs.existsSync(installed.executablePath)) {
@@ -187,7 +216,7 @@ export function resolveInstalledExportChromiumPath(): string | null {
     }
   }
 
-  const options = resolveExportChromeInstallOptions();
+  const options = resolveExportBrowserInstallOptions();
   if (options) {
     const expectedPath = computeExecutablePath(options);
     if (fs.existsSync(expectedPath)) {
@@ -196,7 +225,7 @@ export function resolveInstalledExportChromiumPath(): string | null {
 
     const cache = new Cache(options.cacheDir);
     for (const installed of cache.getInstalledBrowsers()) {
-      if (installed.browser !== Browser.CHROME || installed.buildId !== options.buildId) {
+      if (installed.browser !== EXPORT_BROWSER || installed.buildId !== options.buildId) {
         continue;
       }
       if (fs.existsSync(installed.executablePath)) {
@@ -217,7 +246,7 @@ function isPathUnderWindowsApps(filePath: string): boolean {
 }
 
 function getMsixChromiumCacheRoot(): string {
-  return path.join(getCacheDir(), "msix-export-chromium", EXPORT_CHROME_BUILD_ID);
+  return path.join(getCacheDir(), "msix-export-chromium", EXPORT_BROWSER_BUILD_ID);
 }
 
 /**
@@ -420,10 +449,10 @@ export async function removeBrokenExportChromiumCaches(): Promise<number> {
   let removedCount = 0;
 
   for (const installed of cache.getInstalledBrowsers()) {
-    if (installed.browser !== Browser.CHROME) {
+    if (installed.browser !== EXPORT_BROWSER) {
       continue;
     }
-    const wrongBuild = installed.buildId !== EXPORT_CHROME_BUILD_ID;
+    const wrongBuild = installed.buildId !== EXPORT_BROWSER_BUILD_ID;
     if (!wrongBuild && fs.existsSync(installed.executablePath)) {
       continue;
     }
@@ -495,7 +524,7 @@ export async function installExportChromium(
     return;
   }
 
-  const options = resolveExportChromeInstallOptions();
+  const options = resolveExportBrowserInstallOptions();
   if (!options) {
     throw new Error(`Unsupported platform for Chromium export runtime: ${process.platform}-${process.arch}`);
   }
@@ -531,7 +560,7 @@ export async function installExportChromium(
   if (!isExportChromiumAvailable()) {
     const expectedPath = computeExecutablePath(options);
     throw new Error(
-      `Chromium download finished but chrome executable was not found at ${expectedPath}. Check your network connection and try again.`
+      `Chromium download finished but the browser executable was not found at ${expectedPath}. Check your network connection and try again.`
     );
   }
 

@@ -55,6 +55,11 @@ from templates.v2.models.layouts import (
 )
 from utils.asset_directory_utils import resolve_app_path_to_filesystem
 from utils.file_utils import get_original_file_name
+from utils.icon_weights import (
+    DEFAULT_ICON_TYPE,
+    IconType,
+    extract_icon_type_from_settings,
+)
 
 
 TEMPLATES_ROUTER = APIRouter(prefix="/templates", tags=["Templates"])
@@ -72,6 +77,7 @@ class InitTemplateV2Request(BaseModel):
     fonts: dict[str, Any] = Field(default_factory=dict)
     name: Optional[str] = None
     description: Optional[str] = None
+    icon_type: Optional[IconType] = DEFAULT_ICON_TYPE
 
 
 class CreateTemplateV2Request(InitTemplateV2Request):
@@ -175,6 +181,7 @@ class PatchTemplateV2SlideLayoutRequest(BaseModel):
 class UpdateTemplateV2MetadataRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    icon_type: Optional[IconType] = None
 
 
 class TemplateV2ListItem(BaseModel):
@@ -241,6 +248,10 @@ def _template_v2_request_thumbnail(request: InitTemplateV2Request) -> str | None
         if isinstance(slide_image_url, str) and slide_image_url.strip():
             return slide_image_url.strip()
     return None
+
+
+def _template_v2_request_icon_type(request: InitTemplateV2Request) -> str:
+    return extract_icon_type_from_settings(request.model_dump(mode="json"))
 
 
 def _derive_template_name(pptx_url: str, pptx_path: str) -> str:
@@ -867,6 +878,7 @@ async def init_template_v2(
     pptx_path, raw_layouts, raw_layouts_json, available_fonts = (
         await _prepare_template_v2_source(request, operation="init")
     )
+    icon_type = _template_v2_request_icon_type(request)
     template = TemplateV2(
         name=(request.name or "").strip() or _derive_template_name(
             request.pptx_url, pptx_path
@@ -876,6 +888,8 @@ async def init_template_v2(
         layouts=None,
         assets={
             "pptx_url": request.pptx_url,
+            "icon_type": icon_type,
+            "icon_weight": icon_type,
             "fonts": available_fonts,
             "slide_image_urls": request.slide_image_urls,
             "images": _collect_image_urls_from_layouts(raw_layouts_json),
@@ -908,6 +922,7 @@ def _build_created_template_v2(
     generated_layouts: SlideLayouts,
     merged_components: MergedComponents,
 ) -> TemplateV2:
+    icon_type = _template_v2_request_icon_type(request)
     return TemplateV2(
         name=(request.name or "").strip() or _derive_template_name(
             request.pptx_url, pptx_path
@@ -919,6 +934,8 @@ def _build_created_template_v2(
         ),
         layouts=generated_layouts.model_dump(mode="json", exclude_none=True),
         assets={
+            "icon_type": icon_type,
+            "icon_weight": icon_type,
             "fonts": available_fonts,
             "slide_image_urls": request.slide_image_urls,
             "images": _collect_image_urls_from_layouts(raw_layouts_json),
@@ -1327,6 +1344,13 @@ async def update_template_v2_metadata(
     if "description" in request.model_fields_set:
         description = (request.description or "").strip()
         template.description = description or None
+
+    if "icon_type" in request.model_fields_set:
+        assets = dict(template.assets) if isinstance(template.assets, dict) else {}
+        icon_type = extract_icon_type_from_settings(request.model_dump(mode="json"))
+        assets["icon_type"] = icon_type
+        assets["icon_weight"] = icon_type
+        template.assets = assets
 
     sql_session.add(template)
     await sql_session.commit()

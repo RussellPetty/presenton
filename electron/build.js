@@ -50,7 +50,6 @@ const shouldNotarizeDirectMacBuild =
   isDirectMacBuild && process.env.PRESENTON_SKIP_NOTARIZATION !== "1"
 const masSigningExtraArgs =
   process.env.PRESENTON_CODESIGN_TIMESTAMP === "1" ? [] : ["--timestamp=none"]
-
 function getAppStoreBundleShortVersion() {
   const configuredVersion = process.env.PRESENTON_APP_STORE_VERSION
   if (configuredVersion) {
@@ -169,6 +168,41 @@ function commandSucceeds(command, args) {
   } catch {
     return false
   }
+}
+
+async function signDirectMacApp(signOptions) {
+  const { signAsync } = require("@electron/osx-sign")
+  const baseOptionsForFile = signOptions.optionsForFile
+
+  return signAsync({
+    ...signOptions,
+    optionsForFile(filePath) {
+      const options = baseOptionsForFile ? baseOptionsForFile(filePath) || {} : {}
+
+      if (!isBundledBrowserPath(filePath)) {
+        return options
+      }
+
+      return {
+        ...options,
+        timestamp: "none",
+      }
+    },
+  })
+}
+
+function isBundledBrowserPath(filePath) {
+  return (
+    filePath.includes(`${path.sep}resources${path.sep}chromium${path.sep}`) &&
+    isBundledBrowserAppPath(filePath)
+  )
+}
+
+function isBundledBrowserAppPath(filePath) {
+  return (
+    filePath.includes(`${path.sep}Chromium.app${path.sep}`) ||
+    filePath.includes(`${path.sep}Google Chrome for Testing.app${path.sep}`)
+  )
 }
 
 function resolveMasSigningIdentitiesForTarget() {
@@ -616,6 +650,7 @@ const config = {
         ? null
         : macDistributionIdentity,
     notarize: isMasBuild || !shouldNotarizeDirectMacBuild ? false : true,
+    sign: isMasBuild ? undefined : signDirectMacApp,
     icon: "build/icon.icns",
     bundleShortVersion: appStoreBundleShortVersion,
     bundleVersion: appStoreBundleVersion,

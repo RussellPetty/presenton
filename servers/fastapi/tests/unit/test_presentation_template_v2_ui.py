@@ -769,6 +769,42 @@ def test_chat_template_v2_image_content_stores_prompt():
     assert icon["prompt"] == "success check"
 
 
+def test_apply_template_v2_content_to_ui_uses_raw_schema_icon_query_url():
+    ui = {
+        "id": "layout-1",
+        "components": [
+            {
+                "id": "hero",
+                "elements": [
+                    {
+                        "type": "image",
+                        "decorative": False,
+                        "name": "status_icon",
+                        "data": "/static/icons/placeholder.svg",
+                        "is_icon": True,
+                    }
+                ],
+            }
+        ],
+    }
+
+    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(
+        ui,
+        {
+            "hero": {
+                "status_icon": {
+                    "query": "growth chart",
+                    "icon_url": "/static/icons/regular/trend-up.svg",
+                }
+            }
+        },
+    )
+
+    icon = hydrated["components"][0]["elements"][0]
+    assert icon["data"] == "/static/icons/regular/trend-up.svg"
+    assert icon["prompt"] == "growth chart"
+
+
 def test_apply_template_v2_content_to_ui_matches_repeated_content_lengths():
     ui = {
         "id": "layout-1",

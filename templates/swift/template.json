@@ -3,6 +3,7 @@
   "name": "Swift",
   "description": "Bright, energetic layouts with crisp structure and visual momentum for concise, fast-paced presentations.",
   "thumbnail": "static/thumbnail.png",
+  "icon_type": "bold",
   "merged_components": [
     {
       "id": "background_panel",

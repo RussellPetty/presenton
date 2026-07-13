@@ -5,8 +5,8 @@ the Electron app while keeping Presenton Apache-2.0.
 
 ## Recommendation
 
-- Bundle Chrome for Testing with the Electron package (including Microsoft APPX)
-  for export rendering.
+- Bundle Chromium with macOS Electron packages, and Chrome for Testing with the
+  other Electron packages (including Microsoft APPX), for export rendering.
 - Bundle ImageMagick under `resources/imagemagick/` for each platform build; the
   packaged app validates that bundle during `afterPack`.
 - Bundle the presentation export runtime for PPTX-to-HTML conversion and use
@@ -23,7 +23,8 @@ ImageMagick license and notices in the distributed app.
 Source: https://imagemagick.org/license/
 
 Chromium/Chrome for Testing can be bundled, but the notices matter. Puppeteer
-now targets Chrome for Testing for supported automation, and Chromium source is
+targets Chrome for Testing for supported automation, while macOS uses official
+Chromium snapshots to match the Docker runtime more closely. Chromium source is
 BSD-style plus third-party licenses. Keep generated browser credits/notices with
 the shipped runtime.
 Sources:
@@ -38,7 +39,8 @@ Bundled Chromium:
 ```text
 electron/resources/chromium/
   presenton-runtime.json
-  chrome/<platform-build-id>/...
+  chromium/<mac-platform-snapshot-id>/...  # macOS
+  chrome/<platform-version>/...            # non-mac Electron
 ```
 
 Populate it with:

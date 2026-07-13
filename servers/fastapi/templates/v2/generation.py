@@ -107,7 +107,7 @@ Convert the provided raw slide elements to components.
 - Identify icon color from slide image.
 
 # Decorative and Content Element Rules:
-- Use `decorative=false` for elements that carry slide meaning or should be replaced, including text, charts, tables, metrics, and primary images/icons.
+- Use `decorative=false` for elements that carry slide meaning or should be replaced, including text, charts, tables, metrics, icons in bullet points and primary images/icons.
 - Use `decorative=true` for fixed styling or branding, including backgrounds, frames, dividers, accents, logos, watermarks, and ornamental images/icons.
 - If removal changes meaning, it is content; if removal only changes style, it is decorative.
 

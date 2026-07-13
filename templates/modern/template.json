@@ -3,6 +3,7 @@
   "name": "Modern",
   "description": "Clean, contemporary layouts with generous whitespace, confident typography, and bold visual accents for a polished presentation.",
   "thumbnail": "static/thumbnail.png",
+  "icon_type": "bold",
   "merged_components": [
     {
       "id": "plain_background",

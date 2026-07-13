@@ -10,12 +10,9 @@ const {
 } = require("@puppeteer/browsers");
 
 const packageJson = require("../package.json");
-const buildId = (
-  process.env.EXPORT_CHROME_BUILD_ID || packageJson.exportChromiumBuildId
-).trim();
-if (!buildId) {
-  throw new Error("electron/package.json must define exportChromiumBuildId.");
-}
+const browserConfig = resolveExportBrowserConfig();
+const browser = browserConfig.browser;
+const buildId = browserConfig.buildId;
 const cacheDir = path.join(__dirname, "..", "resources", "chromium");
 const manifestPath = path.join(cacheDir, "presenton-runtime.json");
 const windowsRequiredRuntimeFiles = [
@@ -28,27 +25,61 @@ const windowsRequiredRuntimeFiles = [
   path.join("locales", "en-US.pak"),
 ];
 
+function resolveExportBrowserConfig() {
+  if (process.platform === "darwin") {
+    const configured = process.env.EXPORT_MAC_CHROMIUM_BUILD_ID?.trim();
+    const platformKey = `${process.platform}-${process.arch}`;
+    const packagedBuildId =
+      packageJson.exportMacChromiumBuildIds?.[platformKey]?.trim() ||
+      packageJson.exportMacChromiumBuildId?.trim();
+    const macBuildId = configured || packagedBuildId;
+    if (!macBuildId) {
+      throw new Error(
+        `electron/package.json must define exportMacChromiumBuildIds.${platformKey}.`
+      );
+    }
+    return { browser: Browser.CHROMIUM, buildId: macBuildId };
+  }
+
+  const chromeBuildId = (
+    process.env.EXPORT_CHROME_BUILD_ID || packageJson.exportChromiumBuildId
+  ).trim();
+  if (!chromeBuildId) {
+    throw new Error("electron/package.json must define exportChromiumBuildId.");
+  }
+  return { browser: Browser.CHROME, buildId: chromeBuildId };
+}
+
 function getRevisionDir(platform) {
-  return path.join(cacheDir, Browser.CHROME, `${platform}-${buildId}`);
+  return path.join(cacheDir, browser, `${platform}-${buildId}`);
 }
 
 function removeOtherBundledBuilds(platform) {
-  const chromeCacheDir = path.join(cacheDir, Browser.CHROME);
+  const browserCacheDirs = [Browser.CHROME, Browser.CHROMIUM].map((name) => ({
+    name,
+    path: path.join(cacheDir, name),
+  }));
   const expectedRevision = `${platform}-${buildId}`;
-  let entries;
-  try {
-    entries = fs.readdirSync(chromeCacheDir, { withFileTypes: true });
-  } catch {
-    return;
-  }
 
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name === expectedRevision) {
+  for (const browserCacheDir of browserCacheDirs) {
+    let entries;
+    try {
+      entries = fs.readdirSync(browserCacheDir.path, { withFileTypes: true });
+    } catch {
       continue;
     }
-    const staleRevision = path.join(chromeCacheDir, entry.name);
-    console.log(`[Chromium] Removing stale bundled runtime: ${staleRevision}`);
-    fs.rmSync(staleRevision, { recursive: true, force: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (browserCacheDir.name === browser && entry.name === expectedRevision) {
+        continue;
+      }
+      const staleRevision = path.join(browserCacheDir.path, entry.name);
+      console.log(`[Chromium] Removing stale bundled runtime: ${staleRevision}`);
+      fs.rmSync(staleRevision, { recursive: true, force: true });
+    }
   }
 }
 
@@ -195,7 +226,7 @@ function writeManifest(platform, executablePath) {
     manifestPath,
     JSON.stringify(
       {
-        browser: Browser.CHROME,
+        browser,
         buildId,
         platform,
         nodePlatform: process.platform,
@@ -231,12 +262,25 @@ function isSymlink(filePath) {
   }
 }
 
-function macChromiumFrameworkPath(appBundlePath) {
-  return path.join(
-    appBundlePath,
-    "Contents",
-    "Frameworks",
-    "Google Chrome for Testing Framework.framework",
+function findMacChromiumFrameworkPath(appBundlePath) {
+  const frameworksDir = path.join(appBundlePath, "Contents", "Frameworks");
+  let entries;
+  try {
+    entries = fs.readdirSync(frameworksDir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  const frameworkEntry = entries.find(
+    (entry) => entry.isDirectory() && isMacBrowserFrameworkName(entry.name)
+  );
+  return frameworkEntry ? path.join(frameworksDir, frameworkEntry.name) : null;
+}
+
+function isMacBrowserFrameworkName(name) {
+  return (
+    name === "Chromium Framework.framework" ||
+    name === "Google Chrome for Testing Framework.framework"
   );
 }
 
@@ -262,7 +306,8 @@ function macChromiumBundleLooksCodeSignReady(executablePath) {
   if (!appBundlePath) {
     return false;
   }
-  return macFrameworkLayoutLooksValid(macChromiumFrameworkPath(appBundlePath));
+  const frameworkPath = findMacChromiumFrameworkPath(appBundlePath);
+  return frameworkPath ? macFrameworkLayoutLooksValid(frameworkPath) : false;
 }
 
 function canonicalizeFrameworkSymlinkTargets(frameworkPath) {
@@ -299,7 +344,7 @@ function canonicalizeFrameworkSymlinkTargets(frameworkPath) {
   }
 
   const topLevelSymlinks = [
-    "Google Chrome for Testing Framework",
+    path.basename(frameworkPath, ".framework"),
     "Helpers",
     "Libraries",
     "Resources",
@@ -337,7 +382,7 @@ function canonicalizeMacFrameworkSymlinks(rootDir) {
       if (!entry.isDirectory()) {
         continue;
       }
-      if (entry.name === "Google Chrome for Testing Framework.framework") {
+      if (isMacBrowserFrameworkName(entry.name)) {
         rewritten += canonicalizeFrameworkSymlinkTargets(fullPath);
         continue;
       }
@@ -357,8 +402,8 @@ function normalizeMacBundleForPackaging(executablePath) {
     return 0;
   }
 
-  const frameworkPath = macChromiumFrameworkPath(appBundlePath);
-  const rewritten = canonicalizeFrameworkSymlinkTargets(frameworkPath);
+  const frameworkPath = findMacChromiumFrameworkPath(appBundlePath);
+  const rewritten = frameworkPath ? canonicalizeFrameworkSymlinkTargets(frameworkPath) : 0;
   if (rewritten > 0) {
     console.log(
       `[Chromium] Canonicalized ${rewritten} framework symlinks for App Store packaging.`,
@@ -427,7 +472,7 @@ async function main() {
   }
 
   const options = {
-    browser: Browser.CHROME,
+    browser,
     buildId,
     cacheDir,
     platform,
@@ -457,7 +502,7 @@ async function main() {
 
   removeIncompleteRuntime(platform, executablePath);
   fs.mkdirSync(cacheDir, { recursive: true });
-  console.log(`[Chromium] Downloading Chrome for Testing ${buildId} into ${cacheDir}`);
+  console.log(`[Chromium] Downloading ${browser} ${buildId} into ${cacheDir}`);
   let lastProgressPercent = -1;
   await install({
     ...options,

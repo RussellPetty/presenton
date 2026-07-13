@@ -188,7 +188,7 @@ def _content_schema_for_element(element: dict[str, Any]) -> dict[str, Any]:
         )
 
     if element_type == "image":
-        key = "query" if element.get("is_icon") is True else "prompt"
+        key = "icon_query" if element.get("is_icon") is True else "image_prompt"
         return _object_schema({key: {"type": "string"}})
 
     if element_type == "text-list":

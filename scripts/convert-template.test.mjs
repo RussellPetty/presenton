@@ -25,6 +25,10 @@ test("converts an exported template to the bundled default-template shape", asyn
   await mkdir(path.dirname(preview), { recursive: true });
   await mkdir(staticDirectory, { recursive: true });
   await writeFile(decorativeImage, "decorative image bytes");
+  await writeFile(
+    path.join(path.dirname(decorativeImage), "decorative-icon.svg"),
+    "decorative icon bytes",
+  );
   await writeFile(preview, "preview bytes");
   await writeFile(path.join(staticDirectory, "stale.png"), "stale bytes");
   await writeFile(
@@ -54,8 +58,14 @@ test("converts an exported template to the bundled default-template shape", asyn
                   },
                   {
                     type: "image",
-                    data: "/app_data/pptx-to-json/session/images/icon.svg",
+                    data: "/app_data/pptx-to-json/session/images/decorative-icon.svg",
                     decorative: true,
+                    is_icon: true,
+                  },
+                  {
+                    type: "image",
+                    data: "/app_data/pptx-to-json/session/images/editable-icon.svg",
+                    decorative: false,
                     is_icon: true,
                   },
                   {
@@ -103,10 +113,14 @@ test("converts an exported template to the bundled default-template shape", asyn
   );
   assert.equal(
     converted.layouts[0].components[0].elements[1].data,
-    "/static/icons/placeholder.svg",
+    "static/decorative-icon.svg",
   );
   assert.equal(
     converted.layouts[0].components[0].elements[2].data,
+    "/static/icons/placeholder.svg",
+  );
+  assert.equal(
+    converted.layouts[0].components[0].elements[3].data,
     "static/decoration.png",
   );
   assert.deepEqual(converted.fonts, {
@@ -117,11 +131,19 @@ test("converts an exported template to the bundled default-template shape", asyn
     "decorative image bytes",
   );
   assert.equal(
+    await readFile(path.join(staticDirectory, "decorative-icon.svg"), "utf8"),
+    "decorative icon bytes",
+  );
+  assert.equal(
     await readFile(path.join(staticDirectory, "thumbnail.png"), "utf8"),
     "preview bytes",
   );
   await assert.rejects(readFile(path.join(staticDirectory, "stale.png")), /ENOENT/);
-  assert.equal(result.assetCount, 2);
+  await assert.rejects(
+    readFile(path.join(staticDirectory, "icons", "placeholder.svg")),
+    /ENOENT/,
+  );
+  assert.equal(result.assetCount, 3);
 });
 
 test("fails before writing output when a retained asset is missing", async () => {

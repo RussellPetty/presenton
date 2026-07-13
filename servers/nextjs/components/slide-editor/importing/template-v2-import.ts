@@ -61,6 +61,7 @@ export type TemplateV2ImportResponse = {
   id?: unknown;
   name?: unknown;
   description?: unknown;
+  icon_type?: unknown;
   merged_components?: unknown;
   raw_layouts?: unknown;
   layouts?: unknown;
@@ -761,6 +762,11 @@ function adaptImage(raw: UnknownRecord): SlideElement {
     clippath: readString(raw.clippath ?? raw.clipPath ?? raw.clip_path),
     color: readString(raw.color),
     is_icon: readBoolean(raw, "is_icon"),
+    icon_type: readEnum(
+      raw,
+      ["bold", "duotone", "fill", "light", "regular", "thin"],
+      "icon_type",
+    ),
   };
 }
 

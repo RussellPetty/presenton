@@ -243,7 +243,11 @@ def test_generate_presentation_handler_uses_template_v2_layout():
     )
     slide = next(item for item in session.added_all if isinstance(item, SlideModel))
     assert presentation.version == PresentationVersion.V2_STANDARD
-    assert presentation.layout == _template_v2_layout_payload()
+    assert presentation.layout == {
+        **_template_v2_layout_payload(),
+        "icon_type": "bold",
+        "icon_weight": "bold",
+    }
     assert presentation.fonts == {"Inter": "https://example.com/inter.css"}
     assert slide.layout_group == f"template-v2-{template_id}"
     assert slide.ui["components"][0]["elements"][0]["runs"][0]["text"] == "V2 headline"
@@ -347,7 +351,9 @@ def test_prepare_presentation_preserves_payload_icon_weight():
         )
 
     assert response.layout["icon_weight"] == "thin"
+    assert response.layout["icon_type"] == "thin"
     assert response.get_layout().icon_weight == "thin"
+    assert response.get_layout().icon_type == "thin"
     assert response.language == ""
 
 
@@ -520,7 +526,11 @@ def test_prepare_presentation_accepts_template_v2_layout_id():
             )
         )
 
-    assert response.layout == template_layouts
+    assert response.layout == {
+        **template_layouts,
+        "icon_type": "bold",
+        "icon_weight": "bold",
+    }
     assert response.structure == {"slides": [0]}
     assert response.fonts == {"Inter": "https://example.com/inter.css"}
     structure_layout = generate_structure.await_args.kwargs["presentation_layout"]

@@ -86,6 +86,7 @@ from utils.process_slides import (
     process_slide_and_fetch_assets,
 )
 from utils.get_layout_by_name import get_layout_by_name
+from utils.icon_weights import DEFAULT_ICON_TYPE, extract_icon_type_from_settings
 from utils.llm_utils import message_content_to_text
 from utils.sse import safe_sse_stream
 from utils.simple_auth import (
@@ -210,7 +211,22 @@ def _copy_template_v2_layout_payload(
             detail="Template v2 layout JSON must be an object",
         )
 
+    icon_type = _template_v2_icon_type(template, layout_payload)
+    layout_payload["icon_type"] = icon_type
+    layout_payload["icon_weight"] = icon_type
     return layout_payload
+
+
+def _template_v2_icon_type(
+    template: TemplateV2,
+    layout_payload: dict[str, Any] | None = None,
+) -> str:
+    for settings in (template.assets, layout_payload, template.layouts):
+        if isinstance(settings, dict):
+            icon_type = extract_icon_type_from_settings(settings)
+            if icon_type != DEFAULT_ICON_TYPE:
+                return icon_type
+    return DEFAULT_ICON_TYPE
 
 
 async def _resolve_generation_layout(
@@ -542,6 +558,7 @@ def _build_template_v2_layout_model(
     return PresentationLayoutModel(
         name=layout_name,
         ordered=False,
+        icon_type=extract_icon_type_from_settings(layout_payload),
         slides=slides,
     )
 
@@ -1389,12 +1406,7 @@ async def _resolve_prepare_layout(
     if not template:
         raise HTTPException(status_code=404, detail="Template v2 layout not found")
 
-    layout_payload = copy.deepcopy(template.layouts)
-    if not isinstance(layout_payload, dict):
-        raise HTTPException(
-            status_code=400,
-            detail="Template v2 layout JSON must be an object",
-        )
+    layout_payload = _copy_template_v2_layout_payload(template)
 
     structure_layout = _build_template_v2_structure_layout(template, layout_payload)
     return (

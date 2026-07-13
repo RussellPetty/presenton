@@ -273,6 +273,9 @@ export class PresentationGenerationApi {
         query: iconSearch.query,
         limit: String(iconSearch.limit),
       });
+      if (iconSearch.icon_type) {
+        params.set("icon_type", iconSearch.icon_type);
+      }
       if (iconSearch.icon_weight) {
         params.set("icon_weight", iconSearch.icon_weight);
       }

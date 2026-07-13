@@ -3,6 +3,7 @@
   "name": "Standard",
   "description": "Balanced, adaptable layouts that keep business and everyday content clear, organized, and easy to follow.",
   "thumbnail": "static/thumbnail.png",
+  "icon_type": "bold",
   "merged_components": [
     {
       "id": "canvas_background",

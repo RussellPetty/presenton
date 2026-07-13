@@ -84,8 +84,8 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
             "title": {"type": "string", "minLength": 4, "maxLength": 8},
             "hero_image": {
                 "type": "object",
-                "properties": {"prompt": {"type": "string"}},
-                "required": ["prompt"],
+                "properties": {"image_prompt": {"type": "string"}},
+                "required": ["image_prompt"],
                 "additionalProperties": False,
             },
             "caption": {"type": "string", "minLength": 2, "maxLength": 4},
@@ -239,8 +239,8 @@ def test_extract_slide_schema_from_layout_collapses_repeated_children_to_array()
                         },
                         "icon": {
                             "type": "object",
-                            "properties": {"query": {"type": "string"}},
-                            "required": ["query"],
+                            "properties": {"icon_query": {"type": "string"}},
+                            "required": ["icon_query"],
                             "additionalProperties": False,
                         },
                     },

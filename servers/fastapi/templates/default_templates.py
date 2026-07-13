@@ -10,6 +10,7 @@ from models.sql.template_v2 import TemplateV2
 from services.database import async_session_maker
 from templates.v2.models.layouts import MergedComponents, RawSlideLayouts, SlideLayouts
 from utils.get_env import get_app_data_directory_env
+from utils.icon_weights import extract_icon_type_from_settings
 
 
 LOGGER = logging.getLogger(__name__)
@@ -150,8 +151,11 @@ def _build_assets(
     layouts: dict[str, Any],
     merged_components: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    icon_type = extract_icon_type_from_settings(rewritten_template_json)
     assets: dict[str, Any] = {
         "template_id": template_id,
+        "icon_type": icon_type,
+        "icon_weight": icon_type,
         "fonts": rewritten_template_json.get("fonts")
         if isinstance(rewritten_template_json.get("fonts"), dict)
         else {},

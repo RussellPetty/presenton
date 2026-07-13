@@ -58,7 +58,7 @@ COPY package.json /app/
 
 RUN mkdir -p /app/document-extraction-liteparse \
     && npm --prefix /app/document-extraction-liteparse init -y \
-    && npm --prefix /app/document-extraction-liteparse install @llamaindex/liteparse@1.4.0 --omit=dev
+    && npm --prefix /app/document-extraction-liteparse install @llamaindex/liteparse@1.5.2 --omit=dev
 
 COPY electron/resources/document-extraction/liteparse_runner.mjs /app/document-extraction-liteparse/liteparse_runner.mjs
 COPY scripts/sync-presentation-export.cjs /app/scripts/sync-presentation-export.cjs
