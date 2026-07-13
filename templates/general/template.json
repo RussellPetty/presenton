@@ -1046,6 +1046,7 @@
               "rotation": 0,
               "data": "static/image8-09632504cf99.png",
               "fit": "fill",
+              "color": "#FFFFFF",
               "decorative": true,
               "name": "top_sparkle_accent",
               "is_icon": true
@@ -1591,6 +1592,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -1712,6 +1714,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -1833,6 +1836,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -1954,6 +1958,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -9517,6 +9522,7 @@
               "rotation": 0,
               "data": "static/image8-09632504cf99.png",
               "fit": "fill",
+              "color": "#FFFFFF",
               "decorative": true,
               "name": "top_sparkle_accent",
               "is_icon": true
@@ -9657,6 +9663,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -9778,6 +9785,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -9899,6 +9907,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
@@ -10020,6 +10029,7 @@
                       "rotation": 0,
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "feature_icon",
                       "is_icon": true
