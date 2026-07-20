@@ -109,6 +109,9 @@ def test_generate_ppt_outline_default_openai_uses_native_search_tool(monkeypatch
     captured_kwargs = {}
     captured_config_kwargs = {}
 
+    async def is_disconnected():
+        return False
+
     async def fake_stream_generate_events(_client, **kwargs):
         captured_kwargs.update(kwargs)
         yield content_event('{"slides": [{"content": "## Current facts"}]}')
@@ -139,12 +142,14 @@ def test_generate_ppt_outline_default_openai_uses_native_search_tool(monkeypatch
                 n_slides=1,
                 language="English",
                 web_search=True,
+                disconnect_checker=is_disconnected,
             )
         )
 
     assert captured_config_kwargs == {"use_openai_responses_api": True}
     assert len(captured_kwargs["tools"]) == 1
     assert isinstance(captured_kwargs["tools"][0], WebSearchTool)
+    assert captured_kwargs["disconnect_checker"] is is_disconnected
 
 
 def test_generate_ppt_outline_streams_json_chunks_and_keeps_schema_shape():

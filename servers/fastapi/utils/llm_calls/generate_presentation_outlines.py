@@ -21,6 +21,7 @@ from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
 from utils.llm_utils import (
+    DisconnectChecker,
     get_generate_kwargs,
     serialize_structured_content,
     stream_generate_events,
@@ -250,6 +251,7 @@ async def generate_ppt_outline(
     web_search: bool = False,
     include_table_of_contents: bool = False,
     emit_statuses: bool = False,
+    disconnect_checker: Optional[DisconnectChecker] = None,
 ):
     model = get_model()
     response_model = (
@@ -309,6 +311,7 @@ async def generate_ppt_outline(
                 model,
                 content,
                 instructions,
+                disconnect_checker=disconnect_checker,
             )
             if generated_query:
                 search_query = generated_query
@@ -358,6 +361,7 @@ async def generate_ppt_outline(
         emitted_content = False
         async for event in stream_generate_events(
             client,
+            disconnect_checker=disconnect_checker,
             **get_generate_kwargs(
                 model=model,
                 messages=get_messages(

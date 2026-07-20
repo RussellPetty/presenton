@@ -10,7 +10,7 @@ from models.presentation_outline_model import SlideOutlineModel
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
-from utils.llm_utils import generate_structured_with_schema_retries
+from utils.llm_utils import DisconnectChecker, generate_structured_with_schema_retries
 from utils.schema_utils import (
     add_field_in_schema,
     ensure_array_schemas_have_items,
@@ -214,6 +214,7 @@ async def get_slide_content_from_type_and_outline(
     tone: Optional[str] = None,
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
+    disconnect_checker: Optional[DisconnectChecker] = None,
 ):
     response_schema = _prepare_response_schema(slide_layout.json_schema)
     if response_schema is None:
@@ -245,6 +246,7 @@ async def get_slide_content_from_type_and_outline(
             json_schema=response_schema,
             strict=False,
             validate_schema=True,
+            disconnect_checker=disconnect_checker,
         )
 
     except Exception as e:
