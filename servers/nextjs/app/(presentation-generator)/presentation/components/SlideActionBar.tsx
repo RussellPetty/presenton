@@ -291,7 +291,7 @@ const SlideActionBar = ({
           revealOnGroupHover
             ? keepVisible
               ? "opacity-100"
-              : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+              : "opacity-100 xl:pointer-events-none xl:opacity-0 xl:group-hover:pointer-events-auto xl:group-hover:opacity-100 xl:focus-within:pointer-events-auto xl:focus-within:opacity-100"
             : "opacity-100"
         )}
       >

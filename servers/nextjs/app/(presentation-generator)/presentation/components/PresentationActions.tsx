@@ -507,6 +507,7 @@ function collectCandidateTemplateIds(value: unknown, depth = 0): string[] {
     "template_v2_id",
     "templateId",
     "template_id",
+    "layout_group",
   ];
 
   directKeys.forEach((key) => {

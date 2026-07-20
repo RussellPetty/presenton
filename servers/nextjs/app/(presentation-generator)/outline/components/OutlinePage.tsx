@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/store/store";
 import { useDispatch, useSelector } from "react-redux";
@@ -31,6 +31,7 @@ import {
 } from "@/utils/presentationLimits";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { Sparkles, X } from "lucide-react";
 
 const DEFAULT_OUTLINE_CONFIG: PresentationConfig = {
   slides: null,
@@ -101,6 +102,9 @@ const OutlinePage: React.FC = () => {
   const [isRegeneratingOutline, setIsRegeneratingOutline] = useState(false);
   const [hasOutlineStreamFinished, setHasOutlineStreamFinished] =
     useState(false);
+  const [isMobileAssistantOpen, setIsMobileAssistantOpen] = useState(false);
+  const mobileAssistantTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileAssistantCloseRef = useRef<HTMLButtonElement | null>(null);
 
   // Custom hooks
   const streamState = useOutlineStreaming(
@@ -129,6 +133,47 @@ const OutlinePage: React.FC = () => {
     activeTab === TABS.OUTLINE &&
     !outlineControlsBusy &&
     (outlines.length > 0 || streamState.statusMessage === "Outline ready");
+
+  const closeMobileAssistant = useCallback(() => {
+    setIsMobileAssistantOpen(false);
+    window.requestAnimationFrame(() => {
+      mobileAssistantTriggerRef.current?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileAssistantOpen) return;
+    mobileAssistantCloseRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMobileAssistant();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeMobileAssistant, isMobileAssistantOpen]);
+
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const closeDrawerOnDesktop = () => {
+      if (desktopQuery.matches) {
+        setIsMobileAssistantOpen(false);
+      }
+    };
+
+    closeDrawerOnDesktop();
+    desktopQuery.addEventListener("change", closeDrawerOnDesktop);
+    return () =>
+      desktopQuery.removeEventListener("change", closeDrawerOnDesktop);
+  }, []);
+
+  useEffect(() => {
+    if (!isOutlineAssistantVisible) {
+      setIsMobileAssistantOpen(false);
+    }
+  }, [isOutlineAssistantVisible]);
 
   useEffect(() => {
     if (savedConfig) {
@@ -385,34 +430,95 @@ const OutlinePage: React.FC = () => {
               </div>
 
               {isOutlineAssistantVisible && (
-                <aside className="h-[min(760px,calc(100vh-250px))] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[92px] lg:h-[calc(100vh-105px)]">
-                  <Chat
-                    key={presentation_id}
-                    presentationId={presentation_id}
-                    variant="outline"
-                    useEditorLayout
-                    onBeforeSend={handleBeforeOutlineChatSend}
-                    onPresentationChanged={handleOutlineChanged}
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close AI Assistant"
+                    onClick={closeMobileAssistant}
+                    className={cn(
+                      "inset-0 z-[60] bg-black/35 lg:hidden",
+                      isMobileAssistantOpen ? "fixed" : "hidden"
+                    )}
                   />
-                </aside>
+
+                  <aside
+                    id="outline-mobile-assistant"
+                    role={isMobileAssistantOpen ? "dialog" : undefined}
+                    aria-label={isMobileAssistantOpen ? "AI Assistant" : undefined}
+                    aria-modal={isMobileAssistantOpen ? true : undefined}
+                    className={cn(
+                      "h-screen w-[calc(100vw-16px)] max-w-[375px] flex-col overflow-hidden border border-[#EDEEEF] bg-white shadow-[-12px_0_32px_rgba(16,24,40,0.18)] lg:sticky lg:top-[92px] lg:z-auto lg:flex lg:h-[calc(100vh-105px)] lg:w-auto lg:max-w-none lg:shadow-none",
+                      isMobileAssistantOpen
+                        ? "fixed inset-y-0 right-0 z-[70] flex"
+                        : "hidden"
+                    )}
+                  >
+                    <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#EDEEEF] px-4 lg:hidden">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-[#101323]">
+                        <Sparkles className="h-4 w-4 text-[#7A5AF8]" aria-hidden="true" />
+                        AI Assistant
+                      </div>
+                      <button
+                        ref={mobileAssistantCloseRef}
+                        type="button"
+                        aria-label="Close AI Assistant"
+                        onClick={closeMobileAssistant}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-[#667085] transition hover:bg-[#F6F6F9] hover:text-[#101323] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1">
+                      <Chat
+                        key={presentation_id}
+                        presentationId={presentation_id}
+                        variant="outline"
+                        useEditorLayout
+                        onBeforeSend={handleBeforeOutlineChatSend}
+                        onPresentationChanged={handleOutlineChanged}
+                      />
+                    </div>
+                  </aside>
+                </>
               )}
             </div>
           </Tabs>
 
           <div
             className={cn(
-              "fixed bottom-[26px] z-50",
+              "fixed z-50 flex items-center gap-2",
               isOutlineAssistantVisible
-                ? "left-5 sm:left-10 lg:left-auto lg:right-[calc(8rem+375px+4rem)]"
-                : "right-[26px]"
+                ? "bottom-5 left-5 right-5 lg:bottom-[26px] lg:left-auto lg:right-[calc(8rem+375px+4rem)]"
+                : "bottom-[26px] right-[26px]"
             )}
           >
-            <GenerateButton
-              loadingState={loadingState}
-              streamState={streamState}
-              selectedTemplateId={selectedTemplateId}
-              onSubmit={handleSubmit}
-            />
+            <div className="min-w-0 flex-1 lg:flex-none">
+              <GenerateButton
+                loadingState={loadingState}
+                streamState={streamState}
+                selectedTemplateId={selectedTemplateId}
+                onSubmit={handleSubmit}
+              />
+            </div>
+
+            {isOutlineAssistantVisible && (
+              <button
+                ref={mobileAssistantTriggerRef}
+                type="button"
+                aria-controls="outline-mobile-assistant"
+                aria-expanded={isMobileAssistantOpen}
+                aria-label="Open AI Assistant"
+                onClick={() => setIsMobileAssistantOpen(true)}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-full border border-white/70 text-sm font-semibold text-[#101323] shadow-[0_8px_24px_rgba(74,58,155,0.24)] transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2 sm:w-auto sm:px-4 lg:hidden"
+                style={{
+                  background:
+                    "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                }}
+              >
+                <Sparkles className="h-4 w-4 text-[#7A5AF8]" aria-hidden="true" />
+                <span className="hidden sm:inline">AI Assistant</span>
+              </button>
+            )}
           </div>
         </div>
 
