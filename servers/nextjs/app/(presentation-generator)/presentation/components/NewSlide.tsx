@@ -25,6 +25,7 @@ import {
   BLANK_TEMPLATE_V2_LAYOUT,
 } from "../../_shared/blank-slide";
 import { MAX_NUMBER_OF_SLIDES } from "@/utils/presentationLimits";
+import TemplateService from "../../services/api/template";
 
 interface LayoutItemProps {
   layout: any;
@@ -181,6 +182,7 @@ const NewSlideV1 = ({
   });
   const [layouts, setLayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -253,16 +255,42 @@ const NewSlideV1 = ({
     const fetchLayouts = async () => {
       try {
         setLoading(true);
+        setLoadError(null);
 
-        const templateV2Layouts = extractTemplateV2Layouts(presentationLayout);
+        const embeddedLayouts = extractTemplateV2Layouts(presentationLayout);
+        let templateV2Layouts = embeddedLayouts;
+
+        try {
+          const template = await TemplateService.getTemplateDetails(templateID);
+          const fetchedLayouts = extractTemplateV2Layouts(template.layouts);
+          if (fetchedLayouts.length > 0) {
+            templateV2Layouts = fetchedLayouts;
+          }
+        } catch (error) {
+          if (embeddedLayouts.length === 0) {
+            throw error;
+          }
+          console.warn(
+            "Could not refresh template layouts; using presentation layouts instead.",
+            error,
+          );
+        }
+
         const layoutItems = templateV2Layouts.map((layout, layoutIndex) =>
           createTemplateV2LayoutItem(layout, layoutIndex)
         );
-        if (isMounted) setLayouts(layoutItems);
-
+        if (isMounted) {
+          setLayouts(layoutItems);
+          if (layoutItems.length === 0) {
+            setLoadError("This template does not contain any usable layouts.");
+          }
+        }
       } catch (error) {
         console.error("Error loading slide layouts:", error);
-        if (isMounted) setLayouts([]);
+        if (isMounted) {
+          setLayouts([]);
+          setLoadError("Could not load layouts for this template.");
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -273,7 +301,7 @@ const NewSlideV1 = ({
     return () => {
       isMounted = false;
     };
-  }, [presentationLayout]);
+  }, [presentationLayout, templateID]);
 
   const showEmptySlideLayout = true;
   const selectableLayouts = showEmptySlideLayout
@@ -318,6 +346,11 @@ const NewSlideV1 = ({
       </div>
 
       <div className="max-h-[min(70vh,640px)] overflow-y-auto px-4 py-4 md:px-5">
+        {!loading && loadError && (
+          <p className="mb-4 rounded-lg border border-[#FEE4E2] bg-[#FFFBFA] px-4 py-3 text-sm text-[#B42318]">
+            {loadError}
+          </p>
+        )}
         {loading ? (
           <div className="flex h-56 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#7C51F8]" />

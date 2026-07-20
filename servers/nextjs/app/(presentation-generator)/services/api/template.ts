@@ -117,7 +117,8 @@ class TemplateService {
 
     static async getTemplateDetails(templateId: string): Promise<TemplateDetailsResponse> {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}`));
+            const apiTemplateId = templateId.replace(/^template-v2-/, "");
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(apiTemplateId)}`));
             return await ApiResponseHandler.handleResponse(response, "Failed to get template details");
         } catch (error) {
             console.error("Failed to get Templates v1 details", error);

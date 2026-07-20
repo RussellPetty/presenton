@@ -101,7 +101,7 @@ const SlideContent = ({
             onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
           />
         </div>
-        <div className="my-4 hidden w-full xl:block">
+        <div className="my-3 w-full xl:my-4">
           <SlideActionBar
             slide={slide}
             selectedSlide={index}
