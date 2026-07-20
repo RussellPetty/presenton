@@ -627,11 +627,22 @@ function containerOverflowStyle(
 
 function renderFlex(item: JsonRecord, mode: RenderMode): string {
   const direction = readString(item.direction) === "row" ? "row" : "column";
-  const children = readLayoutChildren(item)
+  const gap = readNumber(item.gap) ?? 0;
+  const rowGap = readNumber(item.rowGap ?? item.row_gap) ?? gap;
+  const columnGap = readNumber(item.columnGap ?? item.column_gap) ?? gap;
+  const childrenList = readLayoutChildren(item);
+  const children = childrenList
     .map((child) => renderItem(readRecord(child), "flow"))
     .join("");
-  const gap = readNumber(item.gap) ?? 0;
-  const style = `${frameStyle(item, mode)}${boxStyle(item)}${paddingStyle(
+  const style = `${flexFrameStyle(
+    item,
+    mode,
+    childrenList,
+    direction,
+    readBoolean(item.wrap),
+    columnGap,
+    rowGap,
+  )}${boxStyle(item)}${paddingStyle(
     readRecord(item.padding)
   )}display:flex;flex-direction:${direction};flex-wrap:${readBoolean(item.wrap) ? "wrap" : "nowrap"};align-items:${cssAlignment(
     readString(item.alignItems ?? item.align_items),
@@ -639,36 +650,157 @@ function renderFlex(item: JsonRecord, mode: RenderMode): string {
   )};justify-content:${cssAlignment(
     readString(item.justifyContent ?? item.justify_content),
     "flex-start"
-  )};gap:${cssNumber(gap)}px;column-gap:${cssNumber(
-    readNumber(item.columnGap ?? item.column_gap) ?? gap
-  )}px;row-gap:${cssNumber(
-    readNumber(item.rowGap ?? item.row_gap) ?? gap
-  )}px;overflow:visible`;
+  )};gap:${cssNumber(gap)}px;column-gap:${cssNumber(columnGap)}px;row-gap:${cssNumber(rowGap)}px;overflow:visible`;
   return `<div style="${style}">${children}</div>`;
+}
+
+function flexFrameStyle(
+  item: JsonRecord,
+  mode: RenderMode,
+  children: unknown[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+) {
+  const box = readBox(item);
+  const expanded = flexExpandedSize(item, box, children, direction, wrap, columnGap, rowGap);
+  let style = frameStyleFromBox(box, mode);
+  if (expanded.width != null && (box.width == null || expanded.width > box.width)) {
+    style += `width:${cssNumber(expanded.width)}px;`;
+  }
+  if (expanded.height != null && (box.height == null || expanded.height > box.height)) {
+    style += `height:${cssNumber(expanded.height)}px;`;
+  }
+  return style;
+}
+
+function flexExpandedSize(
+  item: JsonRecord,
+  box: Box,
+  children: unknown[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+): { width?: number; height?: number } {
+  const records = children.map(readRecord);
+  if (!records.length) return {};
+
+  const padding = readRecord(item.padding);
+  const paddingX = (readNumber(padding.left) ?? 0) + (readNumber(padding.right) ?? 0);
+  const paddingY = (readNumber(padding.top) ?? 0) + (readNumber(padding.bottom) ?? 0);
+  const sizes = records.map(flowChildSize);
+
+  if (!wrap) {
+    if (direction === "row") {
+      return {
+        width:
+          paddingX +
+          sizes.reduce((sum, size) => sum + size.width, 0) +
+          columnGap * Math.max(0, sizes.length - 1),
+      };
+    }
+    return {
+      height:
+        paddingY +
+        sizes.reduce((sum, size) => sum + size.height, 0) +
+        rowGap * Math.max(0, sizes.length - 1),
+    };
+  }
+
+  const mainLimit =
+    direction === "row"
+      ? box.width == null
+        ? null
+        : Math.max(1, box.width - paddingX)
+      : box.height == null
+        ? null
+        : Math.max(1, box.height - paddingY);
+  if (mainLimit == null) return {};
+
+  const lines: Array<{ cross: number; main: number }> = [];
+  const mainGap = direction === "row" ? columnGap : rowGap;
+  const crossGap = direction === "row" ? rowGap : columnGap;
+  sizes.forEach((size) => {
+    const childMain = direction === "row" ? size.width : size.height;
+    const childCross = direction === "row" ? size.height : size.width;
+    let line = lines.at(-1);
+    if (!line || (line.main > 0 && line.main + mainGap + childMain > mainLimit)) {
+      line = { cross: 0, main: 0 };
+      lines.push(line);
+    }
+    line.main += (line.main > 0 ? mainGap : 0) + childMain;
+    line.cross = Math.max(line.cross, childCross);
+  });
+
+  const requiredCross =
+    lines.reduce((sum, line) => sum + line.cross, 0) +
+    crossGap * Math.max(0, lines.length - 1);
+  return direction === "row"
+    ? { height: paddingY + requiredCross }
+    : { width: paddingX + requiredCross };
+}
+
+function flowChildSize(child: JsonRecord) {
+  const fallback = Array.isArray(child.children)
+    ? childrenBounds(readArray(child.children).map(readRecord))
+    : undefined;
+  const box = readBox(child, fallback);
+  return {
+    width: box.width ?? 1,
+    height: box.height ?? 1,
+  };
 }
 
 function renderGrid(item: JsonRecord, mode: RenderMode): string {
   const columns = Math.max(1, Math.floor(readNumber(item.columns) ?? 1));
-  const rows = readNumber(item.rows);
   const gap = readNumber(item.gap) ?? 0;
-  const children = readLayoutChildren(item)
+  const rowGap = readNumber(item.rowGap ?? item.row_gap) ?? gap;
+  const columnGap = readNumber(item.columnGap ?? item.column_gap) ?? gap;
+  const childrenList = readLayoutChildren(item);
+  const renderedRows = Math.max(1, Math.ceil(childrenList.length / columns));
+  const declaredRows = readNumber(item.rows);
+  const rows = declaredRows == null ? null : Math.max(1, Math.floor(declaredRows));
+  const size = readRecord(item.size);
+  const explicitHeight = readNumber(size.height);
+  const explicitWidth = readNumber(size.width);
+  const children = childrenList
     .map((child) => renderItem(readRecord(child), "flow"))
     .join("");
+  const rowTemplate = gridRowTemplate(rows, renderedRows, explicitHeight, rowGap);
+  const columnTemplate = gridColumnTemplate(columns, explicitWidth, columnGap);
   const style = `${frameStyle(item, mode)}${boxStyle(item)}${paddingStyle(
     readRecord(item.padding)
-  )}display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));${rows ? `grid-template-rows:repeat(${Math.max(1, Math.floor(rows))},minmax(0,1fr));` : ""
-    }align-items:${cssAlignment(
+  )}display:grid;grid-template-columns:${columnTemplate};${rowTemplate}align-items:${cssAlignment(
       readString(item.alignItems ?? item.align_items),
       "stretch"
     )};justify-items:${cssAlignment(
       readString(item.justifyItems ?? item.justify_items),
       "stretch"
-    )};column-gap:${cssNumber(
-      readNumber(item.columnGap ?? item.column_gap) ?? gap
-    )}px;row-gap:${cssNumber(
-      readNumber(item.rowGap ?? item.row_gap) ?? gap
-    )}px;overflow:visible`;
+    )};column-gap:${cssNumber(columnGap)}px;row-gap:${cssNumber(rowGap)}px;overflow:visible`;
   return `<div style="${style}">${children}</div>`;
+}
+
+function gridColumnTemplate(columns: number, explicitWidth: number | null, columnGap: number) {
+  if (explicitWidth == null) return `repeat(${columns},minmax(0,1fr))`;
+  const columnWidth = Math.max(1, (explicitWidth - columnGap * (columns - 1)) / columns);
+  return `repeat(${columns},${cssNumber(columnWidth)}px)`;
+}
+
+function gridRowTemplate(
+  rows: number | null,
+  renderedRows: number,
+  explicitHeight: number | null,
+  rowGap: number
+) {
+  if (!rows) return "";
+  if (explicitHeight == null) {
+    return `grid-template-rows:repeat(${Math.max(rows, renderedRows)},minmax(0,1fr));`;
+  }
+
+  const rowHeight = Math.max(1, (explicitHeight - rowGap * (rows - 1)) / rows);
+  return `grid-template-rows:repeat(${Math.max(rows, renderedRows)},${cssNumber(rowHeight)}px);`;
 }
 
 function readLayoutChildren(item: JsonRecord): unknown[] {
@@ -1750,6 +1882,7 @@ function frameStyle(
 function frameStyleFromBox(box: Box, mode: RenderMode): string {
   let style = `box-sizing:border-box;min-height:0;min-width:0;position:${mode === "absolute" ? "absolute" : "relative"
     };`;
+  if (mode === "flow") style += "flex-shrink:0;";
   if (mode === "absolute") {
     style += `left:${cssNumber(box.x)}px;top:${cssNumber(box.y)}px;`;
   }

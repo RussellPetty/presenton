@@ -549,6 +549,10 @@ function containerFallbackSize(element: TemplateV2Element) {
 
 function renderFlex(element: TemplateV2Element, key: string, mode: RenderMode) {
   const direction = readString(element.direction) === "row" ? "row" : "column";
+  const gap = readNumber(element.gap) ?? 0;
+  const rowGap = readNumber(element.row_gap ?? element.rowGap) ?? gap;
+  const columnGap = readNumber(element.column_gap ?? element.columnGap) ?? gap;
+  const wrap = readBoolean(element.wrap);
   const children = withEqualTemplateV2FlowChildSizes(
     element as Record<string, unknown>,
   ) as TemplateV2Element[];
@@ -557,15 +561,17 @@ function renderFlex(element: TemplateV2Element, key: string, mode: RenderMode) {
     <div
       key={key}
       style={{
-        ...frameStyle(element, mode),
+        ...flexFrameStyle(element, mode, children, direction, wrap, columnGap, rowGap),
         ...boxStyle(element),
         alignItems: cssAlignment(readString(element.align_items), "stretch"),
+        columnGap: px(columnGap),
         display: "flex",
         flexDirection: direction,
-        flexWrap: readBoolean(element.wrap) ? "wrap" : "nowrap",
-        gap: px(readNumber(element.gap) ?? 0),
+        flexWrap: wrap ? "wrap" : "nowrap",
+        gap: px(gap),
         justifyContent: cssAlignment(readString(element.justify_content), "flex-start"),
-        overflow: "hidden",
+        overflow: "visible",
+        rowGap: px(rowGap),
       }}
     >
       {children.map((child) =>
@@ -575,12 +581,118 @@ function renderFlex(element: TemplateV2Element, key: string, mode: RenderMode) {
   );
 }
 
+function flexFrameStyle(
+  element: TemplateV2Element,
+  mode: RenderMode,
+  children: TemplateV2Element[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+): React.CSSProperties {
+  const box = readBox(element);
+  const expanded = flexExpandedSize(element, box, children, direction, wrap, columnGap, rowGap);
+  const style = frameStyleFromBox(box, mode);
+  if (expanded.width != null && (box.width == null || expanded.width > box.width)) {
+    style.width = px(expanded.width);
+  }
+  if (expanded.height != null && (box.height == null || expanded.height > box.height)) {
+    style.height = px(expanded.height);
+  }
+  return style;
+}
+
+function flexExpandedSize(
+  element: TemplateV2Element,
+  box: Box,
+  children: TemplateV2Element[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+): { width?: number; height?: number } {
+  if (!children.length) return {};
+
+  const padding = readRecord(element.padding);
+  const paddingX = (readNumber(padding.left) ?? 0) + (readNumber(padding.right) ?? 0);
+  const paddingY = (readNumber(padding.top) ?? 0) + (readNumber(padding.bottom) ?? 0);
+  const sizes = children.map(flowChildSize);
+
+  if (!wrap) {
+    if (direction === "row") {
+      return {
+        width:
+          paddingX +
+          sizes.reduce((sum, size) => sum + size.width, 0) +
+          columnGap * Math.max(0, sizes.length - 1),
+      };
+    }
+    return {
+      height:
+        paddingY +
+        sizes.reduce((sum, size) => sum + size.height, 0) +
+        rowGap * Math.max(0, sizes.length - 1),
+    };
+  }
+
+  const mainLimit =
+    direction === "row"
+      ? box.width == null
+        ? null
+        : Math.max(1, box.width - paddingX)
+      : box.height == null
+        ? null
+        : Math.max(1, box.height - paddingY);
+  if (mainLimit == null) return {};
+
+  const lines: Array<{ cross: number; main: number }> = [];
+  const mainGap = direction === "row" ? columnGap : rowGap;
+  const crossGap = direction === "row" ? rowGap : columnGap;
+  sizes.forEach((size) => {
+    const childMain = direction === "row" ? size.width : size.height;
+    const childCross = direction === "row" ? size.height : size.width;
+    let line = lines.at(-1);
+    if (!line || (line.main > 0 && line.main + mainGap + childMain > mainLimit)) {
+      line = { cross: 0, main: 0 };
+      lines.push(line);
+    }
+    line.main += (line.main > 0 ? mainGap : 0) + childMain;
+    line.cross = Math.max(line.cross, childCross);
+  });
+
+  const requiredCross =
+    lines.reduce((sum, line) => sum + line.cross, 0) +
+    crossGap * Math.max(0, lines.length - 1);
+  return direction === "row"
+    ? { height: paddingY + requiredCross }
+    : { width: paddingX + requiredCross };
+}
+
+function flowChildSize(child: TemplateV2Element) {
+  const fallback = Array.isArray(child.children)
+    ? childrenBounds(child.children)
+    : undefined;
+  const box = readBox(child, fallback);
+  return {
+    width: box.width ?? 1,
+    height: box.height ?? 1,
+  };
+}
+
 function renderGrid(element: TemplateV2Element, key: string, mode: RenderMode) {
   const columns = Math.max(1, Math.floor(readNumber(element.columns) ?? 1));
-  const rows = readNumber(element.rows);
+  const gap = readNumber(element.gap) ?? 0;
+  const rowGap = readNumber(element.row_gap) ?? gap;
+  const columnGap = readNumber(element.column_gap) ?? gap;
   const children = withEqualTemplateV2FlowChildSizes(
     element as Record<string, unknown>,
   ) as TemplateV2Element[];
+  const renderedRows = Math.max(1, Math.ceil(children.length / columns));
+  const declaredRows = readNumber(element.rows);
+  const rows = declaredRows == null ? null : Math.max(1, Math.floor(declaredRows));
+  const size = readRecord(element.size);
+  const explicitHeight = readNumber(size.height);
+  const explicitWidth = readNumber(size.width);
 
   return (
     <div
@@ -589,13 +701,13 @@ function renderGrid(element: TemplateV2Element, key: string, mode: RenderMode) {
         ...frameStyle(element, mode),
         ...boxStyle(element),
         alignItems: cssAlignment(readString(element.align_items), "stretch"),
-        columnGap: px(readNumber(element.column_gap) ?? readNumber(element.gap) ?? 0),
+        columnGap: px(columnGap),
         display: "grid",
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        gridTemplateRows: rows ? `repeat(${Math.max(1, Math.floor(rows))}, minmax(0, 1fr))` : undefined,
+        gridTemplateColumns: gridColumnTemplate(columns, explicitWidth, columnGap),
+        gridTemplateRows: gridRowTemplate(rows, renderedRows, explicitHeight, rowGap),
         justifyItems: cssAlignment(readString(element.justify_items), "stretch"),
-        overflow: "hidden",
-        rowGap: px(readNumber(element.row_gap) ?? readNumber(element.gap) ?? 0),
+        overflow: "visible",
+        rowGap: px(rowGap),
       }}
     >
       {children.map((child) =>
@@ -603,6 +715,27 @@ function renderGrid(element: TemplateV2Element, key: string, mode: RenderMode) {
       )}
     </div>
   );
+}
+
+function gridColumnTemplate(columns: number, explicitWidth: number | null, columnGap: number) {
+  if (explicitWidth == null) return `repeat(${columns}, minmax(0, 1fr))`;
+  const columnWidth = Math.max(1, (explicitWidth - columnGap * (columns - 1)) / columns);
+  return `repeat(${columns}, ${px(columnWidth)})`;
+}
+
+function gridRowTemplate(
+  rows: number | null,
+  renderedRows: number,
+  explicitHeight: number | null,
+  rowGap: number
+) {
+  if (!rows) return undefined;
+  if (explicitHeight == null) {
+    return `repeat(${Math.max(rows, renderedRows)}, minmax(0, 1fr))`;
+  }
+
+  const rowHeight = Math.max(1, (explicitHeight - rowGap * (rows - 1)) / rows);
+  return `repeat(${Math.max(rows, renderedRows)}, ${px(rowHeight)})`;
 }
 
 function renderGroup(element: TemplateV2Element, key: string, mode: RenderMode) {
@@ -641,6 +774,7 @@ function frameStyleFromBox(box: Box, mode: RenderMode): React.CSSProperties {
     minWidth: 0,
     position: mode === "absolute" ? "absolute" : "relative",
   };
+  if (mode === "flow") style.flexShrink = 0;
 
   if (mode === "absolute") {
     style.left = px(box.x);
