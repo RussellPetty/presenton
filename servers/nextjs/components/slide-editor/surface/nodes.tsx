@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import type Konva from "konva";
 import {
   Arc,
@@ -182,6 +183,10 @@ function isComponentSideResizeAnchor(
   );
 }
 
+function isTopOrLeftSideResizeAnchor(anchor: ComponentSideResizeAnchor) {
+  return anchor === "top-center" || anchor === "middle-left";
+}
+
 function hasTransformScale(node: Konva.Node) {
   return (
     Math.abs(node.scaleX() - 1) >= 0.001 ||
@@ -349,6 +354,8 @@ function syncComponentNodeBox(node: Konva.Group, box: Box) {
     scaleX: 1,
     scaleY: 1,
   });
+  componentTransformerForNode(node)?.forceUpdate();
+  node.getLayer()?.batchDraw();
 }
 
 function componentSideTransformTargetFromNode(
@@ -632,6 +639,12 @@ export function RawComponentNode({
       latestSideTransformRef.current = pending;
       transformPreviewAnchorRef.current = anchor;
 
+      if (isTopOrLeftSideResizeAnchor(anchor)) {
+        transformPreviewBatchRef.current?.cancel();
+        flushSync(() => renderTransformPreview(pending));
+        return;
+      }
+
       const batch = transformPreviewBatchRef.current;
       if (batch) {
         batch.schedule(pending);
@@ -681,8 +694,10 @@ export function RawComponentNode({
       transformPreviewAnchorRef.current = null;
       latestSideTransformRef.current = null;
       node.setAttr(TRANSFORM_ANCHOR_ATTR, null);
-      setTransformPreview(null);
-      onComponentChange(componentIndex, () => next);
+      flushSync(() => {
+        setTransformPreview(null);
+        onComponentChange(componentIndex, () => next);
+      });
     },
     [component, componentIndex, isEditMode, onComponentChange],
   );
