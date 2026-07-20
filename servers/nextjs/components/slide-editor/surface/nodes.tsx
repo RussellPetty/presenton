@@ -756,7 +756,9 @@ export function RawComponentNode({
             isSingleVectorElementComponent && elementIndex === 0
           }
           allowDirectVectorSelection={
-            isSingleVectorElementComponent && elementIndex === 0
+            !isMultiSelectedComponent &&
+            isSingleVectorElementComponent &&
+            elementIndex === 0
           }
           fontRevision={fontRevision}
         />
@@ -1190,6 +1192,13 @@ function RawElementNode({
         if (!isEditMode) return;
         if (isVector) {
           if (!allowDirectVectorSelection) {
+            event.cancelBubble = false;
+            return;
+          }
+          if (
+            event.evt.shiftKey &&
+            componentIndex !== ROOT_ELEMENTS_COMPONENT_INDEX
+          ) {
             event.cancelBubble = false;
             return;
           }

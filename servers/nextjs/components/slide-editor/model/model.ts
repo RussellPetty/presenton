@@ -1030,7 +1030,11 @@ export function selectionWithComponentToggle(
   }
 
   const componentIndex = nextSelection.componentIndex;
-  const currentIndexes = componentIndexesForSelection(currentSelection);
+  const currentIndexes =
+    currentSelection?.kind === "element" &&
+    currentSelection.componentIndex !== ROOT_ELEMENTS_COMPONENT_INDEX
+      ? [currentSelection.componentIndex]
+      : componentIndexesForSelection(currentSelection);
   const nextIndexes = currentIndexes.includes(componentIndex)
     ? currentIndexes.filter((index) => index !== componentIndex)
     : [...currentIndexes, componentIndex];

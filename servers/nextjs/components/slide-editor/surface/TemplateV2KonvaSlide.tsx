@@ -148,6 +148,7 @@ import {
   readString,
   renderedLocalBoxForElementSelection,
   rootElementsComponent,
+  selectionForComponentIndexes,
   selectionForInsertedComponent,
   selectionWithComponentToggle,
   setComponentPositionsInUi,
@@ -1915,7 +1916,16 @@ function TemplateV2KonvaSlideComponent({
         insertedComponents as unknown as UnknownRecord[],
         detail.label,
       );
-      const nextSelection = selectionForInsertedComponent(nextUi, nextIndex);
+      const insertedCount = elements.length + insertedComponents.length;
+      const nextSelection =
+        insertedCount > 1
+          ? selectionForComponentIndexes(
+              Array.from(
+                { length: insertedCount },
+                (_, offset) => nextIndex + offset,
+              ),
+            )
+          : selectionForInsertedComponent(nextUi, nextIndex);
       commitUi(nextUi);
       setSelection(nextSelection);
       setVectorEditSelection(
