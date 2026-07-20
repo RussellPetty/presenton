@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -9,7 +9,9 @@ from openai import AuthenticationError, BadRequestError, RateLimitError
 
 from models.image_prompt import ImagePrompt
 from models.sql.slide import SlideModel
+from services.chat.memory_layer import PresentationChatMemoryLayer
 from services.image_generation_service import ImageGenerationService
+from utils.get_env import is_parallel_image_generation_enabled
 from utils.image_generation_error import normalize_image_generation_error
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.process_slides import (
@@ -141,6 +143,90 @@ def test_image_generation_service_preserves_existing_http_exception():
         asyncio.run(service.generate_image(ImagePrompt(prompt="business dashboard")))
 
     assert exc.value is provider_error
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, True),
+        ("true", True),
+        ("1", True),
+        ("false", False),
+        ("0", False),
+    ],
+)
+def test_parallel_image_generation_env(monkeypatch, raw, expected):
+    if raw is None:
+        monkeypatch.delenv("ENABLE_PARALLEL_IMAGE_GENERATION", raising=False)
+    else:
+        monkeypatch.setenv("ENABLE_PARALLEL_IMAGE_GENERATION", raw)
+
+    assert is_parallel_image_generation_enabled() is expected
+
+
+@pytest.mark.parametrize(
+    ("parallel_env", "expected_max_active"),
+    [("true", 2), ("false", 1)],
+)
+def test_parallel_env_applies_to_presentation_and_assistant_generation(
+    monkeypatch, parallel_env: str, expected_max_active: int
+):
+    monkeypatch.setenv("ENABLE_PARALLEL_IMAGE_GENERATION", parallel_env)
+    active_requests = 0
+    max_active_requests = 0
+
+    async def provider(_prompt: str, _output_directory: str) -> str:
+        nonlocal active_requests, max_active_requests
+        active_requests += 1
+        max_active_requests = max(max_active_requests, active_requests)
+        await asyncio.sleep(0.01)
+        active_requests -= 1
+        return "https://example.com/generated.png"
+
+    def service() -> ImageGenerationService:
+        instance = object.__new__(ImageGenerationService)
+        instance.output_directory = "/tmp"
+        instance.is_image_generation_disabled = False
+        instance.is_stock_provider_selected = lambda: False
+        instance.image_gen_func = provider
+        return instance
+
+    presentation_service = service()
+    assistant_service = service()
+    presentation_slide = SlideModel(
+        presentation=uuid.uuid4(),
+        layout_group="general",
+        layout="layout-1",
+        index=0,
+        content={
+            "image": {
+                "__image_prompt__": "presentation image",
+                "__image_url__": "/static/images/placeholder.jpg",
+            }
+        },
+        properties=None,
+    )
+    assistant_memory = object.__new__(PresentationChatMemoryLayer)
+
+    async def generate_from_presentation_and_assistant():
+        await asyncio.gather(
+            process_slide_and_fetch_assets(
+                image_generation_service=presentation_service,
+                slide=presentation_slide,
+            ),
+            assistant_memory.generate_image("assistant image"),
+        )
+
+    with patch(
+        "services.chat.memory_layer.ImageGenerationService",
+        return_value=assistant_service,
+    ), patch(
+        "services.chat.memory_layer.get_images_directory",
+        return_value="/tmp",
+    ):
+        asyncio.run(generate_from_presentation_and_assistant())
+
+    assert max_active_requests == expected_max_active
 
 
 def test_slide_asset_processing_can_fallback_with_visible_warning():

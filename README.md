@@ -50,12 +50,26 @@ What makes Presenton different?
 
 ### 🎛 Features
 
-<p align="center">
-  <img src="./readme_assets/images/features.png" alt="Presenton Features" />
-</p>
+Create presentations from a prompt, an uploaded document, or your own PowerPoint design. Choose from built-in templates, bring your preferred AI provider and API key, and export a fully editable deck.
 
 <p align="center">
-  <img src="./readme_assets/images/chatgpt-2-1.png" alt="Create stunning presentations with your existing ChatGPT subscription — secure and private, instant access, no API keys" />
+  <img src="./readme_assets/images/features.png" alt="Presenton features: custom designs, AI generation, bring your own API key, and built-in templates" />
+</p>
+
+**Edit every slide visually**
+
+Fine-tune generated slides directly on the canvas. Drag, resize, and style text and other elements, work with charts and tables, or use AI image editing before exporting.
+
+<p align="center">
+  <img src="./readme_assets/images/drag-and-edit.gif" alt="Drag-and-drop editing in the Presenton slide editor" />
+</p>
+
+**Use your existing ChatGPT subscription**
+
+Sign in with a free or paid ChatGPT account and start creating presentations without setting up a separate OpenAI API key.
+
+<p align="center">
+  <img src="./readme_assets/images/chatgpt-2-1.png" alt="Create presentations with your existing ChatGPT subscription: secure and private, with instant access and no API keys" />
 </p>
 
 #
@@ -349,6 +363,7 @@ Docker images install the default spaCy model (`en_core_web_sm`) during build so
 These variables match `docker-compose.yml`. **`IMAGE_PROVIDER`** selects the backend (`pexels`, `pixabay`, `gemini_flash`, `nanobanana_pro`, `dall-e-3`, `gpt-image-1.5`, `comfyui`, `open_webui`). Use **OPENAI_API_KEY** for OpenAI image modes and **GOOGLE_API_KEY** for Gemini image modes (same keys as the LLM section).
 
 - **DISABLE_IMAGE_GENERATION**=[true/false]: Disable slide image generation.
+- **ENABLE_PARALLEL_IMAGE_GENERATION**=[true/false]: Allow concurrent image provider requests (default `true`). Set to `false` to generate images one at a time when the provider has strict rate limits.
 - **IMAGE_PROVIDER**: Provider id (see enum above).
 - **PEXELS_API_KEY**: Pexels stock images.
 - **PIXABAY_API_KEY**: Pixabay stock images.
@@ -357,6 +372,8 @@ These variables match `docker-compose.yml`. **`IMAGE_PROVIDER`** selects the bac
 - **COMFYUI_URL** / **COMFYUI_WORKFLOW**: Self-hosted ComfyUI workflow JSON.
 - **OPEN_WEBUI_IMAGE_URL** / **OPEN_WEBUI_IMAGE_API_KEY**: Open WebUI–compatible image endpoint.
 - **OPENAI_COMPAT_IMAGE_BASE_URL** / **OPENAI_COMPAT_IMAGE_API_KEY** / **OPENAI_COMPAT_IMAGE_MODEL**: Required if using **openai_compatible** to send image requests to any OpenAI-compatible `/v1/images/*` endpoint (LiteLLM, Azure, vLLM Gateways, etc.).
+
+The parallel image generation option applies everywhere images are generated: initial presentation generation, slide editing and regeneration, direct image requests, and assistant image tools.
 
 #### Telemetry
 
