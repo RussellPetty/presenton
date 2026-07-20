@@ -1915,9 +1915,23 @@ async def generate_presentation_handler(
     presentation_id: uuid.UUID,
     async_status: Optional[AsyncTaskModel],
     export_cookie_header: Optional[str] = None,
+    request_http: Optional[Request] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     try:
+        disconnect_checker = (
+            request_http.is_disconnected if request_http is not None else None
+        )
+
+        async def raise_if_client_disconnected() -> None:
+            if disconnect_checker and await disconnect_checker():
+                logger.info(
+                    "[presentation.generate] client disconnected presentation_id=%s",
+                    presentation_id,
+                )
+                raise asyncio.CancelledError
+
+        await raise_if_client_disconnected()
         using_slides_markdown = False
         language_to_use = (request.language or "").strip() or None
         additional_context = ""
@@ -2004,6 +2018,7 @@ async def generate_presentation_handler(
                 request.include_title_slide,
                 request.web_search,
                 request.include_table_of_contents,
+                disconnect_checker=disconnect_checker,
             ):
 
                 if isinstance(chunk, HTTPException):
@@ -2106,6 +2121,7 @@ async def generate_presentation_handler(
                     instructions=request.instructions,
                     using_slides_markdown=using_slides_markdown,
                     source_content=request.content,
+                    disconnect_checker=disconnect_checker,
                 )
             )
 
@@ -2189,6 +2205,7 @@ async def generate_presentation_handler(
         # Schedule slide content generation and asset fetching in batches of 10
         batch_size = 10
         for start in range(0, len(slide_layouts), batch_size):
+            await raise_if_client_disconnected()
             end = min(start + batch_size, len(slide_layouts))
 
             print(f"Generating slides from {start} to {end}")
@@ -2202,6 +2219,7 @@ async def generate_presentation_handler(
                     request.tone.value,
                     request.verbosity.value,
                     request.instructions,
+                    disconnect_checker=disconnect_checker,
                 )
                 for i in range(start, end)
             ]
@@ -2366,6 +2384,7 @@ async def generate_presentation_sync(
             presentation_id,
             None,
             export_cookie_header=_build_export_cookie_header(request_http),
+            request_http=request_http,
             sql_session=sql_session,
         )
     except HTTPException:

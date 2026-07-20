@@ -4,7 +4,7 @@ import logging
 import traceback
 import uuid
 import dirtyjson
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,7 +83,9 @@ async def update_outline(
 
 @OUTLINES_ROUTER.get("/stream/{id}")
 async def stream_outlines(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID,
+    request: Request,
+    sql_session: AsyncSession = Depends(get_async_session),
 ):
     presentation = await sql_session.get(PresentationModel, id)
 
@@ -108,6 +110,9 @@ async def stream_outlines(
     temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
 
     async def inner():
+        if await request.is_disconnected():
+            return
+
         yield SSEStatusResponse(
             status="Preparing your presentation outline"
         ).to_string()
@@ -174,6 +179,7 @@ async def stream_outlines(
             presentation.web_search,
             presentation.include_table_of_contents,
             emit_statuses=True,
+            disconnect_checker=request.is_disconnected,
         ):
             # Give control to the event loop
             await asyncio.sleep(0)
