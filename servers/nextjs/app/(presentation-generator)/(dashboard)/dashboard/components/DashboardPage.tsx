@@ -12,6 +12,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import {
+  IMAGE_PROVIDERS,
+  LLM_PROVIDERS,
+} from "@/utils/providerConstants";
 
 const GITHUB_REPOSITORY_URL = "https://github.com/presenton/presenton";
 const DISCORD_INVITE_URL = "https://discord.com/invite/9ZsKKxudNE";
@@ -107,8 +113,20 @@ function formatGitHubStars(stars: number) {
 
 function DashboardHeader() {
   const pathname = usePathname();
+  const llmConfig = useSelector(
+    (state: RootState) => state.userConfig.llm_config
+  );
   const [githubStars, setGithubStars] = useState<string | null>(null);
   const [isElectronApp, setIsElectronApp] = useState(false);
+
+  const textProvider = LLM_PROVIDERS[llmConfig.LLM || "openai"];
+  const imageProvider = llmConfig.DISABLE_IMAGE_GENERATION
+    ? undefined
+    : IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER || ""];
+  const configuredProviders = [textProvider, imageProvider].filter(
+    (provider): provider is NonNullable<typeof provider> =>
+      Boolean(provider?.icon)
+  );
 
   useEffect(() => {
     setIsElectronApp(Boolean(window.electron));
@@ -157,27 +175,29 @@ function DashboardHeader() {
                 })
               }
             >
-              <span className="flex h-[34.1px] w-[39.777px] shrink-0 items-center">
-                <span className="relative z-10 h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white">
-                  <Image
-                    src={dashboardHeaderAsset("provider-openai.png")}
-                    alt=""
-                    aria-hidden="true"
-                    width={224}
-                    height={224}
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                </span>
-                <span className="relative -ml-[4.4px] h-[22px] w-[22.177px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white">
-                  <Image
-                    src={dashboardHeaderAsset("provider-presenton.png")}
-                    alt=""
-                    aria-hidden="true"
-                    width={1200}
-                    height={630}
-                    className="absolute left-[-70.06%] top-[-13.68%] h-[126.76%] w-[239.52%] max-w-none"
-                  />
-                </span>
+              <span
+                className="flex h-[34.1px] shrink-0 items-center"
+                title={configuredProviders
+                  .map((provider) => provider.label)
+                  .join(" + ")}
+              >
+                {configuredProviders.map((provider, index) => (
+                  <span
+                    key={`${provider.value}-${index}`}
+                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${
+                      index > 0 ? "-ml-[4.4px]" : "z-10"
+                    }`}
+                  >
+                    <Image
+                      src={provider.icon!}
+                      alt=""
+                      aria-hidden="true"
+                      width={224}
+                      height={224}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  </span>
+                ))}
               </span>
               <span className="font-syne text-sm font-medium leading-[17.6px] tracking-[0.56px]">
                 Settings

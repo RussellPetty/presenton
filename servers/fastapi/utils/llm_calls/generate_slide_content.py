@@ -36,11 +36,17 @@ You need to generate structured content json based on the schema.
 - Speaker notes must be plain text (no markdown).
 - Never exceed max character limits; do not clip mid-sentence to fit—rephrase instead.
 - Do not use emojis or $schema fields.
-- Follow user instructions literally when they do not conflict with Slide Language;
-  do not reinterpret, generalize, or expand them.
+- Follow the intended outcome of user instructions when they do not conflict with Slide
+  Language; do not generalize or expand their scope.
 - Apply slide-specific instructions only to the exact slide mentioned (first/second/last/named) and only once.
 - Do not apply patterns across multiple slides unless explicitly requested.
 - If instructions are ambiguous, use the most direct interpretation without extending scope.
+- Treat chart, layout, styling, positioning, and other visual instructions as production
+  controls. Honor them through the selected schema, but never emit those instructions or
+  meta-commentary as a title, body, label, table cell, or speaker note.
+- Output fields must contain only audience-facing content and data. For chart fields,
+  populate the requested labels, series, and values rather than text such as "create a
+  bar chart" or "show this data as a graph".
 
 {markdown_emphasis_rules}
 

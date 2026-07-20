@@ -1463,6 +1463,7 @@ async def prepare_presentation(
                 presentation_outline=presentation_outline_model,
                 presentation_layout=structure_layout,
                 instructions=presentation.instructions,
+                source_content=presentation.content,
             )
         )
 
@@ -2100,10 +2101,11 @@ async def generate_presentation_handler(
         else:
             presentation_structure: PresentationStructureModel = (
                 await generate_presentation_structure(
-                    presentation_outlines,
-                    layout_model,
-                    request.instructions,
-                    using_slides_markdown,
+                    presentation_outline=presentation_outlines,
+                    presentation_layout=layout_model,
+                    instructions=request.instructions,
+                    using_slides_markdown=using_slides_markdown,
+                    source_content=request.content,
                 )
             )
 
