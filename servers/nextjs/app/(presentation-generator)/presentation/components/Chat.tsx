@@ -294,6 +294,14 @@ const editorQuickPrompts = [
   "Make the deck consistent",
 ];
 
+const outlineEditorQuickPrompts = [
+  "Strengthen the story flow",
+  "Make the outline concise",
+  "Reorder the sections",
+  "Merge similar slides",
+  "Improve the conclusion",
+];
+
 const quickPromptGroups = [
   {
     label: "Popular",
@@ -306,6 +314,33 @@ const quickPromptGroups = [
   {
     label: "Add Visuals",
     prompts: ["Generate a new image and replace this one", "Add a chart", "Add a table"],
+  },
+];
+
+const outlineQuickPromptGroups = [
+  {
+    label: "Popular",
+    prompts: [
+      "Make the outline shorter",
+      "Expand the outline",
+      "Strengthen the story flow",
+    ],
+  },
+  {
+    label: "Structure",
+    prompts: [
+      "Reorder the sections",
+      "Merge similar slides",
+      "Split large sections",
+    ],
+  },
+  {
+    label: "Refine Content",
+    prompts: [
+      "Rewrite for executives",
+      "Improve the introduction",
+      "Improve the conclusion",
+    ],
   },
 ];
 
@@ -404,6 +439,7 @@ type ChatProps = {
   conversationStorageScope?: string;
   resourceLabel?: string;
   variant?: "presentation" | "outline" | "template-v2";
+  useEditorLayout?: boolean;
   inputDisabled?: boolean;
   currentSlide?: number;
   selectedTemplateV2Target?: TemplateV2SurfaceSelectedDetail["selection"];
@@ -692,13 +728,15 @@ const ActivityStatusIcon = ({ activity }: { activity: AssistantActivity }) => {
 
 const QuickPromptsPanel = ({
   onPromptSelect,
+  groups = quickPromptGroups,
 }: {
   onPromptSelect: (prompt: string) => void;
+  groups?: typeof quickPromptGroups;
 }) => (
   <div className="flex flex-col gap-6 font-syne">
     <AssistantSparkleIcon size={24} />
     <div className="flex flex-col gap-5">
-      {quickPromptGroups.map((group) => (
+      {groups.map((group) => (
         <div key={group.label} className="flex flex-col gap-2">
           <p className="text-sm font-normal tracking-[0.28px] text-[#333333]">
             {group.label}
@@ -1127,6 +1165,7 @@ const Chat = ({
   conversationStorageScope = "presentation",
   resourceLabel = "presentation",
   variant = "presentation",
+  useEditorLayout = false,
   inputDisabled = false,
   currentSlide,
   selectedTemplateV2Target,
@@ -2493,7 +2532,7 @@ const Chat = ({
 
   const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { cleanText, links } = pullLinksFromText(event.target.value);
-    if (variant !== "outline" && cleanText === "/") {
+    if ((variant !== "outline" || useEditorLayout) && cleanText === "/") {
       setInput("");
       setIsQuickPromptsOpen(true);
       return;
@@ -2643,8 +2682,9 @@ const Chat = ({
 
   const isOutlineVariant = variant === "outline";
   const isTemplateV2Variant = variant === "template-v2";
+  const usesEditorLayout = !isOutlineVariant || useEditorLayout;
   const showEditorEmptyState =
-    !isOutlineVariant && !isHistoryLoading && messages.length === 0;
+    usesEditorLayout && !isHistoryLoading && messages.length === 0;
   const chatSlideReference =
     typeof currentSlide === "number" &&
       hiddenOverlaySlideReference !== currentSlide
@@ -2662,7 +2702,7 @@ const Chat = ({
       selectedTemplateV2Target.kind
     : "";
 
-  if (!isOutlineVariant) {
+  if (usesEditorLayout) {
     const previewFonts = getPresentationFonts(presentationData);
 
     return (
@@ -2903,9 +2943,11 @@ const Chat = ({
           ) : (
             <div className="flex h-full items-center justify-center px-6 pb-4">
               <h3 className="-translate-y-2 text-center text-[22px] font-normal leading-[1.12] tracking-[-0.66px] text-[#4A4A4A]">
-                What can I do
+                {isOutlineVariant ? "How can I improve" : "What can I do"}
                 <br />
-                for your deck today?
+                {isOutlineVariant
+                  ? "your outline today?"
+                  : "for your deck today?"}
               </h3>
             </div>
           )}
@@ -3071,7 +3113,11 @@ const Chat = ({
               onDragOverCapture={handleDragOver}
               onDropCapture={handleDrop}
               onKeyDown={handleKeyDown}
-              placeholder={"Ask anything.\nType / to get Quick prompts."}
+              placeholder={
+                isOutlineVariant
+                  ? "Ask about your outline.\nType / to get Quick prompts."
+                  : "Ask anything.\nType / to get Quick prompts."
+              }
               aria-invalid={Boolean(errorMessage)}
             />
 
@@ -3160,7 +3206,14 @@ const Chat = ({
                     sideOffset={14}
                     className="z-[120] w-[328px] rounded-[12px] border border-[#EDEEEF] bg-white px-5 pb-[30px] pt-5 shadow-[0_0_14px_rgba(0,0,0,0.08)]"
                   >
-                    <QuickPromptsPanel onPromptSelect={applyPrompt} />
+                    <QuickPromptsPanel
+                      onPromptSelect={applyPrompt}
+                      groups={
+                        isOutlineVariant
+                          ? outlineQuickPromptGroups
+                          : quickPromptGroups
+                      }
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -3200,7 +3253,10 @@ const Chat = ({
           </form>
 
           <div className="flex h-[28px] w-full gap-2 overflow-hidden">
-            {editorQuickPrompts.map((prompt) => (
+            {(isOutlineVariant
+              ? outlineEditorQuickPrompts
+              : editorQuickPrompts
+            ).map((prompt) => (
               <button
                 key={prompt}
                 type="button"

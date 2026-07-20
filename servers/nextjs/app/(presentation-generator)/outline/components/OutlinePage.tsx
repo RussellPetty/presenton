@@ -324,7 +324,7 @@ const OutlinePage: React.FC = () => {
               className={cn(
                 "w-full gap-5",
                 isOutlineAssistantVisible
-                  ? "grid lg:grid-cols-[minmax(0,1fr)_352px]"
+                  ? "grid lg:grid-cols-[minmax(0,1fr)_375px]"
                   : "block"
               )}
             >
@@ -390,6 +390,7 @@ const OutlinePage: React.FC = () => {
                     key={presentation_id}
                     presentationId={presentation_id}
                     variant="outline"
+                    useEditorLayout
                     onBeforeSend={handleBeforeOutlineChatSend}
                     onPresentationChanged={handleOutlineChanged}
                   />
@@ -402,7 +403,7 @@ const OutlinePage: React.FC = () => {
             className={cn(
               "fixed bottom-[26px] z-50",
               isOutlineAssistantVisible
-                ? "left-5 sm:left-10 lg:left-auto lg:right-[calc(8rem+355px+4rem)]"
+                ? "left-5 sm:left-10 lg:left-auto lg:right-[calc(8rem+375px+4rem)]"
                 : "right-[26px]"
             )}
           >

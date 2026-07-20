@@ -657,7 +657,7 @@ function DiscoverControls({
           aria-label={`Search ${providerLabel}`}
           onClick={onRun}
           disabled={!canRun}
-          className="flex w-[132px] items-center justify-center rounded-full bg-[#EDEEEF] text-[#191919] transition hover:bg-[#E1E1E5] disabled:cursor-not-allowed disabled:text-[#999]"
+          className="flex w-[132px] items-center justify-center rounded-[38.4px] bg-[#EDEEEF] px-[12.8px] py-2 text-[#191919] transition hover:bg-[#E1E1E5] disabled:cursor-not-allowed disabled:text-[#999]"
         >
           {isWorking ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
         </button>
@@ -708,7 +708,7 @@ function DiscoverControls({
           aria-label={`Generate ${variationCount} image variations with ${providerLabel}`}
           onClick={onRun}
           disabled={!canRun}
-          className="flex h-8 items-center justify-center rounded-full bg-[#191919] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#EDEEEF] disabled:text-[#191919]"
+          className="flex h-8 items-center justify-center rounded-[38.4px] bg-[#EDEEEF] px-[12.8px] py-2 text-[#191919] transition hover:bg-[#E1E1E5] disabled:cursor-not-allowed disabled:text-[#999]"
         >
           {isWorking ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
         </button>

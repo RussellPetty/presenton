@@ -5,15 +5,17 @@ import {
   Crop,
   FlipHorizontal2,
   FlipVertical2,
-  Image as ImageIcon,
+  Loader2,
   RotateCcw,
   Scan,
+  Upload,
   X,
 } from "lucide-react";
 import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type CSSProperties,
   type KeyboardEventHandler,
   type PointerEvent as ReactPointerEvent,
@@ -39,6 +41,8 @@ import {
 import { OpacitySwatchIcon } from "@/components/slide-editor/toolbar/OpacitySwatchIcon";
 import { ImagePickerModal } from "@/components/slide-editor/images/ImagePickerModal";
 import { resolveBackendAssetSource } from "@/utils/api";
+import { ImagesApi } from "@/app/(presentation-generator)/services/api/images";
+import { notify } from "@/components/ui/sonner";
 
 type ImagePanel = "fit" | "crop" | "radius" | "opacity" | null;
 type ImageFit = "contain" | "cover" | "fill";
@@ -90,6 +94,7 @@ const CROP_PANEL_TOOLBAR_GAP = 8;
 const MIN_CROP_SCALE = 1;
 const MAX_CROP_SCALE = 6;
 const CROP_HANDLE_SIZE = 12;
+const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
 
 const CROP_HANDLES: Array<{ label: string; value: CropHandle }> = [
   { label: "Top left resize handle", value: "nw" },
@@ -262,6 +267,7 @@ export function ImageToolbar({
 }) {
   const [openPanel, setOpenPanel] = useState<ImagePanel>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fit = element.fit ?? "contain";
   const maxRadius = Math.max(
     0.01,
@@ -295,6 +301,7 @@ export function ImageToolbar({
   const [radiusDraft, setRadiusDraft] = useState(radius);
   const [opacityDraft, setOpacityDraft] = useState(element.opacity ?? 1);
   const cropDragRef = useRef<CropDragState | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const cropImageFrame = cropImageFrameForDraft(
     cropFrame,
     imageNaturalSize,
@@ -470,6 +477,45 @@ export function ImageToolbar({
     update({ border_radius: uniformBorderRadius(next) });
   };
 
+  const uploadReplacementImage = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify.error("Upload failed", "Please choose a valid image file.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_FILE_SIZE) {
+      notify.error("Upload failed", "Image files must be smaller than 5MB.");
+      return;
+    }
+
+    setOpenPanel(null);
+    setIsUploadingImage(true);
+    try {
+      const asset = await ImagesApi.uploadImage(file);
+      const url = resolveBackendAssetSource(asset);
+      if (!url) throw new Error("Upload did not return an image URL.");
+      update({
+        data: url,
+        focus_x: 50,
+        focus_y: 50,
+        crop_scale: null,
+      });
+      notify.success("Image uploaded", "The selected image was replaced.");
+    } catch (uploadError: unknown) {
+      notify.error(
+        "Upload failed",
+        uploadError instanceof Error ? uploadError.message : "Could not upload image.",
+      );
+    } finally {
+      setIsUploadingImage(false);
+      if (uploadInputRef.current) uploadInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void uploadReplacementImage(event.currentTarget.files?.[0]);
+  };
+
   return (
     <>
       <FloatingToolbar
@@ -528,6 +574,21 @@ export function ImageToolbar({
 
         <button
           type="button"
+          title="Upload image"
+          aria-label="Upload image"
+          onClick={() => uploadInputRef.current?.click()}
+          disabled={isUploadingImage}
+          className="rounded-[2px] border-0 bg-transparent p-1 text-[#05070A] hover:bg-[#F4F3FF] disabled:cursor-wait disabled:opacity-50"
+        >
+          {isUploadingImage ? (
+            <Loader2 size={16} strokeWidth={1.8} aria-hidden="true" className="animate-spin" />
+          ) : (
+            <Upload size={16} strokeWidth={1.8} aria-hidden="true" />
+          )}
+        </button>
+
+        <button
+          type="button"
           title="Replace image"
           aria-label="Replace image"
           onClick={() => {
@@ -536,7 +597,15 @@ export function ImageToolbar({
           }}
           className="rounded-[2px] border-0 bg-transparent p-1 text-[#05070A] hover:bg-[#F4F3FF]"
         >
-          <ImageIcon size={16} strokeWidth={1.8} aria-hidden="true" />
+          <Image
+            alt=""
+            aria-hidden="true"
+            height={16}
+            src="/figma-assets/image-replace.svg"
+            unoptimized
+            width={16}
+            className="size-4"
+          />
         </button>
 
         <Divider />
@@ -670,6 +739,13 @@ export function ImageToolbar({
           ) : null}
         </div>
       </FloatingToolbar>
+      <input
+        ref={uploadInputRef}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        onChange={handleUploadInputChange}
+      />
       {openPanel === "crop" ? (
         <>
           <CropOverlay
