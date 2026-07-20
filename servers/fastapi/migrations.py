@@ -25,6 +25,7 @@ REVISION_FONT_UPLOADS = "5d7e9a1b2c3f"
 REVISION_TEMPLATE_V2_ID_STRINGS = "3f2a1b4c5d6e"
 REVISION_TEMPLATE_V2_IS_DEFAULT = "4b7c9d0e1f2a"
 REVISION_ASYNC_TASKS = "a7d4c9e2f1b3"
+REVISION_ASYNC_TASK_STATUS_NORMALIZED = "b8e2f4a7c9d1"
 
 
 async def migrate_database_on_startup() -> None:
@@ -104,7 +105,11 @@ def _repair_orphan_alembic_revision(config: Config, database_url: str) -> None:
         engine.dispose()
 
 
-def _infer_revision_from_schema(inspector, tables: set[str], head_revision: str) -> str:
+def _infer_revision_from_schema(
+    inspector,
+    tables: set[str],
+    _head_revision: str,
+) -> str:
     """Best-effort: map existing SQLite/Postgres schema to our linear migration chain."""
     if "template_v2" in tables:
         cols = {c["name"] for c in inspector.get_columns("template_v2")}
@@ -151,7 +156,7 @@ def _infer_revision_from_schema(inspector, tables: set[str], head_revision: str)
                 if not template_v2_is_default_ready:
                     return REVISION_TEMPLATE_V2_ID_STRINGS
                 return (
-                    head_revision
+                    REVISION_ASYNC_TASKS
                     if async_tasks_ready
                     else REVISION_TEMPLATE_V2_IS_DEFAULT
                 )
@@ -159,6 +164,8 @@ def _infer_revision_from_schema(inspector, tables: set[str], head_revision: str)
                 return REVISION_PRESENTATION_FONTS
             return REVISION_MERGED_TEMPLATE_V2 if slide_ui_ready else REVISION_TEMPLATE_V2
         return REVISION_CHAT_HISTORY
+    if "async_tasks" in tables:
+        return REVISION_ASYNC_TASKS
     if "chat_history_messages" in tables:
         return REVISION_CHAT_HISTORY
     if "template_create_infos" in tables:
@@ -251,6 +258,7 @@ def _is_unversioned_populated_database(database_url: str) -> bool:
         "imageasset",
         "presentation_layout_codes",
         "async_presentation_generation_tasks",
+        "async_tasks",
         "webhook_subscriptions",
         "template_create_infos",
         "chat_history_messages",
