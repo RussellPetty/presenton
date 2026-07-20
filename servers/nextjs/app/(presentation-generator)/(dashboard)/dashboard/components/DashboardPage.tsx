@@ -116,7 +116,6 @@ function DashboardHeader() {
   const llmConfig = useSelector(
     (state: RootState) => state.userConfig.llm_config
   );
-  const [githubStars, setGithubStars] = useState<string | null>(null);
   const [isElectronApp, setIsElectronApp] = useState(false);
 
   const textProvider = LLM_PROVIDERS[llmConfig.LLM || "openai"];
@@ -133,20 +132,6 @@ function DashboardHeader() {
 
     let isMounted = true;
 
-    async function fetchGitHubStars() {
-      try {
-        const response = await fetch("/api/github-stars");
-        if (!response.ok) return;
-        const data = (await response.json()) as { stars?: number };
-        if (isMounted && typeof data.stars === "number") {
-          setGithubStars(formatGitHubStars(data.stars));
-        }
-      } catch {
-        if (isMounted) setGithubStars(null);
-      }
-    }
-
-    void fetchGitHubStars();
 
     return () => {
       isMounted = false;
@@ -184,9 +169,8 @@ function DashboardHeader() {
                 {configuredProviders.map((provider, index) => (
                   <span
                     key={`${provider.value}-${index}`}
-                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${
-                      index > 0 ? "-ml-[4.4px]" : "z-10"
-                    }`}
+                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${index > 0 ? "-ml-[4.4px]" : "z-10"
+                      }`}
                   >
                     <Image
                       src={provider.icon!}
@@ -206,44 +190,7 @@ function DashboardHeader() {
 
             <DashboardHeaderDivider />
 
-            <Link
-              href={GITHUB_REPOSITORY_URL}
-              target="_blank"
-              rel="noreferrer"
-              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] p-1.5`}
-              onClick={() =>
-                trackEvent(MixpanelEvent.Navigation, {
-                  from: pathname,
-                  to: GITHUB_REPOSITORY_URL,
-                  source: "dashboard_header_github",
-                })
-              }
-            >
-              <Image
-                src={dashboardHeaderAsset("github.svg")}
-                alt=""
-                aria-hidden="true"
-                width={18}
-                height={18}
-                className="h-[17.6px] w-[17.6px] shrink-0"
-              />
-              <span className="flex items-center gap-[6.6px] font-syne text-sm font-normal leading-normal tracking-[-0.14px] text-[#191919]">
-                <span>Star</span>
-                <Image
-                  src={dashboardHeaderAsset("dot.svg")}
-                  alt=""
-                  aria-hidden="true"
-                  width={3}
-                  height={3}
-                  className="h-[2.2px] w-[2.2px] shrink-0"
-                />
-                <span className="min-w-[30px] text-xs font-medium tracking-[-0.12px]">
-                  {githubStars ?? "--"}
-                </span>
-              </span>
-            </Link>
 
-            <DashboardHeaderDivider />
 
             <Link
               href={DISCORD_INVITE_URL}
@@ -270,6 +217,32 @@ function DashboardHeader() {
                 Join Discord
               </span>
             </Link>
+            <DashboardHeaderDivider />
+            <Link
+              href={GITHUB_REPOSITORY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] p-1.5`}
+              onClick={() =>
+                trackEvent(MixpanelEvent.Navigation, {
+                  from: pathname,
+                  to: GITHUB_REPOSITORY_URL,
+                  source: "dashboard_header_github",
+                })
+              }
+            >
+              <Image
+                src={dashboardHeaderAsset("github.svg")}
+                alt=""
+                aria-hidden="true"
+                width={18}
+                height={18}
+                className="h-[17.6px] w-[17.6px] shrink-0"
+              />
+
+            </Link>
+
+
           </div>
 
           {isElectronApp && (

@@ -406,13 +406,14 @@ export function ImagePickerModal({
                 title="Upload an image"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex h-9 w-[68px] items-center justify-center rounded-full border border-[#EDEEEF] bg-white transition hover:bg-[#F9FAFB] disabled:cursor-wait"
+                className="flex h-9 w-[100px] items-center justify-center rounded-full border border-[#EDEEEF] bg-white transition hover:bg-[#F9FAFB] disabled:cursor-wait"
               >
                 {isUploading ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  <Loader2 className="size-4 animate-spin mr-1.5" aria-hidden="true" />
                 ) : (
-                  <Upload className="size-4" strokeWidth={1.8} aria-hidden="true" />
+                  <Upload className="size-4 mr-1.5" strokeWidth={1.8} aria-hidden="true" />
                 )}
+                Upload
               </button>
               <input
                 ref={fileInputRef}
@@ -594,7 +595,7 @@ function DiscoverControls({
       <div className="flex h-[41px] flex-none gap-2.5" aria-label={`Search ${providerLabel}`}>
         <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[8px] border border-[rgba(219,219,219,0.6)] bg-white px-2.5">
           <Search className="size-3.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
-          <input
+          <textarea
             autoFocus
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
