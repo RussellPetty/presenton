@@ -33,7 +33,7 @@ import { resolveBackendAssetSource } from "@/utils/api";
 import { IMAGE_PROVIDERS } from "@/utils/providerConstants";
 
 type PickerView = "discover" | "uploads";
-type PickerImageSource = "generated" | "slide" | "uploaded";
+type PickerImageSource = "generated" | "uploaded";
 type PickerImage = {
   deletable?: boolean;
   id?: string;
@@ -47,7 +47,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function assetToPickerImage(
   asset: ImageAssetResponse,
-  source: Exclude<PickerImageSource, "slide">,
+  source: PickerImageSource,
 ): PickerImage | null {
   const url = resolveBackendAssetSource(asset);
   if (!url) return null;
@@ -67,58 +67,6 @@ function dedupePickerImages(images: PickerImage[]) {
     seen.add(image.url);
     return true;
   });
-}
-
-function collectPresentationImages(slides: unknown): PickerImage[] {
-  const images: PickerImage[] = [];
-  const visited = new Set<object>();
-
-  const addImage = (value: unknown, prompt?: unknown) => {
-    if (typeof value !== "string" || !value.trim()) return;
-    const url = resolveBackendAssetSource(value);
-    if (!url) return;
-    images.push({
-      prompt: typeof prompt === "string" ? prompt : undefined,
-      source: "slide",
-      url,
-    });
-  };
-
-  const visit = (value: unknown) => {
-    if (!value || typeof value !== "object") return;
-    if (visited.has(value)) return;
-    visited.add(value);
-
-    if (Array.isArray(value)) {
-      value.forEach(visit);
-      return;
-    }
-
-    const record = value as Record<string, unknown>;
-    if (record.type === "image" && record.is_icon !== true) {
-      addImage(record.data, record.prompt);
-    }
-
-    Object.entries(record).forEach(([key, child]) => {
-      if (
-        key === "__image_url__" ||
-        key === "image_url" ||
-        key === "imageUrl" ||
-        key === "background_image_url"
-      ) {
-        addImage(
-          child,
-          record.__image_prompt__ ?? record.image_prompt ?? record.prompt,
-        );
-      } else if (key === "images" && Array.isArray(child)) {
-        child.forEach((image) => addImage(image));
-      }
-      visit(child);
-    });
-  };
-
-  visit(slides);
-  return dedupePickerImages(images);
 }
 
 function normalizedProvider(value: string | null | undefined) {
@@ -143,10 +91,6 @@ export function ImagePickerModal({
   onSelect: (url: string, prompt?: string) => void;
 }) {
   const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
-  const presentationSlides = useSelector(
-    (state: RootState) =>
-      state.presentationGeneration.presentationData?.slides,
-  );
   const provider = normalizedProvider(llmConfig?.IMAGE_PROVIDER);
   const stockProvider = STOCK_IMAGE_PROVIDERS.has(provider) ? provider : null;
   const providerLabel = IMAGE_PROVIDERS[provider]?.label ?? "AI image provider";
@@ -156,7 +100,6 @@ export function ImagePickerModal({
   const [query, setQuery] = useState(initialPrompt || "");
   const [variationCount, setVariationCount] = useState(4);
   const [discoverImages, setDiscoverImages] = useState<PickerImage[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<PickerImage[]>([]);
   const [uploadedImages, setUploadedImages] = useState<PickerImage[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
@@ -165,19 +108,6 @@ export function ImagePickerModal({
   const [error, setError] = useState<string | null>(null);
 
   const currentSource = resolveBackendAssetSource(currentImage || "");
-  const presentationImages = useMemo(
-    () => collectPresentationImages(presentationSlides),
-    [presentationSlides],
-  );
-  const libraryImages = useMemo(
-    () =>
-      dedupePickerImages([
-        ...presentationImages,
-        ...generatedImages,
-        ...uploadedImages,
-      ]),
-    [generatedImages, presentationImages, uploadedImages],
-  );
   const apiKey = useMemo(() => {
     if (stockProvider === "pexels") return llmConfig?.PEXELS_API_KEY;
     if (stockProvider === "pixabay") return llmConfig?.PIXABAY_API_KEY;
@@ -189,30 +119,28 @@ export function ImagePickerModal({
     setView("discover");
     setQuery(initialPrompt || "");
     setDiscoverImages([]);
-    setGeneratedImages([]);
     setUploadedImages([]);
+    setIsLoadingLibrary(false);
     setError(null);
     setIsDragging(false);
   }, [initialPrompt, open, provider]);
 
   useEffect(() => {
-    if (!open || view !== "discover" || stockProvider || generationDisabled) {
-      if (open && view === "discover" && (stockProvider || generationDisabled)) {
-        setIsLoadingLibrary(false);
-      }
-      return;
-    }
+    if (!open || view !== "discover" || stockProvider) return;
 
     let cancelled = false;
     setIsLoadingLibrary(true);
+    setError(null);
     ImagesApi.getGeneratedImages()
       .then((assets) => {
         if (cancelled) return;
-        const images = assets
-          .map((asset) => assetToPickerImage(asset, "generated"))
-          .filter((image): image is PickerImage => image !== null);
-        setDiscoverImages(images);
-        setGeneratedImages(images);
+        setDiscoverImages(
+          dedupePickerImages(
+            assets
+              .map((asset) => assetToPickerImage(asset, "generated"))
+              .filter((image): image is PickerImage => image !== null),
+          ),
+        );
       })
       .catch((loadError: unknown) => {
         if (!cancelled) {
@@ -230,7 +158,45 @@ export function ImagePickerModal({
     return () => {
       cancelled = true;
     };
-  }, [generationDisabled, open, stockProvider, view]);
+  }, [open, stockProvider, view]);
+
+  useEffect(() => {
+    if (!open || view !== "discover" || !stockProvider) return;
+
+    let cancelled = false;
+    const starterQuery = (initialPrompt || "").trim() || "inspiration";
+    setIsLoadingLibrary(true);
+    setError(null);
+    ImagesApi.searchStockImages(starterQuery, 24, {
+      provider: stockProvider,
+      apiKey,
+    })
+      .then((urls) => {
+        if (cancelled) return;
+        setDiscoverImages(
+          urls.map((url) => ({ prompt: starterQuery, url })),
+        );
+        if (!urls.length) {
+          setError("No starter images found. Try searching for something else.");
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Could not load starter stock images.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLibrary(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, initialPrompt, open, stockProvider, view]);
 
   useEffect(() => {
     if (!open || view !== "uploads" || isUploading) return;
@@ -238,35 +204,23 @@ export function ImagePickerModal({
     let cancelled = false;
     setIsLoadingLibrary(true);
     setError(null);
-    Promise.allSettled([
-      ImagesApi.getGeneratedImages(),
-      ImagesApi.getUploadedImages(),
-    ])
-      .then(([generatedResult, uploadedResult]) => {
+    ImagesApi.getUploadedImages()
+      .then((assets) => {
         if (cancelled) return;
-        if (generatedResult.status === "fulfilled") {
-          setGeneratedImages(
-            generatedResult.value
-              .map((asset) => assetToPickerImage(asset, "generated"))
-              .filter((image): image is PickerImage => image !== null),
-          );
-        }
-        if (uploadedResult.status === "fulfilled") {
-          setUploadedImages(
-            uploadedResult.value
+        setUploadedImages(
+          dedupePickerImages(
+            assets
               .map((asset) => assetToPickerImage(asset, "uploaded"))
               .filter((image): image is PickerImage => image !== null),
-          );
-        }
-        const failedResult = [generatedResult, uploadedResult].find(
-          (result): result is PromiseRejectedResult =>
-            result.status === "rejected",
+          ),
         );
-        if (failedResult) {
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
           setError(
-            failedResult.reason instanceof Error
-              ? failedResult.reason.message
-              : "Could not load the complete image library.",
+            loadError instanceof Error
+              ? loadError.message
+              : "Could not load uploaded images.",
           );
         }
       })
@@ -337,9 +291,6 @@ export function ImagePickerModal({
       setDiscoverImages((previous) =>
         dedupePickerImages([...images, ...previous]),
       );
-      setGeneratedImages((previous) =>
-        dedupePickerImages([...images, ...previous]),
-      );
       if (images.length < variationCount) {
         notify.warning(
           "Some variants failed",
@@ -359,7 +310,7 @@ export function ImagePickerModal({
   };
 
   const runDiscover = () => {
-    if (!query.trim() || generationDisabled) return;
+    if (!query.trim() || (generationDisabled && !stockProvider)) return;
     if (stockProvider) void searchStockImages();
     else void generateImages();
   };
@@ -480,6 +431,7 @@ export function ImagePickerModal({
                   label="Discover Image"
                   onClick={() => {
                     setView("discover");
+                    setIsLoadingLibrary(false);
                     setError(null);
                   }}
                 />
@@ -510,7 +462,7 @@ export function ImagePickerModal({
               >
                 {view === "discover" ? (
                   <DiscoverControls
-                    disabled={generationDisabled}
+                    disabled={generationDisabled && !stockProvider}
                     isStock={Boolean(stockProvider)}
                     isWorking={isWorking || isLoadingLibrary}
                     providerLabel={providerLabel}
@@ -541,19 +493,20 @@ export function ImagePickerModal({
                       currentSource={currentSource}
                       images={discoverImages}
                       emptyMessage={
-                        generationDisabled
+                        generationDisabled && !stockProvider
                           ? "Image generation is disabled in Settings."
                           : stockProvider
                             ? `Search ${providerLabel} for an image.`
-                            : `Describe an image to generate with ${providerLabel}.`
+                            : "Generate images to see them here. Start by describing what you want to create above."
                       }
                       onSelect={chooseImage}
                     />
                   ) : (
                     <ImageResults
+                      compact
                       currentSource={currentSource}
-                      images={libraryImages}
-                      emptyMessage="Images used in your slides, generated images, and uploads will appear here."
+                      images={uploadedImages}
+                      emptyMessage="Upload an image to add it to your library."
                       onDelete={deleteUploadedImage}
                       onSelect={chooseImage}
                     />
