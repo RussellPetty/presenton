@@ -53,20 +53,12 @@ What makes Presenton different?
 Create presentations from a prompt, an uploaded document, or your own PowerPoint design. Choose from built-in templates, bring your preferred AI provider and API key, and export a fully editable deck.
 
 <p align="center">
-  <img src="./readme_assets/images/features.png" alt="Presenton features: custom designs, AI generation, bring your own API key, and built-in templates" />
-</p>
-
-**Edit every slide visually**
-
-Fine-tune generated slides directly on the canvas. Drag, resize, and style text and other elements, work with charts and tables, or use AI image editing before exporting.
-
-<p align="center">
   <img src="./readme_assets/images/drag-and-edit.gif" alt="Drag-and-drop editing in the Presenton slide editor" />
 </p>
 
-**Use your existing ChatGPT subscription**
-
-Sign in with a free or paid ChatGPT account and start creating presentations without setting up a separate OpenAI API key.
+<p align="center">
+  <img src="./readme_assets/images/features.png" alt="Presenton features: custom designs, AI generation, bring your own API key, and built-in templates" />
+</p>
 
 <p align="center">
   <img src="./readme_assets/images/chatgpt-2-1.png" alt="Create presentations with your existing ChatGPT subscription: secure and private, with instant access and no API keys" />
