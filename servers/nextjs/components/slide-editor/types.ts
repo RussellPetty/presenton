@@ -305,6 +305,7 @@ export type ChartElement = ElementBase & {
   series?: ChartSeries[] | null;
   data_labels?: DataLabelPosition | null;
   legend?: boolean | null;
+  legend_color?: string | null;
   source?: string | null;
 };
 

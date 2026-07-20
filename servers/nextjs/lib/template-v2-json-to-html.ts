@@ -884,6 +884,10 @@ function chartConfig(item: JsonRecord, height: number): JsonRecord {
   );
   const titleColor =
     safeChartColor(readString(item.titleColor ?? item.title_color), "#344054");
+  const legendColor = safeChartColor(
+    readString(item.legendColor ?? item.legend_color),
+    textColor
+  );
   const title = markdownToPlainChartText(readString(item.title) ?? "");
   const fontSize = clamp(height * 0.033, 9, 18);
   const titleFontSize = clamp(height * 0.044, 11, 26);
@@ -954,7 +958,7 @@ function chartConfig(item: JsonRecord, height: number): JsonRecord {
           labels: {
             boxWidth: Math.max(8, fontSize * 0.8),
             boxHeight: Math.max(8, fontSize * 0.8),
-            color: textColor,
+            color: legendColor,
             font: { family: CHART_FONT_FAMILY, size: fontSize, weight: 600 },
             padding: Math.max(8, fontSize),
             usePointStyle: true,

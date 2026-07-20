@@ -1141,6 +1141,8 @@ def _apply_template_chart_content(
         ("axis_color", "axis_color"),
         ("gridColor", "grid_color"),
         ("grid_color", "grid_color"),
+        ("legendColor", "legend_color"),
+        ("legend_color", "legend_color"),
         ("xAxisTitle", "x_axis_title"),
         ("x_axis_title", "x_axis_title"),
         ("yAxisTitle", "y_axis_title"),

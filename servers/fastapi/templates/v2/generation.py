@@ -68,6 +68,7 @@ _CONTENT_VALUE_KEYS_BY_ELEMENT_TYPE = {
         "source",
         "title",
         "title_color",
+        "legend_color",
         "x_axis_title",
         "y_axis_title",
     },

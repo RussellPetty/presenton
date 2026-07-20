@@ -113,6 +113,7 @@ export function rawChartToEditorChart(element: RawElement): ChartElement {
       hasOwn(element, "data_labels") ? element.data_labels : element.dataLabels,
     ),
     legend: element.legend ?? element.showLegend,
+    legend_color: element.legend_color ?? element.legendColor,
   };
 }
 
@@ -192,6 +193,11 @@ export function editorChartToRawChart(source: RawElement, chart: UnknownRecord) 
       chart.showLegend ??
       source.legend ??
       source.showLegend,
+    legend_color:
+      chart.legend_color ??
+      chart.legendColor ??
+      source.legend_color ??
+      source.legendColor,
   };
 }
 

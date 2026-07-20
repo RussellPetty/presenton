@@ -51,6 +51,7 @@ CHART_UPDATE_KEYS = {
     "data_labels",
     "grid_color",
     "legend",
+    "legend_color",
     "series",
     "title",
     "title_color",
@@ -83,6 +84,8 @@ def _normalize_chart_element(
     element.pop("grid", None)
     if "title_color" not in element and "titleColor" in element:
         element["title_color"] = element.get("titleColor")
+    if "legend_color" not in element and "legendColor" in element:
+        element["legend_color"] = element.get("legendColor")
 
     chart_type = _normalize_chart_type(
         element.get("chart_type"),
@@ -164,6 +167,8 @@ def _normalize_chart_element(
         element["grid_color"] = _normalize_chart_color(element.get("grid_color"))
     if _normalize_chart_color(element.get("title_color")):
         element["title_color"] = _normalize_chart_color(element.get("title_color"))
+    if _normalize_chart_color(element.get("legend_color")):
+        element["legend_color"] = _normalize_chart_color(element.get("legend_color"))
 
     if (
         "x_axis" not in element
@@ -193,6 +198,7 @@ def _apply_chart_content_update(
         ("chart_type", "chart_type"),
         ("title", "title"),
         ("title_color", "title_color"),
+        ("legend_color", "legend_color"),
         ("categories", "categories"),
         ("series", "series"),
         ("colors", "colors"),
@@ -1257,6 +1263,7 @@ def _element_content(element: dict[str, Any]) -> Any:
             "chart_type": element.get("chart_type"),
             "title": element.get("title"),
             "title_color": element.get("title_color"),
+            "legend_color": element.get("legend_color"),
             "categories": element.get("categories"),
             "series": element.get("series"),
             "colors": element.get("colors"),

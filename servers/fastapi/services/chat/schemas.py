@@ -336,6 +336,9 @@ class SlideElementChartInput(OpenAIStrictSchemaModel):
     title_color: str | None = Field(
         ..., alias="titleColor", min_length=1, max_length=32
     )
+    legend_color: str | None = Field(
+        ..., alias="legendColor", min_length=1, max_length=32
+    )
     categories: list[str] | None = Field(..., min_length=1, max_length=100)
     series: list[SlideElementChartSeriesInput] | None = Field(
         ..., min_length=1, max_length=20
@@ -581,6 +584,8 @@ class UpdateSlideElementInput(OpenAIStrictSchemaModel):
             "gridColor",
             "grid_color",
             "legend",
+            "legendColor",
+            "legend_color",
             "series",
             "title",
             "titleColor",
