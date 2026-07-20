@@ -30,7 +30,9 @@ export class ImagesApi {
 
   static async getUploadedImages(): Promise<ImageAssetResponse[]> {
     try {
-    const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`));
+    const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`), {
+      cache: "no-cache",
+    });
    return await ApiResponseHandler.handleResponse(response, "Failed to get uploaded images") as ImageAssetResponse[];
   } catch (error:any) {
     console.log("Get uploaded images error:", error);
