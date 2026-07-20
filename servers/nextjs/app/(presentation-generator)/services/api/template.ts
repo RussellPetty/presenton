@@ -143,7 +143,7 @@ class TemplateService {
         try {
             const params = new URLSearchParams({
                 type: "template.create",
-                status: "processing",
+                status: "pending",
                 order_by: "created_at",
                 order: "desc",
                 limit: "50",

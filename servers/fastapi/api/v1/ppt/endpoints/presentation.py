@@ -25,6 +25,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from constants.presentation import MAX_NUMBER_OF_SLIDES
+from enums.async_task_status import AsyncTaskStatus
 from enums.webhook_event import WebhookEvent
 from models.api_error_model import APIErrorModel
 from models.generate_presentation_request import GeneratePresentationRequest
@@ -2304,7 +2305,7 @@ async def generate_presentation_handler(
 
         if async_status:
             async_status.message = "Presentation generation completed"
-            async_status.status = "completed"
+            async_status.status = AsyncTaskStatus.COMPLETED
             async_status.data = _presentation_task_progress_data(
                 created_slides=len(slides),
                 remaining_slides=0,
@@ -2339,7 +2340,7 @@ async def generate_presentation_handler(
         )
 
         if async_status:
-            async_status.status = "error"
+            async_status.status = AsyncTaskStatus.ERROR
             async_status.message = "Presentation generation failed"
             async_status.updated_at = datetime.now()
             async_status.error = api_error_model.model_dump(mode="json")
@@ -2387,7 +2388,7 @@ async def _run_generate_presentation_task(
             )
             return
 
-        async_status.status = "processing"
+        async_status.status = AsyncTaskStatus.PENDING
         async_status.message = "Starting presentation generation"
         async_status.data = _presentation_task_progress_data(
             created_slides=0,
@@ -2418,7 +2419,7 @@ async def generate_presentation_async(
 
         async_status = AsyncTaskModel(
             type=ASYNC_TASK_TYPE_PRESENTATION_GENERATE,
-            status="pending",
+            status=AsyncTaskStatus.PENDING,
             message="Queued for generation",
             data=_presentation_task_progress_data(
                 created_slides=0,

@@ -33,6 +33,7 @@ from pydantic import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from enums.async_task_status import AsyncTaskStatus
 from models.api_error_model import APIErrorModel
 from models.sql.async_task import AsyncTaskModel
 from models.sql.template_v2 import TemplateV2
@@ -1144,7 +1145,7 @@ async def _run_create_template_task(
             return
 
         try:
-            task.status = "processing"
+            task.status = AsyncTaskStatus.PENDING
             task.message = "Creating template"
             task.data = _template_task_progress_data(
                 created_layouts=0,
@@ -1164,7 +1165,7 @@ async def _run_create_template_task(
             )
             created_layouts = _count_layouts(template.layouts)
 
-            task.status = "completed"
+            task.status = AsyncTaskStatus.COMPLETED
             task.message = "Template creation completed"
             task.data = _template_task_progress_data(
                 created_layouts=created_layouts,
@@ -1180,7 +1181,7 @@ async def _run_create_template_task(
                 "[template.create.async] template creation failed task_id=%s",
                 task_id,
             )
-            task.status = "error"
+            task.status = AsyncTaskStatus.ERROR
             task.message = "Template creation failed"
             api_error = APIErrorModel.from_exception(
                 exc
@@ -1205,7 +1206,7 @@ async def create_template(
 ):
     task = AsyncTaskModel(
         type=ASYNC_TASK_TYPE_TEMPLATE_CREATE,
-        status="pending",
+        status=AsyncTaskStatus.PENDING,
         message="Queued for template creation",
         data=_template_task_progress_data(
             created_layouts=0,

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from enums.async_task_status import AsyncTaskStatus
 from models.sql.async_task import AsyncTaskModel
 from services.database import get_async_session
 
@@ -21,7 +22,7 @@ API_V1_ASYNC_TASKS_ROUTER = APIRouter(
 )
 async def list_async_tasks(
     task_type: str | None = Query(default=None, alias="type"),
-    status: str | None = Query(default=None),
+    status: AsyncTaskStatus | None = Query(default=None),
     created_at: datetime | None = Query(
         default=None,
         description=(

@@ -558,7 +558,7 @@ def test_create_template_async_task_updates_slide_status_before_batch_completes(
     in_progress_slide_snapshot = next(
         snapshot
         for snapshot in session.commit_snapshots
-        if snapshot["status"] == "processing"
+        if snapshot["status"] == "pending"
         and snapshot["data"]
         and snapshot["data"]["created_layouts"] == 1
     )
