@@ -50,7 +50,7 @@ What makes Presenton different?
 
 ### 🎛 Features
 
-Create presentations from a prompt, an uploaded document, or your own PowerPoint design. Choose from built-in templates, bring your preferred AI provider and API key, and export a fully editable deck.
+Create presentations from a prompt, an uploaded document, or your own PowerPoint design. Choose from built-in templates, bring your preferred AI provider and API key, polish manually with drag-edit interface and export a fully editable deck.
 
 <p align="center">
   <img src="./readme_assets/images/drag-and-edit.gif" alt="Drag-and-drop editing in the Presenton slide editor" />
