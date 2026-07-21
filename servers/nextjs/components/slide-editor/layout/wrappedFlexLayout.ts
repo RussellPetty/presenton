@@ -112,15 +112,33 @@ export function layoutWrappedFlexChildren({
     );
   }
 
-  const lineCross = Math.max(
-    1,
-    (availableCross - crossGap * Math.max(0, lines.length - 1)) /
-      lines.length,
+  const naturalLineCrosses = lines.map((line) =>
+    Math.max(
+      1,
+      ...line.map((entry) => {
+        const itemAlignment = alignSelf(entry.child) ?? align;
+        return childCrossSize(
+          entry.child,
+          direction,
+          availableCross,
+          itemAlignment,
+        );
+      }),
+    ),
+  );
+  const crossGapTotal = crossGap * Math.max(0, lines.length - 1);
+  const usedNaturalCross =
+    naturalLineCrosses.reduce((sum, lineCross) => sum + lineCross, 0) +
+    crossGapTotal;
+  const extraCross = Math.max(0, availableCross - usedNaturalCross);
+  const lineCrosses = naturalLineCrosses.map(
+    (lineCross) => lineCross + extraCross / lines.length,
   );
   const laidOut = new Map<number, WrappedFlexLaidOutChild>();
   let crossCursor = 0;
 
-  lines.forEach((line) => {
+  lines.forEach((line, lineNumber) => {
+    const lineCross = lineCrosses[lineNumber] ?? 1;
     const gapTotal = mainGap * Math.max(0, line.length - 1);
     const free =
       availableMain -
@@ -138,17 +156,6 @@ export function layoutWrappedFlexChildren({
       );
     } else if (free > 0 && justify === "stretch") {
       mainSizes = mainSizes.map((size) => size + free / line.length);
-    } else if (free < 0) {
-      const shrinks = line.map(
-        (entry) => layoutNumber(entry.child, "shrink") ?? 1,
-      );
-      const scaled = shrinks.map((shrink, index) => shrink * mainSizes[index]);
-      const shrinkTotal = scaled.reduce((sum, shrink) => sum + shrink, 0);
-      if (shrinkTotal > 0) {
-        mainSizes = mainSizes.map((size, index) =>
-          Math.max(1, size + (free * scaled[index]) / shrinkTotal),
-        );
-      }
     }
 
     const usedMain =
