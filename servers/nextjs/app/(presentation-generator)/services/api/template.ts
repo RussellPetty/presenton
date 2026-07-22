@@ -79,6 +79,18 @@ export interface UpdateTemplateMetadataPayload {
     description?: string | null;
 }
 
+export interface UpdateTemplateLayoutsPayload {
+    layouts: Array<{
+        index: number;
+        layout: unknown;
+    }>;
+}
+
+export interface CreateTemplateLayoutPayload {
+    template_id: string;
+    index: number;
+}
+
 class TemplateService {
 
     static async getCustomTemplateSummaries() {
@@ -185,6 +197,49 @@ class TemplateService {
             return await ApiResponseHandler.handleResponse(response, "Failed to update template metadata");
         } catch (error) {
             console.error("Failed to update template metadata", error);
+            throw error;
+        }
+    }
+
+    static async updateTemplateLayouts(
+        templateId: string,
+        payload: UpdateTemplateLayoutsPayload,
+    ) {
+        try {
+            const response = await fetch(
+                getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}/layouts`),
+                {
+                    method: "PATCH",
+                    headers: getHeader(),
+                    body: JSON.stringify(payload),
+                },
+            );
+            return await ApiResponseHandler.handleResponse(
+                response,
+                "Failed to update template layouts",
+            );
+        } catch (error) {
+            console.error("Failed to update template layouts", error);
+            throw error;
+        }
+    }
+
+    static async createTemplateLayout(payload: CreateTemplateLayoutPayload) {
+        try {
+            const response = await fetch(
+                getApiUrl("/api/v1/ppt/template/layouts/create"),
+                {
+                    method: "POST",
+                    headers: getHeader(),
+                    body: JSON.stringify(payload),
+                },
+            );
+            return await ApiResponseHandler.handleResponse(
+                response,
+                `Failed to create layout for slide ${payload.index + 1}`,
+            );
+        } catch (error) {
+            console.error("Failed to create template layout", error);
             throw error;
         }
     }

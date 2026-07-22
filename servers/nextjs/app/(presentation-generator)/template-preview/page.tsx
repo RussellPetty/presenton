@@ -1,8 +1,6 @@
 import React, { Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import GroupLayoutPreview from "./components/TemplatePreviewClient";
-
-export const dynamic = "force-dynamic";
+import TemplatePreviewClient from "./components/TemplatePreviewClient";
 
 const TemplatePreviewPage = () => {
   return (
@@ -13,7 +11,7 @@ const TemplatePreviewPage = () => {
         </div>
       }
     >
-      <GroupLayoutPreview useKonvaTemplateV2Preview />
+      <TemplatePreviewClient />
     </Suspense>
   );
 };

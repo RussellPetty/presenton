@@ -253,6 +253,12 @@ type TemplateV2KonvaSlideProps = {
   displayScale?: number;
   enableViewportCulling?: boolean;
   isSelected?: boolean;
+  historyCommand?: { action: "undo" | "redo"; token: number } | null;
+  onHistoryAvailabilityChange?: (availability: {
+    canUndo: boolean;
+    canRedo: boolean;
+  }) => void;
+  onLayoutChange?: (layout: TemplateV2Layout) => void;
 };
 
 function TemplateV2KonvaSlideComponent({
@@ -266,6 +272,9 @@ function TemplateV2KonvaSlideComponent({
   displayScale = 1,
   enableViewportCulling = false,
   isSelected = false,
+  historyCommand = null,
+  onHistoryAvailabilityChange,
+  onLayoutChange,
 }: TemplateV2KonvaSlideProps) {
   const dispatch = useDispatch();
   const surfaceId = useId();
@@ -278,6 +287,7 @@ function TemplateV2KonvaSlideComponent({
   const pendingImageUploadRef = useRef<ElementSelection | null>(null);
   const undoStackRef = useRef<RawUi[]>([]);
   const redoStackRef = useRef<RawUi[]>([]);
+  const handledHistoryCommandTokenRef = useRef<number | null>(null);
   const multiComponentDragRef = useRef<MultiComponentDragState | null>(null);
   const [uiDraft, setUiDraft] = useState<RawUi>(() =>
     normalizeMarkdownTextInUi(cloneJson(layout as RawUi)),
@@ -327,6 +337,14 @@ function TemplateV2KonvaSlideComponent({
     canUndo: false,
     canRedo: false,
   });
+  const publishHistoryAvailability = useCallback(() => {
+    const availability = {
+      canUndo: undoStackRef.current.length > 0,
+      canRedo: redoStackRef.current.length > 0,
+    };
+    setHistoryAvailability(availability);
+    onHistoryAvailabilityChange?.(availability);
+  }, [onHistoryAvailabilityChange]);
   const {
     clearTableCellEditing,
     clearTableCellSelection,
@@ -631,8 +649,13 @@ function TemplateV2KonvaSlideComponent({
     setChartEditorSelection(null);
     undoStackRef.current = [];
     redoStackRef.current = [];
-    setHistoryAvailability({ canUndo: false, canRedo: false });
-  }, [clearInlineEdit, clearTableCellSelection, layout]);
+    publishHistoryAvailability();
+  }, [
+    clearInlineEdit,
+    clearTableCellSelection,
+    layout,
+    publishHistoryAvailability,
+  ]);
 
   useEffect(() => {
     if (
@@ -880,18 +903,23 @@ function TemplateV2KonvaSlideComponent({
       }
       currentUiRef.current = nextUi;
       setUiDraft(nextUi);
+      onLayoutChange?.(nextUi as TemplateV2Layout);
       dispatch(
         updateSlideUi({
           index: surfaceSlideIndex ?? slideIndex,
           ui: nextUi as Record<string, unknown>,
         }),
       );
-      setHistoryAvailability({
-        canUndo: undoStackRef.current.length > 0,
-        canRedo: redoStackRef.current.length > 0,
-      });
+      publishHistoryAvailability();
     },
-    [dispatch, isEditMode, slideIndex, surfaceSlideIndex],
+    [
+      dispatch,
+      isEditMode,
+      onLayoutChange,
+      publishHistoryAvailability,
+      slideIndex,
+      surfaceSlideIndex,
+    ],
   );
 
   const undo = useCallback(() => {
@@ -909,6 +937,18 @@ function TemplateV2KonvaSlideComponent({
     commitUi(next, false);
     clearEditorUiState();
   }, [clearEditorUiState, commitUi]);
+
+  useEffect(() => {
+    if (!historyCommand || !isEditMode) return;
+    if (handledHistoryCommandTokenRef.current === historyCommand.token) return;
+    handledHistoryCommandTokenRef.current = historyCommand.token;
+
+    if (historyCommand.action === "undo") {
+      undo();
+      return;
+    }
+    redo();
+  }, [historyCommand, isEditMode, redo, undo]);
 
   const select = useCallback(
     (nextSelection: Selection, options?: SelectOptions) => {
