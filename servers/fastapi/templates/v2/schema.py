@@ -245,15 +245,18 @@ def _array_schema_for_repeated_children(
     children: list[Any],
     nodes: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any] | None:
-    if len(nodes) < 2 or len(nodes) != _element_count(children):
+    if len(nodes) != _element_count(children):
+        return None
+
+    if len(nodes) < 2 and not _can_expand_repeated_children(element, len(nodes)):
         return None
 
     item_schemas = [
         _schema_without_repeated_name_suffix(schema, _repeated_name_suffix(name))
         for name, schema in nodes
     ]
-    first_schema = item_schemas[0]
-    if any(schema != first_schema for schema in item_schemas[1:]):
+    item_schema = _component_merge_repeated_schemas(item_schemas)
+    if item_schema is None:
         return None
 
     return _compact(
@@ -261,7 +264,7 @@ def _array_schema_for_repeated_children(
             "type": "array",
             "minItems": element.get("min_children"),
             "maxItems": element.get("max_children"),
-            "items": first_schema,
+            "items": item_schema,
         }
     )
 
@@ -370,6 +373,11 @@ def _strip_repeated_suffix(value: str, suffix: str | None) -> str:
 
 def _element_count(values: list[Any]) -> int:
     return sum(1 for value in values if _element_dict(value) is not None)
+
+
+def _can_expand_repeated_children(element: dict[str, Any], child_count: int) -> bool:
+    max_children = element.get("max_children")
+    return isinstance(max_children, (int, float)) and max_children > child_count
 
 
 def _compact(value: dict[str, Any]) -> dict[str, Any]:
@@ -666,7 +674,13 @@ def _component_array_schema_for_repeated_children(
     child_node_sets: list[list[tuple[str, dict[str, Any]]]],
 ) -> dict[str, Any] | None:
     populated_node_sets = [node_set for node_set in child_node_sets if node_set]
-    if len(populated_node_sets) < 2 or len(populated_node_sets) != len(child_node_sets):
+    if len(populated_node_sets) != len(child_node_sets):
+        return None
+
+    if len(populated_node_sets) < 2 and not _can_expand_repeated_children(
+        element,
+        len(populated_node_sets),
+    ):
         return None
 
     for strategy in ("numeric", "none", "prefix"):
@@ -701,7 +715,17 @@ def _component_normalized_repeated_item_schema(
         if len(nodes) == 1 and nodes[0][1].get("type") == "object"
         else _component_object_schema_from_nodes(nodes)
     )
-    return _component_schema_without_repeated_name_suffix(item_schema, token)
+    normalized = _component_schema_without_repeated_name_suffix(item_schema, token)
+    if (
+        token
+        and len(nodes) == 1
+        and isinstance(normalized, dict)
+        and isinstance(normalized.get("title"), str)
+    ):
+        normalized["title"] = _component_content_field_title(
+            _component_strip_repeated_suffix(nodes[0][0], token)
+        )
+    return normalized
 
 
 def _component_normalization_token_for_nodes(
@@ -804,99 +828,32 @@ def _component_merge_repeated_schemas(
     if not schemas:
         return None
 
-    schema_types = [schema.get("type") for schema in schemas]
-    first_type = schema_types[0]
-    if any(schema_type != first_type for schema_type in schema_types):
+    first = _component_comparable_repeated_schema(schemas[0])
+    if any(_component_comparable_repeated_schema(schema) != first for schema in schemas):
         return None
 
-    if first_type == "object":
-        property_sets = [
-            schema.get("properties")
-            for schema in schemas
-        ]
-        if not all(isinstance(properties, dict) for properties in property_sets):
-            return None
+    return _without_none_values(copy.deepcopy(schemas[0]))
 
-        property_keys = [set(properties) for properties in property_sets]
-        first_keys = property_keys[0]
-        if any(keys != first_keys for keys in property_keys):
-            return None
 
-        merged_properties: dict[str, Any] = {}
-        for key in sorted(first_keys):
-            merged_property = _component_merge_repeated_schemas(
-                [properties[key] for properties in property_sets]
-            )
-            if merged_property is None:
-                return None
-            merged_properties[key] = merged_property
+def _component_comparable_repeated_schema(value: Any, key: str = "") -> Any:
+    if isinstance(value, list):
+        items = [_component_comparable_repeated_schema(item) for item in value]
+        if key in {"enum", "required"} and all(isinstance(item, str) for item in items):
+            return sorted(items)
+        return items
 
-        return {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": merged_properties,
-            "required": [
-                key for key in schemas[0].get("required", list(merged_properties))
-                if key in merged_properties
-            ],
-        }
+    if not isinstance(value, dict):
+        return value
 
-    if first_type == "array":
-        item_schemas = [
-            schema.get("items")
-            for schema in schemas
-            if isinstance(schema.get("items"), dict)
-        ]
-        if len(item_schemas) != len(schemas):
-            return None
-
-        merged_items = _component_merge_repeated_schemas(item_schemas)
-        if merged_items is None:
-            return None
-
-        return _without_none_values(
-            {
-                "type": "array",
-                "minItems": _component_min_numeric_schema_value(schemas, "minItems"),
-                "maxItems": _component_max_numeric_schema_value(schemas, "maxItems"),
-                "items": merged_items,
-            }
+    comparable: dict[str, Any] = {}
+    for nested_key in sorted(value):
+        if nested_key == "x-element-path":
+            continue
+        comparable[nested_key] = _component_comparable_repeated_schema(
+            value[nested_key],
+            nested_key,
         )
-
-    merged = copy.deepcopy(schemas[0])
-    merged.pop("x-element-path", None)
-    if first_type == "string":
-        min_length = _component_min_numeric_schema_value(schemas, "minLength")
-        max_length = _component_max_numeric_schema_value(schemas, "maxLength")
-        if min_length is not None:
-            merged["minLength"] = min_length
-        if max_length is not None:
-            merged["maxLength"] = max_length
-    return _without_none_values(merged)
-
-
-def _component_min_numeric_schema_value(
-    schemas: list[dict[str, Any]],
-    key: str,
-) -> Any:
-    values = [
-        schema.get(key)
-        for schema in schemas
-        if isinstance(schema.get(key), (int, float))
-    ]
-    return min(values) if values else None
-
-
-def _component_max_numeric_schema_value(
-    schemas: list[dict[str, Any]],
-    key: str,
-) -> Any:
-    values = [
-        schema.get(key)
-        for schema in schemas
-        if isinstance(schema.get(key), (int, float))
-    ]
-    return max(values) if values else None
+    return comparable
 
 
 def _component_content_field_schema(field: dict[str, Any]) -> dict[str, Any]:
