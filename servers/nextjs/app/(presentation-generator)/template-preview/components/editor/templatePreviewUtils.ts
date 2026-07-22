@@ -624,13 +624,14 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
     if (!isRecord(element)) return;
 
     const type = readString(element.type);
+    const isEditableContent = element.decorative === false;
     const label = schemaLabelForElement(
       element,
       `${type || "Field"} ${fields.length + 1}`,
       parentLabel,
     );
 
-    if (type === "text") {
+    if (isEditableContent && type === "text") {
       const value = textRunsToString(element.runs);
       if (value || label) {
         fields.push({
@@ -645,7 +646,7 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
       }
     }
 
-    if (type === "text-list") {
+    if (isEditableContent && type === "text-list") {
       const value = textListItemsToString(element.items);
       if (value || label) {
         fields.push({
@@ -660,7 +661,11 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
       }
     }
 
-    if (type === "image" && element.is_icon !== true) {
+    if (
+      isEditableContent &&
+      type === "image" &&
+      element.is_icon !== true
+    ) {
       fields.push({
         id: path.join("."),
         label,
