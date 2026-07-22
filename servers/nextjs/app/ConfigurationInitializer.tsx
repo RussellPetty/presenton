@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { setCanChangeKeys, setLLMConfig } from '@/store/slices/userConfig';
 import { hasValidLLMConfig, normalizeLLMConfig } from '@/utils/storeHelpers';
 import { usePathname, useRouter } from 'next/navigation';
@@ -9,10 +10,38 @@ import { isOllamaModelAvailable } from '@/utils/providerUtils';
 import { LLMConfig } from '@/types/llm_config';
 import { getApiUrl } from '@/utils/api';
 import { notify } from '@/components/ui/sonner';
-import {
-  PRESENTON_SPLASH_MIN_DURATION_MS,
-  PresentonSplashLoader,
-} from '@/components/ui/presenton-splash-loader';
+import { PRESENTON_SPLASH_MIN_DURATION_MS } from '@/components/ui/presenton-splash-loader';
+
+function ConfigurationLoadingScreen() {
+  return (
+    <main
+      aria-busy="true"
+      className="fixed inset-0 z-[2147483000] overflow-hidden bg-white"
+      role="status"
+    >
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-7 whitespace-nowrap">
+        <div aria-hidden="true" className="configuration-loader" />
+        <p className="font-syne text-[18px] font-normal leading-normal tracking-[-0.54px] text-[#191919]">
+          Loading Presenton...
+        </p>
+      </div>
+
+      <div className="absolute left-1/2 top-[calc(50%+123.47px)] flex h-[42px] w-[352px] max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-1 rounded-md bg-[#F5F8FF] px-[14px]">
+        <Image
+          alt=""
+          aria-hidden="true"
+          className="h-[14px] w-[14px] shrink-0"
+          height={14}
+          src="/figma-assets/configuration-status-icon.svg"
+          width={14}
+        />
+        <p className="whitespace-nowrap font-manrope text-[14px] font-medium leading-normal tracking-[0.3px] text-[#6172F3]">
+          Checking &amp; configuration application assets.
+        </p>
+      </div>
+    </main>
+  );
+}
 
 export function ConfigurationInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch();
@@ -205,9 +234,7 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
 
 
   if (isLoading || !hasMetSplashDuration) {
-    return (
-      <PresentonSplashLoader message="Loading configuration and checking model availability..." />
-    );
+    return <ConfigurationLoadingScreen />;
   }
 
   return children;
