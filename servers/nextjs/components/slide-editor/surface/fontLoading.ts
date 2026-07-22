@@ -25,8 +25,12 @@ const EMPTY_TEMPLATE_FONTS: TemplateFontOption[] = [];
 export function useFontLoadState(
   ui: RawUi,
   templateFonts: TemplateFontOption[] = EMPTY_TEMPLATE_FONTS,
+  enabled = true,
 ) {
-  const fontSignature = useMemo(() => fontLoadSignatureForUi(ui), [ui]);
+  const fontSignature = useMemo(
+    () => (enabled ? fontLoadSignatureForUi(ui) : ""),
+    [enabled, ui],
+  );
   const [state, setState] = useState(() => ({
     revision: 0,
     ready: !fontSignature,

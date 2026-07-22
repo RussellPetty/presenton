@@ -6,9 +6,11 @@ import shutil
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from sqlmodel import select
+
 from models.sql.template_v2 import TemplateV2
 from services.database import async_session_maker
-from templates.v2.models.layouts import MergedComponents, RawSlideLayouts, SlideLayouts
+from templates.v2.models.layouts import MergedComponents, SlideLayouts
 from utils.get_env import get_app_data_directory_env
 from utils.icon_weights import extract_icon_type_from_settings
 
@@ -31,11 +33,12 @@ async def import_default_templates_on_startup(
     ]
     if not template_dirs:
         LOGGER.info("No default templates found in: %s", root)
-        return
 
     async with async_session_maker() as session:
+        imported_template_ids: set[str] = set()
         for template_dir in template_dirs:
             template = _load_default_template(template_dir)
+            imported_template_ids.add(template.id)
             existing = await session.get(TemplateV2, template.id)
 
             _copy_default_template_static_assets(template_dir, template.id)
@@ -48,9 +51,62 @@ async def import_default_templates_on_startup(
                 LOGGER.info("Imported default template: %s", template.id)
             await session.commit()
 
+        await _remove_stale_default_templates(session, imported_template_ids)
+
 
 def _default_templates_root() -> Path:
     return Path(__file__).resolve().parents[3] / "templates"
+
+
+def resolve_default_template_id(
+    template_name: str,
+    templates_root: Path | None = None,
+) -> str | None:
+    """Resolve a public bundled-template name to its persisted Template V2 ID.
+
+    Bundled templates are stored in directories with stable, user-facing names
+    (for example ``general``), while their JSON payloads use UUIDs as database
+    IDs. API clients still send the public name, so generation must translate it
+    before looking up the imported Template V2 row.
+    """
+    if (
+        not isinstance(template_name, str)
+        or not template_name
+        or template_name in {".", ".."}
+        or "/" in template_name
+        or "\\" in template_name
+    ):
+        return None
+
+    root = templates_root or _default_templates_root()
+    template_json_path = root / template_name / "template.json"
+    if not template_json_path.is_file():
+        return None
+
+    try:
+        raw = json.loads(template_json_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.warning(
+            "Unable to read bundled template metadata for %s: %s",
+            template_name,
+            exc,
+        )
+        return None
+
+    if not isinstance(raw, dict):
+        return None
+    template_id = raw.get("id")
+    if not isinstance(template_id, str) or not template_id.strip():
+        return template_name
+    template_id = template_id.strip()
+    if "/" in template_id or "\\" in template_id:
+        LOGGER.warning(
+            "Ignoring invalid bundled template ID for %s: %s",
+            template_name,
+            template_id,
+        )
+        return None
+    return template_id
 
 
 def _load_default_template(template_dir: Path) -> TemplateV2:
@@ -64,7 +120,6 @@ def _load_default_template(template_dir: Path) -> TemplateV2:
 
     layouts = _coerce_slide_layouts(rewritten.get("layouts"))
     merged_components = _coerce_merged_components(rewritten.get("merged_components"))
-    raw_layouts = _coerce_raw_layouts(rewritten.get("raw_layouts"))
     components = rewritten.get("components")
     assets = _build_assets(rewritten, template_id, layouts, merged_components)
 
@@ -72,7 +127,7 @@ def _load_default_template(template_dir: Path) -> TemplateV2:
         id=template_id,
         name=_read_required_string(rewritten, "name", template_id),
         description=_read_optional_string(rewritten.get("description")),
-        raw_layouts=raw_layouts,
+        raw_layouts=None,
         components=components if isinstance(components, dict) else None,
         merged_components=merged_components,
         layouts=layouts,
@@ -90,6 +145,29 @@ def _update_template_from_default(existing: TemplateV2, template: TemplateV2) ->
     existing.layouts = template.layouts
     existing.assets = template.assets
     existing.is_default = True
+
+
+async def _remove_stale_default_templates(
+    session: Any,
+    imported_template_ids: set[str],
+) -> None:
+    result = await session.execute(
+        select(TemplateV2).where(TemplateV2.is_default.is_(True))
+    )
+    stale_templates = [
+        template
+        for template in result.scalars().all()
+        if template.id not in imported_template_ids
+    ]
+    if not stale_templates:
+        return
+
+    for template in stale_templates:
+        await session.delete(template)
+        _remove_default_template_assets(template.id)
+        LOGGER.info("Removed stale default template: %s", template.id)
+
+    await session.commit()
 
 
 def _read_template_id(raw: dict[str, Any], template_dir: Path) -> str:
@@ -130,16 +208,6 @@ def _coerce_merged_components(value: Any) -> dict[str, Any] | None:
         return None
     payload = {"components": value} if isinstance(value, list) else value
     return MergedComponents.model_validate(payload).model_dump(
-        mode="json",
-        exclude_none=True,
-    )
-
-
-def _coerce_raw_layouts(value: Any) -> dict[str, Any] | None:
-    if value is None:
-        return None
-    payload = {"layouts": value} if isinstance(value, list) else value
-    return RawSlideLayouts.model_validate(payload).model_dump(
         mode="json",
         exclude_none=True,
     )
@@ -222,13 +290,23 @@ def _collect_image_urls(*values: Any) -> list[str]:
 
 def _copy_default_template_static_assets(template_dir: Path, template_id: str) -> None:
     source = template_dir / "static"
-    if not source.is_dir():
-        return
-
     app_data_dir = get_app_data_directory_env()
     if not app_data_dir:
         raise RuntimeError("APP_DATA_DIRECTORY must be set to import default templates")
 
     destination = Path(app_data_dir) / "templates" / template_id / "static"
     destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(source, destination, dirs_exist_ok=True)
+    # Bundled templates are authoritative. Removing the old static directory
+    # prevents deleted or renamed assets from surviving an application update.
+    shutil.rmtree(destination, ignore_errors=True)
+    if source.is_dir():
+        shutil.copytree(source, destination)
+
+
+def _remove_default_template_assets(template_id: str) -> None:
+    app_data_dir = get_app_data_directory_env()
+    if not app_data_dir:
+        raise RuntimeError("APP_DATA_DIRECTORY must be set to import default templates")
+
+    destination = Path(app_data_dir) / "templates" / template_id
+    shutil.rmtree(destination, ignore_errors=True)

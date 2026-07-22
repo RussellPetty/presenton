@@ -5,6 +5,7 @@ import { EmptyState } from "./EmptyState";
 
 interface PresentationGridProps {
   presentations: PresentationResponse[];
+  viewMode?: "grid" | "list";
   isLoading?: boolean;
   error?: string | null;
   onPresentationDeleted?: (presentationId: string) => void;
@@ -13,6 +14,7 @@ interface PresentationGridProps {
 
 export const PresentationGrid = ({
   presentations,
+  viewMode = "grid",
   isLoading = false,
   error = null,
   onPresentationDeleted,
@@ -71,7 +73,13 @@ export const PresentationGrid = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div
+      className={
+        viewMode === "grid"
+          ? "grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+          : "grid grid-cols-1 gap-4"
+      }
+    >
       {presentations.map((presentation) => (
 
         <PresentationCard
@@ -79,6 +87,7 @@ export const PresentationGrid = ({
           id={presentation.id}
           title={presentation.title}
           presentation={presentation}
+          viewMode={viewMode}
           onDeleted={onPresentationDeleted}
           onDuplicated={onPresentationDuplicated}
         />

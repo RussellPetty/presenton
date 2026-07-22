@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, original, PayloadAction } from '@reduxjs/toolkit';
 import { Slide } from '@/app/(presentation-generator)/types/slide';
 
 interface HistoryState {
@@ -15,11 +15,6 @@ interface UndoRedoState {
   isUndoRedoInProgress: boolean;
   pendingHistorySkips: number;
 }
-
-// Helper function for deep copy
-const deepCopy = <T>(obj: T): T => {
-  return JSON.parse(JSON.stringify(obj));
-};
 
 const initialState: UndoRedoState = {
   past: [],
@@ -52,7 +47,16 @@ const undoRedoSlice = createSlice({
       // shared references instead of cloning/stringifying the complete deck.
       const newSlides = action.payload.slides;
 
-      // Only add to history if the slides have actually changed
+      // Reference equality is sufficient because presentation updates go
+      // through Redux Toolkit/Immer and therefore replace changed arrays.
+      // It also avoids duplicate entries from explicit pre-operation captures.
+      const presentSlides = state.present
+        ? original(state.present)?.slides ?? state.present.slides
+        : null;
+      if (presentSlides === newSlides) {
+        return;
+      }
+
       if (!state.present) {
         state.present = {
           slides: newSlides,
@@ -91,13 +95,13 @@ const undoRedoSlice = createSlice({
 
       // Move present to future
       if (state.present) {
-        state.future.unshift(deepCopy(state.present));
+        state.future.unshift(state.present);
       }
 
       // Get last past state
       const previous = state.past[state.past.length - 1];
       state.past = state.past.slice(0, -1);
-      state.present = deepCopy(previous);
+      state.present = previous;
     },
 
     redo: (state) => {
@@ -110,13 +114,13 @@ const undoRedoSlice = createSlice({
 
       // Move present to past
       if (state.present) {
-        state.past.push(deepCopy(state.present));
+        state.past.push(state.present);
       }
 
       // Get first future state
       const next = state.future[0];
       state.future = state.future.slice(1);
-      state.present = deepCopy(next);
+      state.present = next;
     },
 
     finishUndoRedo: (state) => {

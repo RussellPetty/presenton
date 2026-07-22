@@ -16,6 +16,13 @@ type LaidOutChild = {
   box: TemplateV2UngroupBox | null;
 };
 
+type UngroupEntry = {
+  element: RawRecord;
+  box: TemplateV2UngroupBox;
+  rotation: number;
+  sourceBox: TemplateV2UngroupBox;
+};
+
 type UngroupDeps = {
   childArrayInfo: (element: RawRecord) => ChildArrayInfo | null;
   componentBox: (component: RawRecord) => TemplateV2UngroupBox;
@@ -30,7 +37,7 @@ type UngroupDeps = {
 export type TemplateV2UngroupSelection = {
   kind: "component";
   componentIndex: number;
-};
+} | null;
 
 export function canUngroupTemplateV2Component(
   component: RawRecord | null | undefined,
@@ -63,10 +70,7 @@ export function ungroupTemplateV2ComponentInUi(
       ...sourceUi,
       components,
     },
-    selection: {
-      kind: "component",
-      componentIndex,
-    },
+    selection: null,
   };
 }
 
@@ -76,6 +80,7 @@ function ungroupedComponentsFromComponent(
   deps: UngroupDeps,
 ): RawRecord[] {
   const componentBoxValue = deps.componentBox(component);
+  const componentRotation = readNumber(component.rotation) ?? 0;
   const idBase = normalizeId(
     readString(component.id) ??
       readString(component.name) ??
@@ -87,28 +92,34 @@ function ungroupedComponentsFromComponent(
     elements.length === 1
       ? ungroupElementOneLevel(
           elements[0],
-          absoluteElementBox(elements[0], componentBoxValue, deps),
+          absoluteElementEntry(elements[0], componentBoxValue, deps).box,
           deps,
         )
-      : elements.map((element) => ({
-          element,
-          box: absoluteElementBox(element, componentBoxValue, deps),
-        }));
+      : elements.map((element) =>
+          absoluteElementEntry(element, componentBoxValue, deps),
+        );
 
-  return entries.map((entry, index) => ungroupedComponent(entry, idBase, index));
+  return entries.map((entry, index) =>
+    ungroupedComponent(entry, idBase, index, componentBoxValue, componentRotation),
+  );
 }
 
-function absoluteElementBox(
+function absoluteElementEntry(
   element: RawRecord,
   componentBoxValue: TemplateV2UngroupBox,
   deps: UngroupDeps,
-): TemplateV2UngroupBox {
+): UngroupEntry {
   const box = deps.elementBox(element);
   return {
-    x: componentBoxValue.x + box.x,
-    y: componentBoxValue.y + box.y,
-    width: box.width,
-    height: box.height,
+    element,
+    sourceBox: box,
+    rotation: 0,
+    box: {
+      x: componentBoxValue.x + box.x,
+      y: componentBoxValue.y + box.y,
+      width: box.width,
+      height: box.height,
+    },
   };
 }
 
@@ -116,9 +127,10 @@ function ungroupElementOneLevel(
   element: RawRecord,
   box: TemplateV2UngroupBox,
   deps: UngroupDeps,
-): Array<{ element: RawRecord; box: TemplateV2UngroupBox }> {
+): UngroupEntry[] {
   const childInfo = deps.childArrayInfo(element);
   if (!childInfo) return [];
+  const elementRotation = readNumber(element.rotation) ?? 0;
 
   return deps
     .layoutChildren(
@@ -128,14 +140,17 @@ function ungroupElementOneLevel(
     )
     .map((item) => {
       const childBox = item.box ?? deps.elementBox(item.child);
+      const unrotatedBox = {
+        x: box.x + childBox.x,
+        y: box.y + childBox.y,
+        width: childBox.width,
+        height: childBox.height,
+      };
       return {
         element: item.child,
-        box: {
-          x: box.x + childBox.x,
-          y: box.y + childBox.y,
-          width: childBox.width,
-          height: childBox.height,
-        },
+        sourceBox: childBox,
+        rotation: elementRotation,
+        box: rotatedChildComponentBox(unrotatedBox, box, elementRotation),
       };
     });
 }
@@ -151,25 +166,89 @@ function hasUngroupableLayout(element: RawRecord): boolean {
 }
 
 function ungroupedComponent(
-  entry: { element: RawRecord; box: TemplateV2UngroupBox },
+  entry: UngroupEntry,
   idBase: string,
   index: number,
+  parentBox: TemplateV2UngroupBox,
+  parentRotation: number,
 ): RawRecord {
-  const { box, element } = entry;
+  const { box, element, rotation, sourceBox } = entry;
+  const position = rotatedChildComponentPosition(box, parentBox, parentRotation);
+  const inheritedRotation = parentRotation + rotation;
   return {
     id: `${idBase}_part_${index + 1}`,
     description: "Ungrouped component element",
-    position: { x: box.x, y: box.y },
-    size: { width: box.width, height: box.height },
-    elements: [
-      {
-        ...cloneJson(element),
-        position: { x: 0, y: 0 },
-        size: { width: box.width, height: box.height },
-        __presenton_manual_position: true,
-      },
-    ],
+    position,
+    ...(inheritedRotation !== 0 ? { rotation: inheritedRotation } : {}),
+    elements: [ungroupedElement(element, sourceBox)],
   };
+}
+
+function rotatedChildComponentBox(
+  box: TemplateV2UngroupBox,
+  parentBox: TemplateV2UngroupBox,
+  parentRotation: number,
+): TemplateV2UngroupBox {
+  return {
+    ...box,
+    ...rotatedChildComponentPosition(box, parentBox, parentRotation),
+  };
+}
+
+function rotatedChildComponentPosition(
+  box: TemplateV2UngroupBox,
+  parentBox: TemplateV2UngroupBox,
+  parentRotation: number,
+) {
+  if (parentRotation === 0) return { x: box.x, y: box.y };
+
+  const radians = (parentRotation * Math.PI) / 180;
+  const sin = Math.sin(radians);
+  const cos = Math.cos(radians);
+  const parentCenter = {
+    x: parentBox.x + parentBox.width / 2,
+    y: parentBox.y + parentBox.height / 2,
+  };
+  const childCenter = {
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+  };
+  const dx = childCenter.x - parentCenter.x;
+  const dy = childCenter.y - parentCenter.y;
+  const rotatedCenter = {
+    x: parentCenter.x + dx * cos - dy * sin,
+    y: parentCenter.y + dx * sin + dy * cos,
+  };
+  return {
+    x: rotatedCenter.x - box.width / 2,
+    y: rotatedCenter.y - box.height / 2,
+  };
+}
+
+function ungroupedElement(
+  element: RawRecord,
+  sourceBox: TemplateV2UngroupBox,
+) {
+  const cloned = cloneJson(element);
+  return {
+    ...cloned,
+    ...(readString(cloned.type) === "vector"
+      ? { points: translatePointArray(cloned.points, -sourceBox.x, -sourceBox.y) }
+      : {}),
+    position: { x: 0, y: 0 },
+    size: { width: sourceBox.width, height: sourceBox.height },
+    __presenton_manual_position: true,
+  };
+}
+
+function translatePointArray(value: unknown, deltaX: number, deltaY: number) {
+  return readArray(value).map((item) => {
+    const point = asRecord(item);
+    const x = readNumber(point?.x);
+    const y = readNumber(point?.y);
+    if (x == null || y == null) return item;
+    return { ...point, x: x + deltaX, y: y + deltaY };
+  });
 }
 
 function childArrayInfoFromRecord(element: RawRecord): ChildArrayInfo | null {
@@ -208,6 +287,10 @@ function isRecord(value: unknown): value is RawRecord {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function normalizeId(value: string) {

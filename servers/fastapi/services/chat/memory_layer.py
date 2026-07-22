@@ -44,23 +44,36 @@ DEFAULT_SOURCE_DOCUMENT_CHARS = 12000
 MAX_SOURCE_DOCUMENT_CHARS = 30000
 SLIDE_STAGE_WIDTH = 1280.0
 SLIDE_STAGE_HEIGHT = 720.0
+CUSTOM_TEMPLATE_PREFIX = "custom-"
 BLANK_SLIDE_LAYOUT_ID = "__blank_slide__"
-BLANK_TEMPLATE_V2_LAYOUT: dict[str, Any] = {
+BLANK_TEMPLATE_LAYOUT: dict[str, Any] = {
     "id": BLANK_SLIDE_LAYOUT_ID,
     "description": "Empty slide.",
     "background": "#FFFFFF",
     "components": [],
     "elements": [
         {
-            "type": "rectangle",
-            "position": {"x": 0, "y": 0},
-            "size": {"width": 1280, "height": 720},
+            "type": "vector",
+            "shape": "polygon",
+            "points": [
+                {"x": 0, "y": 0},
+                {"x": 1280, "y": 0},
+                {"x": 1280, "y": 720},
+                {"x": 0, "y": 720},
+            ],
+            "closed": True,
             "fill": {"color": "#FFFFFF"},
-            "decorative": True,
         }
     ],
 }
-TEMPLATE_V2_GENERATED_ELEMENT_TYPES = {"text", "image", "text-list", "table", "chart"}
+TEMPLATE_GENERATED_ELEMENT_TYPES = {
+    "text",
+    "image",
+    "text-list",
+    "table",
+    "chart",
+    "infographic",
+}
 # Keep URL runtime fields during validation because many slide schemas require them.
 # Speaker note is handled separately and should not affect JSON-schema checks.
 RUNTIME_CONTENT_FIELDS = {"__speaker_note__"}
@@ -428,10 +441,10 @@ class PresentationChatMemoryLayer:
             ),
             "speaker_note": slide.speaker_note,
         }
+        ui = self._slide_ui_layout(slide)
         if include_full_content:
             response["content"] = slide.content
-            response["ui"] = slide.ui
-        ui = self._slide_ui_layout(slide)
+            response["ui"] = ui if ui is not None else slide.ui
         if ui is not None:
             response["ui_summary"] = await self.get_slide_ui_elements(
                 index=slide.index,
@@ -975,8 +988,10 @@ class PresentationChatMemoryLayer:
                 old_slide_content=existing_slide.content or {},
                 new_slide_content=updated_content,
                 icon_weight=icon_weight,
-                use_template_v2_asset_fields=existing_slide.layout_group.startswith(
-                    "template-v2"
+                use_template_asset_fields=(
+                    self._is_template_layout_payload(presentation.layout)
+                    or isinstance(existing_slide.ui, dict)
+                    or existing_slide.layout_group.startswith(CUSTOM_TEMPLATE_PREFIX)
                 ),
                 allow_image_fallback=True,
                 image_warnings=image_warnings,
@@ -994,7 +1009,7 @@ class PresentationChatMemoryLayer:
             existing_slide.layout = layout_id
             existing_slide.layout_group = layout_group
             existing_slide.content = updated_content
-            existing_slide.ui = await self._build_template_v2_slide_ui(
+            existing_slide.ui = await self._build_template_slide_ui(
                 presentation=presentation,
                 layout_id=layout_id,
                 content=updated_content,
@@ -1069,7 +1084,7 @@ class PresentationChatMemoryLayer:
                 self._presentation_id,
                 warning.get("detail"),
             )
-        new_slide.ui = await self._build_template_v2_slide_ui(
+        new_slide.ui = await self._build_template_slide_ui(
             presentation=presentation,
             layout_id=layout_id,
             content=new_slide.content,
@@ -1193,7 +1208,7 @@ class PresentationChatMemoryLayer:
 
     @staticmethod
     def _blank_slide_ui() -> dict[str, Any]:
-        return copy.deepcopy(BLANK_TEMPLATE_V2_LAYOUT)
+        return copy.deepcopy(BLANK_TEMPLATE_LAYOUT)
 
     def _create_blank_slide_from_reference(
         self,
@@ -1212,15 +1227,10 @@ class PresentationChatMemoryLayer:
         if not layout_group:
             layout_group = "presentation"
 
-        layout = (
-            f"{layout_group}:{BLANK_SLIDE_LAYOUT_ID}"
-            if layout_group.startswith("custom-")
-            else BLANK_SLIDE_LAYOUT_ID
-        )
         return SlideModel(
             presentation=self._presentation_id,
             layout_group=layout_group,
-            layout=layout,
+            layout=BLANK_SLIDE_LAYOUT_ID,
             index=index,
             content={},
             speaker_note="",
@@ -1240,10 +1250,20 @@ class PresentationChatMemoryLayer:
         # Persist the mutated raw layout dict directly. We intentionally avoid
         # round-tripping through pydantic so richer runtime fields on the slide
         # UI (assets, tiptap ids, etc.) are preserved untouched.
+        self._strip_component_sizes(ui)
         slide.ui = ui
         self._sql_session.add(slide)
         await self._sql_session.commit()
         await self._sql_session.refresh(slide)
+
+    @staticmethod
+    def _strip_component_sizes(ui: dict[str, Any]) -> None:
+        components = ui.get("components")
+        if not isinstance(components, list):
+            return
+        for component in components:
+            if isinstance(component, dict):
+                component.pop("size", None)
 
     async def get_slide_ui_elements(
         self, *, index: int, include_full_json: bool = False
@@ -1306,6 +1326,8 @@ class PresentationChatMemoryLayer:
         table_cell: dict[str, Any] | None = None,
         table: dict[str, Any] | None = None,
         chart: dict[str, Any] | None = None,
+        vector: dict[str, Any] | None = None,
+        infographic: dict[str, Any] | None = None,
         element_patch: dict[str, Any] | None = None,
         position: dict[str, Any] | None = None,
         size: dict[str, Any] | None = None,
@@ -1319,11 +1341,14 @@ class PresentationChatMemoryLayer:
             _normalize_chart_element,
             _resolve_element_path,
             _resolve_image_update_payload,
+            _validate_current_element_model,
             _update_chart_element,
+            _update_infographic_element,
             _update_table_element,
             _update_table_cell,
             _update_text_element,
             _update_text_list_element,
+            _update_vector_element,
         )
 
         slide = await self._get_slide_by_index(index)
@@ -1358,6 +1383,8 @@ class PresentationChatMemoryLayer:
             table_cell=table_cell,
             table=table,
             chart=chart,
+            vector=vector,
+            infographic=infographic,
         )
 
         if content_update_requested and element_type == "text":
@@ -1379,6 +1406,16 @@ class PresentationChatMemoryLayer:
             if chart is None:
                 raise ValueError("chart is required for chart elements.")
             _update_chart_element(element, chart, theme)
+        elif content_update_requested and element_type == "vector":
+            if vector is None:
+                raise ValueError("vector is required for vector content updates.")
+            _update_vector_element(element, vector)
+        elif content_update_requested and element_type == "infographic":
+            if infographic is None:
+                raise ValueError(
+                    "infographic is required for infographic content updates."
+                )
+            _update_infographic_element(element, infographic)
         elif content_update_requested and element_type == "image":
             payload = _resolve_image_update_payload(text, items)
             if payload is None:
@@ -1399,9 +1436,14 @@ class PresentationChatMemoryLayer:
         elif content_update_requested:
             raise ValueError(f"Element type '{element_type}' is not content-editable.")
 
-        geometry_updated = self._update_ui_box(element, position=position, size=size)
+        geometry_updated = self._update_ui_element_box(
+            element,
+            position=position,
+            size=size,
+        )
         if not content_update_requested and not geometry_updated and not element_updated:
             raise ValueError("No element content or geometry update was provided.")
+        _validate_current_element_model(element)
 
         await self._save_slide_ui(slide, ui)
         component_id = _component_id_for_path(ui, element_path)
@@ -1512,7 +1554,7 @@ class PresentationChatMemoryLayer:
             replacement["id"] = component_id
             replacement.setdefault("description", component.get("description"))
             replacement.setdefault("position", component.get("position"))
-            replacement.setdefault("size", component.get("size"))
+            replacement.pop("size", None)
             component_index = components.index(component)
             components[component_index] = replacement
             component = replacement
@@ -1525,8 +1567,9 @@ class PresentationChatMemoryLayer:
             # Match the editor's corner-resize behavior. Updating only the
             # component frame leaves a standalone chart/image/table at its old
             # size and creates empty space inside the enlarged selection box.
-            self._scale_component_contents_for_resize(component, size)
-        if self._update_ui_box(component, position=position, size=size):
+            if self._scale_component_contents_for_resize(component, size):
+                updated = True
+        if self._update_ui_box(component, position=position):
             updated = True
         if not updated:
             raise ValueError("No component geometry update was provided.")
@@ -1538,7 +1581,7 @@ class PresentationChatMemoryLayer:
             "slide_number": slide.index + 1,
             "component_id": component_id,
             "position": component.get("position"),
-            "size": component.get("size"),
+            "box": self._component_box(component),
             "message": f"Updated component '{component_id}' on slide {slide.index + 1}.",
         }
 
@@ -1620,7 +1663,7 @@ class PresentationChatMemoryLayer:
             for _, component in selected
         ]
         if any(box is None for box in boxes):
-            raise ValueError("Cannot group components without valid position and size.")
+            raise ValueError("Cannot group components without valid derived bounds.")
         typed_boxes = [box for box in boxes if box is not None]
         left = min(box["x"] for box in typed_boxes)
         top = min(box["y"] for box in typed_boxes)
@@ -1663,7 +1706,6 @@ class PresentationChatMemoryLayer:
             "id": group_id,
             "description": "Grouped component",
             "position": {"x": left, "y": top},
-            "size": {"width": right - left, "height": bottom - top},
             "elements": grouped_elements,
         }
 
@@ -1810,13 +1852,62 @@ class PresentationChatMemoryLayer:
     @staticmethod
     def _component_box(component: dict[str, Any]) -> dict[str, float] | None:
         position = component.get("position")
-        size = component.get("size")
-        if not isinstance(position, dict) or not isinstance(size, dict):
+        if not isinstance(position, dict):
             return None
         x = position.get("x")
         y = position.get("y")
-        width = size.get("width")
-        height = size.get("height")
+        content_size = PresentationChatMemoryLayer._component_content_size(component)
+        if content_size is None:
+            return None
+        width = content_size.get("width")
+        height = content_size.get("height")
+        if not all(
+            isinstance(value, (int, float))
+            for value in (x, y, width, height)
+        ):
+            return None
+        if width <= 0 or height <= 0:
+            return None
+        return {
+            "x": float(x),
+            "y": float(y),
+            "width": float(width),
+            "height": float(height),
+        }
+
+    @staticmethod
+    def _component_content_size(component: dict[str, Any]) -> dict[str, float] | None:
+        elements = component.get("elements")
+        if not isinstance(elements, list):
+            return None
+        width = 1.0
+        height = 1.0
+        has_element = False
+        for element in elements:
+            if not isinstance(element, dict):
+                continue
+            box = PresentationChatMemoryLayer._element_local_box(element)
+            if box is None:
+                continue
+            has_element = True
+            width = max(width, box["x"] + box["width"])
+            height = max(height, box["y"] + box["height"])
+        if not has_element:
+            return None
+        return {"width": width, "height": height}
+
+    @staticmethod
+    def _element_local_box(element: dict[str, Any]) -> dict[str, float] | None:
+        element_type = str(element.get("type") or "").lower()
+        if element_type == "vector":
+            return PresentationChatMemoryLayer._vector_element_box(element)
+
+        position = element.get("position")
+        size = element.get("size")
+        x = position.get("x") if isinstance(position, dict) else 0
+        y = position.get("y") if isinstance(position, dict) else 0
+        width = size.get("width") if isinstance(size, dict) else None
+        height = size.get("height") if isinstance(size, dict) else None
         if not all(isinstance(value, (int, float)) for value in (x, y, width, height)):
             return None
         if width <= 0 or height <= 0:
@@ -1828,15 +1919,45 @@ class PresentationChatMemoryLayer:
             "height": float(height),
         }
 
+    @staticmethod
+    def _vector_element_box(element: dict[str, Any]) -> dict[str, float] | None:
+        points = element.get("points")
+        if not isinstance(points, list):
+            return None
+        parsed = []
+        for point in points:
+            if not isinstance(point, dict):
+                continue
+            x = point.get("x")
+            y = point.get("y")
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                parsed.append((float(x), float(y)))
+        if not parsed:
+            return None
+        min_x = min(point[0] for point in parsed)
+        min_y = min(point[1] for point in parsed)
+        max_x = max(point[0] for point in parsed)
+        max_y = max(point[1] for point in parsed)
+        stroke = element.get("stroke")
+        stroke_width = 1.0
+        if isinstance(stroke, dict) and isinstance(stroke.get("width"), (int, float)):
+            stroke_width = max(0.0, float(stroke["width"]))
+        return {
+            "x": min_x,
+            "y": min_y,
+            "width": max(max_x - min_x, stroke_width, 1.0),
+            "height": max(max_y - min_y, stroke_width, 1.0),
+        }
+
     @classmethod
     def _scale_component_contents_for_resize(
         cls,
         component: dict[str, Any],
         target_size: dict[str, Any],
-    ) -> None:
-        current_size = component.get("size")
+    ) -> bool:
+        current_size = cls._component_content_size(component)
         if not isinstance(current_size, dict):
-            return
+            return False
         current_width = current_size.get("width")
         current_height = current_size.get("height")
         target_width = target_size.get("width")
@@ -1845,18 +1966,18 @@ class PresentationChatMemoryLayer:
             isinstance(value, (int, float))
             for value in (current_width, current_height, target_width, target_height)
         ):
-            return
+            return False
         if current_width <= 0 or current_height <= 0:
-            return
+            return False
 
         scale_x = float(target_width) / float(current_width)
         scale_y = float(target_height) / float(current_height)
         if abs(scale_x - 1.0) < 0.001 and abs(scale_y - 1.0) < 0.001:
-            return
+            return False
 
         elements = component.get("elements")
         if not isinstance(elements, list):
-            return
+            return False
         font_scale = (scale_x * scale_y) ** 0.5
         for element in elements:
             if isinstance(element, dict):
@@ -1866,6 +1987,7 @@ class PresentationChatMemoryLayer:
                     scale_y=scale_y,
                     font_scale=font_scale,
                 )
+        return True
 
     @classmethod
     def _scale_ui_element_for_component_resize(
@@ -1896,6 +2018,14 @@ class PresentationChatMemoryLayer:
                     "height": max(1.0, float(height) * scale_y),
                 }
 
+        if str(element.get("type") or "").lower() == "vector":
+            points = element.get("points")
+            if isinstance(points, list):
+                element["points"] = [
+                    cls._scale_vector_point(point, scale_x=scale_x, scale_y=scale_y)
+                    for point in points
+                ]
+
         if str(element.get("type") or "").lower() in {"text", "text-list", "table"}:
             cls._scale_font_metrics_for_component_resize(element, font_scale)
 
@@ -1918,6 +2048,25 @@ class PresentationChatMemoryLayer:
                 scale_y=scale_y,
                 font_scale=font_scale,
             )
+
+    @staticmethod
+    def _scale_vector_point(
+        point: Any,
+        *,
+        scale_x: float,
+        scale_y: float,
+    ) -> Any:
+        if not isinstance(point, dict):
+            return point
+        x = point.get("x")
+        y = point.get("y")
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            return point
+        return {
+            **point,
+            "x": float(x) * scale_x,
+            "y": float(y) * scale_y,
+        }
 
     @classmethod
     def _scale_font_metrics_for_component_resize(
@@ -2157,6 +2306,22 @@ class PresentationChatMemoryLayer:
         else:
             position_box = new_element.get("position") if isinstance(new_element.get("position"), dict) else {}
             size_box = new_element.get("size") if isinstance(new_element.get("size"), dict) else {}
+            is_vector = str(new_element.get("type") or "").lower() == "vector"
+            vector_box = self._vector_element_box(new_element) if is_vector else None
+            component_x = float(
+                position_box.get("x")
+                if isinstance(position_box.get("x"), (int, float))
+                else vector_box["x"]
+                if vector_box is not None
+                else 128
+            )
+            component_y = float(
+                position_box.get("y")
+                if isinstance(position_box.get("y"), (int, float))
+                else vector_box["y"]
+                if vector_box is not None
+                else 120
+            )
             component = {
                 "id": self._unique_ui_component_id(
                     str(new_element.get("name") or new_element.get("type") or "element"),
@@ -2164,20 +2329,34 @@ class PresentationChatMemoryLayer:
                 ),
                 "description": f"Element {new_element.get('type') or ''} added via assistant.".strip(),
                 "position": {
-                    "x": float(position_box.get("x") or 128),
-                    "y": float(position_box.get("y") or 120),
-                },
-                "size": {
-                    "width": float(size_box.get("width") or 320),
-                    "height": float(size_box.get("height") or 120),
+                    "x": component_x,
+                    "y": component_y,
                 },
                 "elements": [new_element],
             }
-            new_element["position"] = {"x": 0, "y": 0}
+            if is_vector and vector_box is not None:
+                target_size = (
+                    {
+                        "width": float(size_box["width"]),
+                        "height": float(size_box["height"]),
+                    }
+                    if isinstance(size_box.get("width"), (int, float))
+                    and isinstance(size_box.get("height"), (int, float))
+                    else None
+                )
+                self._update_ui_element_box(
+                    new_element,
+                    position={"x": 0.0, "y": 0.0},
+                    size=target_size,
+                )
+            else:
+                new_element["position"] = {"x": 0, "y": 0}
+                new_element["size"] = {
+                    "width": float(size_box.get("width") or 320),
+                    "height": float(size_box.get("height") or 120),
+                }
             self._normalize_added_visual_block(component)
             self._fit_component_to_stage(component)
-            if isinstance(component.get("size"), dict):
-                new_element["size"] = copy.deepcopy(component["size"])
             component_position = len(components) if insert_index is None else min(max(0, insert_index), len(components))
             components.insert(component_position, component)
             component_id = str(component["id"])
@@ -2376,16 +2555,6 @@ class PresentationChatMemoryLayer:
             return
         defaults = DEFAULT_INSERT_BOXES[kind]
         min_size = defaults["min_size"]
-        if PresentationChatMemoryLayer._box_too_small(
-            component.get("size"),
-            min_size,
-        ):
-            component["position"] = copy.deepcopy(defaults["position"])
-            component["size"] = copy.deepcopy(defaults["size"])
-
-        component_size = component.get("size")
-        if not isinstance(component_size, dict):
-            return
         for element in component.get("elements", []):
             if not isinstance(element, dict) or element.get("type") != kind:
                 continue
@@ -2393,27 +2562,38 @@ class PresentationChatMemoryLayer:
                 element.get("size"),
                 min_size,
             ):
+                component["position"] = copy.deepcopy(defaults["position"])
                 element["position"] = {"x": 0, "y": 0}
-                element["size"] = {
-                    "width": float(component_size["width"]),
-                    "height": float(component_size["height"]),
-                }
+                element["size"] = copy.deepcopy(defaults["size"])
 
     @staticmethod
     def _fit_component_to_stage(component: dict[str, Any]) -> None:
         position = component.get("position")
-        size = component.get("size")
-        if not isinstance(position, dict) or not isinstance(size, dict):
+        box = PresentationChatMemoryLayer._component_box(component)
+        if not isinstance(position, dict) or box is None:
             return
         x = position.get("x")
         y = position.get("y")
-        width = size.get("width")
-        height = size.get("height")
+        width = box.get("width")
+        height = box.get("height")
         if not all(isinstance(value, (int, float)) for value in (x, y, width, height)):
             return
-        width = min(max(1.0, float(width)), SLIDE_STAGE_WIDTH)
-        height = min(max(1.0, float(height)), SLIDE_STAGE_HEIGHT)
-        component["size"] = {"width": width, "height": height}
+        width = max(1.0, float(width))
+        height = max(1.0, float(height))
+        scale = min(SLIDE_STAGE_WIDTH / width, SLIDE_STAGE_HEIGHT / height, 1.0)
+        if scale < 1.0:
+            PresentationChatMemoryLayer._scale_component_contents_for_resize(
+                component,
+                {
+                    "width": width * scale,
+                    "height": height * scale,
+                },
+            )
+            box = PresentationChatMemoryLayer._component_box(component)
+            if box is None:
+                return
+            width = min(max(1.0, float(box["width"])), SLIDE_STAGE_WIDTH)
+            height = min(max(1.0, float(box["height"])), SLIDE_STAGE_HEIGHT)
         component["position"] = {
             "x": min(max(0.0, float(x)), SLIDE_STAGE_WIDTH - width),
             "y": min(max(0.0, float(y)), SLIDE_STAGE_HEIGHT - height),
@@ -2485,6 +2665,54 @@ class PresentationChatMemoryLayer:
         if target_index >= len(values):
             return False
         values.pop(target_index)
+        return True
+
+    @classmethod
+    def _update_ui_element_box(
+        cls,
+        target: dict[str, Any],
+        *,
+        position: dict[str, Any] | None = None,
+        size: dict[str, Any] | None = None,
+    ) -> bool:
+        if str(target.get("type") or "").lower() != "vector":
+            return cls._update_ui_box(target, position=position, size=size)
+        if position is None and size is None:
+            return False
+
+        box = cls._vector_element_box(target)
+        points = target.get("points")
+        if box is None or not isinstance(points, list):
+            raise ValueError("Vector geometry requires at least two numeric points.")
+
+        next_x = float(position["x"]) if position is not None else box["x"]
+        next_y = float(position["y"]) if position is not None else box["y"]
+        next_width = float(size["width"]) if size is not None else box["width"]
+        next_height = float(size["height"]) if size is not None else box["height"]
+        scale_x = next_width / box["width"]
+        scale_y = next_height / box["height"]
+
+        target["points"] = [
+            {
+                **point,
+                "x": next_x + (float(point["x"]) - box["x"]) * scale_x,
+                "y": next_y + (float(point["y"]) - box["y"]) * scale_y,
+            }
+            for point in points
+            if isinstance(point, dict)
+            and isinstance(point.get("x"), (int, float))
+            and isinstance(point.get("y"), (int, float))
+        ]
+        if size is not None and isinstance(target.get("corner_radii"), list):
+            radius_scale = min(abs(scale_x), abs(scale_y))
+            target["corner_radii"] = [
+                float(value) * radius_scale
+                if isinstance(value, (int, float))
+                else value
+                for value in target["corner_radii"]
+            ]
+        target.pop("position", None)
+        target.pop("size", None)
         return True
 
     @staticmethod
@@ -2703,11 +2931,8 @@ class PresentationChatMemoryLayer:
             sources.append(("presentation_layout", presentation.layout))
 
             seen_template_ids: set[str] = set()
-            for key in ("name", "template_id", "template_v2_id"):
-                template_id = self._extract_template_v2_id(
-                    presentation.layout.get(key),
-                    allow_bare=key in {"template_id", "template_v2_id"},
-                )
+            for key in ("name", "template_id"):
+                template_id = self._extract_template_id(presentation.layout.get(key))
                 if not template_id or template_id in seen_template_ids:
                     continue
                 seen_template_ids.add(template_id)
@@ -2868,7 +3093,7 @@ class PresentationChatMemoryLayer:
             "component_id": component_id,
             "description": description,
             "position": copy.deepcopy(component.get("position")),
-            "size": copy.deepcopy(component.get("size")),
+            "box": copy.deepcopy(cls._component_box(component)),
             "element_count": len(component.get("elements", []))
             if isinstance(component.get("elements"), list)
             else 0,
@@ -3037,16 +3262,16 @@ class PresentationChatMemoryLayer:
         if not presentation or not isinstance(presentation.layout, dict):
             return None
 
-        if self._is_template_v2_layout_payload(presentation.layout):
-            return self._build_template_v2_layout_model(
+        if self._is_template_layout_payload(presentation.layout):
+            return self._build_template_layout_model(
                 presentation.layout,
-                layout_name=str(presentation.layout.get("name") or "template-v2"),
+                layout_name=str(presentation.layout.get("name") or "template"),
             )
 
         try:
             return presentation.get_layout()
         except Exception:
-            template_model = await self._resolve_template_v2_layout_model(presentation)
+            template_model = await self._resolve_template_layout_model(presentation)
             if template_model:
                 return template_model
             LOGGER.exception(
@@ -3055,7 +3280,7 @@ class PresentationChatMemoryLayer:
             )
             return None
 
-    async def _resolve_template_v2_layout_model(
+    async def _resolve_template_layout_model(
         self,
         presentation: PresentationModel,
     ) -> PresentationLayoutModel | None:
@@ -3063,11 +3288,8 @@ class PresentationChatMemoryLayer:
         seen_ids: set[str] = set()
 
         if isinstance(presentation.layout, dict):
-            for key in ("name", "template_id", "template_v2_id"):
-                template_id = self._extract_template_v2_id(
-                    presentation.layout.get(key),
-                    allow_bare=key in {"template_id", "template_v2_id"},
-                )
+            for key in ("name", "template_id"):
+                template_id = self._extract_template_id(presentation.layout.get(key))
                 if template_id and template_id not in seen_ids:
                     candidate_ids.append(template_id)
                     seen_ids.add(template_id)
@@ -3080,39 +3302,34 @@ class PresentationChatMemoryLayer:
             icon_type = extract_icon_type_from_settings(template.assets)
             layout_payload["icon_type"] = icon_type
             layout_payload["icon_weight"] = icon_type
-            return self._build_template_v2_layout_model(
+            return self._build_template_layout_model(
                 layout_payload,
-                layout_name=f"template-v2-{template.id}",
+                layout_name=f"{CUSTOM_TEMPLATE_PREFIX}{template.id}",
             )
 
         return None
 
     @staticmethod
-    def _is_template_v2_layout_payload(layout_payload: Any) -> bool:
+    def _is_template_layout_payload(layout_payload: Any) -> bool:
         return (
             isinstance(layout_payload, dict)
             and isinstance(layout_payload.get("layouts"), list)
         )
 
     @staticmethod
-    def _extract_template_v2_id(value: Any, *, allow_bare: bool = False) -> str | None:
+    def _extract_template_id(value: Any) -> str | None:
         if not isinstance(value, str) or not value:
             return None
 
         candidate = value.strip()
         if not candidate:
             return None
-        for prefix in ("template-v2-", "template-v2:"):
-            if candidate.startswith(prefix):
-                candidate = candidate[len(prefix) :].strip()
-                break
-        else:
-            if not allow_bare:
-                return None
+        if candidate.startswith(CUSTOM_TEMPLATE_PREFIX):
+            candidate = candidate[len(CUSTOM_TEMPLATE_PREFIX) :].strip()
         return candidate or None
 
     @staticmethod
-    def _build_template_v2_layout_model(
+    def _build_template_layout_model(
         layout_payload: dict[str, Any],
         *,
         layout_name: str,
@@ -3162,14 +3379,14 @@ class PresentationChatMemoryLayer:
             slides=slides,
         )
 
-    async def _build_template_v2_slide_ui(
+    async def _build_template_slide_ui(
         self,
         *,
         presentation: PresentationModel,
         layout_id: str,
         content: dict[str, Any],
     ) -> dict[str, Any] | None:
-        source_layout = await self._get_template_v2_raw_layout_by_id(
+        source_layout = await self._get_template_raw_layout_by_id(
             presentation=presentation,
             layout_id=layout_id,
         )
@@ -3178,14 +3395,14 @@ class PresentationChatMemoryLayer:
 
         ui = copy.deepcopy(source_layout)
         theme = presentation.theme if isinstance(presentation.theme, dict) else None
-        self._apply_template_v2_content_to_ui(ui, content, theme=theme)
+        self._apply_template_content_to_ui(ui, content, theme=theme)
         self._sync_ui_text_fields(ui)
         from services.chat.slide_ui_helpers import _normalize_chart_tree
 
         _normalize_chart_tree(ui, theme)
         return ui
 
-    async def _get_template_v2_raw_layout_by_id(
+    async def _get_template_raw_layout_by_id(
         self,
         *,
         presentation: PresentationModel,
@@ -3196,11 +3413,8 @@ class PresentationChatMemoryLayer:
             if source is not None:
                 return source
 
-            for key in ("name", "template_id", "template_v2_id"):
-                template_id = self._extract_template_v2_id(
-                    presentation.layout.get(key),
-                    allow_bare=key in {"template_id", "template_v2_id"},
-                )
+            for key in ("name", "template_id"):
+                template_id = self._extract_template_id(presentation.layout.get(key))
                 if not template_id:
                     continue
                 template = await self._sql_session.get(TemplateV2, template_id)
@@ -3226,7 +3440,7 @@ class PresentationChatMemoryLayer:
         return None
 
     @classmethod
-    def _apply_template_v2_content_to_ui(
+    def _apply_template_content_to_ui(
         cls,
         ui: dict[str, Any],
         content: dict[str, Any],
@@ -3269,14 +3483,14 @@ class PresentationChatMemoryLayer:
             if component_content is None:
                 continue
 
-            cls._apply_template_v2_component_content(
+            cls._apply_template_component_content(
                 component,
                 component_content,
                 theme=theme,
             )
 
     @classmethod
-    def _apply_template_v2_component_content(
+    def _apply_template_component_content(
         cls,
         component: dict[str, Any],
         content: dict[str, Any],
@@ -3287,14 +3501,14 @@ class PresentationChatMemoryLayer:
         if not isinstance(elements, list):
             return
 
-        cls._apply_template_v2_elements_content(
+        cls._apply_template_elements_content(
             elements,
             content,
             theme=theme,
         )
 
     @classmethod
-    def _apply_template_v2_element_content(
+    def _apply_template_element_content(
         cls,
         element: dict[str, Any],
         content: Any,
@@ -3309,7 +3523,7 @@ class PresentationChatMemoryLayer:
         has_value = False
         value = None
         if isinstance(name, str):
-            has_value, value = cls._template_v2_content_value(
+            has_value, value = cls._template_content_value(
                 content_values,
                 name,
                 preferred_keys=preferred_content_keys,
@@ -3318,9 +3532,9 @@ class PresentationChatMemoryLayer:
         if (
             has_value
             and element.get("decorative") is False
-            and element_type in TEMPLATE_V2_GENERATED_ELEMENT_TYPES
+            and element_type in TEMPLATE_GENERATED_ELEMENT_TYPES
         ):
-            cls._set_template_v2_element_value(
+            cls._set_template_element_value(
                 element,
                 value,
                 theme=theme,
@@ -3331,9 +3545,9 @@ class PresentationChatMemoryLayer:
             direct_value
             and not has_value
             and element.get("decorative") is False
-            and element_type in TEMPLATE_V2_GENERATED_ELEMENT_TYPES
+            and element_type in TEMPLATE_GENERATED_ELEMENT_TYPES
         ):
-            cls._set_template_v2_element_value(
+            cls._set_template_element_value(
                 element,
                 content,
                 theme=theme,
@@ -3345,7 +3559,7 @@ class PresentationChatMemoryLayer:
 
         child = element.get("child")
         if isinstance(child, dict):
-            cls._apply_template_v2_element_content(
+            cls._apply_template_element_content(
                 child,
                 nested_content,
                 theme=theme,
@@ -3359,7 +3573,7 @@ class PresentationChatMemoryLayer:
                 for index, item in enumerate(value):
                     source_child = copy.deepcopy(children[min(index, len(children) - 1)])
                     if isinstance(source_child, dict):
-                        cls._apply_template_v2_element_content(
+                        cls._apply_template_element_content(
                             source_child,
                             item,
                             theme=theme,
@@ -3369,7 +3583,7 @@ class PresentationChatMemoryLayer:
                 element["children"] = next_children
                 return
 
-            cls._apply_template_v2_elements_content(
+            cls._apply_template_elements_content(
                 children,
                 nested_content,
                 theme=theme,
@@ -3377,7 +3591,7 @@ class PresentationChatMemoryLayer:
             )
 
     @classmethod
-    def _apply_template_v2_elements_content(
+    def _apply_template_elements_content(
         cls,
         elements: list[Any],
         content: Any,
@@ -3390,12 +3604,12 @@ class PresentationChatMemoryLayer:
         for element in elements:
             if not isinstance(element, dict):
                 continue
-            preferred_keys = cls._template_v2_repeated_sibling_content_keys(
+            preferred_keys = cls._template_repeated_sibling_content_keys(
                 element,
                 content_values,
                 name_occurrences,
             )
-            cls._apply_template_v2_element_content(
+            cls._apply_template_element_content(
                 element,
                 content,
                 theme=theme,
@@ -3404,7 +3618,7 @@ class PresentationChatMemoryLayer:
             )
 
     @staticmethod
-    def _template_v2_repeated_sibling_content_keys(
+    def _template_repeated_sibling_content_keys(
         element: dict[str, Any],
         content: dict[str, Any],
         name_occurrences: dict[str, int],
@@ -3422,7 +3636,7 @@ class PresentationChatMemoryLayer:
         return [suffixed_key] if suffixed_key in content else None
 
     @staticmethod
-    def _template_v2_content_value(
+    def _template_content_value(
         content: dict[str, Any],
         name: str,
         *,
@@ -3431,7 +3645,7 @@ class PresentationChatMemoryLayer:
         candidates: list[str] = []
         for candidate in [
             *(preferred_keys or []),
-            *PresentationChatMemoryLayer._template_v2_content_name_candidates(name),
+            *PresentationChatMemoryLayer._template_content_name_candidates(name),
         ]:
             if candidate and candidate not in candidates:
                 candidates.append(candidate)
@@ -3442,7 +3656,7 @@ class PresentationChatMemoryLayer:
         return False, None
 
     @staticmethod
-    def _template_v2_content_name_candidates(name: str) -> list[str]:
+    def _template_content_name_candidates(name: str) -> list[str]:
         without_numeric_token = re.sub(r"_\d+(?=_|$)", "", name)
         without_prefix = (
             without_numeric_token.split("_", 1)[1]
@@ -3457,7 +3671,7 @@ class PresentationChatMemoryLayer:
         return candidates
 
     @classmethod
-    def _set_template_v2_element_value(
+    def _set_template_element_value(
         cls,
         element: dict[str, Any],
         value: Any,
@@ -3466,10 +3680,10 @@ class PresentationChatMemoryLayer:
     ) -> None:
         element_type = element.get("type")
         if element_type == "text":
-            text = cls._template_v2_text_value(value)
+            text = cls._template_text_value(value)
             if text is None or text == "":
                 return
-            cls._set_template_v2_runs_text(element, text)
+            cls._set_template_runs_text(element, text)
             element["text"] = text
             return
 
@@ -3480,7 +3694,7 @@ class PresentationChatMemoryLayer:
             element["items"] = [
                 cls._replacement_runs_from_existing(
                     source_items[index] if index < len(source_items) else None,
-                    cls._template_v2_text_value(item) or "",
+                    cls._template_text_value(item) or "",
                     element.get("font"),
                 )
                 for index, item in enumerate(value)
@@ -3488,10 +3702,15 @@ class PresentationChatMemoryLayer:
             return
 
         if element_type == "image":
-            asset_url = cls._template_v2_asset_url(value)
+            asset_url = cls._template_asset_url(value)
             if asset_url:
+                from services.chat.slide_ui_helpers import (
+                    _normalize_generated_image_fit,
+                )
+
                 element["data"] = asset_url
-                prompt = cls._template_v2_asset_prompt(
+                _normalize_generated_image_fit(element, asset_url)
+                prompt = cls._template_asset_prompt(
                     value,
                     element.get("is_icon") is True,
                 )
@@ -3505,14 +3724,41 @@ class PresentationChatMemoryLayer:
             _apply_chart_content_update(element, value, theme)
             return
 
+        if element_type == "infographic" and isinstance(value, dict):
+            cls._set_template_infographic_content(element, value)
+            return
+
         if element_type == "table":
             if isinstance(value, dict):
-                cls._set_template_v2_table_content(element, value)
+                cls._set_template_table_content(element, value)
             elif isinstance(value, list):
-                cls._set_template_v2_table_rows(element, value)
+                cls._set_template_table_rows(element, value)
+
+    @staticmethod
+    def _set_template_infographic_content(
+        element: dict[str, Any],
+        value: dict[str, Any],
+    ) -> None:
+        data = value.get("data")
+        if isinstance(data, dict) and data.get("type") in {"progress_bar", "gauge"}:
+            next_data: dict[str, Any] = {"type": data["type"]}
+            for key in ("min_value", "max_value", "value"):
+                raw = data.get(key)
+                if isinstance(raw, (int, float)):
+                    next_data[key] = float(raw)
+            if {"min_value", "max_value", "value"}.issubset(next_data):
+                element["data"] = next_data
+
+        colors = value.get("colors")
+        if isinstance(colors, list):
+            element["colors"] = [
+                color
+                for color in colors
+                if isinstance(color, str) and color.strip()
+            ]
 
     @classmethod
-    def _set_template_v2_runs_text(cls, element: dict[str, Any], text: str) -> None:
+    def _set_template_runs_text(cls, element: dict[str, Any], text: str) -> None:
         element["runs"] = cls._replacement_runs_from_existing(
             element.get("runs"),
             text,
@@ -3520,7 +3766,7 @@ class PresentationChatMemoryLayer:
         )
 
     @staticmethod
-    def _template_v2_text_value(value: Any) -> str | None:
+    def _template_text_value(value: Any) -> str | None:
         if isinstance(value, str):
             return value
         if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -3551,7 +3797,7 @@ class PresentationChatMemoryLayer:
         return [run]
 
     @staticmethod
-    def _template_v2_asset_url(value: Any) -> str | None:
+    def _template_asset_url(value: Any) -> str | None:
         if isinstance(value, str):
             return normalize_slide_asset_url(value)
         if not isinstance(value, dict):
@@ -3578,7 +3824,7 @@ class PresentationChatMemoryLayer:
         return fallback_url
 
     @staticmethod
-    def _template_v2_asset_prompt(value: Any, is_icon: bool) -> str | None:
+    def _template_asset_prompt(value: Any, is_icon: bool) -> str | None:
         if not isinstance(value, dict):
             return None
 
@@ -3594,7 +3840,7 @@ class PresentationChatMemoryLayer:
         return None
 
     @classmethod
-    def _set_template_v2_table_content(
+    def _set_template_table_content(
         cls,
         element: dict[str, Any],
         value: dict[str, Any],
@@ -3606,7 +3852,7 @@ class PresentationChatMemoryLayer:
                 if isinstance(element.get("columns"), list)
                 else []
             )
-            element["columns"] = cls._template_v2_table_cells_from_values(
+            element["columns"] = cls._template_table_cells_from_values(
                 existing_columns,
                 columns,
                 element.get("font"),
@@ -3614,10 +3860,10 @@ class PresentationChatMemoryLayer:
 
         rows = value.get("rows")
         if isinstance(rows, list):
-            cls._set_template_v2_table_rows(element, rows)
+            cls._set_template_table_rows(element, rows)
 
     @classmethod
-    def _template_v2_table_cells_from_values(
+    def _template_table_cells_from_values(
         cls,
         existing_cells: list[Any],
         values: list[Any],
@@ -3646,7 +3892,7 @@ class PresentationChatMemoryLayer:
         return cells
 
     @classmethod
-    def _set_template_v2_table_rows(
+    def _set_template_table_rows(
         cls,
         element: dict[str, Any],
         rows: list[Any],
@@ -3665,7 +3911,7 @@ class PresentationChatMemoryLayer:
                 else []
             )
             next_rows.append(
-                cls._template_v2_table_cells_from_values(
+                cls._template_table_cells_from_values(
                     existing_row,
                     row,
                     element.get("font"),
@@ -3728,10 +3974,10 @@ class PresentationChatMemoryLayer:
             name = str(presentation.layout.get("name") or "").strip()
             if name:
                 return name
-            if PresentationChatMemoryLayer._is_template_v2_layout_payload(
+            if PresentationChatMemoryLayer._is_template_layout_payload(
                 presentation.layout
             ):
-                return "template-v2"
+                return "template"
         return fallback
 
     @staticmethod

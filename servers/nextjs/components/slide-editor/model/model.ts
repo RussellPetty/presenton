@@ -34,14 +34,16 @@ import {
   layoutFlowChildren,
 } from "@/components/slide-editor/layout/flowLayout";
 import { deleteLayoutChildFromArray } from "@/components/slide-editor/layout/layoutResize";
+export {
+  resizeComponentElementBounds,
+  resizeRawElementBounds,
+} from "@/components/slide-editor/model/component-resize";
 import type { TemplateV2SurfaceSelectedDetail } from "@/components/slide-editor/events/events";
 import { rawChartToEditorChart } from "@/components/slide-editor/model/chart-model";
 import {
   alignmentOffset,
   asRecord,
   clamp,
-  DECORATIVE_LINE_LENGTH,
-  DECORATIVE_LINE_THICKNESS,
   isRecord,
   normalizeId,
   readArray,
@@ -225,7 +227,7 @@ export function updateElementInUi(
     updater,
   );
   if (elements === currentElements) return sourceUi;
-  components[selection.componentIndex] = normalizeSingleChartWrapperComponent(
+  components[selection.componentIndex] = normalizeSingleElementWrapperComponent(
     { ...component, elements },
     selection,
   );
@@ -251,21 +253,20 @@ export function syncComponentHeightToElement(
     : null;
   if (!component || !element) return sourceUi;
 
-  const componentSize = readSize(component.size, {
-    width: STAGE_WIDTH,
-    height: STAGE_HEIGHT,
-  });
   const box = elementBox(element);
   const contentHeight = Math.max(1, box.y + box.height);
-  const height =
-    componentElements.length === 1
-      ? contentHeight
-      : Math.max(componentSize.height, contentHeight);
-  if (Math.abs(height - componentSize.height) < 0.01) return sourceUi;
+  const elementSize = readOptionalSize(element.size);
+  if (!elementSize || Math.abs(contentHeight - elementSize.height) < 0.01) {
+    return sourceUi;
+  }
 
   components[selection.componentIndex] = {
     ...component,
-    size: { ...componentSize, height },
+    elements: componentElements.map((item, index) =>
+      index === selection.elementPath[0] && isRecord(item)
+        ? { ...item, size: { ...elementSize, height: contentHeight } }
+        : item,
+    ),
   };
   return { ...sourceUi, components };
 }
@@ -283,15 +284,13 @@ export function normalizeSingleChartWrapperComponent(
 
   const childBox = elementBox(child);
   const componentPosition = readPoint(component.position);
+  const { size, ...componentWithoutSize } = component;
+  void size;
   return {
-    ...component,
+    ...componentWithoutSize,
     position: {
       x: componentPosition.x + childBox.x,
       y: componentPosition.y + childBox.y,
-    },
-    size: {
-      width: childBox.width,
-      height: childBox.height,
     },
     elements: [
       {
@@ -304,6 +303,46 @@ export function normalizeSingleChartWrapperComponent(
       },
     ],
   };
+}
+
+export function normalizeSingleVectorWrapperComponent(
+  component: RawComponent,
+  selection: ElementSelection,
+): RawComponent {
+  if (selection.elementPath.length !== 1) return component;
+  const elements = readArray(component.elements);
+  if (elements.length !== 1) return component;
+  const child = asRecord(elements[0]);
+  if (!child || !isVectorType(readString(child.type))) return component;
+  if ((readNumber(component.rotation) ?? 0) !== 0) return component;
+
+  const childBox = elementBox(child);
+  const componentPosition = readPoint(component.position);
+  const { size, ...componentWithoutSize } = component;
+  void size;
+  return {
+    ...componentWithoutSize,
+    position: {
+      x: componentPosition.x + childBox.x,
+      y: componentPosition.y + childBox.y,
+    },
+    elements: [
+      translateVectorElement(child, {
+        x: -childBox.x,
+        y: -childBox.y,
+      }),
+    ],
+  };
+}
+
+function normalizeSingleElementWrapperComponent(
+  component: RawComponent,
+  selection: ElementSelection,
+): RawComponent {
+  return normalizeSingleVectorWrapperComponent(
+    normalizeSingleChartWrapperComponent(component, selection),
+    selection,
+  );
 }
 
 export function updateElementArray(
@@ -383,10 +422,11 @@ export function resizeComponent(
   next: Box & { scaleX: number; scaleY: number; rotation?: number },
 ) {
   const fontScale = fontScaleFromResize(next.scaleX, next.scaleY);
+  const { size, ...componentWithoutSize } = component;
+  void size;
   return {
-    ...component,
+    ...componentWithoutSize,
     position: { x: next.x, y: next.y },
-    size: { width: next.width, height: next.height },
     rotation: next.rotation ?? readNumber(component.rotation) ?? 0,
     elements: scaleRawElements(
       readArray(component.elements),
@@ -401,62 +441,13 @@ export function resizeComponentFrame(
   component: RawComponent,
   next: Box & { rotation?: number },
 ) {
+  const { size, ...componentWithoutSize } = component;
+  void size;
   return {
-    ...component,
+    ...componentWithoutSize,
     position: { x: next.x, y: next.y },
-    size: { width: next.width, height: next.height },
     rotation: next.rotation ?? readNumber(component.rotation) ?? 0,
   };
-}
-
-export function resizeComponentElementBounds(
-  component: RawComponent,
-  next: Box & { scaleX: number; scaleY: number; rotation?: number },
-) {
-  return {
-    ...component,
-    position: { x: next.x, y: next.y },
-    size: { width: next.width, height: next.height },
-    rotation: next.rotation ?? readNumber(component.rotation) ?? 0,
-    elements: resizeRawElementBounds(
-      readArray(component.elements),
-      next.scaleX,
-      next.scaleY,
-    ),
-  };
-}
-
-export function resizeRawElementBounds(
-  elements: unknown[],
-  scaleX: number,
-  scaleY: number,
-): unknown[] {
-  const safeScaleX = Number.isFinite(scaleX) && scaleX > 0 ? scaleX : 1;
-  const safeScaleY = Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1;
-
-  return elements.map((value) => {
-    const element = asRecord(value);
-    if (!element) return value;
-    const explicitSize = readOptionalSize(element.size);
-    const childInfo = childArrayInfo(element);
-    const resizedChildren = childInfo
-      ? resizeRawElementBounds(childInfo.items, safeScaleX, safeScaleY)
-      : null;
-    return {
-      ...element,
-      ...(explicitSize
-        ? {
-            size: {
-              width: Math.max(1, explicitSize.width * safeScaleX),
-              height: Math.max(1, explicitSize.height * safeScaleY),
-            },
-          }
-        : {}),
-      ...(childInfo && resizedChildren
-        ? withUpdatedChildItems({}, childInfo, resizedChildren)
-        : {}),
-    };
-  });
 }
 
 export function scaleRawElements(
@@ -470,6 +461,10 @@ export function scaleRawElements(
     if (!element) return value;
     const box = elementBox(element);
     const explicitSize = readOptionalSize(element.size);
+    const type = readString(element.type);
+    const polygonPoints = isVectorType(type) ? readArray(element.points) : [];
+    const radiusScale = Math.min(Math.abs(scaleX), Math.abs(scaleY));
+    const cornerRadii = readArray(element.corner_radii ?? element.cornerRadii);
     const childInfo = childArrayInfo(element);
     const scaledChildren = childInfo
       ? scaleRawElements(childInfo.items, scaleX, scaleY, fontScale)
@@ -484,6 +479,26 @@ export function scaleRawElements(
               width: Math.max(1, explicitSize.width * scaleX),
               height: Math.max(1, explicitSize.height * scaleY),
             },
+          }
+        : {}),
+      ...(polygonPoints.length > 0
+        ? {
+            points: polygonPoints.map((point) => {
+              const record = asRecord(point);
+              if (!record) return point;
+              return {
+                ...record,
+                x: (readNumber(record.x) ?? 0) * scaleX,
+                y: (readNumber(record.y) ?? 0) * scaleY,
+              };
+            }),
+          }
+        : {}),
+      ...(cornerRadii.length > 0
+        ? {
+            corner_radii: cornerRadii.map((value) =>
+              Math.max(0, (readNumber(value) ?? 0) * radiusScale),
+            ),
           }
         : {}),
       ...(childInfo && scaledChildren
@@ -532,6 +547,44 @@ export function clampRelativePosition(pos: Point, box: Box, parentSize: Size): P
     x: clamp(pos.x, 0, Math.max(0, parentSize.width - box.width)),
     y: clamp(pos.y, 0, Math.max(0, parentSize.height - box.height)),
   };
+}
+
+export function anchoredFramePositionForResize(
+  box: Box,
+  nextSize: Size,
+  anchor: string | null | undefined,
+  fallback: Point,
+  bounds: Size,
+): Point {
+  return clampRelativePosition(
+    anchoredFramePositionForResizeUnclamped(box, nextSize, anchor, fallback),
+    { ...box, ...nextSize },
+    bounds,
+  );
+}
+
+export function anchoredFramePositionForResizeUnclamped(
+  box: Box,
+  nextSize: Size,
+  anchor: string | null | undefined,
+  fallback: Point,
+): Point {
+  let x = fallback.x;
+  let y = fallback.y;
+
+  if (anchor?.includes("left")) {
+    x = box.x + box.width - nextSize.width;
+  } else if (anchor?.includes("right")) {
+    x = box.x;
+  }
+
+  if (anchor?.includes("top")) {
+    y = box.y + box.height - nextSize.height;
+  } else if (anchor?.includes("bottom")) {
+    y = box.y;
+  }
+
+  return { x, y };
 }
 
 export function layoutChildren(
@@ -806,7 +859,7 @@ export function absoluteElementLocalFrame(
   let parentRenderBox: Box = {
     x: 0,
     y: 0,
-    ...readSize(component.size, { width: STAGE_WIDTH, height: STAGE_HEIGHT }),
+    ...componentContentSize(component),
   };
   let x = 0;
   let y = 0;
@@ -851,7 +904,6 @@ export function renderedLocalBoxForElementSelection(
 export function rootElementsComponent(ui: RawUi): RawComponent {
   return {
     position: { x: 0, y: 0 },
-    size: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
     elements: readArray(ui.elements),
   };
 }
@@ -864,7 +916,7 @@ export function absoluteElementBox(component: RawComponent, path: number[]) {
   let parentRenderBox: Box = {
     x: 0,
     y: 0,
-    ...readSize(component.size, { width: STAGE_WIDTH, height: STAGE_HEIGHT }),
+    ...componentContentSize(component),
   };
   let x = 0;
   let y = 0;
@@ -899,7 +951,7 @@ export function localElementBox(component: RawComponent, path: number[]) {
   let parentRenderBox: Box = {
     x: 0,
     y: 0,
-    ...readSize(component.size, { width: STAGE_WIDTH, height: STAGE_HEIGHT }),
+    ...componentContentSize(component),
   };
   for (let depth = 0; depth < path.length; depth += 1) {
     const index = path[depth];
@@ -978,7 +1030,11 @@ export function selectionWithComponentToggle(
   }
 
   const componentIndex = nextSelection.componentIndex;
-  const currentIndexes = componentIndexesForSelection(currentSelection);
+  const currentIndexes =
+    currentSelection?.kind === "element" &&
+    currentSelection.componentIndex !== ROOT_ELEMENTS_COMPONENT_INDEX
+      ? [currentSelection.componentIndex]
+      : componentIndexesForSelection(currentSelection);
   const nextIndexes = currentIndexes.includes(componentIndex)
     ? currentIndexes.filter((index) => index !== componentIndex)
     : [...currentIndexes, componentIndex];
@@ -1002,6 +1058,25 @@ export function selectionForComponentIndexes(indexes: number[]): Selection {
     return { kind: "component", componentIndex: uniqueIndexes[0] };
   }
   return { kind: "multi-component", componentIndexes: uniqueIndexes };
+}
+
+export function selectionForInsertedComponent(
+  ui: RawUi,
+  componentIndex: number,
+): Selection {
+  const safeComponentIndex = Math.max(0, componentIndex);
+  const component = asRecord(readArray(ui.components)[safeComponentIndex]);
+  const elements = readArray(component?.elements).filter(isRecord) as RawElement[];
+
+  if (elements.length === 1 && isVectorLineElement(elements[0])) {
+    return {
+      kind: "element",
+      componentIndex: safeComponentIndex,
+      elementPath: [0],
+    };
+  }
+
+  return { kind: "component", componentIndex: safeComponentIndex };
 }
 
 export function componentForClipboardSelection(
@@ -1058,7 +1133,6 @@ export function rootElementClipboardComponent(element: RawElement, box: Box): Ra
     id: `${normalizeId(label)}_component`,
     description: label,
     position: { x: box.x, y: box.y },
-    size: { width: box.width, height: box.height },
     elements: [
       {
         ...element,
@@ -1268,18 +1342,380 @@ export function rawElementKey(element: RawElement, index: number) {
 }
 
 export function componentBox(component: RawComponent): Box {
+  const position = readPoint(component.position);
+  const size = componentContentSize(component);
   return {
-    ...readPoint(component.position),
-    ...readSize(component.size, { width: STAGE_WIDTH, height: STAGE_HEIGHT }),
+    x: position.x,
+    y: position.y,
+    width: size.width,
+    height: size.height,
   };
 }
 
-export function elementBox(element: RawElement): Box {
-  const box = {
-    ...readPoint(element.position),
-    ...elementSize(element),
+export function componentContentSize(component: RawComponent): Size {
+  const elements = readArray(component.elements);
+  if (elements.length > 0) return childrenBounds(elements);
+  return readSize(component.size, { width: STAGE_WIDTH, height: STAGE_HEIGHT });
+}
+
+export function lineStrokeWidth(element: RawElement): number {
+  const stroke = asRecord(element.stroke);
+  return Math.max(0, readNumber(stroke?.width) ?? 1);
+}
+
+export function isVectorType(type: string | null | undefined) {
+  return type === "vector";
+}
+
+function readPointArray(value: unknown): Point[] {
+  return readArray(value)
+    .map((item) => {
+      const point = asRecord(item);
+      const x = readNumber(point?.x);
+      const y = readNumber(point?.y);
+      return x != null && y != null ? { x, y } : null;
+    })
+    .filter((point): point is Point => point != null);
+}
+
+export type VectorVertexEntry = {
+  index: number;
+  point: Point;
+};
+
+export function vectorVertexEntriesForElement(element: RawElement): VectorVertexEntry[] {
+  return readArray(element.points)
+    .map((item, index) => {
+      const point = asRecord(item);
+      const x = readNumber(point?.x);
+      const y = readNumber(point?.y);
+      return x != null && y != null ? { index, point: { x, y } } : null;
+    })
+    .filter((entry): entry is VectorVertexEntry => entry != null);
+}
+
+export function isVectorLineElement(element: RawElement | null | undefined) {
+  if (!element || !isVectorType(readString(element.type))) return false;
+  if (vectorShapeForElement(element) === "ellipse") return false;
+  const vertices = vectorVertexEntriesForElement(element);
+  if (vertices.length !== 2) return false;
+  return !(readBoolean(element.closed) ?? false);
+}
+
+export function vectorShapeForElement(element: RawElement): "polygon" | "ellipse" {
+  return readString(element.shape) === "ellipse" ? "ellipse" : "polygon";
+}
+
+function translatePointArray(value: unknown, delta: Point) {
+  return readArray(value).map((item) => {
+    const point = asRecord(item);
+    const x = readNumber(point?.x);
+    const y = readNumber(point?.y);
+    if (x == null || y == null) return item;
+    return { ...point, x: x + delta.x, y: y + delta.y };
+  });
+}
+
+function insertArrayItem<T>(value: unknown, index: number, item: T) {
+  if (!Array.isArray(value)) return null;
+  const next = [...value];
+  next.splice(index, 0, item);
+  return next;
+}
+
+function removeArrayItem(value: unknown, index: number) {
+  if (!Array.isArray(value) || index < 0 || index >= value.length) return null;
+  const next = [...value];
+  next.splice(index, 1);
+  return next;
+}
+
+function vectorClosedForRawPoints(element: RawElement) {
+  const explicit = readBoolean(element.closed);
+  if (explicit != null) return explicit;
+  return vectorVertexEntriesForElement(element).length > 2;
+}
+
+export function updateVectorVertexPoint(
+  element: RawElement,
+  index: number,
+  point: Point,
+): RawElement {
+  const points = readArray(element.points);
+  if (index < 0 || index >= points.length) return element;
+  return {
+    ...element,
+    points: points.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+      const record = asRecord(item);
+      return { ...(record ?? {}), x: point.x, y: point.y };
+    }),
   };
+}
+
+export function insertVectorPointInElement(
+  element: RawElement,
+  afterIndex: number,
+  point: Point,
+): RawElement {
+  const points = readArray(element.points);
+  const insertionIndex = Math.max(0, Math.min(points.length, afterIndex + 1));
+  const nextPoints = [...points];
+  nextPoints.splice(insertionIndex, 0, { x: point.x, y: point.y });
+
+  const nextCornerRadii = insertArrayItem(
+    element.corner_radii ?? element.cornerRadii,
+    insertionIndex,
+    0,
+  );
+  const next = {
+    ...element,
+    points: nextPoints,
+    ...(nextCornerRadii ? { corner_radii: nextCornerRadii } : {}),
+  };
+  return next;
+}
+
+export function removeVectorPointFromElement(
+  element: RawElement,
+  index: number,
+): RawElement {
+  const vertices = vectorVertexEntriesForElement(element);
+  const minimumPoints = vectorClosedForRawPoints(element) ? 3 : 2;
+  if (vertices.length <= minimumPoints) return element;
+
+  const points = readArray(element.points);
+  if (index < 0 || index >= points.length) return element;
+  const nextPoints = removeArrayItem(points, index);
+  if (!nextPoints) return element;
+
+  const nextCornerRadii = removeArrayItem(
+    element.corner_radii ?? element.cornerRadii,
+    index,
+  );
+  const next = {
+    ...element,
+    points: nextPoints,
+    ...(nextCornerRadii ? { corner_radii: nextCornerRadii } : {}),
+  };
+  return next;
+}
+
+export function translateVectorElement(
+  element: RawElement,
+  delta: Point,
+): RawElement {
+  if (Math.abs(delta.x) < 0.01 && Math.abs(delta.y) < 0.01) return element;
+  return {
+    ...element,
+    points: translatePointArray(element.points, delta),
+  };
+}
+
+function polygonSourcePointsForElement(element: RawElement): Point[] {
+  return readPointArray(element.points);
+}
+
+function pointAt(points: Point[], index: number) {
+  return points[((index % points.length) + points.length) % points.length];
+}
+
+function lerpPoint(start: Point, end: Point, t: number): Point {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+  };
+}
+
+function distance(a: Point, b: Point) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function normalizedCornerRadii(element: RawElement, points: Point[]): number[] {
+  const raw = readArray(element.corner_radii ?? element.cornerRadii);
+  if (raw.length === 0 || points.length < 3) return [];
+  return points.map((_, index) => Math.max(0, readNumber(raw[index]) ?? 0));
+}
+
+function roundedPolygonPoints(points: Point[], radii: number[], segments = 8): Point[] {
+  if (points.length < 3 || radii.length === 0) return points;
+  const rounded: Point[] = [];
+  points.forEach((point, index) => {
+    const radius = radii[index] ?? 0;
+    const previous = pointAt(points, index - 1);
+    const next = pointAt(points, index + 1);
+    const prevDistance = distance(point, previous);
+    const nextDistance = distance(point, next);
+    const safeRadius = Math.min(radius, prevDistance / 2, nextDistance / 2);
+    if (safeRadius <= 0) {
+      rounded.push(point);
+      return;
+    }
+
+    const from = lerpPoint(point, previous, safeRadius / prevDistance);
+    const to = lerpPoint(point, next, safeRadius / nextDistance);
+    rounded.push(from);
+    for (let step = 1; step < segments; step += 1) {
+      const t = step / segments;
+      rounded.push({
+        x: (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * point.x + t * t * to.x,
+        y: (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * point.y + t * t * to.y,
+      });
+    }
+    rounded.push(to);
+  });
+  return rounded;
+}
+
+function curveSettings(element: RawElement) {
+  const curve = asRecord(element.curve);
+  if (!curve) return null;
+  const rawType = readString(curve.type)?.trim().toLowerCase();
+  if (rawType !== "smooth") return null;
+  return {
+    type: "smooth",
+    tension: clamp(readNumber(curve.tension) ?? 0.4, 0, 1),
+    segments: Math.max(1, Math.min(96, Math.round(readNumber(curve.segments) ?? 16))),
+  };
+}
+
+function hermitePoint(
+  start: Point,
+  end: Point,
+  startTangent: Point,
+  endTangent: Point,
+  t: number,
+): Point {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const h00 = 2 * t3 - 3 * t2 + 1;
+  const h10 = t3 - 2 * t2 + t;
+  const h01 = -2 * t3 + 3 * t2;
+  const h11 = t3 - t2;
+  return {
+    x:
+      h00 * start.x +
+      h10 * startTangent.x +
+      h01 * end.x +
+      h11 * endTangent.x,
+    y:
+      h00 * start.y +
+      h10 * startTangent.y +
+      h01 * end.y +
+      h11 * endTangent.y,
+  };
+}
+
+function sampleSmoothCurve(
+  points: Point[],
+  closed: boolean,
+  tension: number,
+  segments: number,
+): Point[] {
+  if (points.length < 3 || tension <= 0) return points;
+  const sampled: Point[] = [];
+  const segmentCount = closed ? points.length : points.length - 1;
+  for (let index = 0; index < segmentCount; index += 1) {
+    const p0 = closed ? pointAt(points, index - 1) : points[Math.max(0, index - 1)];
+    const p1 = pointAt(points, index);
+    const p2 = pointAt(points, index + 1);
+    const p3 = closed
+      ? pointAt(points, index + 2)
+      : points[Math.min(points.length - 1, index + 2)];
+    if (index === 0) sampled.push(p1);
+    const tangentScale = tension * 0.5;
+    const startTangent = {
+      x: (p2.x - p0.x) * tangentScale,
+      y: (p2.y - p0.y) * tangentScale,
+    };
+    const endTangent = {
+      x: (p3.x - p1.x) * tangentScale,
+      y: (p3.y - p1.y) * tangentScale,
+    };
+    for (let step = 1; step <= segments; step += 1) {
+      sampled.push(
+        hermitePoint(p1, p2, startTangent, endTangent, step / segments),
+      );
+    }
+  }
+  return sampled;
+}
+
+export function polygonPointsForElement(element: RawElement): Point[] {
+  const points = polygonSourcePointsForElement(element);
+  if (isVectorType(readString(element.type)) && vectorShapeForElement(element) === "ellipse") {
+    return points;
+  }
+  const closed = polygonClosedForElement(element, points);
+  const rounded = closed
+    ? roundedPolygonPoints(points, normalizedCornerRadii(element, points))
+    : points;
+  const curve = curveSettings(element);
+  if (!curve) return rounded;
+  if (curve.type === "smooth") {
+    return sampleSmoothCurve(rounded, closed, curve.tension, curve.segments);
+  }
+  return rounded;
+}
+
+export function polygonClosedForElement(
+  element: RawElement,
+  points = polygonPointsForElement(element),
+): boolean {
+  if (isVectorType(readString(element.type)) && vectorShapeForElement(element) === "ellipse") {
+    return true;
+  }
+  const explicit = readBoolean(element.closed);
+  if (explicit != null) return explicit;
+  return points.length > 2;
+}
+
+export function polygonRenderBox(element: RawElement): Box {
+  const points =
+    isVectorType(readString(element.type)) && vectorShapeForElement(element) === "ellipse"
+      ? polygonSourcePointsForElement(element)
+      : polygonPointsForElement(element);
+  if (points.length === 0) {
+    return {
+      ...readPoint(element.position),
+      width: 1,
+      height: 1,
+    };
+  }
+
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const stroke = asRecord(element.stroke);
+  const strokeWidthValue = stroke ? lineStrokeWidth(element) : 1;
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(maxX - minX, strokeWidthValue, 1),
+    height: Math.max(maxY - minY, strokeWidthValue, 1),
+  };
+}
+
+export function polygonLocalPointsForElement(
+  element: RawElement,
+  originBox = polygonRenderBox(element),
+): number[] {
+  return polygonPointsForElement(element).flatMap((point) => [
+    point.x - originBox.x,
+    point.y - originBox.y,
+  ]);
+}
+
+export function elementBox(element: RawElement): Box {
   const type = readString(element.type);
+  const box =
+    isVectorType(type)
+      ? polygonRenderBox(element)
+      : {
+          ...readPoint(element.position),
+          ...elementSize(element),
+        };
   if (type === "text") {
     return textVisualLocalBox(element, box);
   }
@@ -1294,10 +1730,15 @@ export function isManualPositioned(element: RawElement) {
 }
 
 export function elementSize(element: RawElement, fallback?: Size): Size {
+  const type = readString(element.type);
+  if (isVectorType(type)) {
+    const box = polygonRenderBox(element);
+    return { width: box.width, height: box.height };
+  }
+
   const explicit = readOptionalSize(element.size);
   if (explicit) return explicit;
 
-  const type = readString(element.type);
   if (type === "group") {
     return childrenBounds(childArrayInfo(element)?.items ?? []);
   }
@@ -1328,18 +1769,6 @@ export function elementSize(element: RawElement, fallback?: Size): Size {
     return {
       width: Math.max(1, width),
       height: Math.max(1, estimateTextHeight(text, font, width)),
-    };
-  }
-  if (type === "line") {
-    return {
-      width: fallback?.width ?? DECORATIVE_LINE_LENGTH,
-      height: fallback?.height ?? DECORATIVE_LINE_THICKNESS,
-    };
-  }
-  if (type === "rectangle" || type === "ellipse") {
-    return {
-      width: fallback?.width ?? DECORATIVE_LINE_LENGTH,
-      height: fallback?.height ?? DECORATIVE_LINE_LENGTH,
     };
   }
   if (
@@ -1409,7 +1838,6 @@ export function shouldClipElementChildren(
 
 export function isBoxVisualType(type: string | null) {
   return (
-    type === "rectangle" ||
     type === "container" ||
     type === "flex" ||
     type === "grid" ||
@@ -1594,6 +2022,7 @@ export function mergeEditorToolbarElement(
   renderedBox: Box,
 ): RawElement {
   const editor = editorElement as unknown as UnknownRecord;
+  const type = readString(current.type);
   const currentPosition = readPoint(current.position);
   const editorPosition = asRecord(editor.position);
   const editorSize = asRecord(editor.size);
@@ -1619,6 +2048,36 @@ export function mergeEditorToolbarElement(
       editorHeight ?? renderedBox.height,
     ),
   };
+  if (isVectorType(type)) {
+    const currentBox = polygonRenderBox(current);
+    const localFramePosition = {
+      x: currentBox.x + ((editorX ?? renderedBox.x) - renderedBox.x),
+      y: currentBox.y + ((editorY ?? renderedBox.y) - renderedBox.y),
+    };
+    const scaleX = renderedBox.width > 0 ? nextSize.width / renderedBox.width : 1;
+    const scaleY = renderedBox.height > 0 ? nextSize.height / renderedBox.height : 1;
+    const editable: RawElement = {
+      ...current,
+      ...editor,
+      stroke: editorStrokeToRaw(editor.stroke, current.stroke),
+    };
+    const next = polygonElementFromFrame(
+      editable,
+      localFramePosition,
+      scaleX,
+      scaleY,
+    );
+    if (
+      Math.abs(localFramePosition.x - currentBox.x) > 0.01 ||
+      Math.abs(localFramePosition.y - currentBox.y) > 0.01 ||
+      Math.abs(nextSize.width - currentBox.width) > 0.01 ||
+      Math.abs(nextSize.height - currentBox.height) > 0.01
+    ) {
+      next.__presenton_manual_position = true;
+    }
+    return applyEditorStyleRemovals(next, editor);
+  }
+
   const merged: RawElement = {
     ...current,
     ...editor,
@@ -1665,7 +2124,20 @@ export function mergeEditorToolbarElement(
   ) {
     merged.__presenton_manual_position = true;
   }
-  return merged;
+  return applyEditorStyleRemovals(merged, editor);
+}
+
+function applyEditorStyleRemovals(
+  element: RawElement,
+  editor: UnknownRecord,
+): RawElement {
+  const next = { ...element };
+  for (const key of ["fill", "stroke", "shadow"] as const) {
+    if (Object.prototype.hasOwnProperty.call(editor, key) && editor[key] === null) {
+      delete next[key];
+    }
+  }
+  return next;
 }
 
 export function rawStrokeForEditor(value: unknown) {
@@ -1675,6 +2147,7 @@ export function rawStrokeForEditor(value: unknown) {
 }
 
 export function editorStrokeToRaw(value: unknown, fallback: unknown) {
+  if (value === null) return null;
   const stroke = asRecord(value);
   if (!stroke) return fallback;
   return {
@@ -1746,20 +2219,55 @@ export function editorTableCellToRaw(value: unknown, fallback: unknown) {
   };
 }
 
-export function linePoints(width: number, height: number, strokeWidthValue: number) {
-  if (height <= Math.max(2, strokeWidthValue * 2)) {
-    return [0, height / 2, width, height / 2];
-  }
-  if (width <= Math.max(2, strokeWidthValue * 2)) {
-    return [width / 2, 0, width / 2, height];
-  }
-  return [0, 0, width, height];
+export function polygonElementFromFrame(
+  element: RawElement,
+  framePosition: Point,
+  scaleX: number,
+  scaleY: number,
+): RawElement {
+  const points = polygonSourcePointsForElement(element);
+  const box = polygonRenderBox(element);
+  const safeScaleX = Number.isFinite(scaleX) ? Math.abs(scaleX) : 1;
+  const safeScaleY = Number.isFinite(scaleY) ? Math.abs(scaleY) : 1;
+  const radiusScale = Math.min(safeScaleX, safeScaleY);
+  const transformPoint = (point: Point) => ({
+    x: framePosition.x + (point.x - box.x) * safeScaleX,
+    y: framePosition.y + (point.y - box.y) * safeScaleY,
+  });
+  const curve = asRecord(element.curve);
+  const curveType = readString(curve?.type)?.trim().toLowerCase();
+  const cornerRadii = readArray(element.corner_radii ?? element.cornerRadii)
+    .map(readNumber)
+    .filter((value): value is number => value != null)
+    .map((value) => Math.max(0, value * radiusScale));
+  const { position, size, border_radius, borderRadius, ...rest } = element;
+  void position;
+  void size;
+  void border_radius;
+  void borderRadius;
+  return {
+    ...rest,
+    type: "vector",
+    points: points.map(transformPoint),
+    ...(cornerRadii.length > 0 ? { corner_radii: cornerRadii } : {}),
+    ...(curve && curveType === "smooth"
+      ? {
+          curve: {
+            ...curve,
+            type: "smooth",
+          },
+        }
+      : {}),
+  };
 }
 
 export function valueProgress(element: RawElement) {
-  const min = readNumber(element.min_value) ?? readNumber(element.minValue) ?? 0;
-  const max = readNumber(element.max_value) ?? readNumber(element.maxValue) ?? 100;
-  const value = readNumber(element.value) ?? min;
+  const data = asRecord(element.data);
+  const min =
+    readNumber(data?.min_value) ?? 0;
+  const max =
+    readNumber(data?.max_value) ?? 100;
+  const value = readNumber(data?.value) ?? min;
   const range = max - min;
   if (!Number.isFinite(range) || range === 0) return 0;
   return clamp((value - min) / range, 0, 1);

@@ -27,11 +27,6 @@ import type { ComponentLayerAction } from "@/components/slide-editor/selection/l
 import { ComponentActionsMenu } from "@/components/slide-editor/selection/ComponentActionsMenu";
 import { TemplateV2ContainerToolbarControls } from "@/components/slide-editor/layout/ContainerToolbarControls";
 import {
-  isTemplateV2LineToolbarElement,
-  TemplateV2LineToolbarControls,
-  type TemplateV2LineToolbarElement,
-} from "@/components/slide-editor/layout/LineToolbarControls";
-import {
   isTemplateV2InfographicToolbarElement,
   TemplateV2InfographicToolbarControls,
   type TemplateV2InfographicToolbarElement,
@@ -49,7 +44,6 @@ type LayoutElementType =
   | "flex"
   | "grid"
   | "group"
-  | "line"
   | "list-view"
   | "grid-view";
 type PanelId =
@@ -59,10 +53,6 @@ type PanelId =
   | "radius"
   | "padding"
   | "shadow"
-  | "line-width"
-  | "line-color"
-  | "line-style"
-  | "line-opacity"
   | "chart-colors"
   | "infographic-colors"
   | "infographic-range"
@@ -82,7 +72,6 @@ export type TemplateV2LayoutElement = RawRecord & {
 
 export type TemplateV2ToolbarElement =
   | TemplateV2LayoutElement
-  | TemplateV2LineToolbarElement
   | TemplateV2InfographicToolbarElement
   | ChartSlideElement
   | TableSlideElement;
@@ -326,9 +315,6 @@ export function TemplateV2LayoutToolbar({
   const hasContainerControls = Boolean(
     element && onChange && layoutType === "container",
   );
-  const hasLineControls = Boolean(
-    element && onChange && isTemplateV2LineToolbarElement(element),
-  );
   const hasInfographicControls = Boolean(
     element && onChange && isTemplateV2InfographicToolbarElement(element),
   );
@@ -341,7 +327,6 @@ export function TemplateV2LayoutToolbar({
   const hasLayoutControls =
     hasFlowControls ||
     hasContainerControls ||
-    hasLineControls ||
     hasInfographicControls;
   const hasToolbarControls =
     hasLayoutControls || hasChartControls || hasTableControls;
@@ -392,16 +377,6 @@ export function TemplateV2LayoutToolbar({
         ) : hasContainerControls && element && onChange && isTemplateV2LayoutElement(element) ? (
           <TemplateV2ContainerToolbarControls
             box={box}
-            element={element}
-            onChange={onChange}
-            openPanel={openPanel}
-            onToggle={togglePanel}
-          />
-        ) : hasLineControls &&
-          element &&
-          onChange &&
-          isTemplateV2LineToolbarElement(element) ? (
-          <TemplateV2LineToolbarControls
             element={element}
             onChange={onChange}
             openPanel={openPanel}

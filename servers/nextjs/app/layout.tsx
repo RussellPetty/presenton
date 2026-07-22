@@ -86,6 +86,9 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="preload" href="/Presenton_Splash.png" as="image" />
+      </head>
       <body
         className={`${inter.variable} ${syne.variable} ${manrope.variable} ${unbounded.variable} antialiased`}
       >

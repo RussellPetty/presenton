@@ -9,6 +9,7 @@ import React, {
 import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { RootState } from "@/store/store";
+import { cn } from "@/lib/utils";
 import "../../utils/prism-languages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
@@ -18,7 +19,7 @@ import SlideContent from "./SlideContent";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Sparkles, X } from "lucide-react";
 import {
   usePresentationStreaming,
   usePresentationData,
@@ -29,9 +30,12 @@ import { PresentationPageProps } from "../types";
 import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
 
 import { replaceSlidesWithBlankFallback } from "@/store/slices/presentationGeneration";
+import { addToHistory } from "@/store/slices/undoRedoSlice";
 import {
   createBlankPresentationSlide,
   getPresentationTemplateId,
+  isTemplateV2Slide,
+  isTemplateV2TemplateId,
 } from "../../_shared/blank-slide";
 import PresentationHeader from "./PresentationHeader";
 import PresentationActions from "./PresentationActions";
@@ -56,13 +60,7 @@ function hasTemplateV2Layouts(layout: unknown): boolean {
 function hasTemplateV2Slides(slides: unknown): boolean {
   return (
     Array.isArray(slides) &&
-    slides.some(
-      (slide) =>
-        slide &&
-        typeof slide === "object" &&
-        typeof (slide as any).layout_group === "string" &&
-        (slide as any).layout_group.startsWith("template-v2")
-    )
+    slides.some((slide) => isTemplateV2Slide(slide))
   );
 }
 
@@ -79,7 +77,7 @@ function collectTemplateV2Ids(value: unknown): string[] {
     ["layout_group", "layout", "template_id", "templateV2Id", "template_v2_id", "id"].forEach(
       (key) => {
         const value = record[key];
-        if (typeof value === "string" && value.startsWith("template-v2")) {
+        if (isTemplateV2TemplateId(value)) {
           ids.add(value);
         }
       }
@@ -129,21 +127,6 @@ const IDLE_LOADING_STATE: LoadingState = {
   extra_info: "",
 };
 
-function useMinWidthQuery(minWidth: number) {
-  const [matches, setMatches] = useState(false);
-
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia(`(min-width: ${minWidth}px)`);
-    const updateMatches = () => setMatches(mediaQuery.matches);
-    updateMatches();
-    mediaQuery.addEventListener("change", updateMatches);
-    return () => mediaQuery.removeEventListener("change", updateMatches);
-  }, [minWidth]);
-
-  return matches;
-}
-
 const PresentationPage: React.FC<PresentationPageProps> = ({
   presentation_id,
 }) => {
@@ -175,9 +158,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const [templatePromptSlideIds, setTemplatePromptSlideIds] = useState<
     Set<string>
   >(() => new Set());
+  const [isMobileAssistantOpen, setIsMobileAssistantOpen] = useState(false);
   const [error, setError] = useState(false);
-  const isLargeEditingViewport = useMinWidthQuery(1280);
   const slidesScrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const mobileAssistantTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileAssistantCloseRef = useRef<HTMLButtonElement | null>(null);
   const templateV2EditorLoadedKeyRef = useRef<string | null>(null);
   const router = useRouter();
   const shouldPreloadTemplateV2Presentation =
@@ -186,11 +171,52 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
+  const presentationDataRef = useRef(presentationData);
   const slidesLength = presentationData?.slides?.length ?? 0;
   const isTemplateV2Presentation =
+    presentationData?.version === "v2-standard" ||
     hasTemplateV2Layouts(presentationData?.layout) ||
     hasTemplateV2Slides(presentationData?.slides);
-  const editingDisabled = isStreaming === true || !isLargeEditingViewport;
+  const editingDisabled = isStreaming === true;
+
+  useEffect(() => {
+    presentationDataRef.current = presentationData;
+  }, [presentationData]);
+
+  const closeMobileAssistant = useCallback(() => {
+    setIsMobileAssistantOpen(false);
+    window.requestAnimationFrame(() => {
+      mobileAssistantTriggerRef.current?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileAssistantOpen) return;
+    mobileAssistantCloseRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMobileAssistant();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeMobileAssistant, isMobileAssistantOpen]);
+
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1280px)");
+    const closeDrawerOnDesktop = () => {
+      if (desktopQuery.matches) {
+        setIsMobileAssistantOpen(false);
+      }
+    };
+
+    closeDrawerOnDesktop();
+    desktopQuery.addEventListener("change", closeDrawerOnDesktop);
+    return () =>
+      desktopQuery.removeEventListener("change", closeDrawerOnDesktop);
+  }, []);
 
   // Auto-save functionality.
   // Pause while the chat assistant is mutating the deck: the assistant edits
@@ -198,7 +224,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   // pre-edit Redux state would overwrite (revert) the assistant's change.
   const { isSaving } = useAutoSave({
     debounceMs: 2000,
-    enabled: !!presentationData && !isStreaming && !isChatSending,
+    enabled:
+      !!presentationData &&
+      !isStreaming &&
+      !isChatSending &&
+      !isChatMutating,
   });
 
   // Custom hooks
@@ -384,9 +414,30 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     });
   }, []);
 
-  const handlePresentationChanged = useCallback(() => {
-    return fetchUserSlides({ clearHistory: false });
-  }, [fetchUserSlides]);
+  const handlePresentationChanged = useCallback(async () => {
+    const currentPresentationData = presentationDataRef.current;
+    if (currentPresentationData?.slides) {
+      dispatch(
+        addToHistory({
+          slides: currentPresentationData.slides,
+          actionType: "CHAT_ASSISTANT_BEFORE_REFRESH",
+        })
+      );
+    }
+
+    const updatedPresentation = await fetchUserSlides({ clearHistory: false });
+    if (updatedPresentation) {
+      presentationDataRef.current = updatedPresentation;
+    }
+    if (updatedPresentation?.slides) {
+      dispatch(
+        addToHistory({
+          slides: updatedPresentation.slides,
+          actionType: "CHAT_ASSISTANT_REFRESH",
+        })
+      );
+    }
+  }, [dispatch, fetchUserSlides]);
 
   const handleChatSendingStateChange = useCallback((sending: boolean) => {
     setIsChatSending(sending);
@@ -664,9 +715,13 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
                       presentationData.slides.map(
                         (slide: any, index: number) => (
                           <SlideContent
-                            key={`${slide.type}-${index}-${slide.index}`}
+                            key={
+                              slide.id ??
+                              `${slide.type ?? "slide"}-${slide.index ?? index}`
+                            }
                             slide={slide}
                             index={index}
+                            selected={selectedSlide === index}
                             presentationId={presentation_id}
                             onSlideAdded={handleEditorSlideNavigation}
                             theme={presentationData?.theme}
@@ -700,19 +755,73 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               </div>
             </div>
           </div>
-          <div className="hidden h-full shrink-0 self-start sticky top-0 xl:block xl:w-[clamp(320px,23vw,390px)] 2xl:w-[400px]">
-            <PresentationActions
-              presentationId={presentation_id}
-              variant={isTemplateV2Presentation ? "template-v2" : "presentation"}
-              currentSlide={selectedSlide}
-              presentationData={presentationData}
-              onPresentationChanged={handlePresentationChanged}
-              onChatSendingStateChange={handleChatSendingStateChange}
-              onChatMutationStateChange={handleChatMutationStateChange}
-              onFollowModeChange={setIsFollowModeEnabled}
-              onAgentSlideFocus={handleAgentSlideFocus}
-              editingDisabled={editingDisabled}
-            />
+          <button
+            ref={mobileAssistantTriggerRef}
+            type="button"
+            aria-controls="presentation-mobile-assistant"
+            aria-expanded={isMobileAssistantOpen}
+            onClick={() => setIsMobileAssistantOpen(true)}
+            className="fixed bottom-5 right-5 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-white/70 px-4 text-sm font-semibold text-[#101323] shadow-[0_8px_24px_rgba(74,58,155,0.24)] transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2 xl:hidden"
+            style={{
+              background:
+                "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+            }}
+          >
+            <Sparkles className="h-4 w-4 text-[#7A5AF8]" aria-hidden="true" />
+            AI Assistant
+          </button>
+
+          <button
+            type="button"
+            aria-label="Close AI Assistant"
+            onClick={closeMobileAssistant}
+            className={cn(
+              "inset-0 z-[60] bg-black/35 xl:hidden",
+              isMobileAssistantOpen ? "fixed" : "hidden"
+            )}
+          />
+
+          <div
+            id="presentation-mobile-assistant"
+            role={isMobileAssistantOpen ? "dialog" : undefined}
+            aria-label={isMobileAssistantOpen ? "AI Assistant" : undefined}
+            aria-modal={isMobileAssistantOpen ? true : undefined}
+            className={cn(
+              "h-screen w-[calc(100vw-16px)] max-w-[375px] shrink-0 flex-col bg-white shadow-[-12px_0_32px_rgba(16,24,40,0.18)] xl:static xl:z-auto xl:flex xl:h-full xl:w-[375px] xl:max-w-none xl:self-start xl:shadow-none",
+              isMobileAssistantOpen
+                ? "fixed inset-y-0 right-0 z-[70] flex"
+                : "hidden"
+            )}
+          >
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#EDEEEF] px-4 xl:hidden">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#101323]">
+                <Sparkles className="h-4 w-4 text-[#7A5AF8]" aria-hidden="true" />
+                AI Assistant
+              </div>
+              <button
+                ref={mobileAssistantCloseRef}
+                type="button"
+                aria-label="Close AI Assistant"
+                onClick={closeMobileAssistant}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#667085] transition hover:bg-[#F6F6F9] hover:text-[#101323] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <PresentationActions
+                presentationId={presentation_id}
+                variant={isTemplateV2Presentation ? "template-v2" : "presentation"}
+                currentSlide={selectedSlide}
+                presentationData={presentationData}
+                onPresentationChanged={handlePresentationChanged}
+                onChatSendingStateChange={handleChatSendingStateChange}
+                onChatMutationStateChange={handleChatMutationStateChange}
+                onFollowModeChange={setIsFollowModeEnabled}
+                onAgentSlideFocus={handleAgentSlideFocus}
+                editingDisabled={editingDisabled}
+              />
+            </div>
           </div>
         </div>
       </div>

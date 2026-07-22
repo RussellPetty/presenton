@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, Focus, Image as ImageIcon, Maximize, Minimize } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, Focus, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -94,7 +95,15 @@ export function ImageEditorToolbar({
         onClick={onReplaceImage}
         className="rounded-[2px] p-1 text-[#191919] hover:bg-[#F8F8FA]"
       >
-        <ImageIcon size={16} strokeWidth={1.8} />
+        <Image
+          alt=""
+          aria-hidden="true"
+          height={16}
+          src="/figma-assets/image-replace.svg"
+          unoptimized
+          width={16}
+          className="size-4"
+        />
       </button>
 
       <span aria-hidden className="h-[23px] w-px bg-[#EDEEEF]" />

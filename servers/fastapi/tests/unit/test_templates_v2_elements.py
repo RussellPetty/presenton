@@ -6,9 +6,12 @@ from templates.v2.models.elements import (
     Container,
     Image,
     Infographic,
+    ProgressBarInfographicData,
     Table,
     Text,
     TextList,
+    Vector,
+    VectorShape,
 )
 from templates.v2.models.layouts import RawSlideLayout
 
@@ -72,6 +75,7 @@ def test_image_element_accepts_flip_flags():
             "focus_y": 75.0,
             "crop_scale": 1.8,
             "clip_path": "path('M 0 0 L 100 0 L 100 100 Z')",
+            "icon_type": "duotone",
         }
     )
     assert image.flip_h is True
@@ -80,6 +84,8 @@ def test_image_element_accepts_flip_flags():
     assert image.focus_y == 75.0
     assert image.crop_scale == 1.8
     assert image.clip_path == "path('M 0 0 L 100 0 L 100 100 Z')"
+    assert image.icon_type is not None
+    assert image.icon_type.value == "duotone"
 
     layout = RawSlideLayout.model_validate(
         {
@@ -98,6 +104,7 @@ def test_image_element_accepts_flip_flags():
                     "focus_y": 75.0,
                     "crop_scale": 1.8,
                     "clip_path": "path('M 0 0 L 100 0 L 100 100 Z')",
+                    "icon_type": "duotone",
                 }
             ],
         }
@@ -109,10 +116,129 @@ def test_image_element_accepts_flip_flags():
     assert layout_image.focus_y == 75.0
     assert layout_image.crop_scale == 1.8
     assert layout_image.clip_path == "path('M 0 0 L 100 0 L 100 100 Z')"
+    assert layout_image.icon_type is not None
+    assert layout_image.icon_type.value == "duotone"
     assert (
         layout.model_dump(mode="json")["elements"][0]["clip_path"]
         == "path('M 0 0 L 100 0 L 100 100 Z')"
     )
+    assert layout.model_dump(mode="json")["elements"][0]["icon_type"] == "duotone"
+
+    with pytest.raises(ValidationError, match="icon_type"):
+        Image.model_validate(
+            {
+                "type": "image",
+                "decorative": False,
+                "name": "hero",
+                "is_icon": True,
+                "data": "/app_data/images/hero.png",
+                "icon_type": "heavy",
+            }
+        )
+
+
+@pytest.mark.parametrize("element_type", ["line", "rectangle", "ellipse", "circle"])
+def test_legacy_geometry_is_not_adapted_to_vectors(element_type: str):
+    with pytest.raises(ValidationError):
+        RawSlideLayout.model_validate(
+            {
+                "id": "legacy_geometry",
+                "description": "Layout with legacy straight-edged geometry.",
+                "elements": [
+                    {
+                        "type": element_type,
+                        "position": {"x": 20, "y": 40},
+                        "size": {"width": 160, "height": 80},
+                        "fill": {"color": "#F4F3FF"},
+                        "stroke": {"color": "#7A5AF8", "width": 2},
+                    },
+                ],
+            }
+        )
+
+
+def test_vector_accepts_smooth_curves_only():
+    layout = RawSlideLayout.model_validate(
+        {
+            "id": "curved_geometry",
+            "description": "Layout with editable curved vector shapes.",
+            "elements": [
+                {
+                    "type": "vector",
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 50, "y": 100},
+                        {"x": 100, "y": 0},
+                    ],
+                    "closed": False,
+                    "curve": {"type": "smooth", "tension": 0.5, "segments": 12},
+                    "stroke": {"color": "#111111", "width": 2},
+                },
+            ],
+        }
+    )
+
+    (smooth,) = layout.elements
+    assert isinstance(smooth, Vector)
+    assert smooth.curve is not None
+    assert smooth.curve.type == "smooth"
+    assert smooth.curve.tension == 0.5
+    assert smooth.curve.segments == 12
+
+    with pytest.raises(ValidationError):
+        RawSlideLayout.model_validate(
+            {
+                "id": "unsupported_curve",
+                "description": "Bezier curves are no longer supported.",
+                "elements": [
+                    {
+                        "type": "vector",
+                        "points": [{"x": 0, "y": 0}, {"x": 100, "y": 0}],
+                        "closed": False,
+                        "curve": {
+                            "type": "beizer",
+                            "segments": 8,
+                            "control_points": [{"x": 50, "y": -60}],
+                        },
+                        "stroke": {"color": "#222222", "width": 2},
+                    },
+                ],
+            }
+        )
+
+
+def test_vector_accepts_polygon_and_ellipse_shapes_only():
+    ellipse = Vector.model_validate(
+        {
+            "type": "vector",
+            "shape": "ellipse",
+            "points": [{"x": 0, "y": 0}, {"x": 100, "y": 80}],
+            "fill": {"color": "#F4F3FF"},
+        }
+    )
+
+    assert ellipse.shape == VectorShape.ELLIPSE
+
+    polygon = Vector.model_validate(
+        {
+            "type": "vector",
+            "shape": "polygon",
+            "points": [{"x": 0, "y": 0}, {"x": 100, "y": 80}],
+            "stroke": {"color": "#111111", "width": 2},
+        }
+    )
+
+    assert polygon.shape == VectorShape.POLYGON
+
+    with pytest.raises(ValidationError):
+        Vector.model_validate(
+            {
+                "type": "vector",
+                "shape": "rect",
+                "points": [{"x": 0, "y": 0}, {"x": 100, "y": 80}],
+                "fill": {"color": "#F4F3FF"},
+            }
+        )
 
 
 def test_element_models_match_export_schema_changes():
@@ -125,8 +251,17 @@ def test_element_models_match_export_schema_changes():
     }.intersection(Chart.model_fields)
     assert "axis_color" in Chart.model_fields
     assert "title_color" in Chart.model_fields
+    assert "legend_color" in Chart.model_fields
     assert "legend" in Chart.model_fields
-    assert {"base_color", "highlight_color"}.issubset(Infographic.model_fields)
+    assert {"data", "colors"}.issubset(Infographic.model_fields)
+    assert not {
+        "infographic_type",
+        "max_value",
+        "min_value",
+        "value",
+        "base_color",
+        "highlight_color",
+    }.intersection(Infographic.model_fields)
 
     chart = Chart.model_validate(
         {
@@ -136,9 +271,11 @@ def test_element_models_match_export_schema_changes():
             "chart_type": "bar",
             "title": "Revenue",
             "title_color": "#102030",
+            "legend_color": "#405060",
         }
     )
     assert chart.title_color == "#102030"
+    assert chart.legend_color == "#405060"
 
     with pytest.raises(ValidationError, match="runs"):
         Text.model_validate(
@@ -217,19 +354,21 @@ def test_element_models_match_export_schema_changes():
             "type": "infographic",
             "decorative": False,
             "name": "progress",
-            "infographic_type": "progress_bar",
-            "min_value": 0,
-            "max_value": 100,
-            "value": 70,
-            "base_color": "E5E7EB",
-            "highlight_color": "2563EB",
+            "data": {
+                "type": "progress_bar",
+                "min_value": 0,
+                "max_value": 100,
+                "value": 70,
+            },
+            "colors": ["E5E7EB", "2563EB"],
         }
     )
     assert infographic.type == "infographic"
     assert infographic.decorative is False
-    assert infographic.infographic_type.value == "progress_bar"
-    assert infographic.base_color == "E5E7EB"
-    assert infographic.highlight_color == "2563EB"
+    assert isinstance(infographic.data, ProgressBarInfographicData)
+    assert infographic.data.type == "progress_bar"
+    assert infographic.data.value == 70
+    assert infographic.colors == ["E5E7EB", "2563EB"]
 
     with pytest.raises(ValidationError):
         Infographic.model_validate(
@@ -237,10 +376,12 @@ def test_element_models_match_export_schema_changes():
                 "type": "infographics",
                 "decorative": False,
                 "name": "progress",
-                "infographics_type": "progress_bar",
-                "min_value": 0,
-                "max_value": 100,
-                "value": 70,
+                "data": {
+                    "type": "progress_bar",
+                    "min_value": 0,
+                    "max_value": 100,
+                    "value": 70,
+                },
             }
         )
 

@@ -61,6 +61,15 @@ class ImageFit(str, Enum):
     FILL = "fill"
 
 
+class IconType(str, Enum):
+    BOLD = "bold"
+    DUOTONE = "duotone"
+    FILL = "fill"
+    LIGHT = "light"
+    REGULAR = "regular"
+    THIN = "thin"
+
+
 class ChartType(str, Enum):
     BAR = "bar"
     HORIZONTAL_BAR = "horizontal_bar"
@@ -110,6 +119,7 @@ class Font(BaseModel):
     color: Optional[str] = None
     bold: Optional[bool] = None
     italic: Optional[bool] = None
+    underline: Optional[bool] = None
     line_height: Optional[float] = None
     letter_spacing: Optional[float] = None
     ellipsis: Optional[bool] = None
@@ -208,6 +218,7 @@ class Image(BaseModel):  # Konva Image
     name: str
     prompt: Optional[str] = None
     is_icon: bool
+    icon_type: Optional[IconType] = None
 
 
 class TextList(BaseModel):  # Konva Group
@@ -252,33 +263,28 @@ class Table(BaseModel):
     min_rows: int
 
 
-class Rectangle(BaseModel):
-    type: Literal["rectangle"]
-    position: Optional[Position] = None
-    size: Optional[Size] = None
+class VectorShape(str, Enum):
+    POLYGON = "polygon"
+    ELLIPSE = "ellipse"
+
+
+class VectorCurve(BaseModel):
+    type: Literal["smooth"]
+    tension: Optional[float] = Field(default=None, ge=0, le=1)
+    segments: Optional[int] = Field(default=16, ge=1, le=96)
+
+
+class Vector(BaseModel):
+    type: Literal["vector"]
+    shape: Optional[VectorShape] = None
+    points: list[Position] = Field(min_length=2)
+    closed: Optional[bool] = None
+    curve: Optional[VectorCurve] = None
+    corner_radii: Optional[list[Annotated[float, Field(ge=0)]]] = None
     rotation: Optional[float] = None
+    opacity: Optional[float] = None
     fill: Optional[Fill] = None
     stroke: Optional[Stroke] = None
-    border_radius: Optional[BorderRadius] = None
-    shadow: Optional[Shadow] = None
-
-
-class Ellipse(BaseModel):
-    type: Literal["ellipse"]
-    position: Optional[Position] = None
-    size: Optional[Size] = None
-    rotation: Optional[float] = None
-    fill: Optional[Fill] = None
-    stroke: Optional[Stroke] = None
-    shadow: Optional[Shadow] = None
-
-
-class Line(BaseModel):
-    type: Literal["line"]
-    position: Optional[Position] = None
-    size: Optional[Size] = None
-    rotation: Optional[float] = None
-    stroke: Stroke
     shadow: Optional[Shadow] = None
 
 
@@ -290,6 +296,7 @@ class Chart(BaseModel):
     chart_type: ChartType
     title: Optional[str] = None
     title_color: Optional[str] = None
+    legend_color: Optional[str] = None
 
     # PPTX chart model emitted by the template-v2 converter.
     colors: Optional[list[str]] = None
@@ -348,19 +355,32 @@ class InfographicType(str, Enum):
     GAUGE = "gauge"
 
 
+class ProgressBarInfographicData(BaseModel):
+    type: Literal["progress_bar"]
+    max_value: float
+    min_value: float
+    value: float
+
+
+class GaugeInfographicData(BaseModel):
+    type: Literal["gauge"]
+    max_value: float
+    min_value: float
+    value: float
+
+
 class Infographic(BaseModel):
     type: Literal["infographic"]
     position: Optional[Position] = None
     size: Optional[Size] = None
     rotation: Optional[float] = None
-    infographic_type: InfographicType
-    max_value: float
-    min_value: float
-    value: float
+    data: Annotated[
+        Union[ProgressBarInfographicData, GaugeInfographicData],
+        Field(discriminator="type"),
+    ]
 
     # Design
-    base_color: Optional[str] = None
-    highlight_color: Optional[str] = None
+    colors: List[str] = Field(default_factory=list)
 
     # Schema
     decorative: bool
@@ -424,9 +444,7 @@ SlideElement: TypeAlias = Annotated[
         Image,
         TextList,
         Table,
-        Rectangle,
-        Ellipse,
-        Line,
+        Vector,
         Chart,
         Infographic,
         Flex,
@@ -448,7 +466,6 @@ __all__ = [
     "ChartSeries",
     "ChartType",
     "Container",
-    "Ellipse",
     "Fill",
     "Flex",
     "FlexDirection",
@@ -457,14 +474,15 @@ __all__ = [
     "HorizontalAlignment",
     "Image",
     "ImageFit",
+    "IconType",
     "Infographic",
     "InfographicType",
+    "GaugeInfographicData",
     "LayoutAlignment",
-    "Line",
     "Marker",
     "Padding",
     "Position",
-    "Rectangle",
+    "ProgressBarInfographicData",
     "Shadow",
     "Size",
     "SlideElement",
@@ -476,4 +494,7 @@ __all__ = [
     "TextList",
     "TextRun",
     "VerticalAlignment",
+    "Vector",
+    "VectorCurve",
+    "VectorShape",
 ]

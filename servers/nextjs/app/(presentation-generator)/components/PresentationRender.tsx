@@ -18,6 +18,8 @@ const SlideScale = ({
   fixedSize = false,
   presentationLayout,
   renderIndex,
+  enableViewportCulling = false,
+  isSelected = false,
   showBlankPromptOverlay = false,
   onBlankPromptOverlayDismiss,
   showTemplatePromptOverlay = false,
@@ -34,6 +36,8 @@ const SlideScale = ({
   fixedSize?: boolean;
   presentationLayout?: unknown;
   renderIndex?: number;
+  enableViewportCulling?: boolean;
+  isSelected?: boolean;
   showBlankPromptOverlay?: boolean;
   onBlankPromptOverlayDismiss?: () => void;
   showTemplatePromptOverlay?: boolean;
@@ -128,6 +132,9 @@ const SlideScale = ({
               fonts={fonts}
               presentationLayout={presentationLayout}
               renderIndex={renderIndex}
+              displayScale={scale}
+              enableViewportCulling={enableViewportCulling}
+              isSelected={isSelected}
               showBlankPromptOverlay={showBlankPromptOverlay}
               onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
               showTemplatePromptOverlay={showTemplatePromptOverlay}

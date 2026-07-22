@@ -7,6 +7,7 @@ import {
   MAX_NUMBER_OF_SLIDES,
 } from "@/utils/presentationLimits";
 import type { PresentationVersion } from "./dashboard";
+import type { Slide } from "../../types/slide";
 
 export class PresentationGenerationApi {
   static async uploadDoc(documents: File[]) {
@@ -144,14 +145,14 @@ export class PresentationGenerationApi {
     }
   }
 
-  static async updatePresentationContent(body: any) {
+  static async updatePresentationContent(body: unknown) {
     try {
       const response = await fetch(
         getApiUrl(`/api/v1/ppt/presentation/update`),
         {
           method: "PATCH",
           headers: getHeader(),
-          body: JSON.stringify(body),
+          body: typeof body === "string" ? body : JSON.stringify(body),
           cache: "no-cache",
         }
       );
@@ -159,6 +160,28 @@ export class PresentationGenerationApi {
       return await ApiResponseHandler.handleResponse(response, "Failed to update presentation content");
     } catch (error) {
       console.error("error in presentation content update", error);
+      throw error;
+    }
+  }
+
+  static async updatePresentationSlide(slide: Slide) {
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/v1/ppt/presentation/slide_update`),
+        {
+          method: "PATCH",
+          headers: getHeader(),
+          body: JSON.stringify({ slide }),
+          cache: "no-cache",
+        }
+      );
+
+      return await ApiResponseHandler.handleResponse(
+        response,
+        "Failed to update slide"
+      );
+    } catch (error) {
+      console.error("error in presentation slide update", error);
       throw error;
     }
   }

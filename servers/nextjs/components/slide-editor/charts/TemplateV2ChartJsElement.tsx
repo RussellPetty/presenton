@@ -194,6 +194,8 @@ function chartRenderSignature(
     gridColor: element.gridColor,
     height,
     legend: element.legend,
+    legend_color: element.legend_color,
+    legendColor: element.legendColor,
     pixelRatio,
     series: element.series,
     showLegend: element.showLegend,
@@ -267,6 +269,10 @@ function createChartJsConfig(
     readString(element.title_color ?? element.titleColor),
     "#344054",
   );
+  const legendColor = safeChartColor(
+    readString(element.legend_color ?? element.legendColor),
+    textColor,
+  );
   const title = markdownToPlainChartText(readString(element.title) ?? "");
   const dataLabelPosition = readDataLabelPosition(
     hasOwn(element, "data_labels") ? element.data_labels : element.dataLabels,
@@ -334,7 +340,7 @@ function createChartJsConfig(
           labels: {
             boxHeight: Math.max(8, fontSize * 0.8),
             boxWidth: Math.max(8, fontSize * 0.8),
-            color: textColor,
+            color: legendColor,
             font: {
               family: CHART_FONT_FAMILY,
               size: fontSize,

@@ -4,10 +4,9 @@ export type ExportMode = "native" | "keynote" | "raster";
 export type TextSlideElement = Extract<SlideElement, { type: "text" }>;
 export type BulletsSlideElement = Extract<SlideElement, { type: "text-list" }>;
 export type ImageSlideElement = Extract<SlideElement, { type: "image" }>;
-export type LineSlideElement = Extract<SlideElement, { type: "line" }>;
 export type ShapeSlideElement = Extract<
   SlideElement,
-  { type: "rectangle" | "ellipse" }
+  { type: "vector" }
 >;
 export type TableSlideElement = Extract<SlideElement, { type: "table" }>;
 export type ChartSlideElement = Extract<SlideElement, { type: "chart" }>;

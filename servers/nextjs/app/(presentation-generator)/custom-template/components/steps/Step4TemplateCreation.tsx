@@ -11,7 +11,6 @@ interface Step4TemplateCreationProps {
   templateFonts?: Record<string, string>;
   setSlides: React.Dispatch<React.SetStateAction<ProcessedSlide[]>>;
   retrySlide: (index: number) => void;
-  onSlideUpdate: (index: number, updatedSlideData: Partial<ProcessedSlide>) => void;
 
   // Schema editor state
   schemaEditorSlideIndex: number | null;
@@ -30,7 +29,6 @@ export const Step4TemplateCreation: React.FC<Step4TemplateCreationProps> = ({
   templateFonts,
   setSlides,
   retrySlide,
-  onSlideUpdate,
   schemaEditorSlideIndex,
   onOpenSchemaEditor,
   onCloseSchemaEditor,
@@ -53,7 +51,6 @@ export const Step4TemplateCreation: React.FC<Step4TemplateCreationProps> = ({
               templateFonts={templateFonts}
               setSlides={setSlides}
               retrySlide={retrySlide}
-              onSlideUpdate={onSlideUpdate}
               onOpenSchemaEditor={onOpenSchemaEditor}
               schemaEditorSlideIndex={schemaEditorSlideIndex}
               schemaPreviewData={schemaPreviewData}
@@ -81,4 +78,3 @@ export const Step4TemplateCreation: React.FC<Step4TemplateCreationProps> = ({
     </SchemaHighlightProvider>
   );
 };
-

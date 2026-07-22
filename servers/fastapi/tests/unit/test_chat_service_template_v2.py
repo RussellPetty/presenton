@@ -94,7 +94,7 @@ def test_chat_attachment_context_is_inserted_before_user_message():
     assert composed.startswith("UI context: selected slide")
 
 
-def test_chat_memory_resolves_template_v2_layout_schemas():
+def test_chat_memory_resolves_template_layout_schemas():
     presentation_id = uuid.uuid4()
     template_layout = {
         "layouts": [

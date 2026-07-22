@@ -13,7 +13,14 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
             "description": "Editable content with static decoration.",
             "elements": [
                 {
-                    "type": "rectangle",
+                    "type": "vector",
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 1, "y": 0},
+                        {"x": 1, "y": 1},
+                        {"x": 0, "y": 1},
+                    ],
+                    "closed": True,
                     "fill": {"color": "#ffffff"},
                 },
                 {
@@ -404,6 +411,51 @@ def test_get_component_schema_extracts_generated_component_content():
     }
 
 
+def test_get_component_schema_extracts_infographic_content_without_vector_content():
+    component = {
+        "id": "metric_badge",
+        "description": "Reusable metric badge component.",
+        "elements": [
+            {
+                "type": "vector",
+                "shape": "ellipse",
+                "points": [
+                    {"x": 0, "y": 40},
+                    {"x": 50, "y": 0},
+                    {"x": 100, "y": 40},
+                    {"x": 50, "y": 80},
+                ],
+                "closed": True,
+            },
+            {
+                "type": "infographic",
+                "decorative": False,
+                "name": "progress",
+                "data": {
+                    "type": "progress_bar",
+                    "min_value": 0,
+                    "max_value": 100,
+                    "value": 64,
+                },
+                "colors": ["E5E7EB", "2563EB"],
+            },
+        ],
+    }
+
+    schema = get_component_schema(component)
+    properties = schema["properties"]
+
+    assert list(properties) == ["progress"]
+    assert properties["progress"]["x-element-type"] == "infographic"
+    assert properties["progress"]["properties"]["data"]["oneOf"][0]["properties"][
+        "type"
+    ] == {"const": "progress_bar"}
+    assert properties["progress"]["properties"]["data"]["oneOf"][1]["properties"][
+        "type"
+    ] == {"const": "gauge"}
+    assert properties["progress"]["required"] == ["data"]
+
+
 def test_get_component_schema_collapses_repeated_component_children_to_array():
     component = {
         "id": "card_grid",
@@ -436,8 +488,8 @@ def test_get_component_schema_collapses_repeated_component_children_to_array():
                                 "type": "text",
                                 "decorative": False,
                                 "name": "title_2",
-                                "min_length": 5,
-                                "max_length": 12,
+                                "min_length": 3,
+                                "max_length": 8,
                             }
                         ],
                     },
@@ -460,7 +512,60 @@ def test_get_component_schema_collapses_repeated_component_children_to_array():
                 "title": {
                     "type": "string",
                     "minLength": 3,
-                    "maxLength": 12,
+                    "maxLength": 8,
+                    "title": "Title",
+                    "x-element-type": "text",
+                }
+            },
+            "required": ["title"],
+        },
+    }
+
+
+def test_get_component_schema_uses_single_flex_child_as_repeated_array_item():
+    component = {
+        "id": "single_card_list",
+        "description": "Reusable list with one visible prototype card.",
+        "elements": [
+            {
+                "type": "flex",
+                "name": "cards",
+                "min_children": 1,
+                "max_children": 2,
+                "children": [
+                    {
+                        "type": "group",
+                        "name": "card_1",
+                        "children": [
+                            {
+                                "type": "text",
+                                "decorative": False,
+                                "name": "title_1",
+                                "min_length": 3,
+                                "max_length": 8,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+    schema = get_component_schema(component)
+
+    assert schema is not None
+    assert schema["properties"]["cards"] == {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 2,
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8,
                     "title": "Title",
                     "x-element-type": "text",
                 }

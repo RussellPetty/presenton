@@ -79,11 +79,27 @@ export interface UpdateTemplateMetadataPayload {
     description?: string | null;
 }
 
+export interface UpdateTemplatePayload extends Partial<TemplateDetailsResponse> {
+    id: string;
+}
+
+export interface UpdateTemplateLayoutsPayload {
+    layouts: Array<{
+        index: number;
+        layout: unknown;
+    }>;
+}
+
+export interface CreateTemplateLayoutPayload {
+    template_id: string;
+    index: number;
+}
+
 class TemplateService {
 
     static async getCustomTemplateSummaries() {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/template/all`),);
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/all?page_size=100&default=false`),);
             return await ApiResponseHandler.handleResponse(response, "Failed to get custom template summaries");
         } catch (error) {
             console.error("Failed to get custom template summaries", error);
@@ -101,9 +117,13 @@ class TemplateService {
         }
     }
 
-    static async getTemplateSummaries(): Promise<TemplateListResponse> {
+    static async getTemplateSummaries(isDefault?: boolean): Promise<TemplateListResponse> {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/templates?page_size=100`));
+            const params = new URLSearchParams({ page_size: "100" });
+            if (typeof isDefault === "boolean") {
+                params.set("default", String(isDefault));
+            }
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/all?${params.toString()}`));
             return await ApiResponseHandler.handleResponse(response, "Failed to get Templates summaries");
         } catch (error) {
             console.error("Failed to get Templates summaries", error);
@@ -113,7 +133,8 @@ class TemplateService {
 
     static async getTemplateDetails(templateId: string): Promise<TemplateDetailsResponse> {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/templates/${encodeURIComponent(templateId)}`));
+            const apiTemplateId = templateId.replace(/^template-v2-/, "");
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(apiTemplateId)}`));
             return await ApiResponseHandler.handleResponse(response, "Failed to get template details");
         } catch (error) {
             console.error("Failed to get Templates v1 details", error);
@@ -123,7 +144,7 @@ class TemplateService {
 
     static async createTemplate(payload: CreateTemplatePayload): Promise<AsyncTaskResponse> {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/templates/async`), {
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/async`), {
                 method: "POST",
                 headers: getHeader(),
                 body: JSON.stringify(payload),
@@ -139,7 +160,7 @@ class TemplateService {
         try {
             const params = new URLSearchParams({
                 type: "template.create",
-                status: "processing",
+                status: "pending",
                 order_by: "created_at",
                 order: "desc",
                 limit: "50",
@@ -156,7 +177,7 @@ class TemplateService {
 
     static async deleteTemplate(templateId: string) {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/templates/${encodeURIComponent(templateId)}`), {
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}`), {
                 method: "DELETE",
                 headers: getHeader(),
             });
@@ -171,15 +192,68 @@ class TemplateService {
         templateId: string,
         payload: UpdateTemplateMetadataPayload,
     ) {
+        return this.updateTemplate(templateId, {
+            id: templateId,
+            ...payload,
+        });
+    }
+
+    static async updateTemplate(
+        templateId: string,
+        payload: UpdateTemplatePayload,
+    ) {
         try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/templates/${encodeURIComponent(templateId)}`), {
+            const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}`), {
                 method: "PATCH",
                 headers: getHeader(),
                 body: JSON.stringify(payload),
             });
-            return await ApiResponseHandler.handleResponse(response, "Failed to update template metadata");
+            return await ApiResponseHandler.handleResponse(response, "Failed to update template");
         } catch (error) {
-            console.error("Failed to update template metadata", error);
+            console.error("Failed to update template", error);
+            throw error;
+        }
+    }
+
+    static async updateTemplateLayouts(
+        templateId: string,
+        payload: UpdateTemplateLayoutsPayload,
+    ) {
+        try {
+            const response = await fetch(
+                getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}/layouts`),
+                {
+                    method: "PATCH",
+                    headers: getHeader(),
+                    body: JSON.stringify(payload),
+                },
+            );
+            return await ApiResponseHandler.handleResponse(
+                response,
+                "Failed to update template layouts",
+            );
+        } catch (error) {
+            console.error("Failed to update template layouts", error);
+            throw error;
+        }
+    }
+
+    static async createTemplateLayout(payload: CreateTemplateLayoutPayload) {
+        try {
+            const response = await fetch(
+                getApiUrl("/api/v1/ppt/template/layouts/create"),
+                {
+                    method: "POST",
+                    headers: getHeader(),
+                    body: JSON.stringify(payload),
+                },
+            );
+            return await ApiResponseHandler.handleResponse(
+                response,
+                `Failed to create layout for slide ${payload.index + 1}`,
+            );
+        } catch (error) {
+            console.error("Failed to create template layout", error);
             throw error;
         }
     }

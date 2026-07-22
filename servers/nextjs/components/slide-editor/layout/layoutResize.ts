@@ -47,8 +47,6 @@ export type LayoutItemResizeDeps = FlowLayoutDeps & {
   ) => RawRecord;
 };
 
-const STAGE_WIDTH = 1280;
-const STAGE_HEIGHT = 720;
 const MIN_EMPTY_LAYOUT_SIZE = 24;
 
 export function updateComponentLayoutElement(
@@ -98,11 +96,7 @@ export function updateComponentLayoutElement(
   );
   if (elements === currentElements) return component;
 
-  return resizeComponentForLayoutItemChange(
-    { ...component, elements },
-    itemCountDelta,
-    deps,
-  );
+  return resizeComponentForLayoutItemChange({ ...component, elements });
 }
 
 export function deleteLayoutChildFromArray(elements: unknown[], path: number[]) {
@@ -399,35 +393,11 @@ function emptyLayoutSize(padding: Padding): Size {
 
 function resizeComponentForLayoutItemChange(
   component: RawRecord,
-  itemCountDelta: number,
-  deps: LayoutItemResizeDeps,
 ): RawRecord {
-  if (itemCountDelta === 0) return component;
-
-  const componentSize = readSize(component.size, {
-    width: STAGE_WIDTH,
-    height: STAGE_HEIGHT,
-  });
-  const contentSize = deps.childrenBounds(readArray(component.elements));
-  const nextWidth =
-    itemCountDelta > 0
-      ? Math.max(componentSize.width, contentSize.width)
-      : contentSize.width;
-  const nextHeight =
-    itemCountDelta > 0
-      ? Math.max(componentSize.height, contentSize.height)
-      : contentSize.height;
-
-  if (nextWidth === componentSize.width && nextHeight === componentSize.height) {
-    return component;
-  }
-
+  const { size, ...componentWithoutSize } = component;
+  void size;
   return {
-    ...component,
-    size: {
-      width: nextWidth,
-      height: nextHeight,
-    },
+    ...componentWithoutSize,
   };
 }
 

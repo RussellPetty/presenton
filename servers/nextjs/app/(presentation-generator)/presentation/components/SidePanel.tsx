@@ -179,12 +179,18 @@ const SidePanel = ({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <div className="overflow-y-auto w-full hide-scrollbar min-h-0 flex-1 space-y-3.5">
+            <div
+              data-slide-thumbnail-scroll-container="true"
+              className="overflow-y-auto w-full hide-scrollbar min-h-0 flex-1 space-y-3.5"
+            >
               {isStreaming ? (
                 presentationData &&
                 presentationData?.slides.map((slide: any, index: number) => (
                   <SlideThumbnailCard
-                    key={`${slide.id}-${index}`}
+                    key={
+                      slide.id ??
+                      `${slide.type ?? "slide"}-${slide.index ?? index}`
+                    }
                     slide={slide}
                     index={index}
                     selected={selectedSlide === index}
@@ -206,7 +212,10 @@ const SidePanel = ({
                     presentationData?.slides.map(
                       (slide: any, index: number) => (
                         <SortableSlide
-                          key={`${slide.id}-${index}`}
+                          key={
+                            slide.id ??
+                            `${slide.type ?? "slide"}-${slide.index ?? index}`
+                          }
                           slide={slide}
                           index={index}
                           selectedSlide={selectedSlide}

@@ -64,6 +64,7 @@ class TestPresentationGenerationAPI:
             path="/tmp/exports/test.pdf",
             edit_path="/presentation?id=test",
         )
+        request_http = FakeRequest()
 
         with patch(
             "api.v1.ppt.endpoints.presentation.generate_presentation_handler",
@@ -71,7 +72,7 @@ class TestPresentationGenerationAPI:
         ) as mock_handler:
             response = asyncio.run(
                 generate_presentation_sync(
-                    request_http=FakeRequest(),
+                    request_http=request_http,
                     request=request,
                     sql_session=FakeAsyncSession(),
                 )
@@ -79,6 +80,7 @@ class TestPresentationGenerationAPI:
 
         assert response == response_payload
         mock_handler.assert_awaited_once()
+        assert mock_handler.await_args.kwargs["request_http"] is request_http
 
     def test_generate_presentation_export_as_pptx(self):
         request = GeneratePresentationRequest(

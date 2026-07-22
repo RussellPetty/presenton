@@ -362,6 +362,7 @@ function ChartCustomizePanel({
     chart.chart_type !== "radar";
   const hasRadialAxes = chart.chart_type === "radar";
   const hasAxes = hasCartesianAxes || hasRadialAxes;
+  const showLegend = chart.legend ?? defaultChartLegendVisible(chart);
 
   return (
     <div className="space-y-1 py-2">
@@ -496,10 +497,19 @@ function ChartCustomizePanel({
         label="Settings"
       >
         <ToggleRow
-          checked={chart.legend ?? defaultChartLegendVisible(chart)}
+          checked={showLegend}
           label="Show legend"
           onChange={(legend) => onChange({ ...chart, legend })}
         />
+        {showLegend ? (
+          <ColorRow
+            label="Legend color"
+            value={chart.legend_color ?? "475467"}
+            onChange={(legendColor) =>
+              onChange({ ...chart, legend_color: legendColor })
+            }
+          />
+        ) : null}
         <ChartSeriesColorControls chart={chart} onChange={onChange} />
         {hasAxes ? (
           <>

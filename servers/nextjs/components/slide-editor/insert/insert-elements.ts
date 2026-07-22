@@ -8,13 +8,16 @@ import type {
   ChartType,
   Fill,
   Font,
+  InfographicType,
   Marker,
   SlideElement,
+  Stroke,
   TableCell,
 } from "@/components/slide-editor/types";
 
 const DEFAULT_CHART_INSERT_POSITION = { x: 128, y: 115 };
 const DEFAULT_CHART_INSERT_SIZE = { width: 717, height: 410 };
+const DEFAULT_INFOGRAPHIC_INSERT_POSITION = { x: 128, y: 170 };
 const DEFAULT_IMAGE_PLACEHOLDER_SRC = "/placeholder.jpg";
 const TEXT_INSERT_HORIZONTAL_PADDING_PX = 8;
 const TEXT_INSERT_VERTICAL_PADDING_PX = 14;
@@ -497,6 +500,54 @@ export function createChartInsertElements(kind?: string): SlideElement[] {
   return chartType ? [makeChartElement(chartType)] : [];
 }
 
+function infographicTypeFromPaletteId(id?: string): InfographicType | null {
+  switch (id) {
+    case "progress_bar":
+    case "progress-bar":
+      return "progress_bar";
+    case "gauge":
+    case "gauge-chart":
+      return "gauge";
+    default:
+      return null;
+  }
+}
+
+function makeInfographicElement(infographicType: InfographicType): SlideElement {
+  if (infographicType === "progress_bar") {
+    return {
+      type: "infographic",
+      position: { ...DEFAULT_INFOGRAPHIC_INSERT_POSITION },
+      size: { width: 420, height: 74 },
+      data: {
+        type: "progress_bar",
+        min_value: 0,
+        max_value: 100,
+        value: 68,
+      },
+      colors: ["E5E7EB", "2563EB"],
+    };
+  }
+
+  return {
+    type: "infographic",
+    position: { ...DEFAULT_INFOGRAPHIC_INSERT_POSITION },
+    size: { width: 320, height: 190 },
+    data: {
+      type: "gauge",
+      min_value: 0,
+      max_value: 100,
+      value: 76,
+    },
+    colors: ["E5E7EB", "2563EB"],
+  };
+}
+
+export function createInfographicInsertElements(kind?: string): SlideElement[] {
+  const infographicType = infographicTypeFromPaletteId(kind);
+  return infographicType ? [makeInfographicElement(infographicType)] : [];
+}
+
 function makeSimpleTableElement(): SlideElement {
   const baseFont: Font = {
     family: "Inter",
@@ -589,7 +640,6 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
             id: "image_text",
             description: "Image with heading and supporting text",
             position: { x: 122, y: 128 },
-            size: { width: 986, height: 371 },
             elements: [
               makeImageElement({ x: 0, y: 0, width: 486, height: 371 }),
               makeTextElement({
@@ -622,7 +672,6 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
             id: "image_grid",
             description: "Two-by-two image grid",
             position: { x: 128, y: 122 },
-            size: { width: 717, height: 454 },
             elements: [
               makeImageElement({
                 x: 0,
@@ -661,39 +710,160 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
   }
 }
 
+const DEFAULT_VECTOR_FILL: Fill = { color: "F4F3FF", opacity: 1 };
+const DEFAULT_VECTOR_STROKE: Stroke = { color: "7A5AF8", width: 1.5 };
+const DEFAULT_VECTOR_LINE_STROKE: Stroke = {
+  ...DEFAULT_VECTOR_STROKE,
+  width: 2,
+};
+
+function makeVector({
+  points,
+  shape,
+  closed = true,
+  fill = DEFAULT_VECTOR_FILL,
+  stroke = DEFAULT_VECTOR_STROKE,
+  curve,
+}: {
+  points: Array<{ x: number; y: number }>;
+  shape?: "polygon" | "ellipse";
+  closed?: boolean;
+  fill?: Fill | null;
+  stroke?: Stroke | null;
+  curve?: { type: "smooth"; tension?: number; segments?: number };
+}): SlideElement {
+  return {
+    type: "vector",
+    ...(shape ? { shape } : {}),
+    points,
+    closed,
+    ...(curve ? { curve } : {}),
+    ...(fill ? { fill } : {}),
+    ...(stroke ? { stroke } : {}),
+  };
+}
+
 export function createElementInsertElements(kind?: string): SlideElement[] {
   switch (kind) {
-    case "rectangle":
+    case "vector-rectangle":
       return [
-        {
-          type: "rectangle",
-          position: { x: 134, y: 134 },
-          size: { width: 384, height: 192 },
-          fill: { color: "F4F3FF", opacity: 1 },
-          stroke: { color: "7A5AF8", width: 1.5 },
-          border_radius: { tl: 10, tr: 10, bl: 10, br: 10 },
-        },
+        makeVector({
+          points: [
+            { x: 134, y: 134 },
+            { x: 518, y: 134 },
+            { x: 518, y: 326 },
+            { x: 134, y: 326 },
+          ],
+        }),
       ];
-    case "ellipse":
+    case "vector-circle":
       return [
-        {
-          type: "ellipse",
-          position: { x: 134, y: 134 },
-          size: { width: 346, height: 198 },
-          fill: { color: "F4F3FF", opacity: 1 },
-          stroke: { color: "7A5AF8", width: 1.5 },
-        },
+        makeVector({
+          shape: "ellipse",
+          points: ellipseVectorPoints(134, 134, 220, 220),
+        }),
       ];
-    case "line":
+    case "vector-ellipse":
       return [
-        {
-          type: "line",
-          position: { x: 134, y: 218 },
-          size: { width: 435, height: 1 },
-          stroke: { color: "101323", width: 2 },
-        },
+        makeVector({
+          shape: "ellipse",
+          points: ellipseVectorPoints(134, 134, 346, 198),
+        }),
+      ];
+    case "vector-triangle":
+      return [
+        makeVector({
+          points: [
+            { x: 326, y: 122 },
+            { x: 518, y: 354 },
+            { x: 134, y: 354 },
+          ],
+        }),
+      ];
+    case "vector-diamond":
+      return [
+        makeVector({
+          points: [
+            { x: 326, y: 122 },
+            { x: 518, y: 238 },
+            { x: 326, y: 354 },
+            { x: 134, y: 238 },
+          ],
+        }),
+      ];
+    case "vector-pentagon":
+      return [
+        makeVector({
+          points: regularPolygonVectorPoints(326, 248, 150, 5, -Math.PI / 2),
+        }),
+      ];
+    case "vector-hexagon":
+      return [
+        makeVector({
+          points: regularPolygonVectorPoints(326, 248, 166, 6),
+        }),
+      ];
+    case "vector-arrow":
+      return [
+        makeVector({
+          points: [
+            { x: 134, y: 206 },
+            { x: 420, y: 206 },
+            { x: 420, y: 158 },
+            { x: 574, y: 248 },
+            { x: 420, y: 338 },
+            { x: 420, y: 290 },
+            { x: 134, y: 290 },
+          ],
+        }),
+      ];
+    case "vector-line":
+      return [
+        makeVector({
+          points: [
+            { x: 134, y: 218 },
+            { x: 569, y: 219 },
+          ],
+          closed: false,
+          fill: null,
+          stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
       ];
     default:
       return [];
   }
+}
+
+function ellipseVectorPoints(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const radiusX = width / 2;
+  const radiusY = height / 2;
+  const centerX = x + radiusX;
+  const centerY = y + radiusY;
+  return [
+    { x: centerX, y },
+    { x: x + width, y: centerY },
+    { x: centerX, y: y + height },
+    { x, y: centerY },
+  ];
+}
+
+function regularPolygonVectorPoints(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  sides: number,
+  rotation = 0,
+) {
+  return Array.from({ length: sides }, (_, index) => {
+    const angle = rotation + (Math.PI * 2 * index) / sides;
+    return {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
 }

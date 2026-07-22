@@ -30,6 +30,13 @@ export type TemplateV2InfographicToolbarElement = RawRecord & {
   type: "infographic";
 };
 
+type ToolbarInfographicData = RawRecord & {
+  type: InfographicType;
+  min_value: number;
+  max_value: number;
+  value: number;
+};
+
 export function TemplateV2InfographicToolbarControls({
   element,
   onChange,
@@ -41,12 +48,24 @@ export function TemplateV2InfographicToolbarControls({
   onToggle: (panel: InfographicPanelId) => void;
   openPanel: string | null;
 }) {
-  const infographicType = readInfographicType(element.infographic_type);
-  const minValue = readNumber(element.min_value, 0);
-  const maxValue = readNumber(element.max_value, 100);
-  const value = readNumber(element.value, minValue);
-  const baseColor = readColor(element.base_color, "E5E7EB");
-  const highlightColor = readColor(element.highlight_color, "2563EB");
+  const data = readInfographicData(element);
+  const infographicType = data.type;
+  const minValue = data.min_value;
+  const maxValue = data.max_value;
+  const value = data.value;
+  const colors = readInfographicColors(element);
+  const baseColor = colors[0];
+  const highlightColor = colors[1];
+
+  const commitDataChange = (changes: Partial<ToolbarInfographicData>) => {
+    onChange({ data: { ...data, ...changes } });
+  };
+
+  const commitColorChange = (index: number, color: string) => {
+    const nextColors = [...colors];
+    nextColors[index] = color;
+    onChange({ colors: nextColors });
+  };
 
   return (
     <>
@@ -57,8 +76,8 @@ export function TemplateV2InfographicToolbarControls({
           title="Infographic type"
           value={infographicType}
           onChange={(event) =>
-            onChange({
-              infographic_type: event.target.value as InfographicType,
+            commitDataChange({
+              type: event.target.value as InfographicType,
             })
           }
           className="h-7 max-w-[116px] bg-transparent px-0 text-[12px] font-medium outline-none"
@@ -74,7 +93,7 @@ export function TemplateV2InfographicToolbarControls({
       <InlineNumberInput
         label="Value"
         value={value}
-        onCommit={(nextValue) => onChange({ value: nextValue })}
+        onCommit={(nextValue) => commitDataChange({ value: nextValue })}
       />
 
       <div className="relative">
@@ -93,13 +112,13 @@ export function TemplateV2InfographicToolbarControls({
               label="Min"
               value={minValue}
               step={1}
-              onCommit={(min_value) => onChange({ min_value })}
+              onCommit={(min_value) => commitDataChange({ min_value })}
             />
             <NumberField
               label="Max"
               value={maxValue}
               step={1}
-              onCommit={(max_value) => onChange({ max_value })}
+              onCommit={(max_value) => commitDataChange({ max_value })}
             />
           </Panel>
         ) : null}
@@ -118,12 +137,12 @@ export function TemplateV2InfographicToolbarControls({
             <ColorField
               label="Base"
               color={baseColor}
-              onCommit={(base_color) => onChange({ base_color })}
+              onCommit={(baseColor) => commitColorChange(0, baseColor)}
             />
             <ColorField
               label="Highlight"
               color={highlightColor}
-              onCommit={(highlight_color) => onChange({ highlight_color })}
+              onCommit={(highlightColor) => commitColorChange(1, highlightColor)}
             />
           </Panel>
         ) : null}
@@ -234,6 +253,33 @@ function InlineNumberInput({
 
 function readInfographicType(value: unknown): InfographicType {
   return value === "progress_bar" || value === "gauge" ? value : "gauge";
+}
+
+function readInfographicData(element: RawRecord): ToolbarInfographicData {
+  const data = readRecord(element.data);
+  const minValue = readNumber(data.min_value, 0);
+  const maxValue = readNumber(data.max_value, 100);
+  return {
+    ...data,
+    type: readInfographicType(data.type),
+    min_value: minValue,
+    max_value: maxValue,
+    value: readNumber(data.value, minValue),
+  };
+}
+
+function readInfographicColors(element: RawRecord): [string, string] {
+  const colors = Array.isArray(element.colors) ? element.colors : [];
+  return [
+    readColor(colors[0], "E5E7EB"),
+    readColor(colors[1], "2563EB"),
+  ];
+}
+
+function readRecord(value: unknown): RawRecord {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as RawRecord)
+    : {};
 }
 
 function readNumber(value: unknown, fallback: number) {

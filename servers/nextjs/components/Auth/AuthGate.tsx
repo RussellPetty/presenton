@@ -5,6 +5,10 @@ import Image from "next/image";
 import { getApiUrl } from "@/utils/api";
 import { isAuthDisabled } from "@/utils/auth";
 import { formatFastApiDetail, UNAUTHORIZED_DETAIL } from "@/utils/authErrors";
+import {
+  PRESENTON_SPLASH_MIN_DURATION_MS,
+  PresentonSplashLoader,
+} from "@/components/ui/presenton-splash-loader";
 import { notify } from "@/components/ui/sonner";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
@@ -26,10 +30,19 @@ export default function AuthGate() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasMetSplashDuration, setHasMetSplashDuration] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const isSetupMode = useMemo(() => !status.configured, [status.configured]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setHasMetSplashDuration(true);
+    }, PRESENTON_SPLASH_MIN_DURATION_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     if (isAuthDisabled()) {
@@ -264,37 +277,13 @@ export default function AuthGate() {
     }
   };
 
-  if (isLoading || isRedirecting || status.authenticated) {
-    return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6">
-        <div className="relative z-10 w-full max-w-md">
-          <div className="rounded-2xl border border-[#EDEEEF] bg-white p-8 text-center shadow-xl">
-            <Image
-              src="/Logo.png"
-              alt="Presenton"
-              width={160}
-              height={48}
-              className="mx-auto mb-5 h-12 w-auto opacity-95"
-              priority
-            />
-            <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-[#7C51F8]" />
-            <h1 className="font-syne text-lg font-semibold text-black">Presenton</h1>
-            <p className="mt-3 font-syne text-sm text-[#000000CC]">Preparing your workspace…</p>
-            <div className="mt-6 flex justify-center gap-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#5146E5]" />
-              <span
-                className="h-2 w-2 animate-pulse rounded-full bg-[#7C51F8]"
-                style={{ animationDelay: "0.2s" }}
-              />
-              <span
-                className="h-2 w-2 animate-pulse rounded-full bg-[#5146E5]"
-                style={{ animationDelay: "0.4s" }}
-              />
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+  if (
+    isLoading ||
+    isRedirecting ||
+    status.authenticated ||
+    !hasMetSplashDuration
+  ) {
+    return <PresentonSplashLoader message="Preparing your workspace..." />;
   }
 
   return (

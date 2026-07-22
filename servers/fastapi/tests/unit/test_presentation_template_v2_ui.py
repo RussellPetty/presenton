@@ -74,7 +74,7 @@ def _duplicate_named_group_headings(ui):
     ]
 
 
-def test_apply_template_v2_content_to_ui_uses_schema_content_keys():
+def test_apply_template_content_to_ui_uses_schema_content_keys():
     ui = {
         "id": "layout-1",
         "description": "Layout with generated content placeholders.",
@@ -223,7 +223,7 @@ def test_apply_template_v2_content_to_ui_uses_schema_content_keys():
         "metric_card_1": {"value": "21%"},
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     hero_elements = hydrated["components"][0]["elements"]
     assert hero_elements[0]["runs"] == [
@@ -258,8 +258,8 @@ def test_apply_template_v2_content_to_ui_uses_schema_content_keys():
     assert ui["components"][0]["elements"][0]["runs"][0]["text"] == "Old headline"
 
 
-def test_apply_template_v2_content_to_ui_uses_suffixed_content_for_duplicate_group_names():
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(
+def test_apply_template_content_to_ui_uses_suffixed_content_for_duplicate_group_names():
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
         _duplicate_named_groups_ui(),
         _duplicate_named_groups_content(),
     )
@@ -276,10 +276,10 @@ def test_apply_template_v2_content_to_ui_uses_suffixed_content_for_duplicate_gro
     ] == ["1", "2", "3", "4"]
 
 
-def test_chat_template_v2_content_uses_suffixed_content_for_duplicate_group_names():
+def test_chat_template_content_uses_suffixed_content_for_duplicate_group_names():
     ui = _duplicate_named_groups_ui()
 
-    PresentationChatMemoryLayer._apply_template_v2_content_to_ui(
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
         ui,
         _duplicate_named_groups_content(),
     )
@@ -292,7 +292,7 @@ def test_chat_template_v2_content_uses_suffixed_content_for_duplicate_group_name
     ]
 
 
-def test_apply_template_v2_content_to_ui_handles_empty_text_runs():
+def test_apply_template_content_to_ui_handles_empty_text_runs():
     ui = {
         "id": "layout-1",
         "components": [
@@ -327,7 +327,7 @@ def test_apply_template_v2_content_to_ui_handles_empty_text_runs():
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     elements = hydrated["components"][0]["elements"]
     assert elements[0]["runs"] == [{"text": "Generated headline", "font": {"size": 24}}]
@@ -339,7 +339,7 @@ def test_apply_template_v2_content_to_ui_handles_empty_text_runs():
     ]
 
 
-def test_chat_template_v2_content_hydration_updates_nested_blocks_and_tables():
+def test_chat_template_content_hydration_updates_nested_blocks_and_tables():
     ui = {
         "id": "layout-1",
         "components": [
@@ -389,7 +389,7 @@ def test_chat_template_v2_content_hydration_updates_nested_blocks_and_tables():
         ],
     }
 
-    PresentationChatMemoryLayer._apply_template_v2_content_to_ui(
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
         ui,
         {
             "hero": {
@@ -422,7 +422,7 @@ def test_chat_template_v2_content_hydration_updates_nested_blocks_and_tables():
     assert elements[2]["rows"][0][1]["runs"][0]["text"] == "42"
 
 
-def test_apply_template_v2_content_to_ui_parses_markdown_text_to_runs():
+def test_apply_template_content_to_ui_parses_markdown_text_to_runs():
     ui = {
         "id": "layout-1",
         "description": "Layout with markdown generated content placeholders.",
@@ -501,7 +501,7 @@ def test_apply_template_v2_content_to_ui_parses_markdown_text_to_runs():
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     elements = hydrated["components"][0]["elements"]
     assert elements[0]["runs"] == [
@@ -541,7 +541,7 @@ def test_apply_template_v2_content_to_ui_parses_markdown_text_to_runs():
     ]
 
 
-def test_apply_template_v2_content_to_ui_markdown_overrides_inherited_emphasis():
+def test_apply_template_content_to_ui_markdown_overrides_inherited_emphasis():
     ui = {
         "id": "layout-1",
         "components": [
@@ -586,7 +586,7 @@ def test_apply_template_v2_content_to_ui_markdown_overrides_inherited_emphasis()
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     text_element = hydrated["components"][0]["elements"][0]["children"][0]
     assert text_element["runs"] == [
@@ -612,7 +612,7 @@ def test_apply_template_v2_content_to_ui_markdown_overrides_inherited_emphasis()
     ]
 
 
-def test_apply_template_v2_content_to_ui_keeps_markdown_run_whitespace():
+def test_apply_template_content_to_ui_keeps_markdown_run_whitespace():
     ui = {
         "id": "layout-1",
         "description": "Layout with markdown spacing edge cases.",
@@ -664,7 +664,7 @@ def test_apply_template_v2_content_to_ui_keeps_markdown_run_whitespace():
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     elements = hydrated["components"][0]["elements"]
     assert elements[0]["runs"] == [
@@ -715,8 +715,8 @@ def test_apply_template_v2_content_to_ui_keeps_markdown_run_whitespace():
     ]
 
 
-def test_template_v2_markdown_text_runs_keep_source_boundary_spaces():
-    runs = presentation_endpoint._template_v2_text_runs_from_markdown(
+def test_template_markdown_text_runs_keep_source_boundary_spaces():
+    runs = presentation_endpoint._template_text_runs_from_markdown(
         "Hello **how are you?** and",
         {"font": {"family": "Inter", "size": 24}},
     )
@@ -731,15 +731,16 @@ def test_template_v2_markdown_text_runs_keep_source_boundary_spaces():
     ]
 
 
-def test_chat_template_v2_image_content_stores_prompt():
+def test_chat_template_image_content_stores_prompt():
     image = {
         "type": "image",
         "decorative": False,
         "name": "hero_image",
         "data": "/old-image.png",
+        "fit": "fill",
         "is_icon": False,
     }
-    PresentationChatMemoryLayer._set_template_v2_element_value(
+    PresentationChatMemoryLayer._set_template_element_value(
         image,
         {
             "image_prompt": "Analytics dashboard",
@@ -748,6 +749,7 @@ def test_chat_template_v2_image_content_stores_prompt():
     )
 
     assert image["data"] == "/app_data/images/dashboard.png"
+    assert image["fit"] == "cover"
     assert image["prompt"] == "Analytics dashboard"
 
     icon = {
@@ -755,9 +757,10 @@ def test_chat_template_v2_image_content_stores_prompt():
         "decorative": False,
         "name": "status_icon",
         "data": "/old-icon.svg",
+        "fit": "fill",
         "is_icon": True,
     }
-    PresentationChatMemoryLayer._set_template_v2_element_value(
+    PresentationChatMemoryLayer._set_template_element_value(
         icon,
         {
             "icon_query": "success check",
@@ -766,10 +769,109 @@ def test_chat_template_v2_image_content_stores_prompt():
     )
 
     assert icon["data"] == "/icons/check.svg"
+    assert icon["fit"] == "fill"
     assert icon["prompt"] == "success check"
 
 
-def test_apply_template_v2_content_to_ui_uses_raw_schema_icon_query_url():
+def test_chat_template_infographic_content_updates_new_element_type():
+    infographic = {
+        "type": "infographic",
+        "decorative": False,
+        "name": "progress",
+        "data": {
+            "type": "progress_bar",
+            "min_value": 0,
+            "max_value": 100,
+            "value": 40,
+        },
+        "colors": ["E5E7EB", "2563EB"],
+    }
+    PresentationChatMemoryLayer._set_template_element_value(
+        infographic,
+        {
+            "data": {
+                "type": "gauge",
+                "min_value": 20,
+                "max_value": 80,
+                "value": 64,
+            },
+            "colors": ["F2F4F7", "12B76A"],
+        },
+    )
+
+    assert infographic["data"] == {
+        "type": "gauge",
+        "min_value": 20.0,
+        "max_value": 80.0,
+        "value": 64.0,
+    }
+    assert infographic["colors"] == ["F2F4F7", "12B76A"]
+
+
+def test_apply_template_image_content_avoids_stretching_generated_photos():
+    ui = {
+        "id": "layout-1",
+        "components": [
+            {
+                "id": "hero",
+                "elements": [
+                    {
+                        "type": "image",
+                        "decorative": False,
+                        "name": "hero_image",
+                        "data": "/static/images/replaceable_template_image.png",
+                        "fit": "fill",
+                        "is_icon": False,
+                    },
+                    {
+                        "type": "image",
+                        "decorative": False,
+                        "name": "vector_image",
+                        "data": "/static/images/replaceable_template_image.svg",
+                        "fit": "fill",
+                        "is_icon": False,
+                    },
+                    {
+                        "type": "image",
+                        "decorative": False,
+                        "name": "clipped_image",
+                        "data": "/static/images/replaceable_template_image.png",
+                        "fit": "fill",
+                        "clip_path": "path('M 10 0 L 100 0 L 100 100 L 10 100 Z')",
+                        "is_icon": False,
+                    },
+                ],
+            }
+        ],
+    }
+
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        ui,
+        {
+            "hero": {
+                "hero_image": {
+                    "image_url": "/app_data/images/dashboard.png",
+                },
+                "vector_image": {
+                    "image_url": "/app_data/images/diagram.svg",
+                },
+                "clipped_image": {
+                    "image_url": "/app_data/images/freeform.png",
+                },
+            }
+        },
+    )
+
+    hero_image, vector_image, clipped_image = hydrated["components"][0]["elements"]
+    assert hero_image["data"] == "/app_data/images/dashboard.png"
+    assert hero_image["fit"] == "cover"
+    assert vector_image["data"] == "/app_data/images/diagram.svg"
+    assert vector_image["fit"] == "fill"
+    assert clipped_image["data"] == "/app_data/images/freeform.png"
+    assert clipped_image["fit"] == "fill"
+
+
+def test_apply_template_content_to_ui_uses_raw_schema_icon_query_url():
     ui = {
         "id": "layout-1",
         "components": [
@@ -788,7 +890,7 @@ def test_apply_template_v2_content_to_ui_uses_raw_schema_icon_query_url():
         ],
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
         ui,
         {
             "hero": {
@@ -805,7 +907,7 @@ def test_apply_template_v2_content_to_ui_uses_raw_schema_icon_query_url():
     assert icon["prompt"] == "growth chart"
 
 
-def test_apply_template_v2_content_to_ui_matches_repeated_content_lengths():
+def test_apply_template_content_to_ui_matches_repeated_content_lengths():
     ui = {
         "id": "layout-1",
         "description": "Layout with repeated generated content.",
@@ -932,7 +1034,7 @@ def test_apply_template_v2_content_to_ui_matches_repeated_content_lengths():
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     elements = hydrated["components"][0]["elements"]
     flex_children = elements[0]["children"]
@@ -951,7 +1053,7 @@ def test_apply_template_v2_content_to_ui_matches_repeated_content_lengths():
     ]
 
 
-def test_apply_template_v2_content_to_ui_hydrates_direct_repeated_images():
+def test_apply_template_content_to_ui_hydrates_direct_repeated_images():
     ui = {
         "id": "layout-1",
         "components": [
@@ -995,7 +1097,7 @@ def test_apply_template_v2_content_to_ui_hydrates_direct_repeated_images():
         }
     }
 
-    hydrated = presentation_endpoint._apply_template_v2_content_to_ui(ui, content)
+    hydrated = presentation_endpoint._apply_template_content_to_ui(ui, content)
 
     images = hydrated["components"][0]["elements"][0]["children"]
     assert [image["data"] for image in images] == [
@@ -1010,7 +1112,7 @@ def test_apply_template_v2_content_to_ui_hydrates_direct_repeated_images():
     ]
 
 
-def test_chat_template_v2_content_hydrates_direct_repeated_images():
+def test_chat_template_content_hydrates_direct_repeated_images():
     ui = {
         "components": [
             {
@@ -1034,7 +1136,7 @@ def test_chat_template_v2_content_hydrates_direct_repeated_images():
         ]
     }
 
-    PresentationChatMemoryLayer._apply_template_v2_content_to_ui(
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
         ui,
         {
             "gallery": {

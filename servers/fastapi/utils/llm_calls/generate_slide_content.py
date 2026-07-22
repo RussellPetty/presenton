@@ -10,7 +10,7 @@ from models.presentation_outline_model import SlideOutlineModel
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
-from utils.llm_utils import generate_structured_with_schema_retries
+from utils.llm_utils import DisconnectChecker, generate_structured_with_schema_retries
 from utils.schema_utils import (
     add_field_in_schema,
     ensure_array_schemas_have_items,
@@ -36,11 +36,17 @@ You need to generate structured content json based on the schema.
 - Speaker notes must be plain text (no markdown).
 - Never exceed max character limits; do not clip mid-sentence to fit—rephrase instead.
 - Do not use emojis or $schema fields.
-- Follow user instructions literally when they do not conflict with Slide Language;
-  do not reinterpret, generalize, or expand them.
+- Follow the intended outcome of user instructions when they do not conflict with Slide
+  Language; do not generalize or expand their scope.
 - Apply slide-specific instructions only to the exact slide mentioned (first/second/last/named) and only once.
 - Do not apply patterns across multiple slides unless explicitly requested.
 - If instructions are ambiguous, use the most direct interpretation without extending scope.
+- Treat chart, layout, styling, positioning, and other visual instructions as production
+  controls. Honor them through the selected schema, but never emit those instructions or
+  meta-commentary as a title, body, label, table cell, or speaker note.
+- Output fields must contain only audience-facing content and data. For chart fields,
+  populate the requested labels, series, and values rather than text such as "create a
+  bar chart" or "show this data as a graph".
 
 {markdown_emphasis_rules}
 
@@ -64,6 +70,7 @@ English
 # Slide Language:
 {language}
 
+{slide_number_section}
 # SLIDE CONTENT: START
 {content}
 # SLIDE CONTENT: END
@@ -135,10 +142,19 @@ def get_system_prompt(
     )
 
 
-def get_user_prompt(outline: str, language: Optional[str]):
+def _get_slide_number_section(slide_number: Optional[int]) -> str:
+    if slide_number is None:
+        return ""
+    return f"# Slide Number:\n{slide_number}\n"
+
+
+def get_user_prompt(
+    outline: str, language: Optional[str], slide_number: Optional[int] = None
+):
     return SLIDE_CONTENT_USER_PROMPT.format(
         current_date_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         language=_resolve_prompt_language(language),
+        slide_number_section=_get_slide_number_section(slide_number),
         content=outline,
     )
 
@@ -150,6 +166,8 @@ def get_messages(
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
     response_schema: Optional[dict] = None,
+    *,
+    slide_number: Optional[int] = None,
 ) -> list[Message]:
 
     return [
@@ -162,7 +180,7 @@ def get_messages(
             ),
         ),
         UserMessage(
-            content=get_user_prompt(outline, language),
+            content=get_user_prompt(outline, language, slide_number),
         ),
     ]
 
@@ -208,6 +226,9 @@ async def get_slide_content_from_type_and_outline(
     tone: Optional[str] = None,
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
+    *,
+    slide_number: Optional[int] = None,
+    disconnect_checker: Optional[DisconnectChecker] = None,
 ):
     response_schema = _prepare_response_schema(slide_layout.json_schema)
     if response_schema is None:
@@ -229,6 +250,7 @@ async def get_slide_content_from_type_and_outline(
             verbosity,
             instructions,
             response_schema,
+            slide_number=slide_number,
         )
 
         return await generate_structured_with_schema_retries(
@@ -239,6 +261,7 @@ async def get_slide_content_from_type_and_outline(
             json_schema=response_schema,
             strict=False,
             validate_schema=True,
+            disconnect_checker=disconnect_checker,
         )
 
     except Exception as e:

@@ -68,6 +68,7 @@ export function BulletsToolbar({
       anchorBox={anchorBox}
       scale={scale}
       componentActions={componentActions}
+      disableAlignment
       listMarker={marker}
       selectionRange={selectionRange}
       templateFonts={templateFonts}

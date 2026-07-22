@@ -6,7 +6,7 @@ export type ComponentLayerAction =
 
 type ComponentLayerShortcutEvent = Pick<
   KeyboardEvent,
-  "altKey" | "ctrlKey" | "key" | "metaKey" | "shiftKey"
+  "altKey" | "code" | "ctrlKey" | "key" | "metaKey" | "shiftKey"
 >;
 
 export type ComponentLayerReorderResult<T> = {
@@ -17,12 +17,12 @@ export type ComponentLayerReorderResult<T> = {
 export function componentLayerActionForShortcut(
   event: ComponentLayerShortcutEvent,
 ): ComponentLayerAction | null {
-  if (!(event.metaKey || event.ctrlKey) || !event.altKey) return null;
+  if (!event.altKey || event.metaKey || event.ctrlKey) return null;
 
-  switch (normalizedArrowKey(event.key)) {
-    case "ArrowUp":
+  switch (normalizedLayerShortcutKey(event)) {
+    case "k":
       return event.shiftKey ? "bring-to-front" : "bring-forward";
-    case "ArrowDown":
+    case "j":
       return event.shiftKey ? "send-to-back" : "send-backward";
     default:
       return null;
@@ -95,8 +95,8 @@ function moveArrayItem<T>(
   return next;
 }
 
-function normalizedArrowKey(key: string) {
-  if (key === "ArrowUp" || key === "Up") return "ArrowUp";
-  if (key === "ArrowDown" || key === "Down") return "ArrowDown";
-  return key;
+function normalizedLayerShortcutKey(event: ComponentLayerShortcutEvent) {
+  if (event.code === "KeyK") return "k";
+  if (event.code === "KeyJ") return "j";
+  return event.key.toLowerCase();
 }

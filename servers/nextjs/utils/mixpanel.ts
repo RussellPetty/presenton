@@ -7,10 +7,6 @@ const MIXPANEL_TOKEN = 'd726e8bea8ec147f4c7720060cb2e6d1';
 export enum MixpanelEvent {
   PageView = 'Page View',
   Navigation = 'Navigation',
-  Home_SaveConfiguration_Button_Clicked = 'Home Save Configuration Button Clicked',
-  Home_SaveConfiguration_API_Call = 'Home Save Configuration API Call',
-  Home_CheckOllamaModelPulled_API_Call = 'Home Check Ollama Model Pulled API Call',
-  Home_DownloadOllamaModel_API_Call = 'Home Download Ollama Model API Call',
 
   Onboarding_Providers_Models_Selected = 'Onboarding Providers Models Selected',
   Onboarding_Configuration_Saved = 'Onboarding Configuration Saved',
@@ -19,7 +15,6 @@ export enum MixpanelEvent {
   Onboarding_Step_Continued = 'Onboarding Step Continued',
   Onboarding_Back_Clicked = 'Onboarding Back Clicked',
   Onboarding_Validation_Failed = 'Onboarding Validation Failed',
-  Onboarding_Mode_Selected = 'Onboarding Mode Selected',
   Onboarding_Text_Provider_Tab_Selected = 'Onboarding Text Provider Tab Selected',
   Onboarding_Text_Provider_Selected = 'Onboarding Text Provider Selected',
   Onboarding_Text_Model_Selected = 'Onboarding Text Model Selected',
@@ -49,10 +44,6 @@ export enum MixpanelEvent {
   Upload_Generation_Started = 'Upload Generation Started',
   Upload_Documents_Processed = 'Upload Documents Processed',
   Upload_Outline_Generation_Requested = 'Upload Outline Generation Requested',
-  Outline_Generate_Presentation_Button_Clicked = 'Outline Generate Presentation Button Clicked',
-  Outline_Select_Template_Button_Clicked = 'Outline Select Template Button Clicked',
-  Outline_Add_Slide_Button_Clicked = 'Outline Add Slide Button Clicked',
-  Outline_Template_Selected = 'Outline Template Selected',
   Outline_Presentation_Generation_Started = 'Outline Presentation Generation Started',
 
   Presentation_Editor_Viewed = 'Presentation Editor Viewed',
@@ -60,57 +51,27 @@ export enum MixpanelEvent {
   Presentation_Title_Updated = 'Presentation Title Updated',
   Presentation_Slides_Reordered = 'Presentation Slides Reordered',
   Presentation_Slide_Added = 'Presentation Slide Added',
-  Presentation_Slide_Updated = 'Presentation Slide Updated',
   Presentation_Slide_Deleted = 'Presentation Slide Deleted',
   Presentation_Theme_Changed = 'Presentation Theme Changed',
   Presentation_Theme_Reset = 'Presentation Theme Reset',
-  Presentation_Export_Started = 'Presentation Export Started',
   Presentation_Export_Completed = 'Presentation Export Completed',
-  Presentation_Export_Failed = 'Presentation Export Failed',
   Presentation_Regenerated = 'Presentation Regenerated',
 
-  Presentation_Prepare_API_Call = 'Presentation Prepare API Call',
   Presentation_Stream_API_Call = 'Presentation Stream API Call',
-  Group_Layout_Selected_Clicked = 'Group Layout Selected Clicked',
-  Header_Export_PDF_Button_Clicked = 'Header Export PDF Button Clicked',
-  Header_Export_PPTX_Button_Clicked = 'Header Export PPTX Button Clicked',
-  Header_UpdatePresentationContent_API_Call = 'Header Update Presentation Content API Call',
-  Header_ExportAsPDF_API_Call = 'Header Export As PDF API Call',
-  Header_ExportAsPPTX_API_Call = 'Header Export As PPTX API Call',
-  Slide_Add_New_Slide_Button_Clicked = 'Slide Add New Slide Button Clicked',
-  Slide_Delete_Slide_Button_Clicked = 'Slide Delete Slide Button Clicked',
-  Slide_Update_From_Prompt_Button_Clicked = 'Slide Update From Prompt Button Clicked',
-  Slide_Edit_API_Call = 'Slide Edit API Call',
-  Slide_Delete_API_Call = 'Slide Delete API Call',
-  TemplatePreview_Back_Button_Clicked = 'Template Preview Back Button Clicked',
-  TemplatePreview_All_Groups_Button_Clicked = 'Template Preview All Groups Button Clicked',
   TemplatePreview_Delete_Templates_Button_Clicked = 'Template Preview Delete Templates Button Clicked',
   TemplatePreview_Delete_Templates_API_Call = 'Template Preview Delete Templates API Call',
-  TemplatePreview_Open_Editor_Button_Clicked = 'Template Preview Open Editor Button Clicked',
-  CustomTemplate_Save_Templates_API_Call = 'Custom Template Save Templates API Call',
   PdfMaker_Retry_Button_Clicked = 'PDF Maker Retry Button Clicked',
-  Upload_Upload_Documents_API_Call = 'Upload Upload Documents API Call',
-  Upload_Decompose_Documents_API_Call = 'Upload Decompose Documents API Call',
-  Upload_Create_Presentation_API_Call = 'Upload Create Presentation API Call',
-  Upload_GetStarted_Button_Clicked = 'Upload Get Started Button Clicked',
-  Upload_Validation_Failed = 'Upload Validation Failed',
   DocumentsPreview_Create_Presentation_API_Call = 'Documents Preview Create Presentation API Call',
-  DocumentsPreview_Next_Button_Clicked = 'Documents Preview Next Button Clicked',
   Settings_SaveConfiguration_Button_Clicked = 'Settings Save Configuration Button Clicked',
   Settings_SaveConfiguration_API_Call = 'Settings Save Configuration API Call',
-  Settings_CheckOllamaModelPulled_API_Call = 'Settings Check Ollama Model Pulled API Call',
-  Settings_DownloadOllamaModel_API_Call = 'Settings Download Ollama Model API Call',
   Settings_Section_Entered = 'Settings Section Entered',
   Settings_Tab_Switched = 'Settings Tab Switched',
   Settings_Provider_Selected = 'Settings Provider Selected',
   Settings_Model_Selected = 'Settings Model Selected',
   PresentationPage_Refresh_Page_Button_Clicked = 'Presentation Page Refresh Page Button Clicked',
-  PresentationMode_Fullscreen_Toggle_Clicked = 'Presentation Mode Fullscreen Toggle Clicked',
-  PresentationMode_Exit_Clicked = 'Presentation Mode Exit Clicked',
   ImageEditor_GetPreviousGeneratedImages_API_Call = 'Image Editor Get Previous Generated Images API Call',
   ImageEditor_GenerateImage_API_Call = 'Image Editor Generate Image API Call',
   ImageEditor_UploadImage_API_Call = 'Image Editor Upload Image API Call',
-  Header_ReGenerate_Button_Clicked = 'Header ReGenerate Button Clicked',
 
   AI_Assistant_Opened = 'AI Assistant Opened',
   AI_Assistant_Prompt_Submitted = 'AI Assistant Prompt Submitted',
@@ -151,9 +112,6 @@ export enum MixpanelEvent {
   Dashboard_Presentation_Opened = 'Dashboard Presentation Opened',
   Dashboard_Presentation_Deleted = 'Dashboard Presentation Deleted',
   Dashboard_Presentation_Duplicated = 'Dashboard Presentation Duplicated',
-  Dashboard_Create_New_Card_Clicked = 'Dashboard Create New Card Clicked',
-
-  Sidebar_Navigation_Clicked = 'Sidebar Navigation Clicked',
 
   Templates_Page_Viewed = 'Templates Page Viewed',
   Templates_Tab_Switched = 'Templates Tab Switched',
@@ -248,7 +206,16 @@ export function initMixpanel(): void {
 
 function initializeMixpanelNow(): void {
   if (window.__mixpanel_initialized) return;
-  mixpanel.init(MIXPANEL_TOKEN as string, { track_pageview: false, api_host: 'https://api-eu.mixpanel.com', record_sessions_percent: 100, });
+  mixpanel.init(MIXPANEL_TOKEN as string, {
+    track_pageview: false,
+    autocapture: false,
+    api_host: 'https://api-eu.mixpanel.com',
+    record_sessions_percent: 100,
+    record_mask_text_selector: '',
+    record_block_selector: '',
+    record_collect_fonts: true,
+    record_canvas: true,
+  });
   const appVersion = window.env?.APP_VERSION;
   if (appVersion) {
     mixpanel.register({ app_version: appVersion });
@@ -275,6 +242,21 @@ export function track(eventName: string, props?: Record<string, unknown>): void 
 
 export function trackEvent(event: MixpanelEvent, props?: MixpanelProps): void {
   track(event, props);
+}
+
+/**
+ * Sends an event at a navigation/download boundary without leaving it in the
+ * normal request batch. Await this before triggering the boundary action.
+ */
+export async function trackEventImmediately(
+  event: MixpanelEvent,
+  props?: MixpanelProps
+): Promise<void> {
+  if (!canUseMixpanel()) return;
+  const enabled = await ensureTelemetryStatus();
+  if (!enabled) return;
+  initializeMixpanelNow();
+  mixpanel.track(event, props, { transport: 'sendBeacon' });
 }
 
 export function getDistinctId(): string | undefined {
@@ -323,6 +305,7 @@ export default {
   initMixpanel,
   track,
   trackEvent,
+  trackEventImmediately,
   getDistinctId,
   identifyAnonymous,
   resetTelemetryCache,

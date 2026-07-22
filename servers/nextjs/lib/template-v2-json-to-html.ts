@@ -48,6 +48,11 @@ interface Box {
   height?: number;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface FontFaceDefinition {
   family: string;
   url: string;
@@ -76,9 +81,7 @@ const ELEMENT_TYPES = new Set([
   "image",
   "text-list",
   "table",
-  "rectangle",
-  "ellipse",
-  "line",
+  "vector",
   "svg",
   "chart",
   "infographic",
@@ -418,12 +421,8 @@ function renderItem(item: JsonRecord, mode: RenderMode): string {
   }
 
   switch (readString(item.type)) {
-    case "rectangle":
-      return `<div style="${frameAndBoxStyle(item, mode)}"></div>`;
-    case "ellipse":
-      return `<div style="${frameAndBoxStyle(item, mode, "border-radius:50%")}"></div>`;
-    case "line":
-      return renderLine(item, mode);
+    case "vector":
+      return renderPolygon(item, mode);
     case "svg":
       return renderSvg(item, mode);
     case "image":
@@ -479,6 +478,13 @@ function renderImage(item: JsonRecord, mode: RenderMode): string {
       source
     )}" style="display:block;max-width:none;max-height:none;height:100%;width:100%;object-fit:${fit};${focusStyle}${cropTransformStyle}"></div>`;
   }
+  if (clipPath) {
+    return `<div style="${frameStyle(item, mode)}${boxStyle(
+      item
+    )}${clipPath}overflow:hidden;"><img alt="" src="${escapeAttribute(
+      source
+    )}" style="display:block;max-width:none;max-height:none;height:100%;width:100%;object-fit:${fit};${focusStyle}"></div>`;
+  }
   return `<img alt="" src="${escapeAttribute(source)}" style="${frameStyle(
     item,
     mode
@@ -502,11 +508,15 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
     })
     .join("");
 
-  return `<div style="${frameStyle(item, mode)}${transformStyle(item)}${fontStyle(font)}display:flex;align-items:${verticalAlign(
+  return `<div style="${frameStyle(item, mode)}${transformStyle(item)}${fontStyle(font, {
+    includeLineHeight: false,
+    includeTextDecoration: false,
+  })}${textShadowStyle(item)}display:flex;align-items:${verticalAlign(
     vertical
-  )};justify-content:${horizontalAlign(horizontal)};line-height:${cssNumber(
-    readNumber(font.lineHeight ?? font.line_height) ?? 1.1
-  )};${textOverflowStyle()}text-align:${textAlign(horizontal)};"><span style="display:block;width:100%">${runHtml}</span></div>`;
+  )};justify-content:${horizontalAlign(horizontal)};${lineHeightStyle(
+    font,
+    1.1
+  )}${textOverflowStyle()}text-align:${textAlign(horizontal)};"><span style="display:block;width:100%">${runHtml}</span></div>`;
 }
 
 function renderTextList(item: JsonRecord, mode: RenderMode): string {
@@ -532,7 +542,8 @@ function renderTextList(item: JsonRecord, mode: RenderMode): string {
     }`;
 
   return `<div style="${frameStyle(item, mode)}${transformStyle(item)}${fontStyle(
-    font
+    font,
+    { includeTextDecoration: false }
   )}${textOverflowStyle()}"><${tag} style="${listStyle}">${entries}</${tag}></div>`;
 }
 
@@ -618,11 +629,22 @@ function containerOverflowStyle(
 
 function renderFlex(item: JsonRecord, mode: RenderMode): string {
   const direction = readString(item.direction) === "row" ? "row" : "column";
-  const children = readLayoutChildren(item)
+  const gap = readNumber(item.gap) ?? 0;
+  const rowGap = readNumber(item.rowGap ?? item.row_gap) ?? gap;
+  const columnGap = readNumber(item.columnGap ?? item.column_gap) ?? gap;
+  const childrenList = readLayoutChildren(item);
+  const children = childrenList
     .map((child) => renderItem(readRecord(child), "flow"))
     .join("");
-  const gap = readNumber(item.gap) ?? 0;
-  const style = `${frameStyle(item, mode)}${boxStyle(item)}${paddingStyle(
+  const style = `${flexFrameStyle(
+    item,
+    mode,
+    childrenList,
+    direction,
+    readBoolean(item.wrap),
+    columnGap,
+    rowGap,
+  )}${boxStyle(item)}${paddingStyle(
     readRecord(item.padding)
   )}display:flex;flex-direction:${direction};flex-wrap:${readBoolean(item.wrap) ? "wrap" : "nowrap"};align-items:${cssAlignment(
     readString(item.alignItems ?? item.align_items),
@@ -630,36 +652,157 @@ function renderFlex(item: JsonRecord, mode: RenderMode): string {
   )};justify-content:${cssAlignment(
     readString(item.justifyContent ?? item.justify_content),
     "flex-start"
-  )};gap:${cssNumber(gap)}px;column-gap:${cssNumber(
-    readNumber(item.columnGap ?? item.column_gap) ?? gap
-  )}px;row-gap:${cssNumber(
-    readNumber(item.rowGap ?? item.row_gap) ?? gap
-  )}px;overflow:visible`;
+  )};gap:${cssNumber(gap)}px;column-gap:${cssNumber(columnGap)}px;row-gap:${cssNumber(rowGap)}px;overflow:visible`;
   return `<div style="${style}">${children}</div>`;
+}
+
+function flexFrameStyle(
+  item: JsonRecord,
+  mode: RenderMode,
+  children: unknown[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+) {
+  const box = readBox(item);
+  const expanded = flexExpandedSize(item, box, children, direction, wrap, columnGap, rowGap);
+  let style = frameStyleFromBox(box, mode);
+  if (expanded.width != null && (box.width == null || expanded.width > box.width)) {
+    style += `width:${cssNumber(expanded.width)}px;`;
+  }
+  if (expanded.height != null && (box.height == null || expanded.height > box.height)) {
+    style += `height:${cssNumber(expanded.height)}px;`;
+  }
+  return style;
+}
+
+function flexExpandedSize(
+  item: JsonRecord,
+  box: Box,
+  children: unknown[],
+  direction: "row" | "column",
+  wrap: boolean,
+  columnGap: number,
+  rowGap: number
+): { width?: number; height?: number } {
+  const records = children.map(readRecord);
+  if (!records.length) return {};
+
+  const padding = readRecord(item.padding);
+  const paddingX = (readNumber(padding.left) ?? 0) + (readNumber(padding.right) ?? 0);
+  const paddingY = (readNumber(padding.top) ?? 0) + (readNumber(padding.bottom) ?? 0);
+  const sizes = records.map(flowChildSize);
+
+  if (!wrap) {
+    if (direction === "row") {
+      return {
+        width:
+          paddingX +
+          sizes.reduce((sum, size) => sum + size.width, 0) +
+          columnGap * Math.max(0, sizes.length - 1),
+      };
+    }
+    return {
+      height:
+        paddingY +
+        sizes.reduce((sum, size) => sum + size.height, 0) +
+        rowGap * Math.max(0, sizes.length - 1),
+    };
+  }
+
+  const mainLimit =
+    direction === "row"
+      ? box.width == null
+        ? null
+        : Math.max(1, box.width - paddingX)
+      : box.height == null
+        ? null
+        : Math.max(1, box.height - paddingY);
+  if (mainLimit == null) return {};
+
+  const lines: Array<{ cross: number; main: number }> = [];
+  const mainGap = direction === "row" ? columnGap : rowGap;
+  const crossGap = direction === "row" ? rowGap : columnGap;
+  sizes.forEach((size) => {
+    const childMain = direction === "row" ? size.width : size.height;
+    const childCross = direction === "row" ? size.height : size.width;
+    let line = lines.at(-1);
+    if (!line || (line.main > 0 && line.main + mainGap + childMain > mainLimit)) {
+      line = { cross: 0, main: 0 };
+      lines.push(line);
+    }
+    line.main += (line.main > 0 ? mainGap : 0) + childMain;
+    line.cross = Math.max(line.cross, childCross);
+  });
+
+  const requiredCross =
+    lines.reduce((sum, line) => sum + line.cross, 0) +
+    crossGap * Math.max(0, lines.length - 1);
+  return direction === "row"
+    ? { height: paddingY + requiredCross }
+    : { width: paddingX + requiredCross };
+}
+
+function flowChildSize(child: JsonRecord) {
+  const fallback = Array.isArray(child.children)
+    ? childrenBounds(readArray(child.children).map(readRecord))
+    : undefined;
+  const box = readBox(child, fallback);
+  return {
+    width: box.width ?? 1,
+    height: box.height ?? 1,
+  };
 }
 
 function renderGrid(item: JsonRecord, mode: RenderMode): string {
   const columns = Math.max(1, Math.floor(readNumber(item.columns) ?? 1));
-  const rows = readNumber(item.rows);
   const gap = readNumber(item.gap) ?? 0;
-  const children = readLayoutChildren(item)
+  const rowGap = readNumber(item.rowGap ?? item.row_gap) ?? gap;
+  const columnGap = readNumber(item.columnGap ?? item.column_gap) ?? gap;
+  const childrenList = readLayoutChildren(item);
+  const renderedRows = Math.max(1, Math.ceil(childrenList.length / columns));
+  const declaredRows = readNumber(item.rows);
+  const rows = declaredRows == null ? null : Math.max(1, Math.floor(declaredRows));
+  const size = readRecord(item.size);
+  const explicitHeight = readNumber(size.height);
+  const explicitWidth = readNumber(size.width);
+  const children = childrenList
     .map((child) => renderItem(readRecord(child), "flow"))
     .join("");
+  const rowTemplate = gridRowTemplate(rows, renderedRows, explicitHeight, rowGap);
+  const columnTemplate = gridColumnTemplate(columns, explicitWidth, columnGap);
   const style = `${frameStyle(item, mode)}${boxStyle(item)}${paddingStyle(
     readRecord(item.padding)
-  )}display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));${rows ? `grid-template-rows:repeat(${Math.max(1, Math.floor(rows))},minmax(0,1fr));` : ""
-    }align-items:${cssAlignment(
+  )}display:grid;grid-template-columns:${columnTemplate};${rowTemplate}align-items:${cssAlignment(
       readString(item.alignItems ?? item.align_items),
       "stretch"
     )};justify-items:${cssAlignment(
       readString(item.justifyItems ?? item.justify_items),
       "stretch"
-    )};column-gap:${cssNumber(
-      readNumber(item.columnGap ?? item.column_gap) ?? gap
-    )}px;row-gap:${cssNumber(
-      readNumber(item.rowGap ?? item.row_gap) ?? gap
-    )}px;overflow:visible`;
+    )};column-gap:${cssNumber(columnGap)}px;row-gap:${cssNumber(rowGap)}px;overflow:visible`;
   return `<div style="${style}">${children}</div>`;
+}
+
+function gridColumnTemplate(columns: number, explicitWidth: number | null, columnGap: number) {
+  if (explicitWidth == null) return `repeat(${columns},minmax(0,1fr))`;
+  const columnWidth = Math.max(1, (explicitWidth - columnGap * (columns - 1)) / columns);
+  return `repeat(${columns},${cssNumber(columnWidth)}px)`;
+}
+
+function gridRowTemplate(
+  rows: number | null,
+  renderedRows: number,
+  explicitHeight: number | null,
+  rowGap: number
+) {
+  if (!rows) return "";
+  if (explicitHeight == null) {
+    return `grid-template-rows:repeat(${Math.max(rows, renderedRows)},minmax(0,1fr));`;
+  }
+
+  const rowHeight = Math.max(1, (explicitHeight - rowGap * (rows - 1)) / rows);
+  return `grid-template-rows:repeat(${Math.max(rows, renderedRows)},${cssNumber(rowHeight)}px);`;
 }
 
 function readLayoutChildren(item: JsonRecord): unknown[] {
@@ -682,25 +825,93 @@ function renderGroup(item: JsonRecord, mode: RenderMode): string {
   )}overflow:visible">${content}</div>`;
 }
 
-function renderLine(item: JsonRecord, mode: RenderMode): string {
-  const box = readBox(item);
+function renderPolygon(item: JsonRecord, mode: RenderMode): string {
+  if (readString(item.type) === "vector" && vectorShape(item) === "ellipse") {
+    return renderEllipseVector(item, mode);
+  }
+
+  const points = polygonPoints(item);
+  if (points.length < 2) return "";
+
+  const box = polygonBox(item, points);
+  const closed = polygonClosed(item, points);
   const stroke = readRecord(item.stroke);
-  const color = colorWithOpacity(
-    readString(stroke.color) ?? "#000000",
+  const fill = readRecord(item.fill);
+  const fillColor = closed
+    ? colorWithOpacity(readString(fill.color) ?? "", readNumber(fill.opacity))
+    : "";
+  const strokeWidth = Math.max(0, readNumber(stroke.width) ?? 1);
+  const strokeColor = colorWithOpacity(
+    readString(stroke.color) ?? (!closed ? "#000000" : ""),
     readNumber(stroke.opacity)
   );
-  const width = Math.max(0, readNumber(stroke.width) ?? 1);
+  if (!fillColor && !(strokeColor && strokeWidth > 0)) return "";
+
+  const pointString = points
+    .map((point) => `${cssNumber(point.x - box.x)},${cssNumber(point.y - box.y)}`)
+    .join(" ");
   const dash = readArray(stroke.dash)
     .map(readNumber)
     .filter((value): value is number => value != null)
     .join(" ");
-  return `<div style="${frameStyle(item, mode)}${transformStyle(item)}overflow:visible"><svg width="100%" height="100%" viewBox="0 0 ${cssNumber(
+  const shape = closed
+    ? `<polygon points="${escapeAttribute(pointString)}"${fillColor ? ` fill="${escapeAttribute(fillColor)}"` : ` fill="none"`}${strokeColor && strokeWidth > 0
+      ? ` stroke="${escapeAttribute(strokeColor)}" stroke-width="${cssNumber(strokeWidth)}"`
+      : ""
+    }${dash ? ` stroke-dasharray="${dash}"` : ""}/>`
+    : `<polyline points="${escapeAttribute(pointString)}" fill="none"${strokeColor && strokeWidth > 0
+      ? ` stroke="${escapeAttribute(strokeColor)}" stroke-width="${cssNumber(strokeWidth)}"`
+      : ""
+    }${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
+  return `<div style="${frameStyleFromBox(box, mode)}${transformStyle(
+    item
+  )}overflow:visible"><svg width="100%" height="100%" viewBox="0 0 ${cssNumber(
     box.width ?? 1
-  )} ${cssNumber(box.height ?? 1)}" preserveAspectRatio="none" style="display:block;overflow:visible"><line x1="0" y1="0" x2="${cssNumber(
-    box.width ?? 1
-  )}" y2="${cssNumber(box.height ?? 1)}" stroke="${escapeAttribute(
-    color
-  )}" stroke-width="${cssNumber(width)}"${dash ? ` stroke-dasharray="${dash}"` : ""}/></svg></div>`;
+  )} ${cssNumber(
+    box.height ?? 1
+  )}" preserveAspectRatio="none" style="display:block;overflow:visible">${shape}</svg></div>`;
+}
+
+function renderEllipseVector(item: JsonRecord, mode: RenderMode): string {
+  const points = polygonSourcePoints(item);
+  if (points.length < 2) return "";
+
+  const box = polygonBox(item, points);
+  const stroke = readRecord(item.stroke);
+  const fill = readRecord(item.fill);
+  const fillColor = colorWithOpacity(
+    readString(fill.color) ?? "",
+    readNumber(fill.opacity)
+  );
+  const strokeWidth = Math.max(0, readNumber(stroke.width) ?? 1);
+  const strokeColor = colorWithOpacity(
+    readString(stroke.color) ?? "",
+    readNumber(stroke.opacity)
+  );
+  if (!fillColor && !(strokeColor && strokeWidth > 0)) return "";
+
+  const dash = readArray(stroke.dash)
+    .map(readNumber)
+    .filter((value): value is number => value != null)
+    .join(" ");
+  const width = box.width ?? 1;
+  const height = box.height ?? 1;
+  const shape = `<ellipse cx="${cssNumber(width / 2)}" cy="${cssNumber(
+    height / 2
+  )}" rx="${cssNumber(width / 2)}" ry="${cssNumber(height / 2)}"${fillColor
+    ? ` fill="${escapeAttribute(fillColor)}"`
+    : ` fill="none"`}${strokeColor && strokeWidth > 0
+    ? ` stroke="${escapeAttribute(strokeColor)}" stroke-width="${cssNumber(strokeWidth)}"`
+    : ""
+  }${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
+
+  return `<div style="${frameStyleFromBox(box, mode)}${transformStyle(
+    item
+  )}overflow:visible"><svg width="100%" height="100%" viewBox="0 0 ${cssNumber(
+    width
+  )} ${cssNumber(
+    height
+  )}" preserveAspectRatio="none" style="display:block;overflow:visible">${shape}</svg></div>`;
 }
 
 function renderSvg(item: JsonRecord, mode: RenderMode): string {
@@ -727,9 +938,8 @@ function renderChart(item: JsonRecord, mode: RenderMode): string {
 }
 
 function renderInfographic(item: JsonRecord, mode: RenderMode): string {
-  const kind = infographicKindFromValue(
-    readString(item.infographicType ?? item.infographic_type)
-  );
+  const data = infographicData(item);
+  const kind = infographicKindFromValue(readString(data.type));
   if (kind === "gauge") return renderGaugeInfographic(item, mode);
   return renderProgressBarInfographic(item, mode);
 }
@@ -808,6 +1018,10 @@ function chartConfig(item: JsonRecord, height: number): JsonRecord {
   );
   const titleColor =
     safeChartColor(readString(item.titleColor ?? item.title_color), "#344054");
+  const legendColor = safeChartColor(
+    readString(item.legendColor ?? item.legend_color),
+    textColor
+  );
   const title = markdownToPlainChartText(readString(item.title) ?? "");
   const fontSize = clamp(height * 0.033, 9, 18);
   const titleFontSize = clamp(height * 0.044, 11, 26);
@@ -878,7 +1092,7 @@ function chartConfig(item: JsonRecord, height: number): JsonRecord {
           labels: {
             boxWidth: Math.max(8, fontSize * 0.8),
             boxHeight: Math.max(8, fontSize * 0.8),
-            color: textColor,
+            color: legendColor,
             font: { family: CHART_FONT_FAMILY, size: fontSize, weight: 600 },
             padding: Math.max(8, fontSize),
             usePointStyle: true,
@@ -1164,7 +1378,7 @@ function normalizeChartKindValue(value: string | null): string {
 }
 
 function chartKindFromValue(value: string | null): ChartKind {
-  const normalized = value?.toLowerCase().replace(/[\s-]+/g, "_") ?? "";
+  const normalized = normalizeChartKindValue(value);
   if (normalized === "bubble") return "bubble";
   if (normalized === "horizontal_bar" || normalized === "bar_horizontal") {
     return "horizontal_bar";
@@ -1493,12 +1707,17 @@ function infographicKindFromValue(value: string | null): InfographicKind {
   return value === "gauge" ? "gauge" : "progress_bar";
 }
 
+function infographicData(item: JsonRecord): JsonRecord {
+  return readRecord(item.data);
+}
+
 function infographicMetrics(item: JsonRecord): InfographicMetrics {
-  const rawMin = readNumber(item.minValue ?? item.min_value) ?? 0;
-  const rawMax = readNumber(item.maxValue ?? item.max_value) ?? 100;
+  const data = infographicData(item);
+  const rawMin = readNumber(data.min_value) ?? 0;
+  const rawMax = readNumber(data.max_value) ?? 100;
   const min = Math.min(rawMin, rawMax);
   const max = Math.max(rawMin, rawMax);
-  const value = clamp(readNumber(item.value) ?? min, min, max);
+  const value = clamp(readNumber(data.value) ?? min, min, max);
   const ratio = max === min ? 0 : (value - min) / (max - min);
 
   return {
@@ -1508,20 +1727,17 @@ function infographicMetrics(item: JsonRecord): InfographicMetrics {
 }
 
 function infographicHighlightColor(item: JsonRecord): string {
-  const fill = readRecord(item.fill);
+  const colors = readArray(item.colors);
   return (
-    normalizeChartColor(
-      readString(
-        item.highlightColor ?? item.highlight_color ?? item.color ?? fill.color
-      )
-    ) ??
+    normalizeChartColor(readString(colors[1])) ??
     DEFAULT_CHART_COLORS[0]
   );
 }
 
 function infographicBaseColor(item: JsonRecord): string {
+  const colors = readArray(item.colors);
   return (
-    normalizeChartColor(readString(item.baseColor ?? item.base_color)) ??
+    normalizeChartColor(readString(colors[0])) ??
     "#E5E7EB"
   );
 }
@@ -1656,18 +1872,19 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 `;
 }
 
-function frameAndBoxStyle(item: JsonRecord, mode: RenderMode, extra = ""): string {
-  return `${frameStyle(item, mode)}${boxStyle(item)}${extra}`;
-}
-
 function frameStyle(
   item: JsonRecord,
   mode: RenderMode,
   fallbackSize?: { width: number; height: number }
 ): string {
   const box = readBox(item, fallbackSize);
+  return frameStyleFromBox(box, mode);
+}
+
+function frameStyleFromBox(box: Box, mode: RenderMode): string {
   let style = `box-sizing:border-box;min-height:0;min-width:0;position:${mode === "absolute" ? "absolute" : "relative"
     };`;
+  if (mode === "flow") style += "flex-shrink:0;";
   if (mode === "absolute") {
     style += `left:${cssNumber(box.x)}px;top:${cssNumber(box.y)}px;`;
   }
@@ -1682,6 +1899,15 @@ function readBox(
 ): Box {
   const position = readRecord(item.position);
   const size = readRecord(item.size);
+  const type = readString(item.type);
+  if (type === "vector") {
+    return polygonBox(
+      item,
+      vectorShape(item) === "ellipse"
+        ? polygonSourcePoints(item)
+        : polygonPoints(item)
+    );
+  }
   return {
     x: readNumber(position.x) ?? 0,
     y: readNumber(position.y) ?? 0,
@@ -1705,6 +1931,179 @@ function childrenBounds(
   );
 }
 
+function polygonSourcePoints(item: JsonRecord): Point[] {
+  return readArray(item.points)
+    .map(readRecord)
+    .map((point) => {
+      const x = readNumber(point.x);
+      const y = readNumber(point.y);
+      return x != null && y != null ? { x, y } : null;
+    })
+    .filter((point): point is Point => point != null);
+}
+
+function vectorShape(item: JsonRecord): "polygon" | "ellipse" {
+  return readString(item.shape) === "ellipse" ? "ellipse" : "polygon";
+}
+
+function polygonPoints(item: JsonRecord): Point[] {
+  const points = polygonSourcePoints(item);
+  if (readString(item.type) === "vector" && vectorShape(item) === "ellipse") {
+    return points;
+  }
+  const closed = polygonClosed(item, points);
+  const rounded = closed
+    ? roundedPolygonPoints(points, cornerRadii(item, points.length))
+    : points;
+  const curve = curveSettings(item);
+  if (!curve) return rounded;
+  return sampleSmoothCurve(rounded, closed, curve.tension, curve.segments);
+}
+
+function cornerRadii(item: JsonRecord, pointCount: number): number[] {
+  return readArray(item.corner_radii ?? item.cornerRadii)
+    .map(readNumber)
+    .filter((value): value is number => value != null)
+    .slice(0, pointCount)
+    .map((value) => Math.max(0, value));
+}
+
+function pointAt(points: Point[], index: number) {
+  return points[((index % points.length) + points.length) % points.length];
+}
+
+function lerpPoint(start: Point, end: Point, t: number): Point {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+  };
+}
+
+function roundedPolygonPoints(points: Point[], radii: number[], segments = 8): Point[] {
+  if (points.length < 3 || radii.length === 0) return points;
+  const rounded: Point[] = [];
+  points.forEach((point, index) => {
+    const radius = radii[index] ?? 0;
+    const previous = pointAt(points, index - 1);
+    const next = pointAt(points, index + 1);
+    const prevDistance = Math.hypot(point.x - previous.x, point.y - previous.y);
+    const nextDistance = Math.hypot(point.x - next.x, point.y - next.y);
+    const safeRadius = Math.min(radius, prevDistance / 2, nextDistance / 2);
+    if (safeRadius <= 0) {
+      rounded.push(point);
+      return;
+    }
+    const from = lerpPoint(point, previous, safeRadius / prevDistance);
+    const to = lerpPoint(point, next, safeRadius / nextDistance);
+    rounded.push(from);
+    for (let step = 1; step < segments; step += 1) {
+      const t = step / segments;
+      rounded.push({
+        x: (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * point.x + t * t * to.x,
+        y: (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * point.y + t * t * to.y,
+      });
+    }
+    rounded.push(to);
+  });
+  return rounded;
+}
+
+function curveSettings(item: JsonRecord) {
+  const curve = readRecordOrNull(item.curve);
+  if (!curve) return null;
+  const rawType = readString(curve.type)?.trim().toLowerCase();
+  if (rawType !== "smooth") return null;
+  return {
+    type: "smooth",
+    tension: clamp(readNumber(curve.tension) ?? 0.4, 0, 1),
+    segments: Math.max(1, Math.min(96, Math.round(readNumber(curve.segments) ?? 16))),
+  };
+}
+
+function hermitePoint(
+  start: Point,
+  end: Point,
+  startTangent: Point,
+  endTangent: Point,
+  t: number
+): Point {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const h00 = 2 * t3 - 3 * t2 + 1;
+  const h10 = t3 - 2 * t2 + t;
+  const h01 = -2 * t3 + 3 * t2;
+  const h11 = t3 - t2;
+  return {
+    x:
+      h00 * start.x +
+      h10 * startTangent.x +
+      h01 * end.x +
+      h11 * endTangent.x,
+    y:
+      h00 * start.y +
+      h10 * startTangent.y +
+      h01 * end.y +
+      h11 * endTangent.y,
+  };
+}
+
+function sampleSmoothCurve(points: Point[], closed: boolean, tension: number, segments: number): Point[] {
+  if (points.length < 3 || tension <= 0) return points;
+  const sampled: Point[] = [];
+  const segmentCount = closed ? points.length : points.length - 1;
+  for (let index = 0; index < segmentCount; index += 1) {
+    const p0 = closed ? pointAt(points, index - 1) : points[Math.max(0, index - 1)];
+    const p1 = pointAt(points, index);
+    const p2 = pointAt(points, index + 1);
+    const p3 = closed ? pointAt(points, index + 2) : points[Math.min(points.length - 1, index + 2)];
+    if (index === 0) sampled.push(p1);
+    const tangentScale = tension * 0.5;
+    const startTangent = {
+      x: (p2.x - p0.x) * tangentScale,
+      y: (p2.y - p0.y) * tangentScale,
+    };
+    const endTangent = {
+      x: (p3.x - p1.x) * tangentScale,
+      y: (p3.y - p1.y) * tangentScale,
+    };
+    for (let step = 1; step <= segments; step += 1) {
+      sampled.push(
+        hermitePoint(p1, p2, startTangent, endTangent, step / segments)
+      );
+    }
+  }
+  return sampled;
+}
+
+function polygonClosed(item: JsonRecord, points: Point[]): boolean {
+  if (readString(item.type) === "vector" && vectorShape(item) === "ellipse") {
+    return true;
+  }
+  const value = item.closed;
+  if (value === false || value === "false" || value === "0") return false;
+  if (value === true || value === "true" || value === "1") return true;
+  return points.length > 2;
+}
+
+function polygonBox(item: JsonRecord, points: Point[]): Box {
+  if (points.length === 0) {
+    return { x: 0, y: 0, width: 1, height: 1 };
+  }
+
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const stroke = readRecord(item.stroke);
+  const strokeWidth = Math.max(1, readNumber(stroke.width) ?? 1);
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(maxX - minX, strokeWidth, 1),
+    height: Math.max(maxY - minY, strokeWidth, 1),
+  };
+}
+
 function boxStyle(item: JsonRecord): string {
   const fill = readRecord(item.fill);
   const stroke = readRecord(item.stroke);
@@ -1726,21 +2125,29 @@ function boxStyle(item: JsonRecord): string {
   }
   const borderRadius = borderRadiusStyle(radius);
   if (borderRadius) style += `border-radius:${borderRadius};`;
-  const shadowOpacity = Object.keys(shadow).length
-    ? (readNumber(shadow.opacity) ?? 1)
-    : 0;
-  if (shadowOpacity > 0) {
-    style += `box-shadow:${cssNumber(
-      readNumber(shadow.offsetX ?? shadow.offset_x) ?? 0
-    )}px ${cssNumber(readNumber(shadow.offsetY ?? shadow.offset_y) ?? 0)}px ${cssNumber(
-      readNumber(shadow.blur) ?? 0
-    )}px ${escapeCssColor(
-      colorWithOpacity(readString(shadow.color) ?? "#000000", shadowOpacity)
-    )};`;
-  }
+  const shadowValue = shadowCssValue(shadow);
+  if (shadowValue) style += `box-shadow:${shadowValue};`;
   const opacity = readNumber(item.opacity);
   if (opacity != null) style += `opacity:${cssNumber(opacity)};`;
   return style;
+}
+
+function textShadowStyle(item: JsonRecord): string {
+  const shadowValue = shadowCssValue(readRecord(item.shadow));
+  return shadowValue ? `text-shadow:${shadowValue};` : "";
+}
+
+function shadowCssValue(shadow: JsonRecord): string {
+  const shadowOpacity = Object.keys(shadow).length
+    ? (readNumber(shadow.opacity) ?? 1)
+    : 0;
+  if (shadowOpacity <= 0) return "";
+
+  return `${cssNumber(readNumber(shadow.offsetX ?? shadow.offset_x) ?? 0)}px ${cssNumber(
+    readNumber(shadow.offsetY ?? shadow.offset_y) ?? 0
+  )}px ${cssNumber(readNumber(shadow.blur) ?? 0)}px ${escapeCssColor(
+    colorWithOpacity(readString(shadow.color) ?? "#000000", shadowOpacity)
+  )}`;
 }
 
 function transformStyle(item: JsonRecord): string {
@@ -1756,7 +2163,10 @@ function transformStyle(item: JsonRecord): string {
   return `transform:${transforms.join(" ")};transform-origin:center;`;
 }
 
-function fontStyle(fontValue: unknown): string {
+function fontStyle(
+  fontValue: unknown,
+  options: { includeLineHeight?: boolean; includeTextDecoration?: boolean } = {}
+): string {
   const font = readRecord(fontValue);
   let style = `color:${escapeCssColor(
     colorWithOpacity(readString(font.color) ?? "#111827", readNumber(font.opacity))
@@ -1765,13 +2175,41 @@ function fontStyle(fontValue: unknown): string {
   const size = readNumber(font.size);
   if (family) style += `font-family:${escapeCssFont(family)};`;
   if (size != null) style += `font-size:${cssNumber(size)}px;`;
-  if (readBoolean(font.italic)) style += "font-style:italic;";
-  if (readBoolean(font.bold)) style += "font-weight:700;";
-  const lineHeight = readNumber(font.lineHeight ?? font.line_height);
-  if (lineHeight != null) style += `line-height:${cssNumber(lineHeight)};`;
+  if (hasOwn(font, "italic")) {
+    style += readBoolean(font.italic) ? "font-style:italic;" : "font-style:normal;";
+  }
+  if (hasOwn(font, "bold")) {
+    style += readBoolean(font.bold) ? "font-weight:700;" : "font-weight:400;";
+  }
+  if (options.includeLineHeight !== false) style += lineHeightStyle(font);
   const letterSpacing = readNumber(font.letterSpacing ?? font.letter_spacing);
   if (letterSpacing != null) style += `letter-spacing:${cssNumber(letterSpacing)}px;`;
+  if (options.includeTextDecoration !== false) {
+    style += textDecorationStyle(font);
+  }
   return style;
+}
+
+function textDecorationStyle(font: JsonRecord): string {
+  if (hasOwn(font, "underline")) {
+    return readBoolean(font.underline)
+      ? "text-decoration:underline;"
+      : "text-decoration:none;";
+  }
+
+  const decorations = [font.text_decoration, font.textDecoration]
+    .map((value) => readString(value)?.toLowerCase())
+    .filter(Boolean);
+  if (decorations.includes("underline")) return "text-decoration:underline;";
+  if (decorations.includes("none")) return "text-decoration:none;";
+  return "";
+}
+
+function lineHeightStyle(font: JsonRecord, fallback?: number): string {
+  const lineHeight = readNumber(font.lineHeight ?? font.line_height) ?? fallback;
+  if (lineHeight == null) return "";
+
+  return `line-height:${cssNumber(lineHeight)};`;
 }
 
 function tableRows(item: JsonRecord): unknown[][] {
@@ -1810,7 +2248,10 @@ function tableCellStyle(
   const background = fillColor
     ? colorWithOpacity(fillColor, readNumber(fill.opacity))
     : "transparent";
-  let style = `${fontStyle(cellFont)}display:flex;align-items:center;justify-content:${horizontalAlign(
+  const forceHeaderBold = header && !tableCellHasExplicitBold(cellValue);
+  let style = `${fontStyle(cellFont, {
+    includeTextDecoration: false,
+  })}display:flex;align-items:center;justify-content:${horizontalAlign(
     alignment
   )};border:${cssNumber(
     readNumber(stroke.width) ?? 1
@@ -1819,7 +2260,7 @@ function tableCellStyle(
   )};min-height:0;min-width:0;overflow:hidden;padding:4px 6px;text-align:${textAlign(
     alignment
   )};vertical-align:middle;white-space:pre-wrap;word-break:break-word;`;
-  if (header && !readBoolean(cellFont.bold)) style += "font-weight:700;";
+  if (forceHeaderBold && !readBoolean(cellFont.bold)) style += "font-weight:700;";
   style += `background:${escapeCssColor(background)};`;
   return style;
 }
@@ -1844,6 +2285,21 @@ function tableCellFont(cellValue: unknown, tableFont: JsonRecord): JsonRecord {
   };
 }
 
+function tableCellHasExplicitBold(cellValue: unknown): boolean {
+  if (typeof cellValue === "string" || typeof cellValue === "number") {
+    return false;
+  }
+
+  const cell = readRecord(cellValue);
+  const firstRun = readRecord(readArray(cell.runs)[0]);
+  const text = readRecord(cell.text);
+  return (
+    Object.prototype.hasOwnProperty.call(readRecord(cell.font), "bold") ||
+    Object.prototype.hasOwnProperty.call(readRecord(firstRun.font), "bold") ||
+    Object.prototype.hasOwnProperty.call(readRecord(text.font), "bold")
+  );
+}
+
 function cellText(
   cellValue: unknown,
   tableFont: JsonRecord,
@@ -1858,6 +2314,8 @@ function cellText(
   const fillColor = readString(fill.color)
     ? colorWithOpacity(readString(fill.color) ?? "", readNumber(fill.opacity))
     : null;
+  const forceHeaderBold = header && !tableCellHasExplicitBold(cellValue);
+  const headerFontPatch = forceHeaderBold ? { bold: true } : {};
   const directRuns = readArray(cell.runs).map(readRecord);
   if (directRuns.length) {
     const runs = normalizeRunsForHtml(
@@ -1874,7 +2332,7 @@ function cellText(
             ...tableFont,
             ...readRecord(cell.font),
             ...readRecord(run.font),
-            ...(header ? { bold: true } : {}),
+            ...headerFontPatch,
           },
           fillColor,
           header
@@ -1890,7 +2348,7 @@ function cellText(
   if (typeof text === "string") {
     return `<span style="${fontStyle(
       readableTableFont(
-        { ...tableFont, ...readRecord(cell.font), ...(header ? { bold: true } : {}) },
+        { ...tableFont, ...readRecord(cell.font), ...headerFontPatch },
         fillColor,
         header
       )
@@ -1907,7 +2365,7 @@ function cellText(
             ...readRecord(cell.font),
             ...readRecord(textRecord.font),
             ...readRecord(run.font),
-            ...(header ? { bold: true } : {}),
+            ...headerFontPatch,
           },
           fillColor,
           header
@@ -1920,7 +2378,7 @@ function cellText(
   }
   return `<span style="${fontStyle(
     readableTableFont(
-      { ...tableFont, ...readRecord(cell.font), ...(header ? { bold: true } : {}) },
+      { ...tableFont, ...readRecord(cell.font), ...headerFontPatch },
       fillColor,
       header
     )
@@ -2087,6 +2545,10 @@ function readRecord(value: unknown): JsonRecord {
 function readRecordOrNull(value: unknown): JsonRecord | null {
   const record = readRecord(value);
   return Object.keys(record).length ? record : null;
+}
+
+function hasOwn(record: JsonRecord, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
 }
 
 function readArray(value: unknown): unknown[] {

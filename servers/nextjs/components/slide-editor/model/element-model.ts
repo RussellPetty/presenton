@@ -5,7 +5,6 @@ import type {
   Font,
   ImageElement,
   Position,
-  RectangleElement,
   Size,
   SlideElement,
   Stroke,
@@ -245,6 +244,6 @@ export function hasImageData(element: ImageElement) {
 
 export function isShapeElement(
   element: SlideElement,
-): element is RectangleElement | Extract<SlideElement, { type: "ellipse" }> {
-  return element.type === "rectangle" || element.type === "ellipse";
+): element is Extract<SlideElement, { type: "vector" }> {
+  return element.type === "vector";
 }

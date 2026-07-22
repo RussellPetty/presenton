@@ -76,7 +76,7 @@ def test_upgrade_from_baseline_stamp_skips_existing_theme_column(tmp_path):
                 )
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert "theme" in columns
         assert "fonts" in columns
         assert "async_tasks" in tables
@@ -128,7 +128,7 @@ def test_upgrade_from_theme_stamp_skips_existing_template_create_infos_table(tmp
                 )
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert "template_create_infos" in tables
     finally:
         engine.dispose()
@@ -188,7 +188,7 @@ def test_upgrade_from_template_stamp_skips_existing_chat_history_table(tmp_path)
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert {
             "ix_chat_history_messages_conversation_id",
             "ix_chat_history_messages_position",
@@ -256,13 +256,107 @@ def test_consolidated_migration_adds_presentation_version(tmp_path):
                 for row in connection.execute(text("PRAGMA table_info(slides)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert presentation_version == "v1-standard"
         assert version_column[3] == 1
         assert version_column[4] is None
         assert "ui" in slide_columns
     finally:
         engine.dispose()
+
+
+def test_async_task_status_migration_maps_processing_to_pending(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'async-task-status.db'}"
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE async_tasks (
+                        id VARCHAR NOT NULL,
+                        type VARCHAR NOT NULL,
+                        status VARCHAR NOT NULL,
+                        PRIMARY KEY (id)
+                    )
+                    """
+                )
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO async_tasks (id, type, status)
+                    VALUES
+                        ('task-processing', 'template.create', 'processing'),
+                        ('task-pending', 'template.create', 'pending'),
+                        ('task-completed', 'template.create', 'completed')
+                    """
+                )
+            )
+            connection.execute(
+                text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)")
+            )
+            connection.execute(
+                text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+                {"revision": migrations.REVISION_ASYNC_TASKS},
+            )
+
+        command.upgrade(_alembic_config(database_url), "head")
+
+        with engine.connect() as connection:
+            version = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+            statuses = dict(
+                connection.execute(
+                    text("SELECT id, status FROM async_tasks ORDER BY id")
+                ).all()
+            )
+
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert statuses == {
+            "task-completed": "completed",
+            "task-pending": "pending",
+            "task-processing": "pending",
+        }
+    finally:
+        engine.dispose()
+
+
+def test_unversioned_database_with_async_tasks_stamps_before_status_cleanup(
+    tmp_path, monkeypatch
+):
+    database_url = f"sqlite:///{tmp_path / 'legacy-async-tasks.db'}"
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE async_tasks (
+                        id VARCHAR NOT NULL,
+                        type VARCHAR NOT NULL,
+                        status VARCHAR NOT NULL,
+                        PRIMARY KEY (id)
+                    )
+                    """
+                )
+            )
+    finally:
+        engine.dispose()
+
+    stamped_revisions = []
+    monkeypatch.setattr(
+        migrations.command,
+        "stamp",
+        lambda _config, revision: stamped_revisions.append(revision),
+    )
+
+    migrations._stamp_legacy_database_if_needed(
+        _alembic_config(database_url), database_url
+    )
+
+    assert stamped_revisions == [migrations.REVISION_ASYNC_TASKS]
 
 
 def test_unversioned_database_with_chat_history_stamps_before_template_v2(
@@ -331,7 +425,7 @@ def test_upgrade_from_template_v2_revision_adds_slide_ui(tmp_path):
                 for row in connection.execute(text("PRAGMA table_info(slides)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert "ui" in slide_columns
     finally:
         engine.dispose()
@@ -470,7 +564,7 @@ def test_upgrade_from_font_uploads_revision_converts_template_v2_ids_to_strings(
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert stored_template_id == expected_template_id
         assert stored_chat_template_id == expected_template_id
         assert template_id_type == "VARCHAR"
@@ -617,7 +711,7 @@ def test_removed_intermediate_revision_upgrades_through_consolidated_migration(
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASKS
+        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
         assert {"description", "components", "assets"}.issubset(template_columns)
         assert "is_default" in template_columns
         assert "cluster_candidates" not in template_columns

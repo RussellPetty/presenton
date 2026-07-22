@@ -126,3 +126,16 @@ def test_get_mcp_api_timeout_supports_long_running_requests():
     assert timeout.write >= 300
     assert timeout.pool >= 300
     assert timeout.connect == mcp_server.MCP_API_CONNECT_TIMEOUT_SECONDS
+
+
+def test_mcp_exposes_only_presentation_generation_workflow():
+    async def list_tool_names():
+        async with httpx.AsyncClient(base_url="http://127.0.0.1:8000") as client:
+            server = mcp_server.create_mcp_server(client)
+            return {tool.name for tool in await server.list_tools()}
+
+    assert asyncio.run(list_tool_names()) == {
+        "generate_presentation",
+        "generate_presentation_async",
+        "get_presentation_generation_status",
+    }

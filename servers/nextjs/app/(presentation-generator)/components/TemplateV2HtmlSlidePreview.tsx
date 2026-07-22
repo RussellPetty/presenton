@@ -682,18 +682,6 @@ const presentonDataLabelPlugin: Plugin = {
   },
 };
 
-function readString(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-function hasTemplateV2Identity(slide: unknown): boolean {
-  if (!slide || typeof slide !== "object") return false;
-  const record = slide as Record<string, unknown>;
-  const layoutGroup = readString(record.layout_group);
-  const layout = readString(record.layout);
-  return layoutGroup.startsWith("template-v2") || layout.startsWith("template-v2");
-}
-
 export function shouldRenderTemplateV2HtmlPreview(
   slide: unknown,
   presentationVersion?: unknown
@@ -702,7 +690,7 @@ export function shouldRenderTemplateV2HtmlPreview(
   const record = slide as Record<string, unknown>;
   const isTemplateV2Presentation = presentationVersion === "v2-standard";
   return (
-    (isTemplateV2Presentation || hasTemplateV2Identity(slide)) &&
+    (isTemplateV2Presentation || hasTemplateV2RenderableUi(record.ui)) &&
     hasTemplateV2RenderableUi(record.ui)
   );
 }

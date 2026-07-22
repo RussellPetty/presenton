@@ -127,8 +127,9 @@ class GetAvailableBlocksInput(OpenAIStrictSchemaModel):
         min_length=1,
         max_length=80,
         description=(
-            "Optional element type filter such as table, chart, image, text, "
-            "or text-list. For title/header/subtitle blocks, use text with a "
+            "Optional current element type filter: text, container, image, "
+            "text-list, table, vector, svg, chart, infographic, flex, grid, or "
+            "group. For title/header/subtitle blocks, use text with a "
             "title/header/subtitle query."
         ),
     )
@@ -336,6 +337,9 @@ class SlideElementChartInput(OpenAIStrictSchemaModel):
     title_color: str | None = Field(
         ..., alias="titleColor", min_length=1, max_length=32
     )
+    legend_color: str | None = Field(
+        ..., alias="legendColor", min_length=1, max_length=32
+    )
     categories: list[str] | None = Field(..., min_length=1, max_length=100)
     series: list[SlideElementChartSeriesInput] | None = Field(
         ..., min_length=1, max_length=20
@@ -368,6 +372,41 @@ class SlideElementChartInput(OpenAIStrictSchemaModel):
     legend: bool | None = Field(...)
 
     model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
+
+
+class SlideElementInfographicDataInput(OpenAIStrictSchemaModel):
+    type: Literal["progress_bar", "gauge"] | None = Field(...)
+    min_value: float | None = Field(..., alias="minValue")
+    max_value: float | None = Field(..., alias="maxValue")
+    value: float | None = Field(...)
+
+    model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
+
+    @model_validator(mode="after")
+    def validate_range(self) -> "SlideElementInfographicDataInput":
+        if (
+            self.max_value is not None
+            and self.min_value is not None
+            and self.max_value <= self.min_value
+        ):
+            raise ValueError("maxValue must be greater than minValue.")
+        return self
+
+
+class SlideElementInfographicInput(OpenAIStrictSchemaModel):
+    data: SlideElementInfographicDataInput | None = Field(
+        ...,
+        description=(
+            "Partial progress bar or gauge data using type, minValue, maxValue, "
+            "and/or value; supplied fields merge into the current data."
+        ),
+    )
+    colors: list[str] | None = Field(
+        ...,
+        min_length=2,
+        max_length=12,
+        description="Base and highlight colors, followed by optional extra colors.",
+    )
 
 
 class SlideElementTableValueInput(StrictSchemaModel):
@@ -403,6 +442,32 @@ class SlideElementPositionInput(StrictSchemaModel):
 class SlideElementSizeInput(StrictSchemaModel):
     width: float = Field(ge=1, le=10000)
     height: float = Field(ge=1, le=10000)
+
+
+class SlideElementVectorCurveInput(OpenAIStrictSchemaModel):
+    type: Literal["smooth"] = Field(...)
+    tension: float | None = Field(..., ge=0, le=1)
+    segments: int | None = Field(..., ge=1, le=96)
+
+
+class SlideElementVectorInput(OpenAIStrictSchemaModel):
+    shape: Literal["polygon", "ellipse"] | None = Field(...)
+    points: list[SlideElementPositionInput] | None = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="Replacement vector vertices in component-local canvas pixels.",
+    )
+    closed: bool | None = Field(...)
+    curve: SlideElementVectorCurveInput | None = Field(...)
+    corner_radii: list[float] | None = Field(
+        ...,
+        alias="cornerRadii",
+        min_length=2,
+        max_length=200,
+    )
+
+    model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
 
 class SlideElementFontInput(OpenAIStrictSchemaModel):
@@ -501,6 +566,20 @@ class UpdateSlideElementInput(OpenAIStrictSchemaModel):
             "categories, series.values, colors, axes, data labels, and legend."
         ),
     )
+    vector: SlideElementVectorInput | None = Field(
+        ...,
+        description=(
+            "Vector update using shape, points, closed, smooth curve, and cornerRadii. "
+            "Use position/size for ordinary vector move and resize requests."
+        ),
+    )
+    infographic: SlideElementInfographicInput | None = Field(
+        ...,
+        description=(
+            "Infographic update using nested data (type, minValue, maxValue, value) "
+            "and colors."
+        ),
+    )
     table: SlideElementTableInput | None = Field(
         ...,
         description="Whole table update with columns/headers and rows.",
@@ -513,7 +592,8 @@ class UpdateSlideElementInput(OpenAIStrictSchemaModel):
             "Optional JSON-serialized element patch for toolbar-style properties "
             "such as fill, stroke, font, alignment, opacity, crop, "
             "border_radius, padding, shadow, or line dash. Prefer the chart field "
-            "for chart type, colors, axes, legend, and data labels. "
+            "for chart data, the vector field for vector structure, and the "
+            "infographic field for infographic data/colors. "
             "Object values are merged into the current element."
         ),
     )
@@ -543,7 +623,8 @@ class UpdateSlideElementInput(OpenAIStrictSchemaModel):
         description=(
             "Convenience color patch. For text, text-list, and table elements this "
             "means font.color; for icons/images it updates element color; for "
-            "basic shapes it updates fill color."
+            "closed vectors it updates fill, for open vectors it updates stroke, "
+            "and for infographics it updates the highlight color."
         ),
     )
     opacity: float | None = Field(
@@ -581,6 +662,8 @@ class UpdateSlideElementInput(OpenAIStrictSchemaModel):
             "gridColor",
             "grid_color",
             "legend",
+            "legendColor",
+            "legend_color",
             "series",
             "title",
             "titleColor",
@@ -712,8 +795,8 @@ class UpdateSlideComponentInput(OpenAIStrictSchemaModel):
     size: SlideElementSizeInput | None = Field(
         ...,
         description=(
-            "Optional component size update for resize/shrink/grow requests. "
-            "The component's contained elements scale with this size."
+            "Optional target bounds for resize/shrink/grow requests. The component's "
+            "contained elements scale to these bounds; component JSON does not store size."
         ),
     )
 
@@ -772,9 +855,10 @@ class AddSlideComponentInput(OpenAIStrictSchemaModel):
         description=(
             "A JSON-serialized component object to add to the slide: "
             '{"id": "...", "description": "...", "position": {"x": 128, "y": 120}, '
-            '"size": {"width": 1024, "height": 410}, "elements": [ ... ]}. '
+            '"elements": [ ... ]}. Do not include component size; child element '
+            "bounds define the component bounds. "
             "Use 1280 x 720 stage pixels, not normalized 0-1 values, and keep "
-            "position/size fully inside that visible window. "
+            "position and derived bounds fully inside that visible window. "
             "Copy the shape of an existing component from getAvailableBlocks or "
             "getSlideAtIndex(includeFullContent=true)."
         ),
@@ -843,8 +927,8 @@ class UpdateComponentInput(OpenAIStrictSchemaModel):
     size: SlideElementSizeInput | None = Field(
         ...,
         description=(
-            "Optional component size update for resize/shrink/grow requests. "
-            "The component's contained elements scale with this size."
+            "Optional target bounds for resize/shrink/grow requests. The component's "
+            "contained elements scale to these bounds; component JSON does not store size."
         ),
     )
     component: str | None = Field(

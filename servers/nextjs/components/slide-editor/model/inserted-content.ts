@@ -49,15 +49,16 @@ export function insertedComponentToRaw(
   const elements = readArray(component.elements)
     .filter(isRecord)
     .map((element) => rawElementFromInsertedElement(element));
+  const { size, ...componentWithoutSize } = component;
+  void size;
   return {
-    ...component,
+    ...componentWithoutSize,
     id: `${normalizeId(
       readString(component.id) ?? label ?? "inserted-component",
     )}_${index + 1}`,
     description:
       readString(component.description) ?? label ?? "Inserted component",
     position: { x: box.x, y: box.y },
-    size: { width: box.width, height: box.height },
     elements,
   };
 }
@@ -68,17 +69,19 @@ export function insertedElementToComponent(
   index: number,
 ) {
   const box = sourceElementBox(element);
+  const rawElement = rawElementFromInsertedElement(element);
   return {
     id: `${normalizeId(label ?? readString(element.type) ?? "inserted")}_${index + 1}`,
     description: label ?? "Inserted element",
     position: { x: box.x, y: box.y },
-    size: { width: box.width, height: box.height },
     elements: [
-      {
-        ...rawElementFromInsertedElement(element),
-        position: { x: 0, y: 0 },
-        size: { width: box.width, height: box.height },
-      },
+      isVectorType(readString(rawElement.type))
+        ? localizePolygonElement(rawElement, box)
+        : {
+            ...rawElement,
+            position: { x: 0, y: 0 },
+            size: { width: box.width, height: box.height },
+          },
     ],
   };
 }
@@ -86,7 +89,7 @@ export function insertedElementToComponent(
 export function rawElementFromInsertedElement(
   element: UnknownRecord,
 ): RawElement {
-  const type = readString(element.type) ?? "rectangle";
+  const type = readString(element.type);
   const rawElement = normalizeInsertedElementGeometry(element);
   const normalizedElement = {
     ...rawElement,
@@ -109,6 +112,9 @@ export function rawElementFromInsertedElement(
 }
 
 export function sourceElementBox(element: UnknownRecord): Box {
+  const polygonBox = polygonBoundsForElement(element);
+  if (polygonBox) return polygonBox;
+
   const position = readPoint(element.position);
   const size = sourceElementSize(element);
   return {
@@ -120,6 +126,11 @@ export function sourceElementBox(element: UnknownRecord): Box {
 }
 
 export function sourceElementSize(element: UnknownRecord): Size {
+  const polygonBox = polygonBoundsForElement(element);
+  if (polygonBox) {
+    return { width: polygonBox.width, height: polygonBox.height };
+  }
+
   const size = asRecord(element.size);
   return {
     width: Math.max(1, readNumber(size?.width) ?? 1),
@@ -168,6 +179,54 @@ export function normalizeInsertedBorderRadius(value: unknown) {
     bottomLeft: radius.bottomLeft,
     bottomRight: radius.bottomRight,
   });
+}
+
+function localizePolygonElement(element: RawElement, box: Box): RawElement {
+  return {
+    ...element,
+    points: readArray(element.points)
+      .map(asRecord)
+      .filter((point): point is UnknownRecord => Boolean(point))
+      .map((point) => ({
+        x: (readNumber(point.x) ?? 0) - box.x,
+        y: (readNumber(point.y) ?? 0) - box.y,
+      })),
+  };
+}
+
+function isVectorType(type: string | null | undefined) {
+  return type === "vector";
+}
+
+function polygonBoundsForElement(element: UnknownRecord): Box | null {
+  const type = readString(element.type);
+  if (type !== "vector") return null;
+  const points = pointsForElement(element);
+  if (points.length === 0) return null;
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const stroke = asRecord(element.stroke);
+  const strokeWidth = Math.max(1, readNumber(stroke?.width) ?? 1);
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX, strokeWidth),
+    height: Math.max(1, maxY - minY, strokeWidth),
+  };
+}
+
+function pointsForElement(element: UnknownRecord): Array<{ x: number; y: number }> {
+  return readArray(element.points)
+    .map(asRecord)
+    .filter((point): point is UnknownRecord => Boolean(point))
+    .map((point) => {
+      const x = readNumber(point.x);
+      const y = readNumber(point.y);
+      return x != null && y != null ? { x, y } : null;
+    })
+    .filter((point): point is { x: number; y: number } => point != null);
 }
 
 export function hasTemplateV2Metadata(element: UnknownRecord) {

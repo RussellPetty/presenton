@@ -68,11 +68,12 @@ _CONTENT_VALUE_KEYS_BY_ELEMENT_TYPE = {
         "source",
         "title",
         "title_color",
+        "legend_color",
         "x_axis_title",
         "y_axis_title",
     },
     "image": {"data", "prompt"},
-    "infographic": {"max_value", "min_value", "value"},
+    "infographic": {"data"},
     "text": {"runs"},
     "text-list": {"items"},
 }
@@ -91,7 +92,10 @@ Convert the provided raw slide elements to components.
 
 # General Rules:
 - `id` and `description` must be related to layout and must not be derived from slide content.
-- `id` should be about 2 to 5 words in snake_case format.
+- `id` should use 3 to 6 structural words in snake_case format.
+- Do not include fixed counts or number words in `id` or `description`, such as two, three, four, numbered, or 4_bullet.
+- Use plural dynamic region names instead, such as cards, bullets, sections, columns, rows, metrics, or callouts.
+- Prefer clear structural ids such as `title_slide_with_image`, `title_description_right_image`, or `title_cards_bottom`.
 - `description` should be around 15 to 30 words.
 - `name` of element must be derived from layout, not from content.
 
@@ -101,10 +105,10 @@ Convert the provided raw slide elements to components.
 - Use `table` element for table and `chart` element for chart.
 - Use `infographic` element for infographic or metric visuals like `progress_bar`, `gauge`, etc.
 - Use `text-list` element for list of text like bullet points, numbered list, unordered list, etc.
-- Use `rectangle`, `ellipse`, `line` etc for geometry.
 - Use `container` for flexible alignment and layout.
 - Use `image` for images and icons.
 - Identify icon color from slide image.
+- For raster photos or generated content images, use `fit: "cover"` when the image should fill its frame without distortion, and use `fit: "contain"` when the full image must remain visible. Use `fit: "fill"` only for intentionally stretchable SVG/freeform assets, including clipped PPTX image fills with `clip_path`; never use it for plain photo boxes.
 
 # Decorative and Content Element Rules:
 - Use `decorative=false` for elements that carry slide meaning or should be replaced, including text, charts, tables, metrics, icons in bullet points and primary images/icons.
@@ -113,6 +117,7 @@ Convert the provided raw slide elements to components.
 
 # Position and Size Rules:
 - Use local coordinates relative to component for elements.
+- Every component must include `position` and `elements`.
 - Don't provide position for elements inside flexible elements like `flex`, `grid`, `container`, etc.
 - If children of `flex` and `grid` are not equally sized, provide `size` for children.
 - Must provide `position` and `size` for elements inside `group` element.
@@ -137,9 +142,14 @@ Convert the provided raw slide elements to components.
 - When an infographic is built from multiple raw elements, replace all elements that form the infographic with one `infographic` element.
 - If an infographic is represented as an `image` element in the raw slide layout, convert that image into an `infographic` element and remove the original `image` element.
 
+# Vector Rules:
+- For vector circles or ellipses, use `shape="ellipse"` instead of approximating the shape with many smooth polygon points.
+- For freeform paths and polygons, use `shape="polygon"` or omit `shape`.
+
 # Schema Rules:
 - Set `decorative=true` for elements that should stay fixed as part of the template design.
 - Set `decorative=false` for content elements that should be replaced when creating a new slide from this layout.
+- For icon image elements, set `icon_type` to the closest visual style: `bold`, `duotone`, `fill`, `light`, `regular`, or `thin`. Omit `icon_type` for non-icon images.
 - Try to keep `max_length`, `min_length`, `max_items` and `min_items` same as in the raw slide layout.
 - If `flex` or `grid` contains list of same items, set the `max_length`, `min_length`, and other schema related constraints same for items.
 - For same items arranged in `flex`/`grid` derive schema fields by averaging between those similar items.
@@ -429,7 +439,7 @@ def _merged_component_variant_signatures(
 
 def _component_duplicate_signature(component: Component) -> tuple[Any, ...]:
     component_data = component.model_dump(mode="json", exclude_none=True)
-    root_size = component_data.get("size")
+    root_size = _component_content_size(component_data)
     return (
         "component",
         ("aspect", _aspect_signature(root_size)),
@@ -495,6 +505,118 @@ def _element_duplicate_signature(
         items.append((key, _normalize_signature_value(value)))
 
     return tuple(items)
+
+
+def _component_content_size(component_data: dict[str, Any]) -> dict[str, float] | None:
+    elements = component_data.get("elements")
+    if not isinstance(elements, list):
+        return None
+    bounds = _merge_bounds(
+        _element_bounds(element)
+        for element in elements
+        if isinstance(element, dict)
+    )
+    if bounds is None:
+        return None
+    return {
+        "width": max(1.0, bounds["x"] + bounds["width"]),
+        "height": max(1.0, bounds["y"] + bounds["height"]),
+    }
+
+
+def _element_bounds(element: dict[str, Any]) -> dict[str, float] | None:
+    element_type = str(element.get("type") or "")
+    if element_type == "vector":
+        points = [
+            point
+            for point in element.get("points", [])
+            if isinstance(point, dict)
+            and _coerce_number(point.get("x")) is not None
+            and _coerce_number(point.get("y")) is not None
+        ]
+        if points:
+            xs = [_coerce_number(point.get("x")) or 0.0 for point in points]
+            ys = [_coerce_number(point.get("y")) or 0.0 for point in points]
+            left = min(xs)
+            top = min(ys)
+            right = max(xs)
+            bottom = max(ys)
+            return {
+                "x": left,
+                "y": top,
+                "width": max(1.0, right - left),
+                "height": max(1.0, bottom - top),
+            }
+
+    position = element.get("position")
+    size = element.get("size")
+    x = _coerce_number(position.get("x")) if isinstance(position, dict) else None
+    y = _coerce_number(position.get("y")) if isinstance(position, dict) else None
+    width = _coerce_number(size.get("width")) if isinstance(size, dict) else None
+    height = _coerce_number(size.get("height")) if isinstance(size, dict) else None
+    own_bounds = (
+        {
+            "x": x or 0.0,
+            "y": y or 0.0,
+            "width": max(1.0, width),
+            "height": max(1.0, height),
+        }
+        if width is not None and height is not None
+        else None
+    )
+    child_bounds = _merge_bounds(
+        _offset_bounds(_element_bounds(child), x or 0.0, y or 0.0)
+        for child in _element_children(element)
+    )
+    return _merge_bounds([own_bounds, child_bounds])
+
+
+def _element_children(element: dict[str, Any]) -> list[dict[str, Any]]:
+    children: list[dict[str, Any]] = []
+    for key in ("children", "elements"):
+        value = element.get(key)
+        if isinstance(value, list):
+            children.extend(child for child in value if isinstance(child, dict))
+    child = element.get("child")
+    if isinstance(child, dict):
+        children.append(child)
+    item = element.get("item")
+    if isinstance(item, dict):
+        children.append(item)
+    return children
+
+
+def _offset_bounds(
+    bounds: dict[str, float] | None,
+    offset_x: float,
+    offset_y: float,
+) -> dict[str, float] | None:
+    if bounds is None:
+        return None
+    return {
+        "x": bounds["x"] + offset_x,
+        "y": bounds["y"] + offset_y,
+        "width": bounds["width"],
+        "height": bounds["height"],
+    }
+
+
+def _merge_bounds(
+    values: Any,
+) -> dict[str, float] | None:
+    bounds = [value for value in values if isinstance(value, dict)]
+    if not bounds:
+        return None
+    left = min(value["x"] for value in bounds)
+    top = min(value["y"] for value in bounds)
+    right = max(value["x"] + value["width"] for value in bounds)
+    bottom = max(value["y"] + value["height"] for value in bounds)
+    return {
+        "x": left,
+        "y": top,
+        "width": max(1.0, right - left),
+        "height": max(1.0, bottom - top),
+    }
 
 
 def _strip_table_text(value: Any) -> Any:
@@ -1151,7 +1273,7 @@ def _model_validation_repair_prompt(
             f"The previous {label} JSON did not match the required schema.",
             "Return a complete corrected replacement JSON object.",
             "For a SlideLayout, return id, description, and the complete components list in the same response.",
-            "Each component must include position, size, and local-coordinate elements.",
+            "Each component must include position and local-coordinate elements. Do not include component size.",
             "Return raw JSON only. Do not include markdown fences, comments, explanations, or text outside the JSON object.",
             "",
             "validation_errors:",

@@ -7,9 +7,15 @@ export const BLANK_TEMPLATE_V2_LAYOUT = {
   components: [],
   elements: [
     {
-      type: "rectangle",
-      position: { x: 0, y: 0 },
-      size: { width: 1280, height: 720 },
+      type: "vector",
+      shape: "polygon",
+      points: [
+        { x: 0, y: 0 },
+        { x: 1280, y: 0 },
+        { x: 1280, y: 720 },
+        { x: 0, y: 720 },
+      ],
+      closed: true,
       fill: { color: "#FFFFFF" },
       decorative: true,
     },
@@ -32,16 +38,40 @@ export function cloneBlankTemplateV2Layout() {
   return cloneJson(BLANK_TEMPLATE_V2_LAYOUT);
 }
 
+export function isTemplateV2TemplateId(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+
+  const templateId = value.trim();
+  return templateId.startsWith("template-v2");
+}
+
+export function hasTemplateV2SlideUi(slide: any): boolean {
+  const ui = slide?.ui;
+  if (!ui || typeof ui !== "object" || Array.isArray(ui)) return false;
+
+  return (
+    Array.isArray(ui.components) ||
+    Array.isArray(ui.elements)
+  );
+}
+
 export function getSlideTemplateId(slide: any): string {
   const layoutGroup =
     typeof slide?.layout_group === "string" ? slide.layout_group.trim() : "";
   const layout = typeof slide?.layout === "string" ? slide.layout.trim() : "";
   const layoutTemplateId = layout.split(":")[0] || "";
 
-  if (layoutGroup.startsWith("template-v2")) {
+  if (isTemplateV2TemplateId(layoutGroup)) {
     return layoutGroup;
   }
   return layoutGroup || layoutTemplateId;
+}
+
+export function isTemplateV2Slide(slide: any): boolean {
+  return (
+    isTemplateV2TemplateId(getSlideTemplateId(slide)) ||
+    hasTemplateV2SlideUi(slide)
+  );
 }
 
 export function getPresentationTemplateId(presentation: {
@@ -81,8 +111,7 @@ export function createBlankPresentationSlide({
         ? "template-v2"
         : "general";
   const shouldUseTemplateV2 =
-    isTemplateV2 || resolvedTemplateId.startsWith("template-v2");
-  const isCustomTemplate = resolvedTemplateId.startsWith("custom-");
+    isTemplateV2 || isTemplateV2TemplateId(resolvedTemplateId);
 
   return {
     id,
@@ -90,9 +119,7 @@ export function createBlankPresentationSlide({
     content: {},
     ...(shouldUseTemplateV2 ? { ui: cloneBlankTemplateV2Layout() } : {}),
     layout_group: resolvedTemplateId,
-    layout: isCustomTemplate
-      ? `${resolvedTemplateId}:${BLANK_SLIDE_LAYOUT_ID}`
-      : BLANK_SLIDE_LAYOUT_ID,
+    layout: BLANK_SLIDE_LAYOUT_ID,
     ...(presentationId ? { presentation: presentationId } : {}),
   };
 }

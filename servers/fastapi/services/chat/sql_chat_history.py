@@ -52,26 +52,26 @@ def _parse_created_at(value: Any) -> datetime | None:
 def _resource_filter(
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
 ) -> ColumnElement[bool]:
-    if (presentation_id is None) == (template_v2_id is None):
+    if (presentation_id is None) == (template_id is None):
         raise ValueError("Exactly one chat resource id is required.")
     if presentation_id is not None:
         return ChatHistoryMessageModel.presentation_id == presentation_id
-    return ChatHistoryMessageModel.template_v2_id == template_v2_id
+    return ChatHistoryMessageModel.template_v2_id == template_id
 
 
 async def load_messages(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
     conversation_id: uuid.UUID,
 ) -> list[dict[str, str]]:
     rows = await load_messages_with_meta(
         session,
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
         conversation_id=conversation_id,
     )
     return [
@@ -85,12 +85,12 @@ async def load_messages_with_meta(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
     conversation_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
     resource_clause = _resource_filter(
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
     )
     rows = list(
         (
@@ -121,13 +121,13 @@ async def replace_messages(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
     conversation_id: uuid.UUID,
     messages: list[dict[str, str]],
 ) -> None:
     resource_clause = _resource_filter(
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
     )
     await session.execute(
         sa_delete(ChatHistoryMessageModel).where(
@@ -152,7 +152,7 @@ async def replace_messages(
         session.add(
             ChatHistoryMessageModel(
                 presentation_id=presentation_id,
-                template_v2_id=template_v2_id,
+                template_v2_id=template_id,
                 conversation_id=conversation_id,
                 position=next_position,
                 role=role,
@@ -168,12 +168,12 @@ async def delete_conversation(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: uuid.UUID | None = None,
+    template_id: str | None = None,
     conversation_id: uuid.UUID,
 ) -> None:
     resource_clause = _resource_filter(
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
     )
     await session.execute(
         sa_delete(ChatHistoryMessageModel).where(
@@ -188,7 +188,7 @@ async def append_turn(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
     conversation_id: uuid.UUID,
     user_message: str,
     assistant_message: str,
@@ -196,7 +196,7 @@ async def append_turn(
 ) -> None:
     resource_clause = _resource_filter(
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
     )
     max_position = await session.scalar(
         select(func.max(ChatHistoryMessageModel.position)).where(
@@ -210,7 +210,7 @@ async def append_turn(
     session.add(
         ChatHistoryMessageModel(
             presentation_id=presentation_id,
-            template_v2_id=template_v2_id,
+            template_v2_id=template_id,
             conversation_id=conversation_id,
             position=next_position,
             role="user",
@@ -221,7 +221,7 @@ async def append_turn(
     session.add(
         ChatHistoryMessageModel(
             presentation_id=presentation_id,
-            template_v2_id=template_v2_id,
+            template_v2_id=template_id,
             conversation_id=conversation_id,
             position=next_position + 1,
             role="assistant",
@@ -237,11 +237,11 @@ async def list_conversations(
     session: AsyncSession,
     *,
     presentation_id: uuid.UUID | None = None,
-    template_v2_id: str | None = None,
+    template_id: str | None = None,
 ) -> list[dict[str, Any]]:
     resource_clause = _resource_filter(
         presentation_id=presentation_id,
-        template_v2_id=template_v2_id,
+        template_id=template_id,
     )
     rows = list(
         (

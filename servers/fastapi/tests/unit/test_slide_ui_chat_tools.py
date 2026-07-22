@@ -27,12 +27,13 @@ def _slide_ui():
                 "id": "hero",
                 "description": "Hero title component for testing.",
                 "position": {"x": 0, "y": 0},
-                "size": {"width": 100, "height": 40},
                 "elements": [
                     {
                         "type": "text",
                         "decorative": False,
                         "name": "Title",
+                        "position": {"x": 0, "y": 0},
+                        "size": {"width": 100, "height": 40},
                         "max_length": 100,
                         "min_length": 1,
                         "runs": [
@@ -48,12 +49,13 @@ def _slide_ui():
                 "id": "body",
                 "description": "Body list component for testing.",
                 "position": {"x": 0, "y": 50},
-                "size": {"width": 100, "height": 60},
                 "elements": [
                     {
                         "type": "text-list",
                         "decorative": False,
                         "name": "Bullets",
+                        "position": {"x": 0, "y": 0},
+                        "size": {"width": 100, "height": 60},
                         "max_items": 6,
                         "min_items": 1,
                         "max_item_length": 80,
@@ -70,7 +72,7 @@ def _slide():
     return SlideModel(
         id=uuid.uuid4(),
         presentation=uuid.uuid4(),
-        layout_group="template-v2-x",
+        layout_group="custom-x",
         layout="intro",
         index=0,
         content={},
@@ -139,7 +141,7 @@ def _call(tools: ChatTools, name: str, arguments: dict):
 
 def _set_reusable_table_layout(session: _FakeSlideSession):
     session.presentation.layout = {
-        "name": "template-v2-test",
+        "name": "custom-test",
         "layouts": [
             {
                 "id": "comparison",
@@ -183,7 +185,7 @@ def test_get_available_blocks_returns_matching_block_summary_only():
     slide = _slide()
     tools, session = _tools(slide)
     session.presentation.layout = {
-        "name": "template-v2-test",
+        "name": "custom-test",
         "layouts": [
             {
                 "id": "comparison",
@@ -238,7 +240,7 @@ def test_get_available_blocks_matches_title_element_names():
     slide = _slide()
     tools, session = _tools(slide)
     session.presentation.layout = {
-        "name": "template-v2-test",
+        "name": "custom-test",
         "layouts": [
             {
                 "id": "metrics",
@@ -578,9 +580,15 @@ def test_update_slide_element_applies_toolbar_style_patch():
             "size": {"width": 100, "height": 80},
             "elements": [
                 {
-                    "type": "rectangle",
-                    "position": {"x": 0, "y": 0},
-                    "size": {"width": 100, "height": 80},
+                    "type": "vector",
+                    "shape": "polygon",
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 100, "y": 0},
+                        {"x": 100, "y": 80},
+                        {"x": 0, "y": 80},
+                    ],
+                    "closed": True,
                     "fill": {"color": "#FFFFFF", "opacity": 1},
                     "stroke": {"color": "#111111", "width": 0},
                 }
@@ -610,6 +618,216 @@ def test_update_slide_element_applies_toolbar_style_patch():
     assert element["fill"] == {"color": "#FF0000", "opacity": 0.5}
     assert element["stroke"] == {"color": "#111111", "width": 2}
     assert session.commit_count == 1
+
+
+def test_update_slide_element_edits_and_resizes_current_vector_model():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "vector-block",
+            "description": "Editable vector.",
+            "position": {"x": 100, "y": 100},
+            "elements": [
+                {
+                    "type": "vector",
+                    "shape": "polygon",
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 100, "y": 0},
+                        {"x": 100, "y": 50},
+                        {"x": 0, "y": 50},
+                    ],
+                    "closed": True,
+                    "fill": {"color": "#FFFFFF"},
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "vector": {
+                "shape": "ellipse",
+                "points": [
+                    {"x": 0, "y": 0},
+                    {"x": 100, "y": 0},
+                    {"x": 100, "y": 50},
+                    {"x": 0, "y": 50},
+                ],
+                "closed": True,
+            },
+            "position": {"x": 20, "y": 30},
+            "size": {"width": 200, "height": 100},
+        },
+    )
+
+    vector = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert vector["shape"] == "ellipse"
+    assert vector["points"] == [
+        {"x": 20.0, "y": 30.0},
+        {"x": 220.0, "y": 30.0},
+        {"x": 220.0, "y": 130.0},
+        {"x": 20.0, "y": 130.0},
+    ]
+    assert "position" not in vector
+    assert "size" not in vector
+    assert session.commit_count == 1
+
+
+def test_update_slide_element_edits_current_infographic_model():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "progress-block",
+            "description": "Editable progress indicator.",
+            "elements": [
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 0},
+                    "size": {"width": 420, "height": 74},
+                    "data": {
+                        "type": "progress_bar",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 40,
+                    },
+                    "colors": ["#E5E7EB", "#2563EB"],
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "infographic": {
+                "data": {
+                    "type": "gauge",
+                    "minValue": 10,
+                    "maxValue": 90,
+                    "value": 72,
+                },
+                "colors": ["#D1D5DB", "#16A34A"],
+            },
+        },
+    )
+
+    infographic = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert infographic["data"] == {
+        "type": "gauge",
+        "min_value": 10.0,
+        "max_value": 90.0,
+        "value": 72.0,
+    }
+    assert infographic["colors"] == ["#D1D5DB", "#16A34A"]
+    assert session.commit_count == 1
+
+
+def test_update_slide_element_merges_partial_infographic_data():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "gauge-block",
+            "description": "Editable gauge.",
+            "elements": [
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 0},
+                    "size": {"width": 320, "height": 190},
+                    "data": {
+                        "type": "gauge",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 40,
+                    },
+                    "colors": ["#E5E7EB", "#2563EB"],
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "infographic": {"data": {"value": 75}},
+        },
+    )
+
+    infographic = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert infographic["data"] == {
+        "type": "gauge",
+        "min_value": 0,
+        "max_value": 100,
+        "value": 75.0,
+    }
+    assert session.commit_count == 1
+
+
+def test_get_slide_elements_exposes_vector_infographic_and_svg_content():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "new-elements",
+            "description": "Current element models.",
+            "elements": [
+                {
+                    "type": "vector",
+                    "points": [{"x": 0, "y": 0}, {"x": 100, "y": 40}],
+                    "closed": False,
+                    "stroke": {"color": "#111111", "width": 2},
+                },
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 50},
+                    "size": {"width": 300, "height": 60},
+                    "data": {
+                        "type": "progress_bar",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 65,
+                    },
+                    "colors": ["#EEEEEE", "#008800"],
+                },
+                {
+                    "type": "svg",
+                    "position": {"x": 0, "y": 120},
+                    "size": {"width": 40, "height": 40},
+                    "svg": "<svg></svg>",
+                },
+            ],
+        }
+    )
+    tools, _ = _tools(slide)
+
+    elements = _call(
+        tools,
+        "getSlideAtIndex",
+        {"index": 0, "includeFullContent": False},
+    )["result"]["slide"]["ui_summary"]["elements"]
+    by_type = {element["type"]: element for element in elements}
+
+    assert by_type["vector"]["content_editable"] is True
+    assert by_type["vector"]["content"]["points"][1] == {"x": 100, "y": 40}
+    assert by_type["infographic"]["content_editable"] is True
+    assert by_type["infographic"]["content"]["data"]["value"] == 65
+    assert by_type["svg"]["geometry_editable"] is True
+    assert by_type["svg"]["content"] == {"svg_length": 11}
 
 
 def test_update_slide_element_applies_text_font_patch_to_runs():
@@ -833,6 +1051,7 @@ def test_update_slide_element_updates_new_chart_model_fields():
                 "chartType": "line",
                 "title": "GHG Emissions 2024-2025",
                 "titleColor": "#102030",
+                "legendColor": "#405060",
                 "categories": ["CO2", "CH4", "N2O"],
                 "series": [
                     {"name": "2024 Gt", "values": [36.4, 2.1, 0.8]},
@@ -851,6 +1070,7 @@ def test_update_slide_element_updates_new_chart_model_fields():
     assert chart["chart_type"] == "line"
     assert chart["title"] == "GHG Emissions 2024-2025"
     assert chart["title_color"] == "#102030"
+    assert chart["legend_color"] == "#405060"
     assert chart["series"][0]["values"] == [36.4, 2.1, 0.8]
     assert chart["data_labels"] == "top"
     assert chart["legend"] is True
@@ -915,7 +1135,7 @@ def test_update_slide_element_accepts_whole_table_payload():
     assert session.commit_count == 1
 
 
-def test_update_slide_component_edits_ui_size():
+def test_update_slide_component_scales_ui_contents():
     slide = _slide()
     tools, session = _tools(slide)
 
@@ -931,7 +1151,14 @@ def test_update_slide_component_edits_ui_size():
 
     assert result["ok"] is True
     assert result["result"]["updated"] is True
-    assert slide.ui["components"][0]["size"] == {
+    assert "size" not in slide.ui["components"][0]
+    assert result["result"]["box"] == {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 70.0,
+        "height": 30.0,
+    }
+    assert slide.ui["components"][0]["elements"][0]["size"] == {
         "width": 70.0,
         "height": 30.0,
     }
@@ -945,7 +1172,6 @@ def test_update_component_resize_scales_standalone_chart_contents():
             "id": "line-chart",
             "description": "Line Chart",
             "position": {"x": 371, "y": 155},
-            "size": {"width": 538, "height": 410},
             "elements": [
                 {
                     "type": "chart",
@@ -961,8 +1187,14 @@ def test_update_component_resize_scales_standalone_chart_contents():
             "id": "thank-you",
             "description": "Thank You heading",
             "position": {"x": 400, "y": 60},
-            "size": {"width": 480, "height": 80},
-            "elements": [{"type": "text", "runs": [{"text": "Thank You"}]}],
+            "elements": [
+                {
+                    "type": "text",
+                    "position": {"x": 0, "y": 0},
+                    "size": {"width": 480, "height": 80},
+                    "runs": [{"text": "Thank You"}],
+                }
+            ],
         },
     ]
     untouched_heading = json.loads(json.dumps(slide.ui["components"][1]))
@@ -984,7 +1216,7 @@ def test_update_component_resize_scales_standalone_chart_contents():
     chart = chart_component["elements"][0]
     assert result["ok"] is True
     assert chart_component["position"] == {"x": 0.0, "y": 0.0}
-    assert chart_component["size"] == {"width": 1280.0, "height": 720.0}
+    assert "size" not in chart_component
     assert chart["position"] == {"x": 0.0, "y": 0.0}
     assert chart["size"] == {"width": 1280.0, "height": 720.0}
     assert slide.ui["components"][1] == untouched_heading
@@ -1012,7 +1244,7 @@ def test_update_component_groups_components():
     assert result["result"]["action"] == "grouped"
     assert component["id"] == "hero"
     assert component["position"] == {"x": 0.0, "y": 0.0}
-    assert component["size"] == {"width": 100.0, "height": 110.0}
+    assert "size" not in component
     assert len(component["elements"]) == 2
     assert [item["id"] for item in slide.ui["components"]] == ["hero"]
     assert session.commit_count == 1
@@ -1025,7 +1257,6 @@ def test_update_component_ungroups_component():
             "id": "combo",
             "description": "Two element group.",
             "position": {"x": 10, "y": 20},
-            "size": {"width": 200, "height": 100},
             "elements": [
                 {
                     "type": "text",
@@ -1071,7 +1302,6 @@ def test_update_component_ungroups_container_child():
             "id": "card",
             "description": "Container card.",
             "position": {"x": 20, "y": 30},
-            "size": {"width": 240, "height": 120},
             "elements": [
                 {
                     "type": "container",
@@ -1102,7 +1332,11 @@ def test_update_component_ungroups_container_child():
         "card_part_1",
     ]
     assert slide.ui["components"][0]["position"] == {"x": 32.0, "y": 38.0}
-    assert slide.ui["components"][0]["size"] == {"width": 216.0, "height": 104.0}
+    assert "size" not in slide.ui["components"][0]
+    assert slide.ui["components"][0]["elements"][0]["size"] == {
+        "width": 216.0,
+        "height": 104.0,
+    }
     assert slide.ui["components"][0]["elements"][0]["type"] == "text"
     assert slide.ui["components"][0]["elements"][0]["runs"] == [
         {"text": "Nested title"}
@@ -1117,7 +1351,6 @@ def test_update_component_ungroups_one_level_for_flex_group_children():
             "id": "cards",
             "description": "Flex with grouped children.",
             "position": {"x": 10, "y": 20},
-            "size": {"width": 300, "height": 100},
             "elements": [
                 {
                     "type": "flex",
@@ -1176,7 +1409,11 @@ def test_update_component_ungroups_one_level_for_flex_group_children():
         "cards_part_2",
     ]
     assert slide.ui["components"][0]["position"] == {"x": 10.0, "y": 20.0}
-    assert slide.ui["components"][0]["size"] == {"width": 145.0, "height": 100.0}
+    assert "size" not in slide.ui["components"][0]
+    assert slide.ui["components"][0]["elements"][0]["size"] == {
+        "width": 145.0,
+        "height": 100.0,
+    }
     assert slide.ui["components"][1]["position"] == {"x": 165.0, "y": 20.0}
     assert slide.ui["components"][1]["elements"][0]["type"] == "group"
     assert slide.ui["components"][1]["elements"][0]["elements"] == [
@@ -1238,7 +1475,6 @@ def test_update_component_ungroups_grid_immediate_children_only():
             "id": "feature_grid",
             "description": "Two-by-two grid of feature items.",
             "position": {"x": 96, "y": 291.75},
-            "size": {"width": 674, "height": 256.5},
             "elements": [
                 {
                     "type": "grid",
@@ -1275,7 +1511,8 @@ def test_update_component_ungroups_grid_immediate_children_only():
         {"x": 96.0, "y": 448.0},
         {"x": 460.0, "y": 448.0},
     ]
-    assert [component["size"] for component in slide.ui["components"]] == [
+    assert all("size" not in component for component in slide.ui["components"])
+    assert [component["elements"][0]["size"] for component in slide.ui["components"]] == [
         {"width": 310.0, "height": 100.25},
         {"width": 310.0, "height": 100.25},
         {"width": 310.0, "height": 100.25},
@@ -1365,12 +1602,13 @@ def test_add_slide_component_appends_block():
         "id": "note",
         "description": "A short callout note component.",
         "position": {"x": 0, "y": 80},
-        "size": {"width": 100, "height": 20},
         "elements": [
             {
                 "type": "text",
                 "decorative": False,
                 "name": "Note",
+                "position": {"x": 0, "y": 0},
+                "size": {"width": 100, "height": 20},
                 "runs": [{"text": "Added note", "font": {"size": 14}}],
             }
         ],
@@ -1394,11 +1632,12 @@ def test_add_slide_component_clamps_to_visible_stage():
         "id": "offscreen",
         "description": "Bad geometry component.",
         "position": {"x": 1400, "y": -40},
-        "size": {"width": 2000, "height": 900},
         "elements": [
             {
                 "type": "text",
                 "name": "Offscreen",
+                "position": {"x": 0, "y": 0},
+                "size": {"width": 2000, "height": 900},
                 "runs": [{"text": "Visible now"}],
             }
         ],
@@ -1413,7 +1652,8 @@ def test_add_slide_component_clamps_to_visible_stage():
     added = slide.ui["components"][-1]
     assert result["ok"] is True
     assert added["position"] == {"x": 0.0, "y": 0.0}
-    assert added["size"] == {"width": 1280.0, "height": 720.0}
+    assert "size" not in added
+    assert added["elements"][0]["size"] == {"width": 1280.0, "height": 576.0}
 
 
 def test_add_slide_component_expands_tiny_chart_block():
@@ -1423,7 +1663,6 @@ def test_add_slide_component_expands_tiny_chart_block():
         "id": "tiny-chart",
         "description": "A chart block with bad assistant geometry.",
         "position": {"x": 0.25, "y": 0.2},
-        "size": {"width": 0.6, "height": 0.5},
         "elements": [
             {
                 "type": "chart",
@@ -1448,7 +1687,7 @@ def test_add_slide_component_expands_tiny_chart_block():
     chart = chart_component["elements"][0]
     assert result["ok"] is True
     assert chart_component["position"] == {"x": 128.0, "y": 108.0}
-    assert chart_component["size"] == {"width": 1024.0, "height": 460.0}
+    assert "size" not in chart_component
     assert chart["position"] == {"x": 0, "y": 0}
     assert chart["size"] == {"width": 1024.0, "height": 460.0}
     assert chart["colors"][:3] == ["#123456", "#234567", "#345678"]
@@ -1677,6 +1916,74 @@ def test_add_slide_element_rejects_blank_image_insert():
     assert session.commit_count == 0
 
 
+def test_add_slide_element_rejects_removed_geometry_types():
+    slide = _slide()
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "addElement",
+        {
+            "index": 0,
+            "element": json.dumps(
+                {
+                    "type": "rectangle",
+                    "position": {"x": 100, "y": 100},
+                    "size": {"width": 200, "height": 80},
+                    "fill": {"color": "#FF0000"},
+                }
+            ),
+        },
+    )
+
+    assert result["ok"] is False
+    assert "was removed" in result["error"]
+    assert "type='vector'" in result["error"]
+    assert len(slide.ui["components"]) == 2
+    assert session.commit_count == 0
+
+
+def test_add_free_vector_normalizes_points_into_component_coordinates():
+    slide = _slide()
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "addElement",
+        {
+            "index": 0,
+            "element": json.dumps(
+                {
+                    "type": "vector",
+                    "shape": "polygon",
+                    "points": [
+                        {"x": 300, "y": 200},
+                        {"x": 500, "y": 200},
+                        {"x": 500, "y": 300},
+                        {"x": 300, "y": 300},
+                    ],
+                    "closed": True,
+                    "fill": {"color": "#FF0000"},
+                }
+            ),
+        },
+    )
+
+    component = slide.ui["components"][-1]
+    vector = component["elements"][0]
+    assert result["ok"] is True
+    assert component["position"] == {"x": 300.0, "y": 200.0}
+    assert vector["points"] == [
+        {"x": 0.0, "y": 0.0},
+        {"x": 200.0, "y": 0.0},
+        {"x": 200.0, "y": 100.0},
+        {"x": 0.0, "y": 100.0},
+    ]
+    assert "position" not in vector
+    assert "size" not in vector
+    assert session.commit_count == 1
+
+
 def test_add_slide_element_rejects_blank_chart_insert():
     slide = _slide()
     tools, session = _tools(slide)
@@ -1804,7 +2111,6 @@ def test_add_slide_component_expands_tiny_table_block():
         "id": "tiny-table",
         "description": "A table block with bad assistant geometry.",
         "position": {"x": 0.25, "y": 0.2},
-        "size": {"width": 0.6, "height": 0.5},
         "elements": [
             {
                 "type": "table",
@@ -1832,7 +2138,7 @@ def test_add_slide_component_expands_tiny_table_block():
     table = table_component["elements"][0]
     assert result["ok"] is True
     assert table_component["position"] == {"x": 128.0, "y": 120.0}
-    assert table_component["size"] == {"width": 1024.0, "height": 410.0}
+    assert "size" not in table_component
     assert table["position"] == {"x": 0, "y": 0}
     assert table["size"] == {"width": 1024.0, "height": 410.0}
 
@@ -1918,7 +2224,7 @@ def test_ui_tool_reports_non_ui_slide():
     assert "ui_summary" not in result["result"]["slide"]
 
 
-def _template_v2_presentation(presentation_id: uuid.UUID) -> PresentationModel:
+def _template_presentation(presentation_id: uuid.UUID) -> PresentationModel:
     return PresentationModel(
         id=presentation_id,
         version=PresentationVersion.V1_STANDARD,
@@ -1926,6 +2232,8 @@ def _template_v2_presentation(presentation_id: uuid.UUID) -> PresentationModel:
         n_slides=0,
         language="English",
         layout={
+            "name": "custom-template",
+            "template_id": "template",
             "layouts": [
                 {
                     "id": "thanks",
@@ -1997,9 +2305,9 @@ class _FakeSaveSlideSession:
             self.slides.remove(obj)
 
 
-def test_save_slide_for_template_v2_payload_persists_renderable_ui():
+def test_save_slide_for_template_payload_persists_renderable_ui():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     session = _FakeSaveSlideSession(presentation)
     memory = PresentationChatMemoryLayer(session, presentation_id)
 
@@ -2026,7 +2334,7 @@ def test_save_slide_for_template_v2_payload_persists_renderable_ui():
     assert result["saved"] is True
     assert len(session.slides) == 1
     saved_slide = session.slides[0]
-    assert saved_slide.layout_group == "template-v2"
+    assert saved_slide.layout_group == "custom-template"
     assert saved_slide.layout == "thanks"
     assert saved_slide.ui["id"] == "thanks"
     title_element = saved_slide.ui["components"][0]["elements"][0]
@@ -2036,7 +2344,7 @@ def test_save_slide_for_template_v2_payload_persists_renderable_ui():
 
 def test_chat_add_outline_refuses_more_than_max_slides():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     presentation.outlines = {
         "slides": [
             {"content": f"## Slide {index}"}
@@ -2056,7 +2364,7 @@ def test_chat_add_outline_refuses_more_than_max_slides():
 
 def test_chat_update_outline_trims_content_to_word_limit():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     presentation.outlines = {"slides": [{"content": "## Existing"}]}
     session = _FakeSaveSlideSession(presentation)
     memory = PresentationChatMemoryLayer(session, presentation_id)
@@ -2079,12 +2387,12 @@ def test_chat_update_outline_trims_content_to_word_limit():
 
 def test_chat_add_blank_slide_refuses_more_than_max_slides():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     session = _FakeSaveSlideSession(presentation)
     session.slides = [
         SlideModel(
             presentation=presentation_id,
-            layout_group="template-v2",
+            layout_group="custom-template",
             layout="thanks",
             index=index,
             content={},
@@ -2105,12 +2413,12 @@ def test_chat_add_blank_slide_refuses_more_than_max_slides():
 
 def test_chat_delete_final_slide_replaces_it_with_blank_fallback():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     presentation.n_slides = 1
     source_slide = SlideModel(
         id=uuid.uuid4(),
         presentation=presentation_id,
-        layout_group="template-v2",
+        layout_group="custom-template",
         layout="thanks",
         index=0,
         content={"hero": {"Title": "Thanks"}},
@@ -2130,7 +2438,7 @@ def test_chat_delete_final_slide_replaces_it_with_blank_fallback():
     fallback_slide = session.slides[0]
     assert fallback_slide.id != source_slide.id
     assert fallback_slide.index == 0
-    assert fallback_slide.layout_group == "template-v2"
+    assert fallback_slide.layout_group == "custom-template"
     assert fallback_slide.layout == "__blank_slide__"
     assert fallback_slide.content == {}
     assert fallback_slide.speaker_note == ""
@@ -2142,12 +2450,12 @@ def test_chat_delete_final_slide_replaces_it_with_blank_fallback():
 
 def test_chat_save_slide_refuses_new_slide_at_max_slides():
     presentation_id = uuid.uuid4()
-    presentation = _template_v2_presentation(presentation_id)
+    presentation = _template_presentation(presentation_id)
     session = _FakeSaveSlideSession(presentation)
     session.slides = [
         SlideModel(
             presentation=presentation_id,
-            layout_group="template-v2",
+            layout_group="custom-template",
             layout="thanks",
             index=index,
             content={},

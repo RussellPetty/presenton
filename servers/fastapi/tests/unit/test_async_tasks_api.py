@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import Enum as SQLAlchemyEnum, String
 from sqlalchemy.dialects import sqlite
 
 from api.v1.async_tasks.router import (
@@ -11,6 +12,7 @@ from api.v1.async_tasks.router import (
     check_async_task_status,
     list_async_tasks,
 )
+from enums.async_task_status import AsyncTaskStatus
 from models.sql.async_task import AsyncTaskModel
 
 
@@ -44,6 +46,18 @@ def test_async_tasks_routes_use_hyphenated_endpoint():
     assert "/api/v1/async-tasks" in paths
     assert "/api/v1/async-tasks/status/{id}" in paths
     assert "/api/v1/async_tasks" not in paths
+
+
+def test_async_task_status_enum_uses_string_column():
+    assert {status.value for status in AsyncTaskStatus} == {
+        "pending",
+        "completed",
+        "error",
+    }
+
+    status_column_type = AsyncTaskModel.__table__.c.status.type
+    assert isinstance(status_column_type, String)
+    assert not isinstance(status_column_type, SQLAlchemyEnum)
 
 
 def test_check_async_task_status_returns_task():

@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Upload, Loader2, Delete, Trash, Search } from "lucide-react";
+import { Wand2, Upload, Loader2, Trash, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PresentationGenerationApi } from "../services/api/presentation-generation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -415,7 +415,7 @@ const ImageEditor = ({
 
                   <Button
                     onClick={handleGenerateImage}
-                    className="w-full"
+                    className="w-full rounded-[38.4px] bg-[#EDEEEF] px-[12.8px] py-2 text-[#191919] shadow-none hover:bg-[#E1E1E5] disabled:bg-[#EDEEEF] disabled:text-[#999]"
                     disabled={!prompt.trim() || isGenerating || isSearchingStock}
                   >
                     {stockImageProvider ? (

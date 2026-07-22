@@ -31,7 +31,7 @@ const DashboardSidebar = () => {
 
     return (
         <aside
-            className="sticky top-0 h-screen w-[115px] flex flex-col justify-between bg-[#F6F6F9] backdrop-blur border-r border-[#E1E1E5] px-4  py-8"
+            className="sticky top-0 flex h-screen w-[114px] shrink-0 flex-col justify-between border-r border-[#E1E1E5] bg-[#F6F6F9] px-4 py-8 backdrop-blur"
             aria-label="Dashboard sidebar"
         >
             <div>
@@ -98,35 +98,10 @@ const DashboardSidebar = () => {
 
                     <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">Help</span></Link>
                 </div>
-                <div className="mb-4">
-
-                    <Link href="https://discord.com/invite/9ZsKKxudNE" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><img src="/discord.png" alt="Discord" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" /><span className="text-[11px] text-slate-800">Community</span></Link>
-                </div>
 
 
-                {BelongingNavItems.map(({ key, label: itemLabel, icon: Icon }) => {
-                    const isActive = activeTab === key;
-                    return (
-                        <Link
-                            prefetch={false}
-                            key={key}
-                            href={`/${key}`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors ",
-                                isActive ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label={itemLabel}
-                            title={itemLabel}
-                        >
-                            {/* <div className="flex items-center  ">
-                                <img src={imageProviderIcon} alt="image provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                                <img src={textProviderIcon} alt="text provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                            </div> */}
-                            <Settings className={`h-4 w-4 ${isActive ? "text-[#5146E5]" : "text-slate-600"}`} />
-                            <span className="text-[11px] text-slate-800">{itemLabel}</span>
-                        </Link>
-                    );
-                })}
+
+
 
             </div>
 
@@ -135,5 +110,4 @@ const DashboardSidebar = () => {
 };
 
 export default DashboardSidebar;
-
 

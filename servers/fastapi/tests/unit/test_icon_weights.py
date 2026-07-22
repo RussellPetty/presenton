@@ -134,7 +134,7 @@ def test_process_slide_fetches_icons_with_template_weight(monkeypatch):
     )
 
 
-def test_process_slide_fetches_every_template_v2_image_and_icon(monkeypatch):
+def test_process_slide_fetches_every_template_image_and_icon(monkeypatch):
     icon_queries = []
 
     async def fake_search_icons(query, k=1, weight=None):
@@ -155,7 +155,7 @@ def test_process_slide_fetches_every_template_v2_image_and_icon(monkeypatch):
     )
     slide = SlideModel(
         presentation=uuid.uuid4(),
-        layout_group="template-v2",
+        layout_group="template-id",
         layout="layout-1",
         index=0,
         content={
@@ -201,7 +201,7 @@ def test_process_slide_fetches_every_template_v2_image_and_icon(monkeypatch):
     assert "__icon_url__" not in slide.content["cards"][2]
 
 
-def test_process_slide_fetches_template_v2_raw_schema_icon_query(monkeypatch):
+def test_process_slide_fetches_template_raw_schema_icon_query(monkeypatch):
     captured = {}
 
     async def fake_search_icons(query, k=1, weight=None):
@@ -218,10 +218,11 @@ def test_process_slide_fetches_template_v2_raw_schema_icon_query(monkeypatch):
     image_generation_service.generate_image = AsyncMock()
     slide = SlideModel(
         presentation=uuid.uuid4(),
-        layout_group="template-v2",
+        layout_group="template-id",
         layout="layout-1",
         index=0,
         content={"status_icon": {"query": "growth chart"}},
+        ui={},
         properties=None,
     )
 
@@ -242,13 +243,14 @@ def test_process_slide_fetches_template_v2_raw_schema_icon_query(monkeypatch):
     }
 
 
-def test_process_slide_adds_template_v2_raw_schema_icon_placeholder():
+def test_process_slide_adds_template_raw_schema_icon_placeholder():
     slide = SlideModel(
         presentation=uuid.uuid4(),
-        layout_group="template-v2",
+        layout_group="template-id",
         layout="layout-1",
         index=0,
         content={"status_icon": {"query": "growth chart"}},
+        ui={},
         properties=None,
     )
 
@@ -260,7 +262,7 @@ def test_process_slide_adds_template_v2_raw_schema_icon_placeholder():
     }
 
 
-def test_process_template_v2_edit_reuses_assets_with_clean_url_fields(monkeypatch):
+def test_process_template_edit_reuses_assets_with_clean_url_fields(monkeypatch):
     search_icons = AsyncMock()
     monkeypatch.setattr(
         process_slides.ICON_FINDER_SERVICE,
@@ -289,7 +291,7 @@ def test_process_template_v2_edit_reuses_assets_with_clean_url_fields(monkeypatc
             image_generation_service=image_generation_service,
             old_slide_content=old_content,
             new_slide_content=new_content,
-            use_template_v2_asset_fields=True,
+            use_template_asset_fields=True,
         )
     )
 
@@ -306,10 +308,10 @@ def test_process_template_v2_edit_reuses_assets_with_clean_url_fields(monkeypatc
     }
 
 
-def test_template_v2_placeholders_use_clean_url_fields():
+def test_template_placeholders_use_clean_url_fields():
     slide = SlideModel(
         presentation=uuid.uuid4(),
-        layout_group="template-v2-template-id",
+        layout_group="template-id",
         layout="layout-1",
         index=0,
         content={

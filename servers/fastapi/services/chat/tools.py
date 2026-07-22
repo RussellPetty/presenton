@@ -263,7 +263,10 @@ class ChatTools:
                     "getAvailableBlocks and addComponent/createComponent instead. Chart "
                     "elements must include numeric data as categories plus series.values, "
                     "or legacy data rows with label/value. Image elements must include "
-                    "data set to a URL returned by generateAssets."
+                    "data set to a URL returned by generateAssets. Geometry must use the "
+                    "current vector type; line/rectangle/ellipse/circle/polygon element "
+                    "types were removed. Infographics use nested data with type, "
+                    "min_value, max_value, and value."
                 ),
                 schema=AddElementInput,
                 strict=False,
@@ -272,11 +275,13 @@ class ChatTools:
                 name="updateElement",
                 description=(
                     "Update visible element content or geometry using an elementPath returned "
-                    "by getSlideAtIndex. Supports text, lists, table, chart, image data, "
-                    "position, size, and toolbar-style font, color, fill, stroke, "
+                    "by getSlideAtIndex. Supports text, lists, table, chart, vector, "
+                    "infographic, image data, position, size, and toolbar-style font, color, fill, stroke, "
                     "alignment, opacity, and element property patches. For "
                     "charts, use the chart field for chartType, categories, "
-                    "series.values, colors, axes, dataLabels placement, and legend."
+                    "series.values, colors, axes, dataLabels placement, and legend. "
+                    "Use vector for vector points/shape/curve and infographic for "
+                    "nested data and colors."
                 ),
                 schema=UpdateSlideElementInput,
                 strict=False,
@@ -291,12 +296,14 @@ class ChatTools:
                 name="addComponent",
                 description=(
                     "Add an existing/new rendered UI component block to a slide. Component "
-                    "JSON must include id, description, position, size, and elements. Chart "
-                    "elements must include numeric data as categories plus series.values, or "
-                    "legacy data rows with label/value. Image elements must include data "
+                    "JSON must include id, description, position, and elements; do not include "
+                    "component size because bounds are inferred from child element bounds. "
+                    "Chart elements must include numeric data as categories plus series.values, "
+                    "or legacy data rows with label/value. Image elements must include data "
                     "set to a URL returned by generateAssets. For styled title/header, "
                     "table/chart, card, metric, or callout additions, adapt a component "
-                    "returned by getAvailableBlocks and pass sourceBlockId."
+                    "returned by getAvailableBlocks and pass sourceBlockId. Use type=vector "
+                    "for lines and shapes, and nested data for infographics."
                 ),
                 schema=AddSlideComponentInput,
                 strict=False,
@@ -309,7 +316,8 @@ class ChatTools:
                     "categories plus series.values, or legacy data rows with label/value. "
                     "Image elements must include data set to a URL returned by generateAssets. "
                     "For styled title/header, table/chart, card, metric, or callout additions "
-                    "adapt a component returned by getAvailableBlocks and pass sourceBlockId."
+                    "adapt a component returned by getAvailableBlocks and pass sourceBlockId. "
+                    "Use type=vector for lines and shapes, and nested data for infographics."
                 ),
                 schema=AddSlideComponentInput,
                 strict=False,
@@ -754,6 +762,16 @@ class ChatTools:
             chart=(
                 payload.chart.model_dump(exclude_none=True)
                 if payload.chart is not None
+                else None
+            ),
+            vector=(
+                payload.vector.model_dump(exclude_none=True)
+                if payload.vector is not None
+                else None
+            ),
+            infographic=(
+                payload.infographic.model_dump(exclude_none=True)
+                if payload.infographic is not None
                 else None
             ),
             element_patch=element_patch,

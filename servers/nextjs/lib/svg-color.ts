@@ -12,6 +12,10 @@ export interface SvgUpdateQuery {
     strokeLinejoin?: string | null;
 }
 
+type SvgUpdateBuildOptions = SvgUpdateQuery & {
+    forceRoute?: boolean;
+};
+
 const UNSAFE_SVG_VALUE_CHARS = /["'<>`{};\r\n]/;
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const BARE_HEX_COLOR_PATTERN = /^(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -367,7 +371,7 @@ export const isSvgImageSource = (
 export const buildSvgUpdateUrl = (
     rawSource: string,
     baseUrl: string,
-    options: SvgUpdateQuery
+    options: SvgUpdateBuildOptions
 ): string | null => {
     const source = unwrapSvgUpdateUrl(rawSource, baseUrl);
     if (!source) {
@@ -428,7 +432,7 @@ export const buildSvgUpdateUrl = (
         }
     }
 
-    return hasTransforms
+    return hasTransforms || options.forceRoute
         ? `${SVG_UPDATE_ROUTE}?${searchParams.toString()}`
         : transportSource;
 };

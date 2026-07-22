@@ -7,14 +7,42 @@ import {
   type PresentationResponse,
 } from "@/app/(presentation-generator)/services/api/dashboard";
 import { PresentationGrid } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/PresentationGrid";
-import Image from "next/image";
+import { LegacyPresentationsTable } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/LegacyPresentationsTable";
 import Link from "next/link";
-import { Archive, ArrowUpDown, ChevronDown } from "lucide-react";
+import Image from "next/image";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import {
+  IMAGE_PROVIDERS,
+  LLM_PROVIDERS,
+} from "@/utils/providerConstants";
+
+const GITHUB_REPOSITORY_URL = "https://github.com/presenton/presenton";
+const DISCORD_INVITE_URL = "https://discord.com/invite/9ZsKKxudNE";
+const APP_UPDATE_URL = "https://presenton.ai/download";
 
 const actionCardBase =
   "absolute aspect-[16/9] h-[46.238px] w-[82.201px] rounded-[4.474px] border border-white/50 bg-cover bg-center bg-no-repeat shadow-[0_8px_18px_rgba(16,24,40,0.18)] transition-all duration-500 ease-out opacity-100 translate-y-0 scale-100";
+
+const dashboardHeaderPill =
+  "inline-flex shrink-0 items-center justify-center rounded-full text-[#191919] transition-colors hover:bg-[#F8F8FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2";
+
+const dashboardHeaderAsset = (name: string) => `/dashboard-header/${name}`;
+const dashboardBodyAsset = (name: string) => `/dashboard-body/${name}`;
+
+const DashboardHeaderDivider = () => (
+  <span className="relative h-5 w-px shrink-0" aria-hidden="true">
+    <Image
+      src={dashboardHeaderAsset("divider.svg")}
+      alt=""
+      width={20}
+      height={1}
+      className="absolute left-1/2 top-1/2 h-px w-5 max-w-none -translate-x-1/2 -translate-y-1/2 rotate-90"
+    />
+  </span>
+);
 
 const FloatingActionCards = () => (
   <div className="pointer-events-none absolute right-[14px] top-[-36px] z-0 block h-[64px] w-[158px]">
@@ -39,22 +67,92 @@ const FloatingActionCards = () => (
   </div>
 );
 
-const dashboardHeaderPill =
-  "inline-flex shrink-0 items-center rounded-full border border-[#EDEEEF] bg-white text-[#191919] transition-colors hover:bg-[#FAFAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2";
+const GridViewIcon = () => (
+  <Image
+    src={dashboardBodyAsset("grid.svg")}
+    alt=""
+    width={16}
+    height={16}
+    className="h-4 w-4 shrink-0"
+    aria-hidden="true"
+  />
+);
 
-function DashboardHeader({ pathname }: { pathname: string }) {
+const ListViewIcon = () => (
+  <Image
+    src={dashboardBodyAsset("list.svg")}
+    alt=""
+    width={16}
+    height={16}
+    className="h-4 w-4 shrink-0"
+    aria-hidden="true"
+  />
+);
+
+const sortPresentationsNewestFirst = (
+  presentations: PresentationResponse[]
+) =>
+  [...presentations].sort((a, b) => {
+    const createdAtA = Date.parse(a.created_at);
+    const createdAtB = Date.parse(b.created_at);
+
+    return (
+      (Number.isNaN(createdAtB) ? 0 : createdAtB) -
+      (Number.isNaN(createdAtA) ? 0 : createdAtA)
+    );
+  });
+
+function formatGitHubStars(stars: number) {
+  if (stars >= 1_000_000) {
+    return `${(stars / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+  }
+  if (stars >= 1_000) {
+    return `${(stars / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  return stars.toLocaleString();
+}
+
+function DashboardHeader() {
+  const pathname = usePathname();
+  const llmConfig = useSelector(
+    (state: RootState) => state.userConfig.llm_config
+  );
+  const [isElectronApp, setIsElectronApp] = useState(false);
+
+  const textProvider = LLM_PROVIDERS[llmConfig.LLM || "openai"];
+  const imageProvider = llmConfig.DISABLE_IMAGE_GENERATION
+    ? undefined
+    : IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER || ""];
+  const configuredProviders = [textProvider, imageProvider].filter(
+    (provider): provider is NonNullable<typeof provider> =>
+      Boolean(provider?.icon)
+  );
+
+  useEffect(() => {
+    setIsElectronApp(Boolean(window.electron));
+
+    let isMounted = true;
+
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 flex min-h-[98px] w-full items-center justify-between gap-6 bg-white px-6 py-7 max-lg:flex-col max-lg:items-start">
-      <h1 className="font-unbounded text-[28px] font-normal leading-none tracking-[-0.84px] text-[#101323]">
-        Dashboard
-      </h1>
-      {/* 
+    <header className="sticky top-0 z-50 ml-7 mr-[9px] flex h-[105px] items-center justify-between border-b border-[#EDEEEF] bg-white px-1 max-lg:h-auto max-lg:min-h-[105px] max-lg:flex-col max-lg:items-start max-lg:gap-4 max-lg:py-5">
+      <div className="flex w-[504.392px] max-w-full shrink-0 items-center gap-3.5 max-xl:w-auto">
+        <h1 className="whitespace-nowrap font-syne text-[22px] font-medium leading-normal tracking-[-0.66px] text-[#101323]">
+          Dashboard
+        </h1>
+      </div>
+
       <div className="max-w-full overflow-x-auto hide-scrollbar lg:overflow-visible">
-        <div className="flex h-[42.24px] w-[500.22px] max-w-none items-center gap-3 rounded-full border border-[#EDEEEF] pl-3">
-          <div className="flex h-[42.24px] items-center gap-[18px] rounded-full border border-[#EDEEEF] px-3 py-1">
+        <div className="flex h-[42.24px] w-max max-w-none items-center gap-3 rounded-full pl-3">
+          <div className="flex h-[42.24px] items-center gap-[18px] rounded-[32px] border border-[#EDEEEF] bg-white px-3 py-1">
             <Link
               href="/settings"
-              className={`${dashboardHeaderPill} h-[26.1px] gap-[6px] px-[6px] py-[6px]`}
+              className={`${dashboardHeaderPill} h-[26.1px] gap-1.5 p-1.5`}
               onClick={() =>
                 trackEvent(MixpanelEvent.Navigation, {
                   from: pathname,
@@ -63,105 +161,128 @@ function DashboardHeader({ pathname }: { pathname: string }) {
                 })
               }
             >
-              <span className="relative -my-1 flex h-[34.1px] w-[39.78px] shrink-0 items-center rounded-full border border-[#EDEEEF] bg-[#EDEEEF]">
-                <span className="absolute left-0 top-[6px] flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full border border-[#EDEEEF] bg-white">
-                  <Image
-                    src="/providers/OpenAI-black.png"
-                    alt=""
-                    aria-hidden="true"
-                    width={14}
-                    height={14}
-                    className="h-[14px] w-[14px] object-contain"
-                  />
-                </span>
-                <span className="absolute left-[17.6px] top-[6px] flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full border border-[#EDEEEF] bg-white">
-                  <Image
-                    src="/providers/gemini-color.svg"
-                    alt=""
-                    aria-hidden="true"
-                    width={14}
-                    height={14}
-                    className="h-[14px] w-[14px] object-contain"
-                  />
-                </span>
+              <span
+                className="flex h-[34.1px] shrink-0 items-center"
+                title={configuredProviders
+                  .map((provider) => provider.label)
+                  .join(" + ")}
+              >
+                {configuredProviders.map((provider, index) => (
+                  <span
+                    key={`${provider.value}-${index}`}
+                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${index > 0 ? "-ml-[4.4px]" : "z-10"
+                      }`}
+                  >
+                    <Image
+                      src={provider.icon!}
+                      alt=""
+                      aria-hidden="true"
+                      width={224}
+                      height={224}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  </span>
+                ))}
               </span>
               <span className="font-syne text-sm font-medium leading-[17.6px] tracking-[0.56px]">
                 Settings
               </span>
             </Link>
 
-            <span className="h-5 w-px shrink-0 bg-[#EDEEEF]" aria-hidden="true" />
+            <DashboardHeaderDivider />
+
+
 
             <Link
-              href="https://github.com/presenton/presenton"
+              href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noreferrer"
-              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] px-[6px] py-[6px]`}
+              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] p-1.5`}
               onClick={() =>
                 trackEvent(MixpanelEvent.Navigation, {
                   from: pathname,
-                  to: "https://github.com/presenton/presenton",
-                  source: "dashboard_header_github",
-                })
-              }
-            >
-              <Github className="h-[17.6px] w-[17.6px] text-[#191919]" strokeWidth={1.1} />
-              <span className="flex items-center gap-[6.6px] font-syne text-sm font-normal leading-none tracking-[-0.14px] text-[#191919]">
-                Star
-                <span className="h-[2.2px] w-[2.2px] rounded-full bg-[#C3C3CB]" />
-                <span className="text-xs font-medium tracking-[-0.12px]">57.4k</span>
-              </span>
-            </Link>
-
-            <span className="h-5 w-px shrink-0 bg-[#EDEEEF]" aria-hidden="true" />
-
-            <Link
-              href="https://discord.com/invite/9ZsKKxudNE"
-              target="_blank"
-              rel="noreferrer"
-              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] px-[6px] py-[6px]`}
-              onClick={() =>
-                trackEvent(MixpanelEvent.Navigation, {
-                  from: pathname,
-                  to: "https://discord.com/invite/9ZsKKxudNE",
+                  to: DISCORD_INVITE_URL,
                   source: "dashboard_header_discord",
                 })
               }
             >
-              <span className="flex h-[17.6px] w-[17.6px] items-center justify-center">
-                <Image
-                  src="/discord.png"
-                  alt=""
-                  aria-hidden="true"
-                  width={18}
-                  height={18}
-                  className="h-[17.6px] w-[17.6px] rounded-full object-cover"
-                />
-              </span>
-              <span className="font-syne text-sm font-normal leading-none tracking-[-0.14px] text-[#191919]">
+              <Image
+                src={dashboardHeaderAsset("discord.svg")}
+                alt=""
+                aria-hidden="true"
+                width={18}
+                height={18}
+                className="h-[17.6px] w-[17.6px] shrink-0"
+              />
+              <span className="font-syne text-sm font-normal leading-normal tracking-[-0.14px] text-[#191919]">
                 Join Discord
               </span>
             </Link>
+            <DashboardHeaderDivider />
+            <Link
+              href={GITHUB_REPOSITORY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={`${dashboardHeaderPill} h-[29.6px] gap-[8.8px] p-1.5`}
+              onClick={() =>
+                trackEvent(MixpanelEvent.Navigation, {
+                  from: pathname,
+                  to: GITHUB_REPOSITORY_URL,
+                  source: "dashboard_header_github",
+                })
+              }
+            >
+              <Image
+                src={dashboardHeaderAsset("github.svg")}
+                alt=""
+                aria-hidden="true"
+                width={18}
+                height={18}
+                className="h-[17.6px] w-[17.6px] shrink-0"
+              />
+
+            </Link>
+
+
           </div>
 
-          <Link
-            href="/upload"
-            aria-label="Create presentation"
-            className="relative flex h-[42.24px] w-[42.24px] shrink-0 items-center justify-center rounded-full border border-[#D9D6FE] bg-[#FAFAFF] text-[#7A5AF8] transition-colors hover:bg-[#F3F0FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2"
-            onClick={() =>
-              trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, {
-                pathname,
-                source: "dashboard_header_create",
-              })
-            }
-          >
-            <Plus className="h-4 w-4" strokeWidth={1.33} aria-hidden="true" />
-            <span className="absolute right-[1.28px] top-[-1px] flex h-[13.2px] w-[13.2px] items-center justify-center rounded-full border border-[#D9D6FE] bg-white">
-              <span className="h-[7.92px] w-[7.92px] rounded-full bg-[#7A5AF8]" />
-            </span>
-          </Link>
+          {isElectronApp && (
+            <Link
+              href={APP_UPDATE_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Update Presenton"
+              title="Update Presenton"
+              className="relative flex h-[42.24px] w-[42.24px] shrink-0 items-center justify-center rounded-full border-[1.32px] border-[#D9D6FE] bg-[#FAFAFF] transition-colors hover:bg-[#F3F0FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2"
+              onClick={() =>
+                trackEvent(MixpanelEvent.Navigation, {
+                  from: pathname,
+                  to: APP_UPDATE_URL,
+                  source: "dashboard_header_update_app",
+                  app_version: window.env?.APP_VERSION,
+                })
+              }
+            >
+              <Image
+                src={dashboardHeaderAsset("update-arrow.svg")}
+                alt=""
+                aria-hidden="true"
+                width={16}
+                height={16}
+                className="h-4 w-4 -rotate-90"
+              />
+              <Image
+                src={dashboardHeaderAsset("update-badge.svg")}
+                alt=""
+                aria-hidden="true"
+                width={14}
+                height={14}
+                className="absolute left-[26.44px] top-[-2.32px] h-[13.2px] w-[13.2px]"
+              />
+            </Link>
+          )}
         </div>
-      </div> */}
+      </div>
     </header>
   );
 }
@@ -174,27 +295,17 @@ const DashboardPage: React.FC = () => {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deckSortDirection, setDeckSortDirection] = useState<"desc" | "asc">(
-    "desc"
+  const [deckViewMode, setDeckViewMode] = useState<"grid" | "list">("grid");
+
+  const sortedPresentations = useMemo(
+    () => sortPresentationsNewestFirst(presentations),
+    [presentations]
   );
 
-  const sortedPresentations = useMemo(() => {
-    return [...presentations].sort((a, b) => {
-      const first = new Date(a.updated_at ?? a.created_at).getTime();
-      const second = new Date(b.updated_at ?? b.created_at).getTime();
-
-      return deckSortDirection === "desc" ? second - first : first - second;
-    });
-  }, [presentations, deckSortDirection]);
-
-  const sortedLegacyPresentations = useMemo(() => {
-    return [...legacyPresentations].sort((a, b) => {
-      const first = new Date(a.updated_at ?? a.created_at).getTime();
-      const second = new Date(b.updated_at ?? b.created_at).getTime();
-
-      return deckSortDirection === "desc" ? second - first : first - second;
-    });
-  }, [legacyPresentations, deckSortDirection]);
+  const sortedLegacyPresentations = useMemo(
+    () => sortPresentationsNewestFirst(legacyPresentations),
+    [legacyPresentations]
+  );
 
   const fetchPresentations = useCallback(async () => {
     let fetchedCount = 0;
@@ -235,11 +346,18 @@ const DashboardPage: React.FC = () => {
     );
   };
 
+  const removeLegacyPresentations = (presentationIds: string[]) => {
+    const deletedIds = new Set(presentationIds);
+    setLegacyPresentations((prev) =>
+      prev.filter((presentation) => !deletedIds.has(presentation.id))
+    );
+  };
+
   return (
     <div className="relative min-h-screen w-full pb-10">
-      <DashboardHeader pathname={pathname} />
-      <section className="relative z-10 overflow-visible px-3 sm:px-6">
-        <h2 className="font-syne text-base bg-transparent font-medium pb-3.5  text-[#333333] ">
+      <DashboardHeader />
+      <section className="relative z-10 overflow-visible pb-0 pl-3 pr-3 pt-[17px] sm:pl-6 sm:pr-[9px]">
+        <h2 className="w-full font-syne text-[16px] font-medium leading-[normal] text-[#191919]">
           Actions
         </h2>
         <Link
@@ -250,7 +368,7 @@ const DashboardPage: React.FC = () => {
               source: "dashboard_actions_card",
             })
           }
-          className="group/action bg-white z-50 mt-2  relative  block w-[304px] max-w-full overflow-visible rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 cursor-pointer"
+          className="group/action relative z-50 mt-[18px] block w-[304.5px] max-w-full cursor-pointer overflow-visible rounded-[10.8px] bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4"
           aria-label="Create presentation"
         >
           <FloatingActionCards />
@@ -258,64 +376,44 @@ const DashboardPage: React.FC = () => {
           <img
             src="/create_presentation_bg.png"
             alt="Background of the create presentation card"
-            className="relative bg-white z-10 h-[89.983px] w-[304px] max-w-full rounded-[10.8px] object-cover"
+            className="relative z-10 h-[89.983px] w-[304.5px] max-w-full rounded-[10.8px] bg-white object-cover"
           />
-          <span className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 text-center font-syne text-sm font-medium text-[#191919]">
+          <span className="absolute inset-0 z-20 flex items-center justify-center text-center font-syne text-sm font-medium text-[#191919]">
             Create Presentation
           </span>
         </Link>
       </section>
-      <section className="relative z-10 mt-12 px-3 sm:px-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-syne text-base font-medium  text-[#333333] ">
+      <section className="relative z-10 mt-[46px] pl-3 pr-3 sm:pl-6 sm:pr-[9px]">
+        <div className="mb-[14px] flex items-center justify-between gap-4">
+          <h2 className="font-syne text-[16px] font-medium leading-[normal] text-[#191919]">
             Decks
           </h2>
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#2F3033] transition-colors hover:bg-[#F3F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
-            title="Toggle deck sort order"
-            aria-label="Toggle deck sort order"
-            onClick={() =>
-              setDeckSortDirection((current) =>
-                current === "desc" ? "asc" : "desc"
-              )
-            }
-          >
-            <ArrowUpDown
-              className={`h-4 w-4 transition-transform duration-300 ${deckSortDirection === "asc" ? "rotate-180" : ""
-                }`}
-            />
-          </button>
-        </div>
-        {!isLoading && sortedLegacyPresentations.length > 0 && (
-          <details className="group/archive mb-6 overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-[#FBFBFD] shadow-[0_12px_28px_rgba(16,19,35,0.04)]">
-            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 marker:content-none transition-colors hover:bg-[#F7F6F9] sm:px-5 [&::-webkit-details-marker]:hidden">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#D9D6FE] bg-[#F4F3FF] text-[#7A5AF8]">
-                <Archive className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#191919]">
-                  Unsupported presentations
-                  <span className="rounded-full border border-[#D9D6FE] bg-white px-2 py-0.5 text-xs font-medium text-[#7A5AF8]">
-                    {sortedLegacyPresentations.length}
-                  </span>
-                </span>
-                <span className="mt-0.5 block text-xs leading-5 text-[#666666]">
-                  These decks were created in an older version and cannot be opened here. Downgrade to a compatible Presenton version if you need to access them.
-                </span>
-              </span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-[#666666] transition-transform group-open/archive:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="border-t border-[#EDEEEF] bg-white p-4 sm:p-5">
-              <PresentationGrid
-                presentations={sortedLegacyPresentations}
-                onPresentationDeleted={removePresentation}
-              />
+          <div className="flex items-center gap-[17px]">
+            <div className="flex items-center rounded-[4px] border border-[#EDEEEF] p-1">
+              <button
+                type="button"
+                onClick={() => setDeckViewMode("grid")}
+                aria-label="Grid view"
+                aria-pressed={deckViewMode === "grid"}
+                className={`flex items-center rounded px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] ${deckViewMode === "grid" ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"}`}
+              >
+                <GridViewIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeckViewMode("list")}
+                aria-label="List view"
+                aria-pressed={deckViewMode === "list"}
+                className={`flex items-center rounded px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] ${deckViewMode === "list" ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"}`}
+              >
+                <ListViewIcon />
+              </button>
             </div>
-          </details>
-        )}
+          </div>
+        </div>
         <PresentationGrid
           presentations={sortedPresentations}
+          viewMode={deckViewMode}
           isLoading={isLoading}
           error={error}
           onPresentationDeleted={removePresentation}
@@ -324,6 +422,14 @@ const DashboardPage: React.FC = () => {
           }
         />
       </section>
+      {!isLoading && sortedLegacyPresentations.length > 0 && (
+        <div className="relative z-10 mt-[46px] px-3 sm:px-6">
+          <LegacyPresentationsTable
+            presentations={sortedLegacyPresentations}
+            onPresentationsDeleted={removeLegacyPresentations}
+          />
+        </div>
+      )}
     </div>
   );
 };

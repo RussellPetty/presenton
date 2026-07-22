@@ -1,7 +1,10 @@
 import { Group, Rect, Text } from "react-konva";
 import { renderMarkdownTextRuns } from "@/components/slide-editor/text/markdown-text";
 import type { TextRun } from "@/components/slide-editor/types";
-import { layoutRichText } from "@/components/slide-editor/text/template-v2-text";
+import {
+  layoutRichText,
+  renderKonvaTextSegment,
+} from "@/components/slide-editor/text/template-v2-text";
 import { effectiveLineHeight } from "@/components/slide-editor/text/text-line-height";
 import { readableTableTextColor } from "@/components/slide-editor/tables/table-colors";
 import { colorWithOpacity } from "@/components/slide-editor/model/render-style";
@@ -54,6 +57,8 @@ export function TemplateV2TableElement({
             asRecord(cell.font) ?? asRecord(firstRun.font),
             font,
           );
+          const forceHeaderBold =
+            rowIndex === 0 && !hasExplicitBold(cell, firstRun);
           const fill = fillColor(cell.fill ?? cell.color);
           const runs = readableTableCellRuns(
             rawTableCellRuns(cell, cellFont),
@@ -61,7 +66,7 @@ export function TemplateV2TableElement({
             rowIndex === 0,
           );
           const renderRuns =
-            rowIndex === 0
+            forceHeaderBold
               ? runs.map((run) => ({
                 ...run,
                 font: { ...run.font, bold: true },
@@ -119,7 +124,7 @@ export function TemplateV2TableElement({
                 width={textWidth}
                 height={Math.max(1, cellH - 8)}
                 runs={renderRuns}
-                font={rowIndex === 0 ? { ...cellFont, bold: true } : cellFont}
+                font={forceHeaderBold ? { ...cellFont, bold: true } : cellFont}
                 align={readString(cell.alignment) ?? "left"}
                 verticalAlign="middle"
                 lineHeight={cellLineHeight}
@@ -188,7 +193,7 @@ function TableCellText({
           y={token.y}
           width={token.width}
           height={token.height}
-          text={token.text}
+          text={renderKonvaTextSegment(token.text)}
           fill={colorWithOpacity(withHash(token.font.color), token.font.opacity)}
           fontFamily={`${token.font.family}, Inter`}
           fontSize={token.font.size}
@@ -358,6 +363,13 @@ function fontFromRecord(
       fallback.letterSpacing,
     opacity: readNumber(font?.opacity) ?? fallback.opacity,
   };
+}
+
+function hasExplicitBold(cell: UnknownRecord, firstRun: UnknownRecord) {
+  return (
+    Object.prototype.hasOwnProperty.call(asRecord(cell.font) ?? {}, "bold") ||
+    Object.prototype.hasOwnProperty.call(asRecord(firstRun.font) ?? {}, "bold")
+  );
 }
 
 function fillColor(fill: unknown) {

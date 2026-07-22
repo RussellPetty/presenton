@@ -56,19 +56,6 @@ export interface FontInfo {
   path?: string;
 }
 
-export interface TemplateCreationInitResponse {
-  id: string;
-  total_slides: number;
-}
-
-export interface SlideLayoutResponse {
-  slide_index: number;
-  react_component: string;
-  layout_id: string;
-  layout_name: string;
-  layout_description?: string;
-}
-
 export interface TemplateCreationState {
   step: TemplateCreationStep;
   isLoading: boolean;
@@ -84,8 +71,6 @@ export interface TemplateCreationState {
   templateId: string | null;
   totalSlides: number;
 
-  // Slide layouts
-  slideLayouts: SlideLayoutResponse[];
   currentSlideIndex: number;
 }
 
@@ -121,6 +106,8 @@ export interface TemplateV2Element {
   type?: string | null;
   position?: TemplateV2Point | null;
   size?: TemplateV2Size | null;
+  points?: TemplateV2Point[] | null;
+  closed?: boolean | string | null;
   fill?: Record<string, unknown> | null;
   stroke?: Record<string, unknown> | null;
   border_radius?: Record<string, unknown> | null;
@@ -155,7 +142,6 @@ export interface TemplateV2Component {
   id?: string | null;
   description?: string | null;
   position?: TemplateV2Point | null;
-  size?: TemplateV2Size | null;
   elements?: TemplateV2Element[] | null;
   [key: string]: unknown;
 }
@@ -201,7 +187,6 @@ export interface EachSlideProps {
   index: number;
   retrySlide: (index: number) => void;
   setSlides: React.Dispatch<React.SetStateAction<ProcessedSlide[]>>;
-  onSlideUpdate?: (updatedSlideData: any) => void;
   isProcessing: boolean;
   onOpenSchemaEditor?: (index: number | null) => void;
   isSchemaEditorOpen?: boolean;

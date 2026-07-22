@@ -6,7 +6,6 @@ import {
     TemplateCreationState,
     FontData,
     FontUploadPreviewResponse,
-    SlideLayoutResponse,
     UploadedFont,
     ProcessedSlide,
     TemplateV2Layout,
@@ -15,10 +14,7 @@ import {
 import { getApiUrl } from "@/utils/api";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { bucketFileSize, sanitizeAnalyticsError } from "@/utils/analytics";
-import { validateLayoutCodeForClient } from "../utils/layoutCodeValidation";
 
-/** Must match `VISION_LAYOUT_ERROR_MARKER` in FastAPI `utils/template_vision_errors.py`. */
-const TEMPLATE_VISION_MODEL_MARKER = "TEMPLATE_VISION_MODEL_REQUIRED";
 const TEMPLATE_V2_LAYOUT_BATCH_SIZE = 1;
 const MAX_PROCESSING_PROGRESS_PERCENT = 95;
 
@@ -34,7 +30,6 @@ const initialState: TemplateCreationState = {
     previewData: null,
     templateId: null,
     totalSlides: 0,
-    slideLayouts: [],
     currentSlideIndex: 0,
 };
 
@@ -117,13 +112,7 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
 }
 
-type UseTemplateCreationOptions = {
-    useTemplateV2Generation?: boolean;
-};
-
-export const useTemplateCreation = ({
-    useTemplateV2Generation = false,
-}: UseTemplateCreationOptions = {}) => {
+export const useTemplateCreation = () => {
     const [state, setState] = useState<TemplateCreationState>(initialState);
     const [uploadedFonts, setUploadedFonts] = useState<UploadedFont[]>([]);
     const [slides, setSlides] = useState<ProcessedSlide[]>([]);
@@ -349,7 +338,7 @@ export const useTemplateCreation = ({
         if (layouts.length === 0) return;
 
         const response = await fetch(
-            getApiUrl(`/api/v1/ppt/templates/${encodeURIComponent(templateId)}/layouts`),
+            getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}/layouts`),
             {
                 method: "PATCH",
                 headers: getHeader(),
@@ -367,7 +356,7 @@ export const useTemplateCreation = ({
         templateId: string,
         index: number
     ): Promise<CreatedTemplateV2Layout> => {
-        const response = await fetch(getApiUrl("/api/v1/ppt/templates/layouts/create"), {
+        const response = await fetch(getApiUrl("/api/v1/ppt/template/layouts/create"), {
             method: "POST",
             headers: getHeader(),
             body: JSON.stringify({
@@ -441,7 +430,7 @@ export const useTemplateCreation = ({
     const generateTemplateV2Blocks = useCallback(async (
         templateId: string
     ): Promise<void> => {
-        const response = await fetch(getApiUrl("/api/v1/ppt/templates/generate-blocks"), {
+        const response = await fetch(getApiUrl("/api/v1/ppt/template/generate-blocks"), {
             method: "POST",
             headers: getHeader(),
             body: JSON.stringify({
@@ -494,7 +483,7 @@ export const useTemplateCreation = ({
                 uploaded_font_count: Object.keys(previewData.fonts ?? {}).length,
             });
 
-            const initResponse = await fetch(getApiUrl("/api/v1/ppt/templates/init"), {
+            const initResponse = await fetch(getApiUrl("/api/v1/ppt/template/init"), {
                 method: "POST",
                 headers: getHeader(),
                 body: JSON.stringify({
@@ -725,212 +714,6 @@ export const useTemplateCreation = ({
         updateState,
     ]);
 
-    // Step 4: Create slide layout for a specific slide (with auto-advance for initial processing)
-    const createSlideLayout = useCallback(async (
-        templateId: string,
-        slideIndex: number,
-        autoAdvance: boolean = true,
-        _isAutoRetry: boolean = false
-    ): Promise<SlideLayoutResponse | null> => {
-        // Mark slide as processing
-        setSlides(prev => prev.map((s, i) =>
-            i === slideIndex ? { ...s, processing: true, error: undefined } : s
-        ));
-
-        updateState({ currentSlideIndex: slideIndex });
-        const slideStartedAt = Date.now();
-        trackEvent(MixpanelEvent.CustomTemplate_Slide_Generation_Started, {
-            template_id: templateId,
-            template_version: "v1",
-            slide_index: slideIndex,
-            auto_retry: _isAutoRetry,
-        });
-
-        try {
-            const startResponse = await fetch(
-                getApiUrl(`/api/v1/ppt/template/slide-layout/create/start`),
-                {
-                    method: "POST",
-                    headers: getHeader(),
-                    body: JSON.stringify({
-                        id: templateId,
-                        index: slideIndex,
-                    }),
-                }
-            );
-
-            const startData = await ApiResponseHandler.handleResponse(
-                startResponse,
-                `Failed to start layout job for slide ${slideIndex + 1}`
-            );
-            const jobId = startData.job_id as string;
-
-            const pollMs = 2000;
-            const maxWaitMs = 45 * 60 * 1000;
-            const deadline = Date.now() + maxWaitMs;
-            let data: { react_component: string } | undefined;
-
-            while (Date.now() < deadline) {
-                const statusResponse = await fetch(
-                    getApiUrl(`/api/v1/ppt/template/slide-layout/create/job/${encodeURIComponent(jobId)}`),
-                    { headers: getHeader() }
-                );
-                const statusData = await ApiResponseHandler.handleResponse(
-                    statusResponse,
-                    `Failed to check layout job for slide ${slideIndex + 1}`
-                );
-                if (statusData.status === "complete" && statusData.react_component) {
-                    data = { react_component: statusData.react_component };
-                    break;
-                }
-                if (statusData.status === "failed") {
-                    throw new Error(
-                        statusData.error ||
-                            `Layout generation failed for slide ${slideIndex + 1}`
-                    );
-                }
-                await new Promise((r) => setTimeout(r, pollMs));
-            }
-
-            if (!data) {
-                throw new Error(
-                    "Timed out waiting for slide layout generation (exceeded 45 minutes)"
-                );
-            }
-
-            const validatedLayout = await validateLayoutCodeForClient(data.react_component);
-            const layoutResult: SlideLayoutResponse = {
-                slide_index: slideIndex,
-                react_component: validatedLayout.layout_code,
-                layout_id: validatedLayout.layoutId,
-                layout_name: validatedLayout.layoutName,
-                layout_description: validatedLayout.layoutDescription,
-            };
-
-            // Update slide with the react component
-            setSlides(prev => {
-                const newSlides = prev.map((s, i) =>
-                    i === slideIndex ? {
-                        ...s,
-                        processing: false,
-                        processed: true,
-                        react: layoutResult.react_component,
-                        layout_id: layoutResult.layout_id || undefined,
-                        layout_name: layoutResult.layout_name || undefined,
-                        layout_description: layoutResult.layout_description || undefined,
-                    } : s
-                );
-
-                // Only auto-advance during initial processing
-                if (autoAdvance) {
-                    const nextIndex = slideIndex + 1;
-                    if (nextIndex < newSlides.length && !newSlides[nextIndex].processed) {
-                        setTimeout(() => {
-                            createSlideLayout(templateId, nextIndex, true);
-                        }, 500);
-                    } else {
-                        // Check if all slides are processed
-                        const allProcessed = newSlides.every(s => s.processed || s.error);
-                        if (allProcessed) {
-                            updateState({ step: 'completed' });
-                            trackEvent(MixpanelEvent.CustomTemplate_Creation_Completed, {
-                                template_id: templateId,
-                                total_slides: newSlides.length,
-                                processed_slides: newSlides.filter(s => s.processed).length,
-                                failed_slides: newSlides.filter(s => Boolean(s.error)).length,
-                            });
-                            const failedCount = newSlides.filter(s => Boolean(s.error)).length;
-                            const processedCount = newSlides.filter(s => s.processed).length;
-                            if (failedCount > 0) {
-                                notify.warning(
-                                    "Some slides could not be processed",
-                                    `${processedCount} of ${newSlides.length} slides were reconstructed. ${failedCount} slide(s) failed - review them and try again.`
-                                );
-                            } else {
-                                notify.success(
-                                    "All slides processed",
-                                    "Every slide was reconstructed successfully."
-                                );
-                            }
-                        }
-                    }
-                } else {
-                    // Single slide reconstruction - just show success
-                    notify.success("Slide reconstructed", `Slide ${slideIndex + 1} was reconstructed successfully.`);
-                }
-
-                return newSlides;
-            });
-            trackEvent(MixpanelEvent.CustomTemplate_Slide_Generation_Completed, {
-                template_id: templateId,
-                template_version: "v1",
-                slide_index: slideIndex,
-                duration_ms: Date.now() - slideStartedAt,
-            });
-
-            return layoutResult;
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error ? error.message : "Layout creation failed";
-            const isVisionModelError = errorMessage.includes(TEMPLATE_VISION_MODEL_MARKER);
-
-            // Auto-retry once on transient failures; vision/model capability errors won't recover.
-            if (!_isAutoRetry && !isVisionModelError) {
-                return createSlideLayout(templateId, slideIndex, autoAdvance, true);
-            }
-            trackEvent(MixpanelEvent.CustomTemplate_Slide_Generation_Failed, {
-                template_id: templateId,
-                template_version: "v1",
-                slide_index: slideIndex,
-                duration_ms: Date.now() - slideStartedAt,
-                error_message: sanitizeAnalyticsError(
-                    error,
-                    "Layout creation failed"
-                ),
-            });
-
-            // Mark slide with error
-            setSlides(prev => {
-                const newSlides = prev.map((s, i) =>
-                    i === slideIndex ? { ...s, processing: false, error: errorMessage } : s
-                );
-
-                // Only auto-advance during initial processing
-                if (autoAdvance) {
-                    const nextIndex = slideIndex + 1;
-                    if (nextIndex < newSlides.length && !newSlides[nextIndex].processed) {
-                        setTimeout(() => {
-                            createSlideLayout(templateId, nextIndex, true);
-                        }, 500);
-                    } else {
-                        const allProcessed = newSlides.every(s => s.processed || s.error);
-                        if (allProcessed) {
-                            updateState({ step: 'completed' });
-                        }
-                    }
-                }
-
-                return newSlides;
-            });
-
-            if (isVisionModelError) {
-                const description = errorMessage
-                    .replace(TEMPLATE_VISION_MODEL_MARKER, "")
-                    .trim()
-                    .replace(/^\n+/, "");
-                notify.error(
-                    "Vision-capable text model required",
-                    description ||
-                        "Choose a text model that accepts images in Settings, save, and try again.",
-                    { duration: 12_000 }
-                );
-            } else {
-                notify.error(`Slide ${slideIndex + 1} failed`, errorMessage);
-            }
-            return null;
-        }
-    }, [updateState]);
-
     // Step 3: Initialize template creation
     const initTemplateCreation = useCallback(async (
         metadata?: TemplateCreationMetadata,
@@ -947,100 +730,16 @@ export const useTemplateCreation = ({
             templateMetadataRef.current = normalizedMetadata;
         }
 
-        if (useTemplateV2Generation) {
-            return generateTemplateV2(previewData, {
-                metadata: normalizedMetadata,
-            });
-        }
-
-        updateState({ isLoading: true, error: null, step: 'template-creation' });
-        const initStartedAt = Date.now();
-
-        try {
-            const response = await fetch(getApiUrl(`/api/v1/ppt/template/create/init`), {
-                method: "POST",
-                headers: getHeader(),
-                body: JSON.stringify({
-                    pptx_url: previewData.modified_pptx_url,
-                    slide_image_urls: previewData.slide_image_urls,
-                    fonts: previewData.fonts,
-                }),
-            });
-
-            const data = await ApiResponseHandler.handleResponse(
-                response,
-                "Failed to initialize template creation"
-            );
-
-            // Initialize slides array based on preview images
-            const initialSlides: ProcessedSlide[] = previewData.slide_image_urls.map(
-                (url, index) => ({
-                    slide_number: index + 1,
-                    screenshot_url: url,
-                    processing: false,
-                    processed: false,
-                })
-            );
-
-            setSlides(initialSlides);
-            updateState({
-                templateId: data.id || data,
-                totalSlides: previewData.slide_image_urls.length,
-                isLoading: false
-            });
-            trackEvent(MixpanelEvent.CustomTemplate_Creation_Started, {
-                source: "template_init",
-                template_id: typeof data === "string" ? data : data.id,
-                total_slides: previewData.slide_image_urls.length,
-                uploaded_font_count: Object.keys(previewData.fonts ?? {}).length,
-            });
-
-            notify.success("Template initialized", "Template creation was initialized successfully.");
-
-            // Automatically start processing the first slide
-            if (typeof data === 'string') {
-                createSlideLayout(data, 0);
-            } else if (data.id) {
-                createSlideLayout(data.id, 0);
-            }
-
-            return typeof data === 'string' ? data : data.id;
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Initialization failed";
-            updateState({ error: errorMessage, isLoading: false });
-            trackEvent(MixpanelEvent.CustomTemplate_Creation_Failed, {
-                template_id: state.templateId,
-                template_version: "v1",
-                step: "template_init",
-                slide_index: null,
-                duration_ms: Date.now() - initStartedAt,
-                error_message: sanitizeAnalyticsError(error, "Initialization failed"),
-            });
-            notify.error("Initialization failed", errorMessage);
-            // reset the state
-            reset();
-            return null;
-        }
+        return generateTemplateV2(previewData, {
+            metadata: normalizedMetadata,
+        });
     }, [
-        createSlideLayout,
         generateTemplateV2,
-        reset,
         state.previewData,
-        state.templateId,
-        updateState,
-        useTemplateV2Generation,
     ]);
 
     // Reconstruct a single slide (no auto-advance)
     const retrySlide = useCallback((slideIndex: number) => {
-        if (!useTemplateV2Generation) {
-            if (state.templateId) {
-                // Pass false for autoAdvance to only reconstruct this specific slide
-                createSlideLayout(state.templateId, slideIndex, false);
-            }
-            return;
-        }
-
         if (!state.templateId) {
             notify.error("Template unavailable", "Initialize the template before trying again.");
             return;
@@ -1129,11 +828,9 @@ export const useTemplateCreation = ({
             }
         })();
     }, [
-        createSlideLayout,
         createAndSaveTemplateV2Layouts,
         state.templateId,
         updateState,
-        useTemplateV2Generation,
     ]);
 
     // Move to font upload step (when font check is done)
@@ -1171,7 +868,6 @@ export const useTemplateCreation = ({
         // Template creation operations
         fontUploadAndPreview,
         initTemplateCreation,
-        createSlideLayout,
         retrySlide,
 
         // Navigation

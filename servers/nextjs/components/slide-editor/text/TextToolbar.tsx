@@ -129,6 +129,7 @@ export function TextToolbar({
   anchorBox,
   scale,
   componentActions,
+  disableAlignment = false,
   listMarker,
   selectionRange,
   templateFonts = EMPTY_TEMPLATE_FONTS,
@@ -145,6 +146,7 @@ export function TextToolbar({
   } | null;
   scale: number;
   componentActions?: ComponentActionsMenuActions | null;
+  disableAlignment?: boolean;
   listMarker?: Marker | null;
   selectionRange?: TextSelectionRange | null;
   templateFonts?: TemplateFontOption[];
@@ -544,8 +546,13 @@ export function TextToolbar({
               <Underline size={18} strokeWidth={2.25} aria-hidden="true" />
             </ToolbarButton>
             <ToolbarButton
-              title="Horizontal alignment"
+              title={
+                disableAlignment
+                  ? "Alignment is unavailable for list text"
+                  : "Horizontal alignment"
+              }
               controlId="horizontal-alignment"
+              disabled={disableAlignment}
               hoveredControl={hoveredControl}
               setHoveredControl={setHoveredControl}
               onClick={() =>
@@ -650,6 +657,7 @@ export function TextToolbar({
 function ToolbarButton({
   children,
   controlId,
+  disabled = false,
   hoveredControl,
   onClick,
   pressed,
@@ -658,6 +666,7 @@ function ToolbarButton({
 }: {
   children: ReactNode;
   controlId: string;
+  disabled?: boolean;
   hoveredControl: string | null;
   onClick?: () => void;
   pressed?: boolean;
@@ -671,14 +680,20 @@ function ToolbarButton({
       title={title}
       aria-label={title}
       aria-pressed={pressed}
+      disabled={disabled}
       onClick={onClick}
       onMouseDown={(event) => event.preventDefault()}
-      onMouseEnter={() => setHoveredControl(controlId)}
-      onMouseLeave={() => setHoveredControl(null)}
+      onMouseEnter={() => {
+        if (!disabled) setHoveredControl(controlId);
+      }}
+      onMouseLeave={() => {
+        if (!disabled) setHoveredControl(null);
+      }}
       style={{
         ...textToolbarStyles.button,
-        ...(hovered ? textToolbarStyles.buttonHover : {}),
-        ...(pressed ? textToolbarStyles.buttonActive : {}),
+        ...(hovered && !disabled ? textToolbarStyles.buttonHover : {}),
+        ...(pressed && !disabled ? textToolbarStyles.buttonActive : {}),
+        ...(disabled ? textToolbarStyles.buttonDisabled : {}),
       }}
     >
       {children}
@@ -1573,6 +1588,11 @@ const textToolbarStyles = {
   buttonActive: {
     color: "#7C51F8",
     background: "#F4F1FF",
+  },
+  buttonDisabled: {
+    color: "#A4A7AE",
+    cursor: "not-allowed",
+    opacity: 0.55,
   },
   colorControl: {
     position: "relative",

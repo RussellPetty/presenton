@@ -19,11 +19,4 @@ class PresentationWithSlides(BaseModel):
     tone: Optional[str] = None
     verbosity: Optional[str] = None
     slides: List[SlideModel]
-    layout: Optional[dict] = None
-    structure: Optional[dict] = None
-    theme: Optional[dict] = None
     fonts: Optional[Any] = None
-
-
-class PresentationDetailWithSlides(PresentationWithSlides):
-    merged_components: Optional[Any] = None

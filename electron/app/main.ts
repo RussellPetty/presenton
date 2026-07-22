@@ -3,7 +3,6 @@ import { app, BrowserWindow, dialog, globalShortcut } from "electron";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { pathToFileURL } from "url";
 import { findUnusedPorts, setupEnv } from "./utils";
 import { startFastApiServer, startNextJsServer } from "./utils/servers";
 import {
@@ -217,16 +216,10 @@ safeLog("[Presenton] Startup memory:", {
   memory: memorySnapshotMb(),
 });
 
-const launchPagePath = path.join(
-  resourceBaseDir,
-  "resources/ui/homepage/index.html",
-);
-const launchPageUrl = pathToFileURL(launchPagePath).toString();
-
 function isAllowedMainWindowUrl(url: string, appOrigin: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.origin === appOrigin || parsed.toString() === launchPageUrl;
+    return parsed.origin === appOrigin;
   } catch {
     return false;
   }
@@ -261,7 +254,7 @@ const createWindow = (appOrigin: string) => {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
-    show: false, // Reveal once the launch screen has painted to avoid a blank flash.
+    show: false, // Reveal once the app URL is ready to avoid a blank flash.
     backgroundColor: "#f3f5ff",
     icon: path.join(resourceBaseDir, "resources/ui/assets/images/presenton_short_filled.png"),
     webPreferences: {
@@ -496,23 +489,8 @@ app.whenReady().then(async () => {
   );
   updateSentryRuntimeContext(chromiumCacheRecovery);
 
-  // Create main window and show the launch page while local servers boot.
+  // Create the main window hidden; the app splash handles the visible startup state.
   createWindow(`${localhost}:${nextjsPort}`);
-  const initialWindow = getLiveMainWindow();
-  if (initialWindow && !initialWindow.webContents.isDestroyed()) {
-    void initialWindow
-      .loadFile(launchPagePath)
-      .catch((error) => {
-        if (!initialWindow.isDestroyed()) {
-          safeWarn("[Presenton] Failed to load startup page", error);
-        }
-      });
-  }
-
-  // Ensure the launch screen stays visible and focused during the server boot.
-  const launchWindow = getLiveMainWindow();
-  launchWindow?.show();
-  launchWindow?.focus();
 
   try {
     if (process.env.CAN_CHANGE_KEYS !== "false") {

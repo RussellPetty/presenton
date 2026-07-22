@@ -21,6 +21,7 @@ from models.sse_response import (
 )
 from services.chat import sql_chat_history
 from services.chat import ChatTurnResult, PresentationChatService
+from services.chat.conversation_store import ChatConversationStore
 from services.database import get_async_session
 
 
@@ -56,6 +57,21 @@ async def get_chat_history(
         presentation_id=presentation_id,
         conversation_id=conversation_id,
     )
+    if not rows:
+        # Conversations created before SQL history was introduced may still
+        # exist in the legacy memory store. Load and migrate them on demand so
+        # a browser refresh can restore the visible chat thread.
+        legacy_rows = await ChatConversationStore(sql_session).load_history(
+            presentation_id=presentation_id,
+            conversation_id=conversation_id,
+        )
+        if legacy_rows:
+            await sql_session.commit()
+            rows = await sql_chat_history.load_messages_with_meta(
+                sql_session,
+                presentation_id=presentation_id,
+                conversation_id=conversation_id,
+            )
     return ChatHistoryResponse(
         presentation_id=presentation_id,
         conversation_id=conversation_id,

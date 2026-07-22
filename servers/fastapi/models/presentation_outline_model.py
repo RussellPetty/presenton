@@ -8,7 +8,11 @@ from utils.outline_limits import normalize_outline_content
 class SlideOutlineModel(BaseModel):
     content: str = Field(
         ...,
-        description=f"Markdown content for the slide. Maximum {MAX_OUTLINE_CONTENT_WORDS} words.",
+        description=(
+            "Audience-facing Markdown content and data for the finished slide; never "
+            "slide-creation commands, visual/layout configuration, styling notes, or "
+            f"model instructions. Maximum {MAX_OUTLINE_CONTENT_WORDS} words."
+        ),
     )
 
     @field_validator("content", mode="before")

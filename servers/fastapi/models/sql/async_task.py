@@ -2,9 +2,10 @@ from datetime import datetime
 import secrets
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column, DateTime
+from sqlalchemy import JSON, Column, DateTime, String
 from sqlmodel import Field, SQLModel
 
+from enums.async_task_status import AsyncTaskStatus
 from utils.datetime_utils import get_current_utc_datetime
 
 
@@ -16,7 +17,9 @@ class AsyncTaskModel(SQLModel, table=True):
         primary_key=True,
     )
     type: str = Field(index=True)
-    status: str = Field(index=True)
+    status: AsyncTaskStatus = Field(
+        sa_column=Column(String, index=True, nullable=False),
+    )
     message: Optional[str] = None
     error: Optional[dict[str, Any]] = Field(sa_column=Column(JSON), default=None)
     data: Optional[dict[str, Any]] = Field(sa_column=Column(JSON), default=None)

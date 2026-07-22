@@ -11,7 +11,6 @@ export type TemplateV2InsertComponent = {
   id?: string;
   description?: string;
   position: { x: number; y: number };
-  size: { width: number; height: number };
   elements: SlideElement[];
 };
 

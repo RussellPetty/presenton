@@ -25,12 +25,14 @@ export const PresentationCard = ({
   id,
   title,
   presentation,
+  viewMode = "grid",
   onDeleted,
   onDuplicated
 }: {
   id: string;
   title: string;
   presentation: any;
+  viewMode?: "grid" | "list";
   onDeleted?: (presentationId: string) => void;
   onDuplicated?: (presentation: any) => void;
 }) => {
@@ -41,42 +43,7 @@ export const PresentationCard = ({
   const [isDuplicating, setIsDuplicating] = React.useState(false);
   const isUnsupported = presentation?.version === "v1-standard";
 
-  const applyTheme = React.useCallback(async (theme: any) => {
-    const element = document.getElementById(`dashboard-presentation-card-${id}`)
-    if (!element) return;
-
-    if (!theme || !theme.data || !theme.data.colors['graph_0']) { return; }
-    const cssVariables = {
-      '--primary-color': theme.data.colors['primary'],
-      '--background-color': theme.data.colors['background'],
-      '--card-color': theme.data.colors['card'],
-      '--stroke': theme.data.colors['stroke'],
-      '--primary-text': theme.data.colors['primary_text'],
-      '--background-text': theme.data.colors['background_text'],
-      '--graph-0': theme.data.colors['graph_0'],
-      '--graph-1': theme.data.colors['graph_1'],
-      '--graph-2': theme.data.colors['graph_2'],
-      '--graph-3': theme.data.colors['graph_3'],
-      '--graph-4': theme.data.colors['graph_4'],
-      '--graph-5': theme.data.colors['graph_5'],
-      '--graph-6': theme.data.colors['graph_6'],
-      '--graph-7': theme.data.colors['graph_7'],
-      '--graph-8': theme.data.colors['graph_8'],
-      '--graph-9': theme.data.colors['graph_9'],
-    }
-    Object.entries(cssVariables).forEach(([key, value]) => {
-      element.style.setProperty(key, value)
-    })
-    // 
-    if (theme.data.fonts.textFont.url && theme.data.fonts.textFont.name) {
-      useFontLoader({ [theme.data.fonts.textFont.name]: theme.data.fonts.textFont.url })
-    }
-
-    // Apply fonts to preview container
-    element.style.setProperty('font-family', `"${theme.data.fonts.textFont.name}"`)
-    element.style.setProperty('--heading-font-family', `"${theme.data.fonts.textFont.name}"`)
-    element.style.setProperty('--body-font-family', `"${theme.data.fonts.textFont.name}"`)
-  }, [id])
+  
 
   const handlePreview = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -95,11 +62,7 @@ export const PresentationCard = ({
     });
     router.push(`/presentation?id=${id}&type=standard`);
   };
-  useEffect(() => {
-    if (!isUnsupported) {
-      applyTheme(presentation.theme)
-    }
-  }, [applyTheme, isUnsupported, presentation.theme])
+
 
   const handleDelete = async () => {
     if (isDeleting) return;
@@ -150,21 +113,25 @@ export const PresentationCard = ({
     firstSlide,
     presentation?.version
   );
+  console.log('presentation'  , presentation)
   return (
     <Card
       suppressHydrationWarning={true}
       onClick={handlePreview}
       aria-disabled={isUnsupported}
       title={isUnsupported ? "Unsupported in this version of Presenton" : undefined}
-      className={`bg-[#F8FBFB] font-syne shadow-none sm:shadow-none presentation-card rounded-[12px] p-0 group transition-all duration-500 slide-theme overflow-hidden flex flex-col ${
+      className={`bg-[#F8FBFB] font-syne relative shadow-none sm:shadow-none presentation-card rounded-[12px] p-0 group transition-all duration-500 slide-theme overflow-hidden flex flex-col ${
         isUnsupported
           ? "cursor-not-allowed border-[#EDEEEF]"
           : "cursor-pointer hover:shadow-md"
       }`}
     >
+     
       <div
         id={`dashboard-presentation-card-${id}`}
-        suppressHydrationWarning={true} className="flex flex-col flex-1 relative z-40">
+        suppressHydrationWarning={true}
+        className={`relative z-40 flex flex-1 ${viewMode === "list" ? "min-h-[122px] flex-row" : "flex-col"}`}
+      >
         {/* <p className=" text-xs font-syne absolute top-2 flex gap-1 capitalize  items-center left-2 rounded-[100px]  px-2.5 py-1 bg-[#3A3A3AF5] text-white font-semibold  z-40 ">
 
           {presentation.type}
@@ -172,8 +139,8 @@ export const PresentationCard = ({
 
         <img src="/card_bg.svg" alt="" className="absolute top-0 left-0 w-full h-full object-cover" />
         <div className={isUnsupported
-          ? "relative mx-5 mt-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-[#EDEEEF] bg-white/90"
-          : "scale-[0.75] mt-4 border border-gray-300 rounded-lg overflow-hidden"
+          ? `relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-[#EDEEEF] bg-white/90 ${viewMode === "list" ? "m-3 w-[170px] shrink-0" : "mx-5 mt-4"}`
+          : `border border-gray-300 rounded-lg overflow-hidden ${viewMode === "list" ? "m-3 w-[170px] shrink-0" : "scale-[0.75] mt-4"}`
         }>
 
           {isUnsupported ? (
@@ -196,8 +163,8 @@ export const PresentationCard = ({
             />
           )}
         </div>
-
-        <div className="w-full py-3 px-5 mt-auto z-40 relative bg-white  border-t border-[#EDEEEF]">
+       <p className="absolute top-1 z-40 right-2">{presentation.n_slides}</p>
+        <div className={`z-40 flex bg-white px-5 py-3 ${viewMode === "list" ? "min-w-0 flex-1 items-center border-l border-[#EDEEEF]" : "relative mt-auto w-full border-t border-[#EDEEEF]"}`}>
           <div className="flex items-center justify-between gap-7 w-full">
             <div className="flex flex-col items-start gap-1">
               <div className="text-sm text-[#191919] font-semibold  overflow-hidden line-clamp-1">

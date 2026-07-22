@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import {
   Popover,
@@ -36,6 +36,7 @@ import {
   BLANK_SLIDE_LAYOUT_ID,
   createBlankPresentationSlide,
   getSlideTemplateId,
+  isTemplateV2Slide as isTemplateV2PresentationSlide,
 } from "../../_shared/blank-slide";
 import NewSlide from "./NewSlide";
 import { MAX_NUMBER_OF_SLIDES } from "@/utils/presentationLimits";
@@ -65,18 +66,22 @@ const SlideActionBar = ({
   revealOnGroupHover = false,
 }: SlideActionBarProps) => {
   const dispatch = useDispatch();
+  const store = useStore();
   const pathname = usePathname();
   const [showNewSlideSelection, setShowNewSlideSelection] = useState(false);
   const [isSpeakerPopoverOpen, setIsSpeakerPopoverOpen] = useState(false);
   const [isSlideMenuOpen, setIsSlideMenuOpen] = useState(false);
-  const { presentationData, isStreaming } = useSelector(
-    (state: RootState) => state.presentationGeneration
+  const isStreaming = useSelector(
+    (state: RootState) => state.presentationGeneration.isStreaming
+  );
+  const slideCount = useSelector((state: RootState) => {
+    const currentSlides = state.presentationGeneration.presentationData?.slides;
+    return Array.isArray(currentSlides) ? currentSlides.length : 0;
+  });
+  const hasPresentation = useSelector(
+    (state: RootState) => Boolean(state.presentationGeneration.presentationData)
   );
 
-  const slides = Array.isArray(presentationData?.slides)
-    ? presentationData.slides
-    : [];
-  const slideCount = slides.length;
   const hasReachedSlideLimit = slideCount >= MAX_NUMBER_OF_SLIDES;
   const currentIndex = Number.isInteger(selectedSlide)
     ? selectedSlide
@@ -85,21 +90,24 @@ const SlideActionBar = ({
       : 0;
   const slideLayout = typeof slide?.layout === "string" ? slide.layout : "";
   const templateId = useMemo(() => getSlideTemplateId(slide), [slide]);
-  const isTemplateV2Slide = templateId.startsWith("template-v2");
-  const isCustomTemplate = templateId.startsWith("custom-");
+  const isTemplateV2Slide = isTemplateV2PresentationSlide(slide);
   const speakerNote =
     typeof slide?.speaker_note === "string" ? slide.speaker_note.trim() : "";
   const keepVisible =
     showNewSlideSelection || isSpeakerPopoverOpen || isSlideMenuOpen;
 
-  if (!slide || !presentationData || slideCount === 0 || isStreaming) {
+  if (!slide || !hasPresentation || slideCount === 0 || isStreaming) {
     return null;
   }
 
   const rememberSlides = (actionType: string) => {
+    const currentSlides = (store.getState() as RootState)
+      .presentationGeneration.presentationData?.slides;
+    if (!Array.isArray(currentSlides)) return;
+
     dispatch(
       addToHistory({
-        slides,
+        slides: currentSlides,
         actionType,
       })
     );
@@ -154,7 +162,6 @@ const SlideActionBar = ({
       template_id: templateId,
       layout_id: BLANK_SLIDE_LAYOUT_ID,
       source: "blank_action_bar",
-      is_custom_template: isCustomTemplate,
       is_template_v2: isTemplateV2Slide,
     });
   };
@@ -292,7 +299,7 @@ const SlideActionBar = ({
           revealOnGroupHover
             ? keepVisible
               ? "opacity-100"
-              : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+              : "opacity-100 xl:pointer-events-none xl:opacity-0 xl:group-hover:pointer-events-auto xl:group-hover:opacity-100 xl:focus-within:pointer-events-auto xl:focus-within:opacity-100"
             : "opacity-100"
         )}
       >

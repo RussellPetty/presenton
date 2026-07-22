@@ -298,17 +298,6 @@ function layoutFlexChildren(
         ? size
         : size + freeBeforeFlex / flexibleCount,
     );
-  } else if (freeBeforeFlex < 0) {
-    const shrinks = children.map((child) =>
-      deps.isManualPositioned(child) ? 0 : layoutNumber(child, "shrink") ?? 1,
-    );
-    const scaledShrinks = shrinks.map((shrink, index) => shrink * mainSizes[index]);
-    const shrinkTotal = scaledShrinks.reduce((sum, shrink) => sum + shrink, 0);
-    if (shrinkTotal > 0) {
-      mainSizes = mainSizes.map((size, index) =>
-        Math.max(1, size + (freeBeforeFlex * scaledShrinks[index]) / shrinkTotal),
-      );
-    }
   }
 
   const usedMain =
@@ -372,10 +361,14 @@ function layoutGridChildren(
     declaredRows ?? 1,
     ...placements.map((placement) => placement.row + placement.rowSpan),
   );
+  const rowSizingCount = Math.max(1, Math.floor(declaredRows ?? rowCount));
   const availableW = Math.max(1, parentBox.width - padding.left - padding.right);
   const availableH = Math.max(1, parentBox.height - padding.top - padding.bottom);
   const cellW = Math.max(1, (availableW - columnGap * (safeColumns - 1)) / safeColumns);
-  const cellH = Math.max(1, (availableH - rowGap * Math.max(0, rowCount - 1)) / rowCount);
+  const cellH = Math.max(
+    1,
+    (availableH - rowGap * Math.max(0, rowSizingCount - 1)) / rowSizingCount,
+  );
 
   return children.map((child, index) => {
     const raw = deps.elementBox(child);
@@ -622,7 +615,7 @@ function markGridArea(
 function isFramelessDecorativeShape(child: FlowLayoutElement) {
   if (readOptionalSize(child.size) || asRecord(child.position)) return false;
   const type = readString(child.type);
-  return type === "rectangle" || type === "ellipse" || type === "line";
+  return type === "vector";
 }
 
 function clampLayoutSize(

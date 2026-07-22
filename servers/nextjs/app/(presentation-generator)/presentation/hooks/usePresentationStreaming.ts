@@ -20,6 +20,7 @@ import {
   mergeSingleSlidePreservingResolvedAssets,
   mergeSlidesPreservingResolvedAssets,
 } from "../utils/streamAssetMerge";
+import { isTemplateV2Slide } from "../../_shared/blank-slide";
 
 const MAX_STREAM_RETRIES = 3;
 const STREAM_RETRY_DELAY_MS = 1_000;
@@ -76,12 +77,7 @@ function hasTemplateV2LayoutPayload(layout: unknown): boolean {
 }
 
 function isTemplateV2SlidePayload(slide: unknown): boolean {
-  return (
-    Boolean(slide) &&
-    typeof slide === "object" &&
-    typeof (slide as any).layout_group === "string" &&
-    (slide as any).layout_group.startsWith("template-v2")
-  );
+  return isTemplateV2Slide(slide);
 }
 
 function isTemplateV2PresentationPayload(presentation: unknown): boolean {

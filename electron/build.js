@@ -48,6 +48,7 @@ const macDistributionIdentity =
   undefined
 const shouldNotarizeDirectMacBuild =
   isDirectMacBuild && process.env.PRESENTON_SKIP_NOTARIZATION !== "1"
+const shouldSignDirectMacDmg = isDirectMacBuild && requireDirectMacSigning
 const masSigningExtraArgs =
   process.env.PRESENTON_CODESIGN_TIMESTAMP === "1" ? [] : ["--timestamp=none"]
 const codesignTimestampRetries = Number.parseInt(
@@ -645,6 +646,81 @@ function assertCodesignCanUseDirectIdentity(identity) {
   }
 }
 
+function getFastApiBinaryName(platform = process.platform) {
+  return platform === "win32" ? "fastapi.exe" : "fastapi"
+}
+
+function findNextJsStandaloneServer(nextjsRoot) {
+  const directScript = path.join(nextjsRoot, "server.js")
+  if (fs.existsSync(directScript)) {
+    return directScript
+  }
+
+  const nestedScript = path.join(nextjsRoot, "servers", "nextjs", "server.js")
+  if (fs.existsSync(nestedScript)) {
+    return nestedScript
+  }
+
+  return null
+}
+
+function formatMissingBundleResources(missing) {
+  return missing.map((item) => `  - ${item.label}: ${item.path}`).join("\n")
+}
+
+function collectMissingBundleResources(resourcesRoot) {
+  const fastapiPath = path.join(resourcesRoot, "fastapi", getFastApiBinaryName())
+  const nextjsRoot = path.join(resourcesRoot, "nextjs")
+  const missing = []
+
+  if (!fs.existsSync(fastapiPath)) {
+    missing.push({ label: "FastAPI binary", path: fastapiPath })
+  }
+  if (!findNextJsStandaloneServer(nextjsRoot)) {
+    const directNextServer = path.join(nextjsRoot, "server.js")
+    const nestedNextServer = path.join(nextjsRoot, "servers", "nextjs", "server.js")
+    missing.push({
+      label: "Next.js standalone server",
+      path: `${directNextServer} or ${nestedNextServer}`,
+    })
+  }
+
+  return missing
+}
+
+function assertSourceBundleResourcesReady() {
+  const resourcesRoot = path.join(__dirname, "resources")
+  const missing = collectMissingBundleResources(resourcesRoot)
+  if (missing.length === 0) {
+    return
+  }
+
+  throw new Error(
+    [
+      "Required Electron bundle resources are missing before packaging.",
+      "Run `npm run build:all:mac:signed` for a full signed DMG build, or run `npm run build:nextjs && npm run build:fastapi` before package-only scripts.",
+      "Missing:",
+      formatMissingBundleResources(missing),
+    ].join("\n")
+  )
+}
+
+function assertPackagedBundleResourcesReady(resourcesRoot) {
+  const missing = collectMissingBundleResources(resourcesRoot)
+  if (missing.length === 0) {
+    return
+  }
+
+  throw new Error(
+    [
+      "Packaged app is missing required runtime resources.",
+      "This would produce a signed app that cannot start its bundled servers.",
+      "Missing:",
+      formatMissingBundleResources(missing),
+    ].join("\n")
+  )
+}
+
 // AfterPack hook: set executable permissions and repair packaged runtime bundles on macOS.
 const afterPack = async (context) => {
   if (context.electronPlatformName === "darwin") {
@@ -654,7 +730,9 @@ const afterPack = async (context) => {
       appPath,
       appBundleName
     )
-    const fastapiPath = path.join(resourcesRoot, "fastapi", "fastapi")
+    assertPackagedBundleResourcesReady(resourcesRoot)
+
+    const fastapiPath = path.join(resourcesRoot, "fastapi", getFastApiBinaryName("darwin"))
     const exportPyDir = path.join(resourcesRoot, "export", "py")
     const converterCandidates = [
       `convert-${process.platform}-${process.arch}`,
@@ -873,7 +951,7 @@ const config = {
     uninstallDisplayName: "Presenton",
   },
   dmg: {
-    sign: false,
+    sign: shouldSignDirectMacDmg,
     size: "2300m",
   },
   appx: {
@@ -892,6 +970,8 @@ const targets =
     ? builder.Platform.MAC.createTarget([effectiveMacTarget])
     : undefined
 
+assertSourceBundleResourcesReady()
+
 if (macTarget === "mas" && process.env.PRESENTON_SKIP_CODESIGN_PREFLIGHT !== "1") {
   assertCodesignCanUseIdentity(masAppSigningIdentity)
 }
@@ -904,6 +984,7 @@ if (isDirectMacBuild && process.platform === "darwin") {
     identity: macDistributionIdentity || "auto",
     hardenedRuntime: true,
     notarize: shouldNotarizeDirectMacBuild,
+    dmgSign: shouldSignDirectMacDmg,
     signingRequired: requireDirectMacSigning,
   })
 }

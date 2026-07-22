@@ -18,16 +18,21 @@ from utils.image_generation_error import image_generation_warning
 
 IMAGE_PROMPT_KEYS = ("__image_prompt__", "image_prompt", "prompt")
 ICON_QUERY_KEYS = ("__icon_query__", "icon_query", "query")
+TEMPLATE_ASSET_MARKER_KEYS = ("image_url", "icon_url", "image_prompt", "icon_query")
 
 
-def _uses_template_v2_asset_fields(slide: SlideModel) -> bool:
-    return slide.layout_group.startswith("template-v2")
+def _uses_template_asset_fields(slide: SlideModel) -> bool:
+    if isinstance(slide.ui, dict):
+        return True
+    if isinstance(slide.content, dict):
+        return bool(_dict_paths_with_any_key(slide.content, TEMPLATE_ASSET_MARKER_KEYS))
+    return False
 
 
-def _asset_url_key(asset_type: str, template_v2: bool) -> str:
+def _asset_url_key(asset_type: str, template: bool) -> str:
     if asset_type == "image":
-        return "image_url" if template_v2 else "__image_url__"
-    return "icon_url" if template_v2 else "__icon_url__"
+        return "image_url" if template else "__image_url__"
+    return "icon_url" if template else "__icon_url__"
 
 
 def _set_asset_url(
@@ -35,19 +40,19 @@ def _set_asset_url(
     asset_type: str,
     url: str,
     *,
-    template_v2: bool,
+    template: bool,
 ) -> None:
-    key = _asset_url_key(asset_type, template_v2)
+    key = _asset_url_key(asset_type, template)
     asset[key] = url
-    if template_v2:
+    if template:
         asset.pop(f"__{asset_type}_url__", None)
 
 
-def _get_asset_url(asset: dict, asset_type: str, *, template_v2: bool) -> str | None:
+def _get_asset_url(asset: dict, asset_type: str, *, template: bool) -> str | None:
     keys = (
-        (_asset_url_key(asset_type, template_v2), f"__{asset_type}_url__")
-        if template_v2
-        else (_asset_url_key(asset_type, template_v2),)
+        (_asset_url_key(asset_type, template), f"__{asset_type}_url__")
+        if template
+        else (_asset_url_key(asset_type, template),)
     )
     for key in keys:
         value = asset.get(key)
@@ -99,7 +104,7 @@ async def process_slide_and_fetch_assets(
     async_tasks = []
     async_task_meta = []
     resolved_icon_weight = normalize_icon_weight(icon_weight)
-    template_v2 = _uses_template_v2_asset_fields(slide)
+    template = _uses_template_asset_fields(slide)
 
     image_assets = _asset_dicts_with_prompt(slide.content, IMAGE_PROMPT_KEYS)
     icon_assets = _asset_dicts_with_prompt(slide.content, ICON_QUERY_KEYS)
@@ -117,7 +122,7 @@ async def process_slide_and_fetch_assets(
                 image_parent,
                 "image",
                 normalize_slide_asset_url(outline_image_urls[image_index]),
-                template_v2=template_v2,
+                template=template,
             )
             set_dict_at_path(slide.content, image_path, image_parent)
             continue
@@ -155,7 +160,7 @@ async def process_slide_and_fetch_assets(
                     image_dict,
                     "image",
                     normalize_slide_asset_url("/static/images/placeholder.jpg"),
-                    template_v2=template_v2,
+                    template=template,
                 )
                 if image_warnings is not None and isinstance(result, Exception):
                     image_warnings.append(image_generation_warning(result))
@@ -167,14 +172,14 @@ async def process_slide_and_fetch_assets(
                     image_dict,
                     "image",
                     filesystem_image_path_to_app_data_url(result.path),
-                    template_v2=template_v2,
+                    template=template,
                 )
             else:
                 _set_asset_url(
                     image_dict,
                     "image",
                     normalize_slide_asset_url(result),
-                    template_v2=template_v2,
+                    template=template,
                 )
             set_dict_at_path(slide.content, asset_path, image_dict)
             continue
@@ -192,7 +197,7 @@ async def process_slide_and_fetch_assets(
             icon_dict,
             "icon",
             icon_url,
-            template_v2=template_v2,
+            template=template,
         )
         set_dict_at_path(slide.content, asset_path, icon_dict)
 
@@ -204,7 +209,7 @@ async def process_old_and_new_slides_and_fetch_assets(
     old_slide_content: dict,
     new_slide_content: dict,
     icon_weight: str = DEFAULT_ICON_WEIGHT,
-    use_template_v2_asset_fields: bool = False,
+    use_template_asset_fields: bool = False,
     allow_image_fallback: bool = False,
     image_warnings: Optional[List[dict]] = None,
 ) -> List[ImageAsset]:
@@ -225,7 +230,7 @@ async def process_old_and_new_slides_and_fetch_assets(
             image_url := _get_asset_url(
                 asset,
                 "image",
-                template_v2=use_template_v2_asset_fields,
+                template=use_template_asset_fields,
             )
         )
     }
@@ -236,7 +241,7 @@ async def process_old_and_new_slides_and_fetch_assets(
             icon_url := _get_asset_url(
                 asset,
                 "icon",
-                template_v2=use_template_v2_asset_fields,
+                template=use_template_asset_fields,
             )
         )
     }
@@ -249,7 +254,7 @@ async def process_old_and_new_slides_and_fetch_assets(
                 new_image,
                 "image",
                 old_image_urls[image_prompt],
-                template_v2=use_template_v2_asset_fields,
+                template=use_template_asset_fields,
             )
             continue
         async_image_fetch_tasks.append(
@@ -265,7 +270,7 @@ async def process_old_and_new_slides_and_fetch_assets(
                 new_icon,
                 "icon",
                 old_icon_urls[icon_query],
-                template_v2=use_template_v2_asset_fields,
+                template=use_template_asset_fields,
             )
             continue
         async_icon_fetch_tasks.append(
@@ -302,7 +307,7 @@ async def process_old_and_new_slides_and_fetch_assets(
             target,
             "image",
             image_url,
-            template_v2=use_template_v2_asset_fields,
+            template=use_template_asset_fields,
         )
 
     for target, icon_result in zip(fetched_icon_targets, new_icons):
@@ -314,7 +319,7 @@ async def process_old_and_new_slides_and_fetch_assets(
             target,
             "icon",
             icon_url,
-            template_v2=use_template_v2_asset_fields,
+            template=use_template_asset_fields,
         )
 
     for path, asset, _prompt in new_image_assets:
@@ -327,7 +332,7 @@ async def process_old_and_new_slides_and_fetch_assets(
 
 def process_slide_add_placeholder_assets(slide: SlideModel):
 
-    template_v2 = _uses_template_v2_asset_fields(slide)
+    template = _uses_template_asset_fields(slide)
     image_paths = _dict_paths_with_any_key(slide.content, IMAGE_PROMPT_KEYS)
     icon_paths = _dict_paths_with_any_key(slide.content, ICON_QUERY_KEYS)
 
@@ -338,7 +343,7 @@ def process_slide_add_placeholder_assets(slide: SlideModel):
             image_dict,
             "image",
             normalize_slide_asset_url("/static/images/placeholder.jpg"),
-            template_v2=template_v2,
+            template=template,
         )
         set_dict_at_path(slide.content, image_path, image_dict)
 
@@ -349,6 +354,6 @@ def process_slide_add_placeholder_assets(slide: SlideModel):
             icon_dict,
             "icon",
             normalize_slide_asset_url("/static/icons/placeholder.svg"),
-            template_v2=template_v2,
+            template=template,
         )
         set_dict_at_path(slide.content, icon_path, icon_dict)

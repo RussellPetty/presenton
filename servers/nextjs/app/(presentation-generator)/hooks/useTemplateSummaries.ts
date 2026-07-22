@@ -9,8 +9,36 @@ import TemplateService, {
 
 export type TemplateTab = "custom" | "default";
 
+const FEATURED_BUILT_IN_TEMPLATE_ORDER = [
+  "momentum",
+  "dynamic",
+  "executive",
+] as const;
+
+function orderBuiltInTemplates(templates: TemplateListItem[]) {
+  const priorityByName = new Map<string, number>(
+    FEATURED_BUILT_IN_TEMPLATE_ORDER.map((name, index) => [name, index]),
+  );
+
+  return templates
+    .map((template, index) => ({ template, index }))
+    .sort((left, right) => {
+      const leftPriority =
+        priorityByName.get(left.template.name.trim().toLowerCase()) ??
+        FEATURED_BUILT_IN_TEMPLATE_ORDER.length;
+      const rightPriority =
+        priorityByName.get(right.template.name.trim().toLowerCase()) ??
+        FEATURED_BUILT_IN_TEMPLATE_ORDER.length;
+
+      return leftPriority - rightPriority || left.index - right.index;
+    })
+    .map(({ template }) => template);
+}
+
 export function splitTemplatesByDefault(templates: TemplateListItem[]) {
-  const defaultTemplates = templates.filter((template) => template.is_default);
+  const defaultTemplates = orderBuiltInTemplates(
+    templates.filter((template) => template.is_default)
+  );
   const customTemplates = templates.filter((template) => !template.is_default);
   return { defaultTemplates, customTemplates };
 }
@@ -52,8 +80,14 @@ export function useTemplateSummaries({
     };
 
     const loadTemplateSummaries = async () => {
-      const response = await TemplateService.getTemplateSummaries();
-      return filterTemplatesWithLayouts(response.items ?? []);
+      const [defaultResponse, customResponse] = await Promise.all([
+        TemplateService.getTemplateSummaries(true),
+        TemplateService.getTemplateSummaries(false),
+      ]);
+      return [
+        ...filterTemplatesWithLayouts(defaultResponse.items ?? []),
+        ...filterTemplatesWithLayouts(customResponse.items ?? []),
+      ];
     };
 
     const loadInitialTemplates = async () => {

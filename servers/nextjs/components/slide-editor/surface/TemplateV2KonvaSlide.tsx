@@ -58,6 +58,7 @@ import {
 
 
 import { updateSlideUi } from "@/store/slices/presentationGeneration";
+import { useNearViewport } from "@/app/hooks/useNearViewport";
 import { resolveBackendAssetSource } from "@/utils/api";
 import { bucketFileSize, sanitizeAnalyticsError } from "@/utils/analytics";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
@@ -131,6 +132,7 @@ import {
   isManualPositioned,
   isRecord,
   isRawIconElement,
+  isVectorType,
   keyForSelection,
   keysForSelection,
   layoutChildren,
@@ -146,10 +148,11 @@ import {
   readString,
   renderedLocalBoxForElementSelection,
   rootElementsComponent,
+  selectionForComponentIndexes,
+  selectionForInsertedComponent,
   selectionWithComponentToggle,
   setComponentPositionsInUi,
   surfaceSelectionTarget,
-  unclampedPositionFromNodeInParent,
   updateComponentInUi,
   updateElementInUi,
   type ComponentSelection,
@@ -189,17 +192,30 @@ function autoSizeInlineTextFrame(
   };
 }
 
-const EDITING_SCENE_DEVICE_OVERSAMPLE = 1.5;
-const MIN_EDITING_SCENE_PIXEL_RATIO = 3;
-const MAX_EDITING_SCENE_PIXEL_RATIO = 4;
+function canEditVectorPointsForSelection(ui: RawUi, selection: ElementSelection) {
+  if (selection.componentIndex === ROOT_ELEMENTS_COMPONENT_INDEX) return true;
+  if (selection.elementPath.length !== 1) return false;
+  const component = asRecord(readArray(ui.components)[selection.componentIndex]);
+  const elements = readArray(component?.elements).filter(isRecord);
+  return elements.length === 1;
+}
 
-function syncEditingScenePixelRatio(layer: Konva.Layer | null) {
+const MIN_EDITING_SCENE_PIXEL_RATIO = 1;
+const MAX_EDITING_SCENE_PIXEL_RATIO = 2;
+
+function syncEditingScenePixelRatio(
+  layer: Konva.Layer | null,
+  displayScale: number,
+) {
   if (!layer || typeof window === "undefined") return;
+  const safeDisplayScale = Number.isFinite(displayScale)
+    ? Math.max(0, displayScale)
+    : 1;
   const pixelRatio = Math.min(
     MAX_EDITING_SCENE_PIXEL_RATIO,
     Math.max(
       MIN_EDITING_SCENE_PIXEL_RATIO,
-      (window.devicePixelRatio || 1) * EDITING_SCENE_DEVICE_OVERSAMPLE,
+      (window.devicePixelRatio || 1) * safeDisplayScale,
     ),
   );
   const canvas = layer.getCanvas();
@@ -234,6 +250,15 @@ type TemplateV2KonvaSlideProps = {
   slideIndex: number;
   renderIndex?: number;
   fonts?: unknown;
+  displayScale?: number;
+  enableViewportCulling?: boolean;
+  isSelected?: boolean;
+  historyCommand?: { action: "undo" | "redo"; token: number } | null;
+  onHistoryAvailabilityChange?: (availability: {
+    canUndo: boolean;
+    canRedo: boolean;
+  }) => void;
+  onLayoutChange?: (layout: TemplateV2Layout) => void;
 };
 
 function TemplateV2KonvaSlideComponent({
@@ -244,17 +269,25 @@ function TemplateV2KonvaSlideComponent({
   slideIndex,
   renderIndex,
   fonts,
+  displayScale = 1,
+  enableViewportCulling = false,
+  isSelected = false,
+  historyCommand = null,
+  onHistoryAvailabilityChange,
+  onLayoutChange,
 }: TemplateV2KonvaSlideProps) {
   const dispatch = useDispatch();
   const surfaceId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null);
   const nodeRefs = useRef(new Map<string, Konva.Node>());
+  const backgroundLayerRef = useRef<Konva.Layer | null>(null);
   const contentLayerRef = useRef<Konva.Layer | null>(null);
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageUploadRef = useRef<ElementSelection | null>(null);
   const undoStackRef = useRef<RawUi[]>([]);
   const redoStackRef = useRef<RawUi[]>([]);
+  const handledHistoryCommandTokenRef = useRef<number | null>(null);
   const multiComponentDragRef = useRef<MultiComponentDragState | null>(null);
   const [uiDraft, setUiDraft] = useState<RawUi>(() =>
     normalizeMarkdownTextInUi(cloneJson(layout as RawUi)),
@@ -262,7 +295,21 @@ function TemplateV2KonvaSlideComponent({
   const templateFonts = useMemo(() => templateFontOptionsFromMap(fonts), [
     fonts,
   ]);
-  const fontLoadState = useFontLoadState(uiDraft, templateFonts);
+  const {
+    isNearViewport,
+    ref: setViewportRoot,
+  } = useNearViewport<HTMLDivElement>({
+    enabled: enableViewportCulling,
+    forceActive: isSelected,
+    rootMargin: "800px 0px",
+    rootSelector: "[data-presentation-slides-scroll-container='true']",
+  });
+  const isRenderActive = !enableViewportCulling || isNearViewport;
+  const fontLoadState = useFontLoadState(
+    uiDraft,
+    templateFonts,
+    isRenderActive,
+  );
   const currentUiRef = useRef<RawUi>(uiDraft);
   const [selection, setSelection] = useState<Selection>(null);
   const selectionRef = useRef<Selection>(selection);
@@ -276,6 +323,11 @@ function TemplateV2KonvaSlideComponent({
   } = useTemplateV2InlineEditing<ElementSelection>({
     keyForSelection,
   });
+  const [vectorEditSelection, setVectorEditSelection] =
+    useState<ElementSelection | null>(null);
+  const vectorEditingKey = vectorEditSelection
+    ? keyForSelection(vectorEditSelection)
+    : null;
   const [iconEditorSelection, setIconEditorSelection] =
     useState<ElementSelection | null>(null);
   const [chartEditorSelection, setChartEditorSelection] =
@@ -285,6 +337,14 @@ function TemplateV2KonvaSlideComponent({
     canUndo: false,
     canRedo: false,
   });
+  const publishHistoryAvailability = useCallback(() => {
+    const availability = {
+      canUndo: undoStackRef.current.length > 0,
+      canRedo: redoStackRef.current.length > 0,
+    };
+    setHistoryAvailability(availability);
+    onHistoryAvailabilityChange?.(availability);
+  }, [onHistoryAvailabilityChange]);
   const {
     clearTableCellEditing,
     clearTableCellSelection,
@@ -300,7 +360,8 @@ function TemplateV2KonvaSlideComponent({
   const setRootNode = useCallback((node: HTMLDivElement | null) => {
     rootRef.current = node;
     setRootElement(node);
-  }, []);
+    setViewportRoot(node);
+  }, [setViewportRoot]);
 
   const components = useMemo(
     () => readArray(uiDraft.components).filter(isRecord) as RawComponent[],
@@ -427,9 +488,22 @@ function TemplateV2KonvaSlideComponent({
       uiDraft,
     ],
   );
-  const horizontalResizeOnly =
-    editorToolbarTarget?.element.type === "line" ||
-    readString(selectedElement?.type) === "line";
+  const horizontalResizeOnly = false;
+  const selectedIsVectorElement =
+    selection?.kind === "element" &&
+    isVectorType(readString(selectedElement?.type));
+  const selectedCanEditVectorPoints =
+    selection?.kind === "element" &&
+    canEditVectorPointsForSelection(uiDraft, selection);
+  const selectedIsVectorPointEditing =
+    selectedIsVectorElement &&
+    selection?.kind === "element" &&
+    selectedCanEditVectorPoints &&
+    vectorEditingKey === keyForSelection(selection);
+  const shouldHideParentComponentBoundary = inlineEdit || selectedIsVectorElement;
+  const transformerParentComponentKey = shouldHideParentComponentBoundary
+    ? null
+    : selectedParentComponentKey;
   const toolbarElement = useMemo(
     () => {
       if (!selectedElement || !selectedBox) return null;
@@ -541,18 +615,22 @@ function TemplateV2KonvaSlideComponent({
   }, [selection]);
 
   useEffect(() => {
-    if (!fontLoadState.ready) return;
+    if (!isRenderActive || !fontLoadState.ready) return;
     contentLayerRef.current?.batchDraw();
-  }, [fontLoadState.ready, fontLoadState.revision]);
+  }, [fontLoadState.ready, fontLoadState.revision, isRenderActive]);
 
   useEffect(() => {
-    if (!isEditMode || typeof window === "undefined") return;
-    const refreshPixelRatio = () =>
-      syncEditingScenePixelRatio(contentLayerRef.current);
+    if (!isEditMode || !isRenderActive || typeof window === "undefined") {
+      return;
+    }
+    const refreshPixelRatio = () => {
+      syncEditingScenePixelRatio(backgroundLayerRef.current, displayScale);
+      syncEditingScenePixelRatio(contentLayerRef.current, displayScale);
+    };
     refreshPixelRatio();
     window.addEventListener("resize", refreshPixelRatio);
     return () => window.removeEventListener("resize", refreshPixelRatio);
-  }, [isEditMode]);
+  }, [displayScale, isEditMode, isRenderActive]);
 
   useEffect(() => {
     selectedComponentIndexesRef.current = selectedComponentIndexes;
@@ -566,15 +644,27 @@ function TemplateV2KonvaSlideComponent({
     setSelection(null);
     clearTableCellSelection();
     clearInlineEdit();
+    setVectorEditSelection(null);
     setIconEditorSelection(null);
     setChartEditorSelection(null);
     undoStackRef.current = [];
     redoStackRef.current = [];
-    setHistoryAvailability({ canUndo: false, canRedo: false });
-  }, [clearInlineEdit, clearTableCellSelection, layout]);
+    publishHistoryAvailability();
+  }, [
+    clearInlineEdit,
+    clearTableCellSelection,
+    layout,
+    publishHistoryAvailability,
+  ]);
 
   useEffect(() => {
-    if (!hasFloatingToolbar || typeof window === "undefined") return;
+    if (
+      !isRenderActive ||
+      !hasFloatingToolbar ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
     let frame = 0;
     const refreshToolbarPosition = () => {
       window.cancelAnimationFrame(frame);
@@ -588,7 +678,7 @@ function TemplateV2KonvaSlideComponent({
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", refreshToolbarPosition);
     };
-  }, [hasFloatingToolbar]);
+  }, [hasFloatingToolbar, isRenderActive]);
 
   const isSurfaceActive = useCallback(
     () =>
@@ -629,7 +719,12 @@ function TemplateV2KonvaSlideComponent({
   }, [isEditMode, slideId, surfaceId, surfaceSlideIndex]);
 
   useEffect(() => {
-    if (!isEditMode || !isSurfaceActive() || typeof window === "undefined") {
+    if (
+      !isRenderActive ||
+      !isEditMode ||
+      !isSurfaceActive() ||
+      typeof window === "undefined"
+    ) {
       return;
     }
     window.dispatchEvent(
@@ -646,6 +741,7 @@ function TemplateV2KonvaSlideComponent({
     );
   }, [
     isEditMode,
+    isRenderActive,
     isSurfaceActive,
     selectedSurfaceTarget,
     slideId,
@@ -691,10 +787,12 @@ function TemplateV2KonvaSlideComponent({
   const clearEditorUiState = useCallback(
     (options?: { clearActiveSurface?: boolean }) => {
       multiComponentDragRef.current = null;
+      selectionRef.current = null;
       setSelection(null);
       clearTableCellSelection();
       clearTableCellEditing();
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       setChartEditorSelection(null);
       if (options?.clearActiveSurface) {
@@ -718,6 +816,7 @@ function TemplateV2KonvaSlideComponent({
   useEffect(() => {
     if (
       !isEditMode ||
+      !isRenderActive ||
       !hasDismissibleEditorUi ||
       typeof document === "undefined" ||
       typeof window === "undefined"
@@ -784,7 +883,12 @@ function TemplateV2KonvaSlideComponent({
       document.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [clearEditorUiState, hasDismissibleEditorUi, isEditMode]);
+  }, [
+    clearEditorUiState,
+    hasDismissibleEditorUi,
+    isEditMode,
+    isRenderActive,
+  ]);
 
   const commitUi = useCallback(
     (nextUi: RawUi, pushHistory = true) => {
@@ -799,18 +903,23 @@ function TemplateV2KonvaSlideComponent({
       }
       currentUiRef.current = nextUi;
       setUiDraft(nextUi);
+      onLayoutChange?.(nextUi as TemplateV2Layout);
       dispatch(
         updateSlideUi({
           index: surfaceSlideIndex ?? slideIndex,
           ui: nextUi as Record<string, unknown>,
         }),
       );
-      setHistoryAvailability({
-        canUndo: undoStackRef.current.length > 0,
-        canRedo: redoStackRef.current.length > 0,
-      });
+      publishHistoryAvailability();
     },
-    [dispatch, isEditMode, slideIndex, surfaceSlideIndex],
+    [
+      dispatch,
+      isEditMode,
+      onLayoutChange,
+      publishHistoryAvailability,
+      slideIndex,
+      surfaceSlideIndex,
+    ],
   );
 
   const undo = useCallback(() => {
@@ -818,14 +927,28 @@ function TemplateV2KonvaSlideComponent({
     if (!previous) return;
     redoStackRef.current.push(currentUiRef.current);
     commitUi(previous, false);
-  }, [commitUi]);
+    clearEditorUiState();
+  }, [clearEditorUiState, commitUi]);
 
   const redo = useCallback(() => {
     const next = redoStackRef.current.pop();
     if (!next) return;
     undoStackRef.current.push(currentUiRef.current);
     commitUi(next, false);
-  }, [commitUi]);
+    clearEditorUiState();
+  }, [clearEditorUiState, commitUi]);
+
+  useEffect(() => {
+    if (!historyCommand || !isEditMode) return;
+    if (handledHistoryCommandTokenRef.current === historyCommand.token) return;
+    handledHistoryCommandTokenRef.current = historyCommand.token;
+
+    if (historyCommand.action === "undo") {
+      undo();
+      return;
+    }
+    redo();
+  }, [historyCommand, isEditMode, redo, undo]);
 
   const select = useCallback(
     (nextSelection: Selection, options?: SelectOptions) => {
@@ -837,6 +960,13 @@ function TemplateV2KonvaSlideComponent({
       );
       selectionRef.current = resolvedSelection;
       setSelection(resolvedSelection);
+      setVectorEditSelection((current) =>
+        current &&
+        resolvedSelection?.kind === "element" &&
+        keyForSelection(current) === keyForSelection(resolvedSelection)
+          ? current
+          : null,
+      );
       activateSurface(resolvedSelection);
     },
     [activateSurface, clearTableCellSelection],
@@ -851,6 +981,7 @@ function TemplateV2KonvaSlideComponent({
       activateSurface(elementSelection);
       setSelection(elementSelection);
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       selectTableCellSelection(elementSelection, rowIndex, colIndex);
     },
@@ -866,6 +997,7 @@ function TemplateV2KonvaSlideComponent({
       activateSurface(elementSelection);
       setSelection(elementSelection);
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       editTableCellSelection(elementSelection, rowIndex, colIndex);
     },
@@ -950,14 +1082,16 @@ function TemplateV2KonvaSlideComponent({
     (componentIndex: number, node: Konva.Node) => {
       const dragState = multiComponentDragRef.current;
       if (!dragState || dragState.draggedComponentIndex !== componentIndex) {
-        updateComponent(componentIndex, (current) => ({
-          ...current,
-          position: unclampedPositionFromNodeInParent(
-            node,
-            STAGE_BOX,
-            componentBox(current),
-          ),
-        }));
+        updateComponent(componentIndex, (current) => {
+          const box = componentBox(current);
+          return {
+            ...current,
+            position: {
+              x: node.x() - box.width / 2,
+              y: node.y() - box.height / 2,
+            },
+          };
+        });
         return;
       }
 
@@ -1016,6 +1150,7 @@ function TemplateV2KonvaSlideComponent({
       setSelection(null);
       clearTableCellSelection();
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       closeChartEditor();
     },
@@ -1047,6 +1182,7 @@ function TemplateV2KonvaSlideComponent({
     setSelection(null);
     clearTableCellSelection();
     clearInlineEdit();
+    setVectorEditSelection(null);
     setIconEditorSelection(null);
     closeChartEditor();
   }, [
@@ -1085,6 +1221,7 @@ function TemplateV2KonvaSlideComponent({
       setSelection(result.selection);
       clearTableCellSelection();
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       activateSurface(result.selection);
     },
@@ -1140,6 +1277,7 @@ function TemplateV2KonvaSlideComponent({
       const element = getElementAtSelection(currentUiRef.current, elementSelection);
       if (!element) return;
       clearTableCellEditing();
+      setVectorEditSelection(null);
       const type = readString(element.type);
       const frame = renderedLocalBoxForElementSelection(
         currentUiRef.current,
@@ -1244,6 +1382,7 @@ function TemplateV2KonvaSlideComponent({
       }
       setSelection(current.selection);
       clearInlineEdit();
+      setVectorEditSelection(null);
     },
     [clearInlineEdit, commitUi, editorAnalyticsProps, inlineEdit],
   );
@@ -1467,11 +1606,15 @@ function TemplateV2KonvaSlideComponent({
     trackEvent(MixpanelEvent.Editor_Component_Ungrouped, {
       ...editorAnalyticsProps(),
     });
+    selectionRef.current = result.selection;
     setSelection(result.selection);
+    activateSurface(result.selection);
     clearInlineEdit();
     clearTableCellSelection();
+    setVectorEditSelection(null);
     setIconEditorSelection(null);
   }, [
+    activateSurface,
     clearInlineEdit,
     clearTableCellSelection,
     commitUi,
@@ -1513,6 +1656,7 @@ function TemplateV2KonvaSlideComponent({
       setSelection(nextSelection);
       clearTableCellSelection();
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       activateSurface(nextSelection);
     },
@@ -1534,7 +1678,9 @@ function TemplateV2KonvaSlideComponent({
   );
 
   useEffect(() => {
-    if (!isEditMode || typeof document === "undefined") return;
+    if (!isRenderActive || !isEditMode || typeof document === "undefined") {
+      return;
+    }
 
     const handleLayerShortcut = (event: KeyboardEvent) => {
       if (
@@ -1561,7 +1707,12 @@ function TemplateV2KonvaSlideComponent({
     document.addEventListener("keydown", handleLayerShortcut, true);
     return () =>
       document.removeEventListener("keydown", handleLayerShortcut, true);
-  }, [isEditMode, isSurfaceActive, reorderComponentLayerAtIndex]);
+  }, [
+    isEditMode,
+    isRenderActive,
+    isSurfaceActive,
+    reorderComponentLayerAtIndex,
+  ]);
 
   const targetComponentActions =
     useMemo<TemplateV2SelectionComponentActions | null>(() => {
@@ -1617,6 +1768,7 @@ function TemplateV2KonvaSlideComponent({
       activateSurface(elementSelection);
       setSelection(elementSelection);
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(elementSelection);
     },
     [activateSurface, clearInlineEdit],
@@ -1646,6 +1798,7 @@ function TemplateV2KonvaSlideComponent({
       activateSurface(elementSelection);
       setSelection(elementSelection);
       clearInlineEdit();
+      setVectorEditSelection(null);
       setIconEditorSelection(null);
       setChartEditorSelection(elementSelection);
     },
@@ -1732,13 +1885,38 @@ function TemplateV2KonvaSlideComponent({
         openChartEditor(elementSelection);
         return;
       }
+      if (isVectorType(type)) {
+        activateSurface(elementSelection);
+        setSelection(elementSelection);
+        clearTableCellSelection();
+        clearTableCellEditing();
+        clearInlineEdit();
+        setIconEditorSelection(null);
+        setChartEditorSelection(null);
+        setVectorEditSelection(
+          canEditVectorPointsForSelection(currentUiRef.current, elementSelection)
+            ? elementSelection
+            : null,
+        );
+        return;
+      }
       openInlineEditor(elementSelection);
     },
-    [openChartEditor, openIconEditor, openInlineEditor],
+    [
+      activateSurface,
+      clearInlineEdit,
+      clearTableCellEditing,
+      clearTableCellSelection,
+      openChartEditor,
+      openIconEditor,
+      openInlineEditor,
+    ],
   );
 
   useEffect(() => {
-    if (!isEditMode || typeof window === "undefined") return;
+    if (!isRenderActive || !isEditMode || typeof window === "undefined") {
+      return;
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
@@ -1757,7 +1935,7 @@ function TemplateV2KonvaSlideComponent({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [deleteSelection, isEditMode, selection]);
+  }, [deleteSelection, isEditMode, isRenderActive, selection]);
 
   useEffect(() => {
     if (!isEditMode || typeof window === "undefined") return;
@@ -1778,11 +1956,21 @@ function TemplateV2KonvaSlideComponent({
         insertedComponents as unknown as UnknownRecord[],
         detail.label,
       );
+      const insertedCount = elements.length + insertedComponents.length;
+      const nextSelection =
+        insertedCount > 1
+          ? selectionForComponentIndexes(
+              Array.from(
+                { length: insertedCount },
+                (_, offset) => nextIndex + offset,
+              ),
+            )
+          : selectionForInsertedComponent(nextUi, nextIndex);
       commitUi(nextUi);
-      setSelection({
-        kind: "component",
-        componentIndex: Math.max(0, nextIndex),
-      });
+      setSelection(nextSelection);
+      setVectorEditSelection(
+        nextSelection?.kind === "element" ? nextSelection : null,
+      );
       detail.handled = true;
     };
 
@@ -1795,7 +1983,9 @@ function TemplateV2KonvaSlideComponent({
   }, [commitUi, isEditMode, isSurfaceActive, slideId, surfaceSlideIndex]);
 
   useEffect(() => {
-    if (!isEditMode || typeof document === "undefined") return;
+    if (!isRenderActive || !isEditMode || typeof document === "undefined") {
+      return;
+    }
     const handlePointerDown = (event: PointerEvent) => {
       const root = rootRef.current;
       const targetNode = event.target instanceof Node ? event.target : null;
@@ -1827,11 +2017,14 @@ function TemplateV2KonvaSlideComponent({
     clearEditorUiState,
     clearSurface,
     isEditMode,
+    isRenderActive,
     isSurfaceActive,
   ]);
 
   useEffect(() => {
-    if (!isEditMode || typeof document === "undefined") return;
+    if (!isRenderActive || !isEditMode || typeof document === "undefined") {
+      return;
+    }
 
     const handleUndoRedoShortcut = (event: KeyboardEvent) => {
       if (
@@ -1864,7 +2057,7 @@ function TemplateV2KonvaSlideComponent({
     document.addEventListener("keydown", handleUndoRedoShortcut, true);
     return () =>
       document.removeEventListener("keydown", handleUndoRedoShortcut, true);
-  }, [isEditMode, isSurfaceActive, redo, undo]);
+  }, [isEditMode, isRenderActive, isSurfaceActive, redo, undo]);
 
   if (!uiDraft) {
     return (
@@ -1892,7 +2085,8 @@ function TemplateV2KonvaSlideComponent({
           onChange={handleImageUploadChange}
         />
       ) : null}
-      <Stage
+      {isRenderActive ? (
+        <Stage
         width={STAGE_WIDTH}
         height={STAGE_HEIGHT}
         onMouseDown={(event) => {
@@ -1912,7 +2106,7 @@ function TemplateV2KonvaSlideComponent({
           activateSurface();
         }}
       >
-        <Layer listening={false}>
+        <Layer ref={backgroundLayerRef} listening={false}>
           <Rect width={STAGE_WIDTH} height={STAGE_HEIGHT} fill={backgroundColor(uiDraft)} />
         </Layer>
         <Layer ref={contentLayerRef} listening={isEditMode}>
@@ -1924,7 +2118,9 @@ function TemplateV2KonvaSlideComponent({
               elementPath={[elementIndex]}
               isEditMode={isEditMode}
               editingKey={editingKey}
+              vectorEditingKey={vectorEditingKey}
               selectedTableCell={visibleSelectedTableCell}
+              selectedKey={selectedKey}
               setNodeRef={setSelectionNodeRef}
               onSelect={select}
               onTableCellSelect={selectTableCell}
@@ -1947,7 +2143,9 @@ function TemplateV2KonvaSlideComponent({
                 selectedComponentIndexSet.has(componentIndex)
               }
               editingKey={editingKey}
+              vectorEditingKey={vectorEditingKey}
               selectedTableCell={visibleSelectedTableCell}
+              selectedKey={selectedKey}
               setNodeRef={setSelectionNodeRef}
               onSelect={select}
               onTableCellSelect={selectTableCell}
@@ -1964,20 +2162,25 @@ function TemplateV2KonvaSlideComponent({
           {isEditMode ? (
             <TemplateV2SelectionTransformers
               nodeRefs={nodeRefs}
-              parentComponentKey={inlineEdit ? null : selectedParentComponentKey}
+              parentComponentKey={transformerParentComponentKey}
               selectedKey={selectedKey}
               selectedKeys={selectedKeys}
               selectionKind={selection?.kind ?? null}
               horizontalResizeOnly={horizontalResizeOnly}
+              fullElementTransform={
+                selectedIsVectorElement && selectedCanEditVectorPoints
+              }
               suppressSelectedOutline={Boolean(
                 selectedTableCell ||
                   inlineEdit ||
-                  readString(selectedElement?.type) === "chart",
+                  readString(selectedElement?.type) === "chart" ||
+                  selectedIsVectorPointEditing,
               )}
             />
           ) : null}
         </Layer>
-      </Stage>
+        </Stage>
+      ) : null}
       <TemplateV2SelectionToolbar
         anchorBox={floatingToolbarAnchorBox}
         canUngroupComponent={canUngroupSelectedComponent}

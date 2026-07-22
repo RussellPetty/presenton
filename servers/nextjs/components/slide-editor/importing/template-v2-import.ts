@@ -24,6 +24,7 @@ import {
   type TextElement,
   type TextListItem,
   type TextRun,
+  type VectorCurve,
 } from "@/components/slide-editor/types";
 
 const MIN_ELEMENT_SIZE = 1;
@@ -66,6 +67,7 @@ export type TemplateV2ImportResponse = {
   raw_layouts?: unknown;
   layouts?: unknown;
   assets?: unknown;
+  fonts?: unknown;
 };
 
 export type GeneratedTemplateV2PresentationResponse = {
@@ -107,11 +109,10 @@ export function normalizeTemplateV2Fonts(
   template: TemplateV2ImportResponse,
   fallbackFonts: Record<string, string> = {},
 ): Record<string, string> {
-  const assets = asRecord(template.assets);
-  const assetFonts = asRecord(assets?.fonts);
+
+  const assetFonts = asRecord(template?.fonts);
   const fonts =
     assetFonts && Object.keys(assetFonts).length > 0 ? assetFonts : fallbackFonts;
-
   return Object.fromEntries(
     Object.entries(fonts)
       .filter(
@@ -147,29 +148,29 @@ export function adaptGeneratedTemplateV2PresentationToDeck(
   const slides =
     generatedSlides.length > 0
       ? generatedSlides.slice(0, 50).map((slide, index) => {
-          const uiLayout = readGeneratedSlideUiLayout(slide);
-          if (uiLayout) {
-            return adaptLayoutToSlide(uiLayout, index);
-          }
+        const uiLayout = readGeneratedSlideUiLayout(slide);
+        if (uiLayout) {
+          return adaptLayoutToSlide(uiLayout, index);
+        }
 
-          const layoutId = readString(slide.layout);
-          const layout =
-            (layoutId ? layoutById.get(layoutId) : null) ??
-            layouts[index % layouts.length];
-          if (!layout) {
-            throw new Error(
-              `Generated slide ${index + 1} did not include a renderable template v2 layout.`,
-            );
-          }
-          return adaptLayoutToSlide(layout, index);
-        })
+        const layoutId = readString(slide.layout);
+        const layout =
+          (layoutId ? layoutById.get(layoutId) : null) ??
+          layouts[index % layouts.length];
+        if (!layout) {
+          throw new Error(
+            `Generated slide ${index + 1} did not include a renderable template v2 layout.`,
+          );
+        }
+        return adaptLayoutToSlide(layout, index);
+      })
       : layouts.slice(0, 50).map(adaptLayoutToSlide);
 
   const deck = {
     title: truncateString(
       readString(presentationRecord.title) ??
-        readString(presentationRecord.id) ??
-        "Generated presentation",
+      readString(presentationRecord.id) ??
+      "Generated presentation",
       90,
     ),
     description:
@@ -233,14 +234,14 @@ export function withEqualTemplateV2FlowChildSizes(
   const contentWidth = Math.max(
     MIN_ELEMENT_SIZE,
     width -
-      (readNumber(padding ?? {}, "left") ?? 0) -
-      (readNumber(padding ?? {}, "right") ?? 0),
+    (readNumber(padding ?? {}, "left") ?? 0) -
+    (readNumber(padding ?? {}, "right") ?? 0),
   );
   const contentHeight = Math.max(
     MIN_ELEMENT_SIZE,
     height -
-      (readNumber(padding ?? {}, "top") ?? 0) -
-      (readNumber(padding ?? {}, "bottom") ?? 0),
+    (readNumber(padding ?? {}, "top") ?? 0) -
+    (readNumber(padding ?? {}, "bottom") ?? 0),
   );
   const type = readString(element.type);
 
@@ -257,15 +258,15 @@ export function withEqualTemplateV2FlowChildSizes(
     const gap =
       direction === "row"
         ? readNumber(element, "column_gap") ??
-          readNumber(element, "gap") ??
-          0
+        readNumber(element, "gap") ??
+        0
         : readNumber(element, "row_gap") ??
-          readNumber(element, "gap") ??
-          0;
+        readNumber(element, "gap") ??
+        0;
     const availableMain = Math.max(
       MIN_ELEMENT_SIZE,
       (direction === "row" ? contentWidth : contentHeight) -
-        gap * Math.max(0, children.length - 1),
+      gap * Math.max(0, children.length - 1),
     );
     const mainSize = availableMain / children.length;
     return children.map((child) =>
@@ -409,19 +410,27 @@ function isAuthorInfoCard(group: GroupElement) {
 }
 
 function authorInfoCardRightEdge(group: GroupElement) {
-  const background = group.children.find(
-    (child) =>
-      child.type === "rectangle" &&
-      (child.position?.x ?? 0) <= 0.05 &&
-      (child.position?.y ?? 0) <= 0.05 &&
-      child.size?.width,
-  );
+  const backgroundRightEdge = group.children
+    .filter((child): child is Extract<SlideElement, { type: "vector" }> =>
+      child.type === "vector",
+    )
+    .map(vectorBackgroundRightEdge)
+    .find((rightEdge): rightEdge is number => rightEdge != null);
 
-  if (background?.size?.width) {
-    return (background.position?.x ?? 0) + background.size.width;
-  }
+  if (backgroundRightEdge != null) return backgroundRightEdge;
 
   return group.size.width;
+}
+
+function vectorBackgroundRightEdge(
+  element: Extract<SlideElement, { type: "vector" }>,
+) {
+  if (element.points.length === 0 || !element.fill?.color) return null;
+  const minX = Math.min(...element.points.map((point) => point.x));
+  const minY = Math.min(...element.points.map((point) => point.y));
+  const maxX = Math.max(...element.points.map((point) => point.x));
+  if (minX > 0.05 || minY > 0.05 || maxX <= 0) return null;
+  return maxX;
 }
 
 function isAuthorInfoText(
@@ -475,11 +484,11 @@ function componentToGroupElement(
     size: { width: frame.width, height: frame.height },
     children: componentFrame
       ? renderedElements.map((element) =>
-          frameTopLevelFlowElementToComponent(element, componentFrame),
-        )
+        frameTopLevelFlowElementToComponent(element, componentFrame),
+      )
       : renderedElements.map((element) =>
-          localizeRawElementToFrame(element, frame),
-        ),
+        localizeRawElementToFrame(element, frame),
+      ),
     name: componentId,
     component_id: componentId,
     component_instance_id: `${componentId}:${componentIndex}`,
@@ -564,11 +573,11 @@ function rawElementFrame(
   const frame =
     hasPosition && width != null && height != null
       ? {
-          x: offsetX + x,
-          y: offsetY + y,
-          width: Math.max(1, width),
-          height: Math.max(1, height),
-        }
+        x: offsetX + x,
+        y: offsetY + y,
+        width: Math.max(1, width),
+        height: Math.max(1, height),
+      }
       : null;
   const childOffsetX = hasPosition ? offsetX + x : offsetX;
   const childOffsetY = hasPosition ? offsetY + y : offsetY;
@@ -610,13 +619,32 @@ function rawComponentFrame(component: UnknownRecord) {
   const y = readNumber(position ?? {}, "y");
   const width = readNumber(size ?? {}, "width");
   const height = readNumber(size ?? {}, "height");
-  if (x == null || y == null || width == null || height == null) return null;
+  if (x == null || y == null) return null;
+  if (width == null || height == null) {
+    const elements = readArray(component, "elements").filter(isRecord);
+    const content = rawElementsContentSize(elements);
+    return {
+      x,
+      y,
+      width: content.width,
+      height: content.height,
+    };
+  }
 
   return {
     x,
     y,
     width: Math.max(1, width),
     height: Math.max(1, height),
+  };
+}
+
+function rawElementsContentSize(elements: UnknownRecord[]) {
+  const frame = rawElementsFrame(elements);
+  if (!frame) return { width: 1, height: 1 };
+  return {
+    width: Math.max(1, frame.x + frame.width),
+    height: Math.max(1, frame.y + frame.height),
   };
 }
 
@@ -627,13 +655,13 @@ function localizeRawElementToFrame(
   const position = readRecord(element, "position");
   const localized: UnknownRecord = position
     ? {
-        ...element,
-        position: {
-          ...position,
-          x: (readNumber(position, "x") ?? 0) - frame.x,
-          y: (readNumber(position, "y") ?? 0) - frame.y,
-        },
-      }
+      ...element,
+      position: {
+        ...position,
+        x: (readNumber(position, "x") ?? 0) - frame.x,
+        y: (readNumber(position, "y") ?? 0) - frame.y,
+      },
+    }
     : { ...element };
 
   if (!position) {
@@ -670,12 +698,8 @@ function adaptElement(value: unknown): SlideElement | null {
       return adaptTextList(raw);
     case "table":
       return adaptTable(raw);
-    case "rectangle":
-      return adaptRectangle(raw);
-    case "ellipse":
-      return adaptEllipse(raw);
-    case "line":
-      return adaptLine(raw);
+    case "vector":
+      return adaptVector(raw);
     case "chart":
       return adaptChart(raw);
     case "infographic":
@@ -806,45 +830,85 @@ function adaptTable(raw: UnknownRecord): SlideElement {
   };
 }
 
-function adaptRectangle(raw: UnknownRecord): SlideElement | null {
+function adaptVector(raw: UnknownRecord): SlideElement | null {
   const base = baseElement(raw);
   const fill = adaptFill(readRecord(raw, "fill"));
   const stroke = adaptStroke(readRecord(raw, "stroke"));
+  const points = adaptVectorPoints(raw);
   if (!hasVisiblePaint(fill, stroke, base.opacity)) return null;
+  if (points.length < 2) return null;
+
+  const { position, size, decorative, ...pointBase } = base;
+  void position;
+  void size;
+  void decorative;
 
   return {
-    ...base,
-    type: "rectangle",
+    ...pointBase,
+    type: "vector",
+    shape: readEnum(raw, ["polygon", "ellipse"], "shape") ?? undefined,
+    points,
+    closed: adaptVectorClosed(raw, points),
+    corner_radii: adaptCornerRadii(raw, points.length),
+    curve: adaptVectorCurve(raw) ?? adaptImplicitVectorCurve(raw),
     fill,
     stroke,
-    border_radius: adaptBorderRadius(readRecord(raw, "border_radius")),
+    shadow: adaptShadow(readRecord(raw, "shadow")),
   };
 }
 
-function adaptEllipse(raw: UnknownRecord): SlideElement | null {
-  const base = baseElement(raw);
-  const fill = adaptFill(readRecord(raw, "fill"));
-  const stroke = adaptStroke(readRecord(raw, "stroke"));
-  if (!hasVisiblePaint(fill, stroke, base.opacity)) return null;
+function adaptVectorPoints(raw: UnknownRecord): AdaptedPosition[] {
+  return readArray(raw, "points")
+    .map((value) => {
+      const point = asRecord(value);
+      if (!point) return null;
+      const x = readRawNumber(point.x);
+      const y = readRawNumber(point.y);
+      return x != null && y != null ? { x: round(x), y: round(y) } : null;
+    })
+    .filter((point): point is AdaptedPosition => point != null);
+}
 
+function adaptVectorClosed(
+  raw: UnknownRecord,
+  points: AdaptedPosition[],
+): boolean {
+  const closed = readValue(raw, "closed");
+  if (typeof closed === "boolean") return closed;
+  if (typeof closed === "string") {
+    const normalized = closed.trim().toLowerCase();
+    if (normalized === "false" || normalized === "0") return false;
+    if (normalized === "true" || normalized === "1") return true;
+  }
+  return points.length > 2;
+}
+
+function adaptVectorCurve(raw: UnknownRecord): VectorCurve | null {
+  const curve = readRecord(raw, "curve");
+  if (!curve) return null;
+  const rawType = readString(curve.type)?.trim().toLowerCase();
+  if (rawType !== "smooth") return null;
   return {
-    ...base,
-    type: "ellipse",
-    fill,
-    stroke,
+    type: "smooth",
+    tension: clampOptional(readRawNumber(curve.tension), 0, 1),
+    segments: clampOptional(readRawNumber(curve.segments), 1, 96),
   };
 }
 
-function adaptLine(raw: UnknownRecord): SlideElement {
-  return {
-    ...baseElement(raw),
-    type: "line",
-    stroke:
-      adaptStroke(readRecord(raw, "stroke")) ?? {
-        color: "000000",
-        width: 1,
-      },
-  };
+function adaptImplicitVectorCurve(raw: UnknownRecord): VectorCurve | null {
+  void raw;
+  return null;
+}
+
+function adaptCornerRadii(raw: UnknownRecord, pointCount: number): number[] | null {
+  const rawRadii = raw.corner_radii ?? raw.cornerRadii;
+  const explicit = (Array.isArray(rawRadii) ? rawRadii : [])
+    .map(readRawNumber)
+    .filter((value): value is number => value != null)
+    .map((value) => clamp(round(value), 0, MAX_BORDER_RADIUS));
+  if (explicit.length > 0) return explicit.slice(0, pointCount);
+
+  return null;
 }
 
 function adaptChart(raw: UnknownRecord): SlideElement {
@@ -901,6 +965,7 @@ function adaptChart(raw: UnknownRecord): SlideElement {
     data: data.length > 0 ? data : [{ label: "Data", value: 0 }],
     title: truncateString(readString(raw.title) ?? "", 80) || null,
     title_color: readColor(readValue(raw, "title_color") ?? raw.titleColor),
+    legend_color: readColor(readValue(raw, "legend_color") ?? raw.legendColor),
     color,
     axis_color: readColor(readValue(raw, "axis_color")),
     grid_color: readColor(readValue(raw, "grid_color")),
@@ -928,27 +993,31 @@ function adaptChart(raw: UnknownRecord): SlideElement {
 }
 
 function adaptInfographic(raw: UnknownRecord): SlideElement {
-  const minValue = readNumber(raw, "min_value") ?? 0;
-  const rawMaxValue = readNumber(raw, "max_value") ?? 100;
+  const data = readRecord(raw, "data") ?? {};
+  const minValue =
+    readNumber(data, "min_value") ??
+    0;
+  const rawMaxValue =
+    readNumber(data, "max_value") ??
+    100;
   const maxValue =
     rawMaxValue === minValue ? minValue + 1 : rawMaxValue;
+  const colors = readArray(raw, "colors")
+    .map(readColor)
+    .filter((color): color is string => Boolean(color));
 
   return {
     ...baseElement(raw),
     type: "infographic",
-    infographic_type:
-      readEnum(
-        raw,
-        ["progress_bar", "gauge"],
-        "infographic_type",
-      ) ?? "gauge",
-    min_value: minValue,
-    max_value: maxValue,
-    value: readNumber(raw, "value") ?? minValue,
-    base_color: readColor(readValue(raw, "base_color")),
-    highlight_color: readColor(
-      readValue(raw, "highlight_color"),
-    ),
+    data: {
+      type:
+        readEnum(data, ["progress_bar", "gauge"], "type") ??
+        "gauge",
+      min_value: minValue,
+      max_value: maxValue,
+      value: readNumber(data, "value") ?? minValue,
+    },
+    colors,
   };
 }
 
@@ -1028,13 +1097,10 @@ function childrenBounds(children: SlideElement[]): AdaptedSize {
 
   const bounds = children.reduce(
     (acc, child) => {
-      const x = child.position?.x ?? 0;
-      const y = child.position?.y ?? 0;
-      const width = child.size?.width ?? MIN_ELEMENT_SIZE;
-      const height = child.size?.height ?? MIN_ELEMENT_SIZE;
+      const childBounds = adaptedElementBounds(child);
       return {
-        width: Math.max(acc.width, x + width),
-        height: Math.max(acc.height, y + height),
+        width: Math.max(acc.width, childBounds.x + childBounds.width),
+        height: Math.max(acc.height, childBounds.y + childBounds.height),
       };
     },
     { width: MIN_ELEMENT_SIZE, height: MIN_ELEMENT_SIZE },
@@ -1043,6 +1109,43 @@ function childrenBounds(children: SlideElement[]): AdaptedSize {
   return {
     width: clamp(round(bounds.width), MIN_ELEMENT_SIZE, EDITOR_STAGE_WIDTH),
     height: clamp(round(bounds.height), MIN_ELEMENT_SIZE, EDITOR_STAGE_HEIGHT),
+  };
+}
+
+function adaptedElementBounds(child: SlideElement): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  if (
+    child.type === "vector" &&
+    Array.isArray(child.points)
+  ) {
+    const points = child.points.filter(
+      (point): point is AdaptedPosition =>
+        typeof point.x === "number" && typeof point.y === "number",
+    );
+    if (points.length > 0) {
+      const minX = Math.min(...points.map((point) => point.x));
+      const minY = Math.min(...points.map((point) => point.y));
+      const maxX = Math.max(...points.map((point) => point.x));
+      const maxY = Math.max(...points.map((point) => point.y));
+      const strokeWidth = Math.max(1, child.stroke?.width ?? 1);
+      return {
+        x: minX,
+        y: minY,
+        width: Math.max(maxX - minX, strokeWidth, MIN_ELEMENT_SIZE),
+        height: Math.max(maxY - minY, strokeWidth, MIN_ELEMENT_SIZE),
+      };
+    }
+  }
+
+  return {
+    x: child.position?.x ?? 0,
+    y: child.position?.y ?? 0,
+    width: child.size?.width ?? MIN_ELEMENT_SIZE,
+    height: child.size?.height ?? MIN_ELEMENT_SIZE,
   };
 }
 
@@ -1368,17 +1471,17 @@ function adaptTableCells(value: unknown[]): TableCell[] {
       const textRecord = asRecord(textValue);
       const text = truncateString(
         runText ||
-          (textRecord
-            ? readString(textRecord.text) ?? ""
-            : readString(textValue) ?? ""),
+        (textRecord
+          ? readString(textRecord.text) ?? ""
+          : readString(textValue) ?? ""),
         80,
       );
       const runs =
         rawRuns.map(adaptTextRun).filter((run): run is TextRun => Boolean(run))
           .length > 0
           ? rawRuns
-              .map(adaptTextRun)
-              .filter((run): run is TextRun => Boolean(run))
+            .map(adaptTextRun)
+            .filter((run): run is TextRun => Boolean(run))
           : text
             ? [textRun(text)]
             : [];
@@ -1426,38 +1529,37 @@ function adaptChartSeries(value: unknown): ChartSeries | null {
 
 function invisibleFallbackElement(): SlideElement {
   return {
-    type: "rectangle",
-    position: { x: 0, y: 0 },
-    size: { width: MIN_ELEMENT_SIZE, height: MIN_ELEMENT_SIZE },
+    type: "vector",
+    points: [
+      { x: 0, y: 0 },
+      { x: MIN_ELEMENT_SIZE, y: 0 },
+      { x: MIN_ELEMENT_SIZE, y: MIN_ELEMENT_SIZE },
+      { x: 0, y: MIN_ELEMENT_SIZE },
+    ],
+    closed: true,
     fill: { color: "FFFFFF" },
     opacity: 0,
   };
 }
 
 function backgroundFromElements(elements: SlideElement[]) {
-  const background = findBackgroundRectangle(elements, 0, 0);
+  const background = findBackgroundShape(elements, 0, 0);
 
-  return background?.type === "rectangle" && background.fill?.color
+  return background && "fill" in background && background.fill?.color
     ? background.fill.color
     : "FFFFFF";
 }
 
-function findBackgroundRectangle(
+function findBackgroundShape(
   elements: SlideElement[],
   offsetX: number,
   offsetY: number,
 ): SlideElement | null {
   for (const element of elements) {
-    const x = offsetX + (element.position?.x ?? 0);
-    const y = offsetY + (element.position?.y ?? 0);
-    if (
-      element.type === "rectangle" &&
-      x === 0 &&
-      y === 0 &&
-      element.size?.width === EDITOR_STAGE_WIDTH &&
-      element.size?.height === EDITOR_STAGE_HEIGHT &&
-      element.fill?.color
-    ) {
+    const bounds = adaptedElementBounds(element);
+    const x = offsetX + bounds.x;
+    const y = offsetY + bounds.y;
+    if (isFullSlideFilledShape(element, x, y, bounds)) {
       return element;
     }
 
@@ -1466,17 +1568,35 @@ function findBackgroundRectangle(
       element.type === "flex" ||
       element.type === "grid"
     ) {
-      const background = findBackgroundRectangle(element.children, x, y);
+      const background = findBackgroundShape(element.children, x, y);
       if (background) return background;
     }
 
     if (element.type === "container" && element.child) {
-      const background = findBackgroundRectangle([element.child], x, y);
+      const background = findBackgroundShape([element.child], x, y);
       if (background) return background;
     }
   }
 
   return null;
+}
+
+function isFullSlideFilledShape(
+  element: SlideElement,
+  x: number,
+  y: number,
+  bounds: { width: number; height: number },
+) {
+  if (
+    element.type !== "vector"
+  ) return false;
+  return (
+    x === 0 &&
+    y === 0 &&
+    bounds.width === EDITOR_STAGE_WIDTH &&
+    bounds.height === EDITOR_STAGE_HEIGHT &&
+    Boolean(element.fill?.color)
+  );
 }
 
 function titleFromLayout(layout: TemplateV2Layout, index: number) {

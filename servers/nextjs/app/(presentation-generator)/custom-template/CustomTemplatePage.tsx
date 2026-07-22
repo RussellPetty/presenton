@@ -946,7 +946,7 @@ function GeneratingSlidesOverlay() {
         <span aria-hidden className="generating-slides-background absolute" />
         <span className="relative z-10 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#9034EA]" />
-          Generating slides...
+          Updating slides...
         </span>
       </span>
     </div>
@@ -1409,13 +1409,7 @@ function SaveTemplateModal({
   );
 }
 
-type CustomTemplatePageProps = {
-  useTemplateV2Generation?: boolean;
-};
-
-const CustomTemplatePage = ({
-  useTemplateV2Generation = true,
-}: CustomTemplatePageProps) => {
+const CustomTemplatePage = () => {
   const router = useRouter();
   const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
   const [reviewSlideIndex, setReviewSlideIndex] = useState(0);
@@ -1444,7 +1438,7 @@ const CustomTemplatePage = ({
     uploadFont,
     fontUploadAndPreview,
     retrySlide,
-  } = useTemplateCreation({ useTemplateV2Generation });
+  } = useTemplateCreation();
 
   const defaultTemplateName = getDefaultTemplateName(selectedFile) || "Untitled Template";
   const activeStep = activeStudioStep(state.step);

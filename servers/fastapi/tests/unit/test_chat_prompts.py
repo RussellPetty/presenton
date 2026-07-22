@@ -45,3 +45,14 @@ def test_system_prompt_preserves_existing_content_for_additive_edits():
     assert "compose it from reusable blocks in this order: title/header block" in system_prompt
     assert "update or add only those requested text elements" in system_prompt
     assert "Use deleteElement, deleteComponent, or deleteSlide only when deletion is explicitly requested" in system_prompt
+
+
+def test_system_prompt_uses_current_vector_and_infographic_models():
+    system_prompt = build_system_prompt("", "")
+
+    assert "Current rendered element types are" in system_prompt
+    assert "Use type=\"vector\" for every line and geometric shape" in system_prompt
+    assert "Do not emit the removed line, rectangle, ellipse, circle, polygon" in system_prompt
+    assert "Vector points determine the actual geometry" in system_prompt
+    assert "Use the current infographic model only" in system_prompt
+    assert "Do not use removed infographic_type" in system_prompt

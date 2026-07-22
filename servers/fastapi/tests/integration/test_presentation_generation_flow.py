@@ -43,7 +43,7 @@ def _mock_layout() -> PresentationLayoutModel:
     )
 
 
-def _template_v2_layout_payload() -> dict:
+def _template_layout_payload() -> dict:
     return {
         "layouts": [
             {
@@ -68,7 +68,7 @@ def _template_v2_layout_payload() -> dict:
     }
 
 
-def test_generate_presentation_handler_full_flow_uses_mocked_dependencies(fake_async_session):
+def test_generate_presentation_handler_full_flow_uses_mocked_dependencies():
     request = GeneratePresentationRequest(
         content="Create a two-slide deck about renewable energy.",
         n_slides=2,
@@ -77,6 +77,14 @@ def test_generate_presentation_handler_full_flow_uses_mocked_dependencies(fake_a
         template="general",
     )
     presentation_id = uuid.uuid4()
+    template_id = "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    template = TemplateV2(
+        id=template_id,
+        name="General",
+        layouts=_template_layout_payload(),
+        is_default=True,
+    )
+    session = FakeAsyncSession(get_results={template_id: template})
 
     async def fake_outline_stream(*_args, **_kwargs):
         yield '{"slides":[{"content":"## Intro"},{"content":"## Action Plan"}]}'
@@ -100,10 +108,6 @@ def test_generate_presentation_handler_full_flow_uses_mocked_dependencies(fake_a
         presentation_endpoint,
         "generate_ppt_outline",
         side_effect=fake_outline_stream,
-    ), patch.object(
-        presentation_endpoint,
-        "get_layout_by_name",
-        new=AsyncMock(return_value=_mock_layout()),
     ), patch.object(
         presentation_endpoint,
         "generate_presentation_structure",
@@ -147,24 +151,26 @@ def test_generate_presentation_handler_full_flow_uses_mocked_dependencies(fake_a
                 request=request,
                 presentation_id=presentation_id,
                 async_status=None,
-                sql_session=fake_async_session,
+                sql_session=session,
             )
         )
 
     assert response.path.endswith(".pptx")
     assert response.edit_path == f"/presentation?id={presentation_id}"
-    assert len(fake_async_session.added_all) == 2
-    assert all(slide.presentation == presentation_id for slide in fake_async_session.added_all)
-    assert all(slide.ui is None for slide in fake_async_session.added_all)
+    assert len(session.added_all) == 2
+    assert all(slide.presentation == presentation_id for slide in session.added_all)
+    assert all(slide.ui is not None for slide in session.added_all)
+    assert get_slide_content.call_args_list[0].kwargs["slide_number"] == 1
+    assert get_slide_content.call_args_list[1].kwargs["slide_number"] == 2
 
 
-def test_generate_presentation_handler_uses_template_v2_layout():
+def test_generate_presentation_handler_uses_template_layout():
     template_id = str(uuid.uuid4())
     presentation_id = uuid.uuid4()
     template = TemplateV2(
         id=template_id,
         name="Custom V2",
-        layouts=_template_v2_layout_payload(),
+        layouts=_template_layout_payload(),
         assets={"fonts": {"Inter": "https://example.com/inter.css"}},
     )
     session = FakeAsyncSession(get_results={template_id: template})
@@ -244,13 +250,37 @@ def test_generate_presentation_handler_uses_template_v2_layout():
     slide = next(item for item in session.added_all if isinstance(item, SlideModel))
     assert presentation.version == PresentationVersion.V2_STANDARD
     assert presentation.layout == {
-        **_template_v2_layout_payload(),
+        **_template_layout_payload(),
         "icon_type": "bold",
         "icon_weight": "bold",
+        "name": template_id,
+        "template_id": template_id,
     }
     assert presentation.fonts == {"Inter": "https://example.com/inter.css"}
-    assert slide.layout_group == f"template-v2-{template_id}"
+    assert slide.layout_group == template_id
     assert slide.ui["components"][0]["elements"][0]["runs"][0]["text"] == "V2 headline"
+
+
+def test_default_template_name_resolves_bundled_template_without_schema_page():
+    template_id = "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    template = TemplateV2(
+        id=template_id,
+        name="General",
+        layouts=_template_layout_payload(),
+        assets={"fonts": {"Inter": "/app_data/templates/general/inter.ttf"}},
+        is_default=True,
+    )
+    session = FakeAsyncSession(get_results={template_id: template})
+
+    layout_payload, layout_model, fonts = _run(
+        presentation_endpoint._resolve_generation_layout("general", session)
+    )
+
+    assert layout_payload["layouts"][0]["id"] == "template-layout-1"
+    assert layout_payload["name"] == template_id
+    assert layout_payload["template_id"] == template_id
+    assert layout_model.slides[0].id == "template-layout-1"
+    assert fonts == {"Inter": "/app_data/templates/general/inter.ttf"}
 
 
 def test_create_presentation_stores_current_version(fake_async_session):
@@ -267,12 +297,12 @@ def test_create_presentation_stores_current_version(fake_async_session):
     assert fake_async_session.commit_count == 1
 
 
-def test_check_api_request_accepts_custom_prefixed_template_v2_id():
+def test_check_api_request_accepts_custom_prefixed_template_id():
     template_id = "general-template"
     template = TemplateV2(
         id=template_id,
         name="Custom V2",
-        layouts=_template_v2_layout_payload(),
+        layouts=_template_layout_payload(),
     )
     session = FakeAsyncSession(get_results={template_id: template})
     request = GeneratePresentationRequest(
@@ -283,10 +313,12 @@ def test_check_api_request_accepts_custom_prefixed_template_v2_id():
 
     _run(presentation_endpoint.check_if_api_request_is_valid(request, session))
 
-    assert request.template == f"template-v2-{template_id}"
+    assert request.template == template_id
 
 
-def test_check_api_request_rejects_custom_id_without_template_v2(fake_async_session):
+def test_check_api_request_rejects_missing_custom_prefixed_template_id(
+    fake_async_session,
+):
     request = GeneratePresentationRequest(
         content="Create a deck.",
         n_slides=1,
@@ -307,6 +339,7 @@ def test_check_api_request_rejects_custom_id_without_template_v2(fake_async_sess
 
 def test_prepare_presentation_preserves_payload_icon_weight():
     presentation_id = uuid.uuid4()
+    template_id = str(uuid.uuid4())
     presentation = PresentationModel(
         id=presentation_id,
         version=PresentationVersion.V1_STANDARD,
@@ -317,19 +350,14 @@ def test_prepare_presentation_preserves_payload_icon_weight():
         verbosity="standard",
         instructions=None,
     )
-    session = FakeAsyncSession(get_results={presentation_id: presentation})
-    layout = PresentationLayoutModel(
-        name="swift",
-        ordered=False,
-        icon_weight="thin",
-        slides=[
-            SlideLayoutModel(
-                id="swift:feature",
-                name="Feature",
-                description="Feature slide",
-                json_schema={"title": "Feature"},
-            )
-        ],
+    template = TemplateV2(
+        id=template_id,
+        name="Swift",
+        layouts=_template_layout_payload(),
+        assets={"icon_type": "thin", "icon_weight": "thin"},
+    )
+    session = FakeAsyncSession(
+        get_results={presentation_id: presentation, template_id: template}
     )
 
     with patch.object(
@@ -345,20 +373,26 @@ def test_prepare_presentation_preserves_payload_icon_weight():
             presentation_endpoint.prepare_presentation(
                 presentation_id=presentation_id,
                 outlines=[SlideOutlineModel(content="## Causes")],
-                layout=layout,
+                layout=template_id,
                 sql_session=session,
             )
         )
 
-    assert response.layout["icon_weight"] == "thin"
-    assert response.layout["icon_type"] == "thin"
-    assert response.get_layout().icon_weight == "thin"
-    assert response.get_layout().icon_type == "thin"
-    assert response.language == ""
+    assert response.presentation_id == presentation_id
+    assert not hasattr(response, "layout")
+    assert not hasattr(response, "structure")
+    assert not hasattr(response, "theme")
+    assert presentation.layout["icon_weight"] == "thin"
+    assert presentation.layout["icon_type"] == "thin"
+    stream_layout = presentation_endpoint._get_presentation_stream_layout(presentation)
+    assert stream_layout.icon_weight == "thin"
+    assert stream_layout.icon_type == "thin"
+    assert presentation.language == ""
 
 
 def test_prepare_presentation_clears_stale_language_for_reviewed_outlines():
     presentation_id = uuid.uuid4()
+    template_id = str(uuid.uuid4())
     presentation = PresentationModel(
         id=presentation_id,
         content="global warming deck",
@@ -368,18 +402,13 @@ def test_prepare_presentation_clears_stale_language_for_reviewed_outlines():
         verbosity="standard",
         instructions=None,
     )
-    session = FakeAsyncSession(get_results={presentation_id: presentation})
-    layout = PresentationLayoutModel(
-        name="swift",
-        ordered=False,
-        slides=[
-            SlideLayoutModel(
-                id="swift:feature",
-                name="Feature",
-                description="Feature slide",
-                json_schema={"title": "Feature"},
-            )
-        ],
+    template = TemplateV2(
+        id=template_id,
+        name="Swift",
+        layouts=_template_layout_payload(),
+    )
+    session = FakeAsyncSession(
+        get_results={presentation_id: presentation, template_id: template}
     )
 
     with patch.object(
@@ -395,12 +424,13 @@ def test_prepare_presentation_clears_stale_language_for_reviewed_outlines():
             presentation_endpoint.prepare_presentation(
                 presentation_id=presentation_id,
                 outlines=[SlideOutlineModel(content="## 全球变暖的原因")],
-                layout=layout,
+                layout=template_id,
                 sql_session=session,
             )
         )
 
-    assert response.language == ""
+    assert response.presentation_id == presentation_id
+    assert presentation.language == ""
 
 
 def test_prepare_presentation_rejects_too_many_outlines():
@@ -461,7 +491,7 @@ def test_check_api_request_rejects_too_many_slides_markdown(fake_async_session):
     )
 
 
-def test_prepare_presentation_accepts_template_v2_layout_id():
+def test_prepare_presentation_accepts_template_layout_id():
     presentation_id = uuid.uuid4()
     template_id = "strategy-template"
     presentation = PresentationModel(
@@ -526,19 +556,22 @@ def test_prepare_presentation_accepts_template_v2_layout_id():
             )
         )
 
-    assert response.layout == {
+    assert response.presentation_id == presentation_id
+    assert presentation.layout == {
         **template_layouts,
         "icon_type": "bold",
         "icon_weight": "bold",
+        "name": template_id,
+        "template_id": template_id,
     }
-    assert response.structure == {"slides": [0]}
-    assert response.fonts == {"Inter": "https://example.com/inter.css"}
+    assert presentation.structure == {"slides": [0]}
+    assert presentation.fonts == {"Inter": "https://example.com/inter.css"}
     structure_layout = generate_structure.await_args.kwargs["presentation_layout"]
-    assert structure_layout.name == f"template-v2-{template_id}"
+    assert structure_layout.name == template_id
     assert structure_layout.slides[0].id == "template-layout-1"
 
 
-def test_get_presentation_preserves_template_v2_detail_payload():
+def test_get_presentation_preserves_template_detail_payload():
     presentation_id = uuid.uuid4()
     now = datetime.now()
     template_layouts = {
@@ -583,6 +616,10 @@ def test_get_presentation_preserves_template_v2_detail_payload():
         tone="default",
         verbosity="standard",
         instructions=None,
+        fonts={
+            "Inter": "https://example.com/inter.css",
+            "Brand Sans": "/app_data/fonts/brand-sans.ttf",
+        },
         created_at=now,
         updated_at=now,
     )
@@ -602,14 +639,14 @@ def test_get_presentation_preserves_template_v2_detail_payload():
     slides = [
         SlideModel(
             presentation=presentation_id,
-            layout_group=f"template-v2-{template.id}",
+            layout_group=template.id,
             layout="slide_1",
             index=0,
             content={},
         )
     ]
 
-    class _TemplateV2ComponentSession(FakeAsyncSession):
+    class _TemplateComponentSession(FakeAsyncSession):
         async def scalars(self, *_args, **_kwargs):
             return slides
 
@@ -620,7 +657,7 @@ def test_get_presentation_preserves_template_v2_detail_payload():
 
             return _RowsResult()
 
-    session = _TemplateV2ComponentSession(
+    session = _TemplateComponentSession(
         get_results={presentation_id: presentation, template.id: template}
     )
 
@@ -633,17 +670,18 @@ def test_get_presentation_preserves_template_v2_detail_payload():
     )
 
     assert response.version == PresentationVersion.V2_STANDARD
-    assert response.layout == template_layouts
-    assert response.structure == structure
+    assert not hasattr(response, "layout")
+    assert not hasattr(response, "structure")
+    assert not hasattr(response, "theme")
     assert not hasattr(response, "components")
+    assert not hasattr(response, "merged_components")
     assert response.fonts == {
         "Inter": "https://example.com/inter.css",
         "Brand Sans": "/app_data/fonts/brand-sans.ttf",
     }
-    assert response.merged_components == template_components
 
 
-def test_stream_presentation_uses_template_v2_schema_for_content_generation():
+def test_stream_presentation_uses_template_schema_for_content_generation():
     presentation_id = uuid.uuid4()
     now = datetime.now()
     template_layouts = {
@@ -687,9 +725,11 @@ def test_stream_presentation_uses_template_v2_schema_for_content_generation():
     )
     session = FakeAsyncSession(get_results={presentation_id: presentation})
     generated_layouts: list[SlideLayoutModel] = []
+    generated_slide_numbers: list[int] = []
 
-    async def fake_slide_content(slide_layout, *_args, **_kwargs):
+    async def fake_slide_content(slide_layout, *_args, **kwargs):
         generated_layouts.append(slide_layout)
+        generated_slide_numbers.append(kwargs["slide_number"])
         return {
             "hero": {"headline": "Causes"},
             "__speaker_note__": "Speaker note for this generated slide.",
@@ -726,6 +766,7 @@ def test_stream_presentation_uses_template_v2_schema_for_content_generation():
 
     assert chunks
     assert len(generated_layouts) == 1
+    assert generated_slide_numbers == [1]
     generated_layout = generated_layouts[0]
     assert generated_layout.id == "template-layout-1"
     assert generated_layout.name == "template-layout-1"
@@ -833,10 +874,10 @@ async def _fake_export_presentation(presentation_id, *_args, **_kwargs):
     )
 
 
-def test_edit_presentation_hydrates_template_v2_slide_ui():
+def test_edit_presentation_hydrates_template_slide_ui():
     presentation_id = uuid.uuid4()
     template_id = str(uuid.uuid4())
-    layout_payload = _template_v2_layout_payload()
+    layout_payload = _template_layout_payload()
     presentation = PresentationModel(
         id=presentation_id,
         version=PresentationVersion.V2_STANDARD,
@@ -850,7 +891,7 @@ def test_edit_presentation_hydrates_template_v2_slide_ui():
     )
     slide = SlideModel(
         presentation=presentation_id,
-        layout_group=f"template-v2-{template_id}",
+        layout_group=template_id,
         layout="template-layout-1",
         index=0,
         content={"hero": {"headline": "Old headline"}},
@@ -888,10 +929,10 @@ def test_edit_presentation_hydrates_template_v2_slide_ui():
     assert title_element["runs"][0]["text"] == "Updated headline"
 
 
-def test_derive_presentation_hydrates_template_v2_slide_ui():
+def test_derive_presentation_hydrates_template_slide_ui():
     presentation_id = uuid.uuid4()
     template_id = str(uuid.uuid4())
-    layout_payload = _template_v2_layout_payload()
+    layout_payload = _template_layout_payload()
     presentation = PresentationModel(
         id=presentation_id,
         version=PresentationVersion.V2_STANDARD,
@@ -905,7 +946,7 @@ def test_derive_presentation_hydrates_template_v2_slide_ui():
     )
     slide = SlideModel(
         presentation=presentation_id,
-        layout_group=f"template-v2-{template_id}",
+        layout_group=template_id,
         layout="template-layout-1",
         index=0,
         content={"hero": {"headline": "Old headline"}},

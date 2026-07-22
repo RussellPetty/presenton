@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .elements import Position, Size, SlideElement
+from .elements import Position, SlideElement
 
 
 class RawSlideLayout(BaseModel):
@@ -19,7 +19,6 @@ class Component(BaseModel):
     id: str = Field(min_length=1, max_length=80)
     description: str = Field(min_length=10, max_length=300)
     position: Position
-    size: Size
     elements: list[SlideElement] = Field(min_length=1)
 
 

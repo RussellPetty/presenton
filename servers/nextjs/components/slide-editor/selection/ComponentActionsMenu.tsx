@@ -33,22 +33,22 @@ const COMPONENT_LAYER_ACTIONS: Array<{
   {
     action: "bring-to-front",
     label: "Bring to Front",
-    shortcut: "⇧⌥⌘↑",
+    shortcut: "Shift+Alt+K",
   },
   {
     action: "bring-forward",
     label: "Bring Forward",
-    shortcut: "⌥⌘↑",
+    shortcut: "Alt+K",
   },
   {
     action: "send-backward",
     label: "Send Backward",
-    shortcut: "⌥⌘↓",
+    shortcut: "Alt+J",
   },
   {
     action: "send-to-back",
     label: "Send Back",
-    shortcut: "⇧⌥⌘↓",
+    shortcut: "Shift+Alt+J",
   },
 ];
 
@@ -93,7 +93,7 @@ export function ComponentActionsMenu({
         collisionPadding={8}
         onMouseDown={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
-        className="z-[10001] box-border w-[206px] rounded-[12px] border border-[#EDEEEF] bg-white py-2 font-syne text-[14px] font-normal leading-normal tracking-[0.14px] text-[#191919] shadow-[0_6px_18px_rgba(16,24,40,0.08)]"
+        className="z-[10001] box-border w-[244px] rounded-[12px] border border-[#EDEEEF] bg-white py-2 font-syne text-[14px] font-normal leading-normal tracking-[0.14px] text-[#191919] shadow-[0_6px_18px_rgba(16,24,40,0.08)]"
       >
         <ComponentActionsMenuItem
           strong
@@ -179,7 +179,7 @@ function ComponentActionsMenuItem({
       {shortcut ? (
         <span
           className={cn(
-            "ml-auto inline-flex items-center justify-center rounded-[6px] bg-[#F6F6F9] px-1.5 py-1 font-manrope text-[14px] font-normal leading-none tracking-[0.14px] text-[#808080]",
+            "ml-auto inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-[6px] bg-[#F6F6F9] px-1.5 py-1 font-manrope text-[12px] font-normal leading-none tracking-[0.14px] text-[#808080]",
             disabled && "bg-[#F7F7FA] text-[#B0B3BB]",
           )}
         >

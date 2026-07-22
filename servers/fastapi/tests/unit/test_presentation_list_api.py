@@ -77,6 +77,7 @@ def test_get_all_presentations_can_skip_slide_preview_join():
         n_slides=4,
         language="en",
         title="Older presentation",
+        fonts={"Inter": "https://example.com/inter.css"},
         created_at=now,
         updated_at=now,
     )
@@ -94,7 +95,7 @@ def test_get_all_presentations_can_skip_slide_preview_join():
     assert response[0].id == legacy_presentation.id
     assert response[0].version == PresentationVersion.V1_STANDARD
     assert response[0].slides == []
-    assert response[0].fonts is None
+    assert response[0].fonts == {"Inter": "https://example.com/inter.css"}
     compiled = _compile_statement(session.executed_statement)
     assert "WHERE presentations.version = 'v1-standard'" in compiled
     assert "JOIN slides" not in compiled

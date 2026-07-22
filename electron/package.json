@@ -2,7 +2,7 @@
   "name": "presenton",
   "productName": "Presenton Open Source",
   "version": "0.9.0-beta",
-  "exportVersion": "v0.4.0",
+  "exportVersion": "v0.4.2",
   "exportChromiumBuildId": "149.0.7827.196",
   "exportMacChromiumBuildIds": {
     "darwin-arm64": "1625085",
@@ -30,7 +30,7 @@
     "automation"
   ],
   "scripts": {
-    "start": "electron . --no-sandbox",
+    "start": "npm run copy:templates && electron . --no-sandbox",
     "dist": "electron-builder",
     "postinstall": "electron-builder install-app-deps",
     "dev": "npm run copy:templates && node -e \"fs.rmSync('app_dist',{recursive:true,force:true})\" && tsc && electron . --no-sandbox",
@@ -45,7 +45,7 @@
     "build:export-runtime": "node scripts/sync-export-runtime.cjs",
     "setup:export-runtime": "node scripts/sync-export-runtime.cjs",
     "fetch:export-runtime": "node scripts/sync-export-runtime.cjs --force",
-    "fetch:export-runtime:latest": "EXPORT_RUNTIME_VERSION=latest node scripts/sync-export-runtime.cjs --force",
+    "fetch:export-runtime:latest": "EXPORT_RUNTIME_VERSION=latest node scripts/sync-export-runtime.cjs --force --allow-version-override",
     "prepare:export-chromium": "node scripts/prepare-export-chromium.cjs",
     "prepare:imagemagick": "node scripts/prepare-imagemagick.cjs",
     "copy:templates": "node scripts/copy-templates.cjs",
@@ -64,7 +64,7 @@
     "build:all:mac:signed": "npm run clean:build && npm run setup:env && npm run build:ts && npm run install:pyinstaller && npm run build:nextjs && npm run build:fastapi && npm run build:electron:mac:signed",
     "build:all:mas-dev": "npm run clean:build && npm run setup:env && npm run build:ts && npm run install:pyinstaller && npm run build:nextjs && npm run build:fastapi && npm run build:electron:mas-dev",
     "build:all:mas": "npm run clean:build && npm run setup:env && npm run build:ts && npm run install:pyinstaller && npm run build:nextjs && npm run build:fastapi && npm run build:electron:mas",
-    "clean:build": "node -e \"for (const p of ['resources/nextjs','resources/fastapi','resources/templates','app_dist']) fs.rmSync(p,{recursive:true,force:true})\"",
+    "clean:build": "node scripts/clean-build.cjs",
     "cleanup:installed-app-cache": "node scripts/cleanup-installed-app-cache.cjs"
   },
   "author": {

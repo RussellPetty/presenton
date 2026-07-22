@@ -57,8 +57,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json /app/
 
 RUN mkdir -p /app/document-extraction-liteparse \
-    && npm --prefix /app/document-extraction-liteparse init -y \
-    && npm --prefix /app/document-extraction-liteparse install @llamaindex/liteparse@1.5.2 --omit=dev
+    && cd /app/document-extraction-liteparse \
+    && npm init -y \
+    && npm install @llamaindex/liteparse@1.5.2 --omit=dev
 
 COPY electron/resources/document-extraction/liteparse_runner.mjs /app/document-extraction-liteparse/liteparse_runner.mjs
 COPY scripts/sync-presentation-export.cjs /app/scripts/sync-presentation-export.cjs
@@ -98,7 +99,8 @@ RUN set -eux; \
     printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99snapshot; \
     printf 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/%s trixie-security main\n' "$CHROMIUM_SNAPSHOT" > /etc/apt/sources.list.d/chromium-snapshot.list; \
     packages="ca-certificates curl nginx fontconfig imagemagick zstd \
-    fonts-liberation fonts-noto-core xdg-utils \
+    fonts-liberation fonts-noto-core fonts-noto-extra fonts-noto-mono fonts-noto-ui-core fonts-noto-ui-extra \
+    fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji xdg-utils \
     libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 \
     libcairo2 libcups2t64 libdbus-1-3 libdrm2 libexpat1 libgbm1 \
     libglib2.0-0t64 libgtk-3-0t64 libnspr4 libnss3 libpango-1.0-0 \

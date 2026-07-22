@@ -5,6 +5,7 @@ import {
   extractTemplateV2Layouts,
   normalizeTemplateV2Fonts,
 } from "@/components/slide-editor/importing/template-v2-import";
+import { normalizeBackendAssetUrls } from "@/utils/api";
 import { TemplateV2Layout } from "../custom-template/types";
 import TemplateService, {
   TemplateDetailsResponse,
@@ -39,7 +40,7 @@ export function useTemplateDetails(templateId: string) {
       try {
         const response = await TemplateService.getTemplateDetails(templateId);
         if (!cancelled) {
-          setTemplate(response);
+          setTemplate(normalizeBackendAssetUrls(response));
         }
       } catch (loadError) {
         console.error("Failed to load template details", loadError);
@@ -73,6 +74,8 @@ export function useTemplateDetails(templateId: string) {
     () => (template ? normalizeTemplateV2Fonts(template) : undefined),
     [template]
   );
+
+
 
   return {
     template,

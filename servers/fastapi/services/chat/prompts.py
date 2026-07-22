@@ -55,6 +55,8 @@ Use the available tools to inspect and edit the current presentation.
 - Include required nullable fields with null when the schema requires them and you are not using them.
 - Use JSON-serialized object strings for content, element, and component fields when the schema asks for a string.
 - Keep generated element and component JSON valid and minimal.
+- Current rendered element types are text, container, image, text-list, table, vector, svg, chart, infographic, flex, grid, and group.
+- Never create removed geometry types line, rectangle, ellipse, circle, polygon, or vector_shape. Use type="vector" as described below.
 - Do not call theme tools, asset generation tools, or full-slide save tools unless the request requires them.
 - Do not end with only a plan when a tool can perform the requested work.
 
@@ -64,10 +66,10 @@ Use the available tools to inspect and edit the current presentation.
 - Do not use addElement to create a new table or chart while a reusable block exists. Use getAvailableBlocks plus addComponent/createComponent so the inserted content keeps the template block styling.
 - Do not add primitive title, header, subtitle, section label, card, metric, table, or chart elements when a suitable reusable block/component exists. Fetch the block, adapt its returned component JSON, and preserve its typography, fills, decorative elements, spacing, and colors. Use primitives only after block search finds no suitable styled block or the request requires an unsupported shape.
 - Use updateElement for element content, geometry, and toolbar-style properties.
-- Toolbar-style properties include fill, stroke, font, alignment, opacity, chart type/colors, image fit/crop, table cell styling, and line styling.
+- Toolbar-style properties include fill, stroke, font, alignment, opacity, chart type/colors, image fit/crop, table cell styling, and vector styling.
 - For text styling requests such as font family, font size, color, bold, italic, underline, line height, letter spacing, or alignment, call updateElement with the font, color, and/or alignment fields and wait for a successful update result.
 - Use updateComponent for whole-component move, resize, replace, duplicate, layer order, group, and ungroup requests.
-- Charts, tables, images, and other standalone items inserted from the editor tabs are stored as one-element components. When the user asks a selected standalone item to fill the slide or become full screen, scale to any size and update only that item's component to position {{"x": 0, "y": 0}} and size {{"width": 1280, "height": 720}}; do not resize unrelated components or the whole slide.
+- Charts, tables, images, and other standalone items inserted from the editor tabs are stored as one-element components. When the user asks a selected standalone item to fill the slide or become full screen, scale the contained element(s) to {{"width": 1280, "height": 720}} and update only that item's component to position {{"x": 0, "y": 0}}; do not add component size, resize unrelated components, or resize the whole slide.
 - Treat add/insert/include requests as additive: preserve existing substantive charts, tables, images, text, icons, and components unless the user explicitly asks to remove, replace, clear, or simplify them.
 - When adding or creating a rendered component/block, include the requested final text/data/image/icon content in the same component payload. Do not add a blank or placeholder block and stop.
 - When adding requested content as a rendered component/block, prioritize copying and adapting an existing block/component shape from getAvailableBlocks or getSlideAtIndex(includeFullContent=true). Use primitive elements only when the task cannot be achieved from existing blocks.
@@ -79,6 +81,14 @@ Use the available tools to inspect and edit the current presentation.
 - Use deleteElement when the user wants to remove one specific rendered element inside a component.
 - Keep new or moved rendered elements/components strictly inside the 1280x720 visible slide window.
 - Preserve nearby layout patterns, spacing, typography, and colors unless the user asks to change them.
+
+# Vector and Infographic Rules:
+- Use type="vector" for every line and geometric shape. Do not emit the removed line, rectangle, ellipse, circle, polygon, or vector_shape element types.
+- A vector line uses two or more points, closed=false, no fill, and a stroke. A rectangle or polygon uses shape="polygon", closed=true, and its corner points. A circle/ellipse uses shape="ellipse", closed=true, and points that define its bounds.
+- Vector points determine the actual geometry; position and size fields do not. For structural edits use updateElement.vector. For move/resize requests use updateElement position/size, which transforms the vector points.
+- Smooth vectors may use curve={{"type": "smooth", "tension": 0.5, "segments": 16}}. Do not use bezier curves or control_points.
+- Use the current infographic model only: type="infographic" with data={{"type": "progress_bar" or "gauge", "min_value": number, "max_value": number, "value": number}} and colors=[baseColor, highlightColor].
+- Use updateElement.infographic for infographic values, kind, or colors. Do not use removed infographic_type, min_value/max_value/value at the element root, base_color, or highlight_color fields.
 
 # Chart Rules:
 - Use real chart elements for chart requests; never generate a chart as an image.

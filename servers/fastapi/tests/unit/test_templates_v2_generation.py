@@ -98,7 +98,6 @@ def _generated_layout(layout_id: str = "title_slide") -> dict:
                 "id": "title_block",
                 "description": "Reusable prominent title text block.",
                 "position": {"x": 100, "y": 80},
-                "size": {"width": 600, "height": 80},
                 "elements": [
                     {
                         "type": "text",
@@ -643,7 +642,6 @@ def test_merge_similar_components_clusters_by_global_component_index(
     second["components"][0]["description"] = (
         "Reusable grid presenting several business metrics and labels."
     )
-    second["components"][0]["size"] = {"width": 600, "height": 180}
     second["components"][0]["elements"] = [
         {
             "type": "grid",
@@ -766,9 +764,14 @@ def test_merge_similar_components_removes_structural_duplicates_after_clustering
     )
     first["components"][0]["elements"] = [
         {
-            "type": "rectangle",
-            "position": {"x": 0, "y": 70},
-            "size": {"width": 600, "height": 4},
+            "type": "vector",
+            "points": [
+                {"x": 0, "y": 70},
+                {"x": 600, "y": 70},
+                {"x": 600, "y": 74},
+                {"x": 0, "y": 74},
+            ],
+            "closed": True,
             "fill": {"color": "#111111"},
         },
         {
@@ -790,9 +793,14 @@ def test_merge_similar_components_removes_structural_duplicates_after_clustering
     second["components"][0]["position"] = {"x": 260, "y": 180}
     second["components"][0]["elements"] = [
         {
-            "type": "rectangle",
-            "position": {"x": 0, "y": 70},
-            "size": {"width": 600, "height": 4},
+            "type": "vector",
+            "points": [
+                {"x": 0, "y": 70},
+                {"x": 600, "y": 70},
+                {"x": 600, "y": 74},
+                {"x": 0, "y": 74},
+            ],
+            "closed": True,
             "fill": {"color": "#111111"},
         },
         {
@@ -813,9 +821,14 @@ def test_merge_similar_components_removes_structural_duplicates_after_clustering
     )
     third["components"][0]["elements"] = [
         {
-            "type": "rectangle",
-            "position": {"x": 0, "y": 70},
-            "size": {"width": 600, "height": 4},
+            "type": "vector",
+            "points": [
+                {"x": 0, "y": 70},
+                {"x": 600, "y": 70},
+                {"x": 600, "y": 74},
+                {"x": 0, "y": 74},
+            ],
+            "closed": True,
             "fill": {"color": "#DDDDDD"},
         },
         {
