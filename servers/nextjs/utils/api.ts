@@ -125,7 +125,7 @@ export function getApiUrl(path: string): string {
 export function buildAbsoluteApiRequestUrl(
   path: string,
   baseForRelative: string = typeof window !== "undefined" &&
-  window.location?.origin
+    window.location?.origin
     ? window.location.origin
     : "http://127.0.0.1:5001"
 ): string {

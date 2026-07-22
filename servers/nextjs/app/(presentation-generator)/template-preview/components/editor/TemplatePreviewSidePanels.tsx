@@ -31,14 +31,14 @@ export function ToolRail({
     Icon: LucideIcon;
     hidden?: boolean;
   }> = [
-    {
-      id: "ai",
-      label: "AI",
-      Icon: Sparkles,
-      hidden: !TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED,
-    },
-    { id: "schema", label: "Schema", Icon: Edit3 },
-  ];
+      {
+        id: "ai",
+        label: "AI",
+        Icon: Sparkles,
+        hidden: !TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED,
+      },
+      { id: "schema", label: "Schema", Icon: Edit3 },
+    ];
 
   return (
     <div className="hidden w-[70px] shrink-0 flex-col items-center bg-[#FEFEFF] pt-2 lg:flex">
@@ -184,6 +184,7 @@ function DensitySelector({
       {options.map((option) => (
         <button
           key={option}
+          aria-pressed={density === option}
           className={cn(
             "h-[30px] rounded-[6px] border text-[14px] font-normal transition-colors",
             density === option
@@ -191,11 +192,17 @@ function DensitySelector({
               : "border-[#EDEEEF] bg-white text-[#191919] hover:bg-[#F8F8F8]",
           )}
           onClick={() => onDensityChange(option)}
+          title={
+            density === option
+              ? `${option} content density selected`
+              : `Preview ${option.toLowerCase()} content density`
+          }
           type="button"
         >
           {option}
         </button>
       ))}
+
     </div>
   );
 }
@@ -227,9 +234,27 @@ export function SchemaPanel({
         <h2 className="text-[18px] font-medium text-[#101323]">
           Schema Editor
         </h2>
-        <p className="mt-[18px] text-[14px] font-normal text-[#191919]">
-          Content Density
-        </p>
+        <div className="flex items-center justify-between mt-[18px]">
+
+          <p className=" text-[14px] font-normal text-[#191919]">
+            Content Density
+          </p>
+          <button
+            aria-label="Reset content density"
+            className={cn(
+              " rounded-[6px] px-[10px] py-1 border text-[13px] font-normal transition-colors",
+              density
+                ? "border-[#EDEEEF] bg-white text-[#666666] hover:bg-[#F8F8F8] hover:text-[#191919]"
+                : "cursor-not-allowed border-[#F0F0F2] bg-[#FAFAFB] text-[#B7B7BD]",
+            )}
+            disabled={!density}
+            onClick={() => onDensityChange("")}
+            title="Show the original template content"
+            type="button"
+          >
+            Reset
+          </button>
+        </div>
         <DensitySelector density={density} onDensityChange={onDensityChange} />
         <div className="mt-[10px] flex min-h-[62px] gap-[10px] rounded-[6px] bg-[#F3F6FB] px-[16px] py-[10px] text-[12px] leading-[14px] text-[#5F6470]">
           <Info className="mt-[2px] h-[14px] w-[14px] shrink-0 text-[#1F5FBF]" />

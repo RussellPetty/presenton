@@ -75,6 +75,8 @@ export function useTemplateDetails(templateId: string) {
     [template]
   );
 
+
+
   return {
     template,
     layouts,

@@ -7,7 +7,9 @@ import type { TemplateV2Layout } from "@/components/slide-editor/importing/templ
 import { normalizeBackendAssetUrls } from "@/utils/api";
 import TemplateService from "../../services/api/template";
 import { useTemplateDetails } from "../../hooks/useTemplateDetails";
-import { useFontLoader as loadFontAssets } from "../../hooks/useFontLoad";
+import {
+  useFontLoader as loadFontAssets,
+} from "../../hooks/useFontLoad";
 import { DeleteTemplateDialog } from "./editor/DeleteTemplateDialog";
 import { EditorActionBar } from "./editor/EditorActionBar";
 import { ResponsiveSlideFrame } from "./editor/ResponsiveSlideFrame";
@@ -25,9 +27,11 @@ import {
 } from "./editor/TemplatePreviewStates";
 import { ThumbnailStrip } from "./editor/ThumbnailStrip";
 import {
+  applyTemplateContentDensity,
   cloneLayout,
   collectSchemaFields,
   extractCreatedLayouts,
+  mergeDensityPreviewCanvasEdits,
   readLayoutId,
   updateLayoutSchemaConstraint,
   updateLayoutSchemaField,
@@ -134,13 +138,13 @@ const GroupLayoutPreview = ({
 
   useEffect(() => {
     if (!fonts || typeof fonts !== "object") return;
-    console.log("fonts", fonts);
     loadFontAssets(fonts as Record<string, string>);
   }, [fonts]);
 
   useEffect(() => {
     setEditableLayouts(layouts);
     setActiveLayoutIndex(0);
+    setDensity("");
     setOpenFieldId("");
     setHistoryAvailability({ canUndo: false, canRedo: false });
     setHistoryCommand(null);
@@ -157,6 +161,14 @@ const GroupLayoutPreview = ({
 
   const canEditTemplate = Boolean(template);
   const activeLayout = editableLayouts[activeLayoutIndex] ?? null;
+  const previewLayouts = useMemo(
+    () =>
+      editableLayouts.map((layout) =>
+        applyTemplateContentDensity(layout, density),
+      ),
+    [density, editableLayouts],
+  );
+  const activePreviewLayout = previewLayouts[activeLayoutIndex] ?? null;
   const activeLayoutId = activeLayout
     ? readLayoutId(activeLayout, activeLayoutIndex)
     : "slide-1";
@@ -236,6 +248,22 @@ const GroupLayoutPreview = ({
     },
     [activeLayoutIndex, canEditTemplate],
   );
+
+  const handlePreviewLayoutChange = useCallback(
+    (layout: TemplateV2Layout) => {
+      if (!activeLayout) return;
+      updateActiveLayout(
+        density
+          ? mergeDensityPreviewCanvasEdits(activeLayout, layout)
+          : layout,
+      );
+    },
+    [activeLayout, density, updateActiveLayout],
+  );
+
+  const handleDensityChange = useCallback((nextDensity: Density) => {
+    setDensity(nextDensity);
+  }, []);
 
   const handleSchemaFieldChange = useCallback(
     (field: SchemaField, value: string) => {
@@ -619,7 +647,9 @@ const GroupLayoutPreview = ({
 
       <main className="flex min-h-0 flex-1  overflow-hidden bg-[#FBFBFA]">
         <section className="flex min-w-0 flex-1 gap-1 flex-col bg-[#FBFBFA]">
-          {editableLayouts.length === 0 || !activeLayout ? (
+          {editableLayouts.length === 0 ||
+            !activeLayout ||
+            !activePreviewLayout ? (
             <div className="flex flex-1 items-center justify-center text-sm text-[#696969]">
               No layouts available for this template.
             </div>
@@ -632,9 +662,9 @@ const GroupLayoutPreview = ({
                   fonts={fonts}
                   historyCommand={historyCommand}
                   isGenerating={isReconstructing}
-                  layout={activeLayout}
+                  layout={activePreviewLayout}
                   onHistoryAvailabilityChange={setHistoryAvailability}
-                  onLayoutChange={updateActiveLayout}
+                  onLayoutChange={handlePreviewLayoutChange}
                 />
               </div>
 
@@ -656,7 +686,7 @@ const GroupLayoutPreview = ({
               <ThumbnailStrip
                 activeLayoutIndex={activeLayoutIndex}
                 fonts={fonts}
-                layouts={editableLayouts}
+                layouts={previewLayouts}
                 templateId={templateId}
                 onSelect={(nextIndex) => {
                   track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_SELECTED, {
@@ -692,7 +722,7 @@ const GroupLayoutPreview = ({
                 fields={schemaFields}
                 openFieldId={openFieldId}
                 onConstraintChange={handleSchemaConstraintChange}
-                onDensityChange={setDensity}
+                onDensityChange={handleDensityChange}
                 onFieldChange={handleSchemaFieldChange}
                 onOpenFieldChange={setOpenFieldId}
               />
