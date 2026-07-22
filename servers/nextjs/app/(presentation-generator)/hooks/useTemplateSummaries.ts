@@ -9,23 +9,34 @@ import TemplateService, {
 
 export type TemplateTab = "custom" | "default";
 
-function prioritizeDynamicTemplate(templates: TemplateListItem[]) {
-  const dynamicTemplateIndex = templates.findIndex(
-    (template) => template.name.trim().toLowerCase() === "dynamic"
+const FEATURED_BUILT_IN_TEMPLATE_ORDER = [
+  "momentum",
+  "dynamic",
+  "executive",
+] as const;
+
+function orderBuiltInTemplates(templates: TemplateListItem[]) {
+  const priorityByName = new Map<string, number>(
+    FEATURED_BUILT_IN_TEMPLATE_ORDER.map((name, index) => [name, index]),
   );
 
-  if (dynamicTemplateIndex <= 0) {
-    return templates;
-  }
+  return templates
+    .map((template, index) => ({ template, index }))
+    .sort((left, right) => {
+      const leftPriority =
+        priorityByName.get(left.template.name.trim().toLowerCase()) ??
+        FEATURED_BUILT_IN_TEMPLATE_ORDER.length;
+      const rightPriority =
+        priorityByName.get(right.template.name.trim().toLowerCase()) ??
+        FEATURED_BUILT_IN_TEMPLATE_ORDER.length;
 
-  const orderedTemplates = [...templates];
-  const [dynamicTemplate] = orderedTemplates.splice(dynamicTemplateIndex, 1);
-  orderedTemplates.unshift(dynamicTemplate);
-  return orderedTemplates;
+      return leftPriority - rightPriority || left.index - right.index;
+    })
+    .map(({ template }) => template);
 }
 
 export function splitTemplatesByDefault(templates: TemplateListItem[]) {
-  const defaultTemplates = prioritizeDynamicTemplate(
+  const defaultTemplates = orderBuiltInTemplates(
     templates.filter((template) => template.is_default)
   );
   const customTemplates = templates.filter((template) => !template.is_default);
