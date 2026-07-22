@@ -44,18 +44,6 @@ const DashboardHeaderDivider = () => (
   </span>
 );
 
-const DashboardBodyDivider = () => (
-  <span className="relative h-5 w-px shrink-0" aria-hidden="true">
-    <Image
-      src={dashboardBodyAsset("divider.svg")}
-      alt=""
-      width={20}
-      height={1}
-      className="absolute left-1/2 top-1/2 h-px w-5 max-w-none -translate-x-1/2 -translate-y-1/2 rotate-90"
-    />
-  </span>
-);
-
 const FloatingActionCards = () => (
   <div className="pointer-events-none absolute right-[14px] top-[-36px] z-0 block h-[64px] w-[158px]">
     <div
@@ -100,6 +88,19 @@ const ListViewIcon = () => (
     aria-hidden="true"
   />
 );
+
+const sortPresentationsNewestFirst = (
+  presentations: PresentationResponse[]
+) =>
+  [...presentations].sort((a, b) => {
+    const createdAtA = Date.parse(a.created_at);
+    const createdAtB = Date.parse(b.created_at);
+
+    return (
+      (Number.isNaN(createdAtB) ? 0 : createdAtB) -
+      (Number.isNaN(createdAtA) ? 0 : createdAtA)
+    );
+  });
 
 function formatGitHubStars(stars: number) {
   if (stars >= 1_000_000) {
@@ -294,27 +295,15 @@ const DashboardPage: React.FC = () => {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deckSortDirection, setDeckSortDirection] = useState<"desc" | "asc">(
-    "asc"
-  );
   const [deckViewMode, setDeckViewMode] = useState<"grid" | "list">("grid");
 
-  const sortedPresentations = useMemo(() => {
-    return [...presentations].sort((a, b) => {
-      const comparison = (a.title || "").localeCompare(b.title || "", undefined, {
-        sensitivity: "base",
-      });
-      return deckSortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [presentations, deckSortDirection]);
+  const sortedPresentations = useMemo(
+    () => sortPresentationsNewestFirst(presentations),
+    [presentations]
+  );
 
   const sortedLegacyPresentations = useMemo(
-    () =>
-      [...legacyPresentations].sort((a, b) =>
-        (a.title || "").localeCompare(b.title || "", undefined, {
-          sensitivity: "base",
-        })
-      ),
+    () => sortPresentationsNewestFirst(legacyPresentations),
     [legacyPresentations]
   );
 
@@ -400,28 +389,6 @@ const DashboardPage: React.FC = () => {
             Decks
           </h2>
           <div className="flex items-center gap-[17px]">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded font-manrope text-[13px] font-medium leading-normal tracking-[-0.39px] text-[#191919] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
-              title="Toggle alphabetical deck order"
-              aria-label={`Sort decks ${deckSortDirection === "asc" ? "Z to A" : "A to Z"}`}
-              onClick={() =>
-                setDeckSortDirection((current) =>
-                  current === "asc" ? "desc" : "asc"
-                )
-              }
-            >
-              {deckSortDirection === "asc" ? "A to Z" : "Z to A"}
-              <Image
-                src={dashboardBodyAsset("sort.svg")}
-                alt=""
-                width={14}
-                height={14}
-                className="h-3.5 w-3.5 shrink-0"
-                aria-hidden="true"
-              />
-            </button>
-            <DashboardBodyDivider />
             <div className="flex items-center rounded-[4px] border border-[#EDEEEF] p-1">
               <button
                 type="button"
