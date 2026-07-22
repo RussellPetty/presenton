@@ -488,8 +488,8 @@ def test_get_component_schema_collapses_repeated_component_children_to_array():
                                 "type": "text",
                                 "decorative": False,
                                 "name": "title_2",
-                                "min_length": 5,
-                                "max_length": 12,
+                                "min_length": 3,
+                                "max_length": 8,
                             }
                         ],
                     },
@@ -512,7 +512,60 @@ def test_get_component_schema_collapses_repeated_component_children_to_array():
                 "title": {
                     "type": "string",
                     "minLength": 3,
-                    "maxLength": 12,
+                    "maxLength": 8,
+                    "title": "Title",
+                    "x-element-type": "text",
+                }
+            },
+            "required": ["title"],
+        },
+    }
+
+
+def test_get_component_schema_uses_single_flex_child_as_repeated_array_item():
+    component = {
+        "id": "single_card_list",
+        "description": "Reusable list with one visible prototype card.",
+        "elements": [
+            {
+                "type": "flex",
+                "name": "cards",
+                "min_children": 1,
+                "max_children": 2,
+                "children": [
+                    {
+                        "type": "group",
+                        "name": "card_1",
+                        "children": [
+                            {
+                                "type": "text",
+                                "decorative": False,
+                                "name": "title_1",
+                                "min_length": 3,
+                                "max_length": 8,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+    schema = get_component_schema(component)
+
+    assert schema is not None
+    assert schema["properties"]["cards"] == {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 2,
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8,
                     "title": "Title",
                     "x-element-type": "text",
                 }
