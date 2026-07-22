@@ -1,6 +1,12 @@
 import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
 
 export type UnknownRecord = Record<string, unknown>;
+export type TemplateSavePayload = UnknownRecord & {
+  id: string;
+  name: string;
+  layout_count: number;
+  layouts: unknown;
+};
 export type PanelMode = "ai" | "schema";
 export type Density = "" | "Low" | "Medium" | "High";
 export type LayoutPath = Array<string | number>;
@@ -72,7 +78,7 @@ export function buildTemplateSavePayload({
   name: string;
   targetTemplateId: string;
   template: unknown;
-}) {
+}): TemplateSavePayload {
   const templateRecord = isRecord(template) ? template : {};
   const payload = cloneLayout(templateRecord);
 
@@ -81,7 +87,7 @@ export function buildTemplateSavePayload({
   payload.layout_count = layouts.length;
   payload.layouts = withEditedLayouts(templateRecord.layouts, layouts);
 
-  return payload;
+  return payload as TemplateSavePayload;
 }
 
 export function hashKey(value: string) {

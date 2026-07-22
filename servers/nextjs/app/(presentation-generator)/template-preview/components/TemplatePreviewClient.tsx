@@ -25,6 +25,7 @@ import {
 } from "./editor/TemplatePreviewStates";
 import { ThumbnailStrip } from "./editor/ThumbnailStrip";
 import {
+  buildTemplateSavePayload,
   cloneLayout,
   collectSchemaFields,
   extractCreatedLayouts,
@@ -466,16 +467,14 @@ const GroupLayoutPreview = ({
         setTemplateNameDraft(nextTemplateName);
       }
 
-      await TemplateService.updateTemplateLayouts(templateId, {
-        layouts: editableLayouts.map((layout, index) => ({ index, layout })),
+      const targetTemplateId = template.id || templateId;
+      const payload = buildTemplateSavePayload({
+        layouts: editableLayouts,
+        name: nextTemplateName,
+        targetTemplateId,
+        template,
       });
-
-      if (nextTemplateName !== savedTemplateName) {
-        await TemplateService.updateTemplateMetadata(templateId, {
-          name: nextTemplateName,
-          description: template.description,
-        });
-      }
+      await TemplateService.updateTemplate(targetTemplateId, payload);
 
       setHasUnsavedChanges(false);
       setSavedTemplateName(nextTemplateName);
@@ -508,7 +507,6 @@ const GroupLayoutPreview = ({
     canEditTemplate,
     editableLayouts,
     hasUnsavedChanges,
-    savedTemplateName,
     template,
     templateId,
     templateNameDraft,
