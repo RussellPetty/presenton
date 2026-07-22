@@ -1613,6 +1613,7 @@ async def stream_presentation(
                     presentation.tone,
                     presentation.verbosity,
                     presentation.instructions,
+                    slide_number=i + 1,
                 )
             except HTTPException as e:
                 yield SSEErrorResponse(detail=e.detail).to_string()
@@ -2221,6 +2222,7 @@ async def generate_presentation_handler(
                     request.tone.value,
                     request.verbosity.value,
                     request.instructions,
+                    slide_number=i + 1,
                     disconnect_checker=disconnect_checker,
                 )
                 for i in range(start, end)

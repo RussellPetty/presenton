@@ -620,6 +620,216 @@ def test_update_slide_element_applies_toolbar_style_patch():
     assert session.commit_count == 1
 
 
+def test_update_slide_element_edits_and_resizes_current_vector_model():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "vector-block",
+            "description": "Editable vector.",
+            "position": {"x": 100, "y": 100},
+            "elements": [
+                {
+                    "type": "vector",
+                    "shape": "polygon",
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 100, "y": 0},
+                        {"x": 100, "y": 50},
+                        {"x": 0, "y": 50},
+                    ],
+                    "closed": True,
+                    "fill": {"color": "#FFFFFF"},
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "vector": {
+                "shape": "ellipse",
+                "points": [
+                    {"x": 0, "y": 0},
+                    {"x": 100, "y": 0},
+                    {"x": 100, "y": 50},
+                    {"x": 0, "y": 50},
+                ],
+                "closed": True,
+            },
+            "position": {"x": 20, "y": 30},
+            "size": {"width": 200, "height": 100},
+        },
+    )
+
+    vector = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert vector["shape"] == "ellipse"
+    assert vector["points"] == [
+        {"x": 20.0, "y": 30.0},
+        {"x": 220.0, "y": 30.0},
+        {"x": 220.0, "y": 130.0},
+        {"x": 20.0, "y": 130.0},
+    ]
+    assert "position" not in vector
+    assert "size" not in vector
+    assert session.commit_count == 1
+
+
+def test_update_slide_element_edits_current_infographic_model():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "progress-block",
+            "description": "Editable progress indicator.",
+            "elements": [
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 0},
+                    "size": {"width": 420, "height": 74},
+                    "data": {
+                        "type": "progress_bar",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 40,
+                    },
+                    "colors": ["#E5E7EB", "#2563EB"],
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "infographic": {
+                "data": {
+                    "type": "gauge",
+                    "minValue": 10,
+                    "maxValue": 90,
+                    "value": 72,
+                },
+                "colors": ["#D1D5DB", "#16A34A"],
+            },
+        },
+    )
+
+    infographic = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert infographic["data"] == {
+        "type": "gauge",
+        "min_value": 10.0,
+        "max_value": 90.0,
+        "value": 72.0,
+    }
+    assert infographic["colors"] == ["#D1D5DB", "#16A34A"]
+    assert session.commit_count == 1
+
+
+def test_update_slide_element_merges_partial_infographic_data():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "gauge-block",
+            "description": "Editable gauge.",
+            "elements": [
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 0},
+                    "size": {"width": 320, "height": 190},
+                    "data": {
+                        "type": "gauge",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 40,
+                    },
+                    "colors": ["#E5E7EB", "#2563EB"],
+                }
+            ],
+        }
+    )
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "updateElement",
+        {
+            "index": 0,
+            "elementPath": "components[2].elements[0]",
+            "infographic": {"data": {"value": 75}},
+        },
+    )
+
+    infographic = slide.ui["components"][2]["elements"][0]
+    assert result["ok"] is True
+    assert infographic["data"] == {
+        "type": "gauge",
+        "min_value": 0,
+        "max_value": 100,
+        "value": 75.0,
+    }
+    assert session.commit_count == 1
+
+
+def test_get_slide_elements_exposes_vector_infographic_and_svg_content():
+    slide = _slide()
+    slide.ui["components"].append(
+        {
+            "id": "new-elements",
+            "description": "Current element models.",
+            "elements": [
+                {
+                    "type": "vector",
+                    "points": [{"x": 0, "y": 0}, {"x": 100, "y": 40}],
+                    "closed": False,
+                    "stroke": {"color": "#111111", "width": 2},
+                },
+                {
+                    "type": "infographic",
+                    "position": {"x": 0, "y": 50},
+                    "size": {"width": 300, "height": 60},
+                    "data": {
+                        "type": "progress_bar",
+                        "min_value": 0,
+                        "max_value": 100,
+                        "value": 65,
+                    },
+                    "colors": ["#EEEEEE", "#008800"],
+                },
+                {
+                    "type": "svg",
+                    "position": {"x": 0, "y": 120},
+                    "size": {"width": 40, "height": 40},
+                    "svg": "<svg></svg>",
+                },
+            ],
+        }
+    )
+    tools, _ = _tools(slide)
+
+    elements = _call(
+        tools,
+        "getSlideAtIndex",
+        {"index": 0, "includeFullContent": False},
+    )["result"]["slide"]["ui_summary"]["elements"]
+    by_type = {element["type"]: element for element in elements}
+
+    assert by_type["vector"]["content_editable"] is True
+    assert by_type["vector"]["content"]["points"][1] == {"x": 100, "y": 40}
+    assert by_type["infographic"]["content_editable"] is True
+    assert by_type["infographic"]["content"]["data"]["value"] == 65
+    assert by_type["svg"]["geometry_editable"] is True
+    assert by_type["svg"]["content"] == {"svg_length": 11}
+
+
 def test_update_slide_element_applies_text_font_patch_to_runs():
     slide = _slide()
     tools, session = _tools(slide)
@@ -1704,6 +1914,74 @@ def test_add_slide_element_rejects_blank_image_insert():
     assert "data" in result["recovery"]["expected"]["image"]
     assert len(slide.ui["components"]) == 2
     assert session.commit_count == 0
+
+
+def test_add_slide_element_rejects_removed_geometry_types():
+    slide = _slide()
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "addElement",
+        {
+            "index": 0,
+            "element": json.dumps(
+                {
+                    "type": "rectangle",
+                    "position": {"x": 100, "y": 100},
+                    "size": {"width": 200, "height": 80},
+                    "fill": {"color": "#FF0000"},
+                }
+            ),
+        },
+    )
+
+    assert result["ok"] is False
+    assert "was removed" in result["error"]
+    assert "type='vector'" in result["error"]
+    assert len(slide.ui["components"]) == 2
+    assert session.commit_count == 0
+
+
+def test_add_free_vector_normalizes_points_into_component_coordinates():
+    slide = _slide()
+    tools, session = _tools(slide)
+
+    result = _call(
+        tools,
+        "addElement",
+        {
+            "index": 0,
+            "element": json.dumps(
+                {
+                    "type": "vector",
+                    "shape": "polygon",
+                    "points": [
+                        {"x": 300, "y": 200},
+                        {"x": 500, "y": 200},
+                        {"x": 500, "y": 300},
+                        {"x": 300, "y": 300},
+                    ],
+                    "closed": True,
+                    "fill": {"color": "#FF0000"},
+                }
+            ),
+        },
+    )
+
+    component = slide.ui["components"][-1]
+    vector = component["elements"][0]
+    assert result["ok"] is True
+    assert component["position"] == {"x": 300.0, "y": 200.0}
+    assert vector["points"] == [
+        {"x": 0.0, "y": 0.0},
+        {"x": 200.0, "y": 0.0},
+        {"x": 200.0, "y": 100.0},
+        {"x": 0.0, "y": 100.0},
+    ]
+    assert "position" not in vector
+    assert "size" not in vector
+    assert session.commit_count == 1
 
 
 def test_add_slide_element_rejects_blank_chart_insert():

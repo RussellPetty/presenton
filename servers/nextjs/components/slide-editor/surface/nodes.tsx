@@ -34,6 +34,7 @@ import {
   rawFont,
   rawRenderTextRuns,
   rawTextContent,
+  renderKonvaTextSegment,
   textListVisualLocalBox,
   textVisualLocalBox,
   type RenderTextRun,
@@ -1845,7 +1846,7 @@ function RawRichTextElement({
               x={segmentX}
               y={lineY}
               height={lineMetric.height}
-              text={segment.text}
+              text={renderKonvaTextSegment(segment.text)}
               fill={textFill(segment.font)}
               fontFamily={`${segment.font.family}, Helvetica, sans-serif`}
               fontSize={segment.font.size}
@@ -1890,7 +1891,7 @@ function RawTextListElement({
           x={token.x}
           y={token.y}
           height={token.height}
-          text={token.text}
+          text={renderKonvaTextSegment(token.text)}
           fill={textFill(token.font)}
           fontFamily={`${token.font.family}, Helvetica, sans-serif`}
           fontSize={token.font.size}

@@ -1,7 +1,10 @@
 import { Group, Rect, Text } from "react-konva";
 import { renderMarkdownTextRuns } from "@/components/slide-editor/text/markdown-text";
 import type { TextRun } from "@/components/slide-editor/types";
-import { layoutRichText } from "@/components/slide-editor/text/template-v2-text";
+import {
+  layoutRichText,
+  renderKonvaTextSegment,
+} from "@/components/slide-editor/text/template-v2-text";
 import { effectiveLineHeight } from "@/components/slide-editor/text/text-line-height";
 import { readableTableTextColor } from "@/components/slide-editor/tables/table-colors";
 import { colorWithOpacity } from "@/components/slide-editor/model/render-style";
@@ -190,7 +193,7 @@ function TableCellText({
           y={token.y}
           width={token.width}
           height={token.height}
-          text={token.text}
+          text={renderKonvaTextSegment(token.text)}
           fill={colorWithOpacity(withHash(token.font.color), token.font.opacity)}
           fontFamily={`${token.font.family}, Inter`}
           fontSize={token.font.size}

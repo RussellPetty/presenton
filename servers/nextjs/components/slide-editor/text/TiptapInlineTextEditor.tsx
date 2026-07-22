@@ -25,6 +25,7 @@ import {
 
 export const COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT =
   "presenton:commit-template-v2-inline-text";
+const NON_BREAKING_SPACE = "\u00A0";
 
 type RunStyleAttrs = {
   family?: string | null;
@@ -552,7 +553,13 @@ function textRunsToTiptapContent(runs: TextRun[], baseFont: Font): JSONContent {
     const parts = (run.text || " ").split("\n");
     parts.forEach((part, index) => {
       if (index > 0) content.push({ type: "hardBreak" });
-      if (part) content.push({ type: "text", text: part, marks });
+      if (part) {
+        content.push({
+          type: "text",
+          text: encodeBoundarySpacesForEditor(part),
+          marks,
+        });
+      }
     });
   }
 
@@ -590,7 +597,10 @@ function tiptapContentToTextRuns(doc: JSONContent, baseFont: Font): TextRun[] {
       return;
     }
     if (node.type === "text") {
-      append(node.text ?? "", fontFromMarks(node.marks, baseFont));
+      append(
+        decodeEditorSpaces(node.text ?? ""),
+        fontFromMarks(node.marks, baseFont),
+      );
       return;
     }
     node.content?.forEach(visit);
@@ -615,6 +625,24 @@ function fontFromMarks(marks: JSONContent["marks"], baseFont: Font): Font {
     font.underline = true;
   }
   return font;
+}
+
+function encodeBoundarySpacesForEditor(text: string) {
+  let start = 0;
+  while (start < text.length && text[start] === " ") start += 1;
+
+  let end = text.length;
+  while (end > start && text[end - 1] === " ") end -= 1;
+
+  return (
+    NON_BREAKING_SPACE.repeat(start) +
+    text.slice(start, end) +
+    NON_BREAKING_SPACE.repeat(text.length - end)
+  );
+}
+
+function decodeEditorSpaces(text: string) {
+  return text.replace(/\u00A0/g, " ");
 }
 
 function selectionRangeFromEditor(editor: Editor) {

@@ -7,15 +7,30 @@ import re
 from typing import Any
 
 _PATH_SEGMENT_RE = re.compile(r"^(?P<key>components|elements|children)\[(?P<index>\d+)\]$")
-CONTENT_EDITABLE_ELEMENT_TYPES = {"text", "text-list", "table", "image", "chart"}
-VISIBLE_ELEMENT_TYPES = CONTENT_EDITABLE_ELEMENT_TYPES | {
-    "container",
+CONTENT_EDITABLE_ELEMENT_TYPES = {
+    "text",
+    "text-list",
+    "table",
+    "image",
+    "chart",
     "vector",
     "infographic",
+}
+VISIBLE_ELEMENT_TYPES = CONTENT_EDITABLE_ELEMENT_TYPES | {
+    "container",
+    "svg",
     "flex",
     "grid",
     "grid-view",
     "group",
+}
+REMOVED_GEOMETRY_ELEMENT_TYPES = {
+    "circle",
+    "ellipse",
+    "line",
+    "polygon",
+    "rectangle",
+    "vector_shape",
 }
 SUPPORTED_CHART_TYPES = {
     "area",
@@ -238,6 +253,7 @@ def _normalize_chart_data_labels(value: Any) -> str | None:
 
 def _validate_visual_insert_tree(node: Any) -> None:
     if isinstance(node, dict):
+        _validate_current_element_model(node)
         if node.get("type") == "chart" and not _chart_element_has_explicit_data(node):
             raise ValueError(
                 "Chart elements must include numeric data via series.values or "
@@ -262,6 +278,56 @@ def _validate_visual_insert_tree(node: Any) -> None:
 
 def _validate_chart_insert_tree(node: Any) -> None:
     _validate_visual_insert_tree(node)
+
+
+def _validate_current_element_model(element: dict[str, Any]) -> None:
+    element_type = element.get("type")
+    if element_type in REMOVED_GEOMETRY_ELEMENT_TYPES:
+        raise ValueError(
+            f"Element type '{element_type}' was removed. Use type='vector' with "
+            "points, shape='ellipse' for circles/ellipses or shape='polygon' for "
+            "other shapes, and closed=false for lines."
+        )
+    if element_type == "vector":
+        _validate_vector_element(element)
+    if element_type == "infographic":
+        _validate_infographic_element(element)
+
+
+def _validate_vector_element(element: dict[str, Any]) -> None:
+    points = element.get("points")
+    if not isinstance(points, list) or len(points) < 2:
+        raise ValueError("Vector elements require at least two numeric points.")
+    for point in points:
+        if not isinstance(point, dict) or not all(
+            isinstance(point.get(axis), (int, float)) for axis in ("x", "y")
+        ):
+            raise ValueError("Each vector point must contain numeric x and y values.")
+
+    shape = element.get("shape")
+    if shape is not None and shape not in {"polygon", "ellipse"}:
+        raise ValueError("vector.shape must be 'polygon' or 'ellipse'.")
+    curve = element.get("curve")
+    if curve is not None and (
+        not isinstance(curve, dict) or curve.get("type") != "smooth"
+    ):
+        raise ValueError("vector.curve supports only type='smooth'.")
+    corner_radii = element.get("corner_radii")
+    if isinstance(corner_radii, list) and len(corner_radii) != len(points):
+        raise ValueError("vector.corner_radii must match the number of points.")
+
+
+def _validate_infographic_element(element: dict[str, Any]) -> None:
+    data = element.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("Infographic elements require a nested data object.")
+    if data.get("type") not in {"progress_bar", "gauge"}:
+        raise ValueError("infographic.data.type must be 'progress_bar' or 'gauge'.")
+    for key in ("min_value", "max_value", "value"):
+        if not isinstance(data.get(key), (int, float)):
+            raise ValueError(f"infographic.data.{key} must be numeric.")
+    if float(data["max_value"]) <= float(data["min_value"]):
+        raise ValueError("infographic.data.max_value must exceed min_value.")
 
 
 def _chart_element_has_explicit_data(element: dict[str, Any]) -> bool:
@@ -1283,6 +1349,24 @@ def _element_content(element: dict[str, Any]) -> Any:
             "data": element.get("data"),
             "is_icon": element.get("is_icon"),
         }
+    if element_type == "vector":
+        return {
+            "shape": element.get("shape") or "polygon",
+            "points": copy.deepcopy(element.get("points")),
+            "closed": element.get("closed"),
+            "curve": copy.deepcopy(element.get("curve")),
+            "corner_radii": copy.deepcopy(element.get("corner_radii")),
+        }
+    if element_type == "infographic":
+        return {
+            "data": copy.deepcopy(element.get("data")),
+            "colors": copy.deepcopy(element.get("colors")),
+        }
+    if element_type == "svg":
+        svg = element.get("svg")
+        return {
+            "svg_length": len(svg) if isinstance(svg, str) else 0,
+        }
     return None
 
 
@@ -1564,6 +1648,10 @@ def _chart_update_has_content(chart: dict[str, Any] | None) -> bool:
     return any(key in chart and chart.get(key) is not None for key in CHART_UPDATE_KEYS)
 
 
+def _structured_update_has_content(value: dict[str, Any] | None) -> bool:
+    return isinstance(value, dict) and bool(value)
+
+
 def _resolve_image_update_payload(
     text: str | None,
     items: list[str] | None,
@@ -1670,6 +1758,8 @@ def _content_update_requested_for_type(
     table_cell: dict[str, Any] | None,
     table: dict[str, Any] | None,
     chart: dict[str, Any] | None,
+    vector: dict[str, Any] | None,
+    infographic: dict[str, Any] | None,
 ) -> bool:
     if element_type == "text":
         return text is not None
@@ -1679,12 +1769,37 @@ def _content_update_requested_for_type(
         return table is not None or table_cell is not None
     if element_type == "chart":
         return _chart_update_has_content(chart)
+    if element_type == "vector":
+        return _structured_update_has_content(vector)
+    if element_type == "infographic":
+        return _structured_update_has_content(infographic)
     if element_type == "image":
         return _resolve_image_update_payload(text, items) is not None
     return any(
         value is not None
-        for value in (text, items, table_cell, table, chart)
+        for value in (text, items, table_cell, table, chart, vector, infographic)
     )
+
+
+def _update_vector_element(element: dict[str, Any], vector: dict[str, Any]) -> None:
+    for key in ("shape", "points", "closed", "curve", "corner_radii"):
+        if key in vector:
+            element[key] = copy.deepcopy(vector[key])
+    _validate_vector_element(element)
+
+
+def _update_infographic_element(
+    element: dict[str, Any], infographic: dict[str, Any]
+) -> None:
+    if "data" in infographic:
+        current_data = element.get("data")
+        element["data"] = {
+            **(copy.deepcopy(current_data) if isinstance(current_data, dict) else {}),
+            **copy.deepcopy(infographic["data"]),
+        }
+    if "colors" in infographic:
+        element["colors"] = copy.deepcopy(infographic["colors"])
+    _validate_infographic_element(element)
 
 
 def _update_text_element(element: dict[str, Any], text: str) -> None:
@@ -1895,8 +2010,18 @@ def _apply_direct_color_patch(
         element["font"] = {**font, "color": value}
         return
     if element_type == "vector":
-        stroke = element.get("stroke") if isinstance(element.get("stroke"), dict) else {}
-        element["stroke"] = {**stroke, "color": value}
+        points = element.get("points") if isinstance(element.get("points"), list) else []
+        explicit_closed = element.get("closed")
+        is_closed = element.get("shape") == "ellipse" or (
+            explicit_closed if isinstance(explicit_closed, bool) else len(points) > 2
+        )
+        style_key = "fill" if is_closed else "stroke"
+        style = element.get(style_key) if isinstance(element.get(style_key), dict) else {}
+        element[style_key] = {**style, "color": value}
+        return
+    if element_type == "infographic":
+        colors = element.get("colors") if isinstance(element.get("colors"), list) else []
+        element["colors"] = [*(colors[:1] or ["#E5E7EB"]), value, *colors[2:]]
         return
     if "fill" not in patch and element_type in {
         "container",
@@ -1904,7 +2029,6 @@ def _apply_direct_color_patch(
         "grid",
         "grid-view",
         "group",
-        "infographic",
     }:
         fill = element.get("fill") if isinstance(element.get("fill"), dict) else {}
         element["fill"] = {**fill, "color": value}
