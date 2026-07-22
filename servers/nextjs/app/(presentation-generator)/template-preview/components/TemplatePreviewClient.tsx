@@ -134,6 +134,7 @@ const GroupLayoutPreview = ({
 
   useEffect(() => {
     if (!fonts || typeof fonts !== "object") return;
+    console.log("fonts", fonts);
     loadFontAssets(fonts as Record<string, string>);
   }, [fonts]);
 
@@ -685,7 +686,7 @@ const GroupLayoutPreview = ({
               }}
             />
             {activePanel === "schema" ||
-            !TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED ? (
+              !TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED ? (
               <SchemaPanel
                 density={density}
                 fields={schemaFields}

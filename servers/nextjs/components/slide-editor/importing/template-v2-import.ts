@@ -67,6 +67,7 @@ export type TemplateV2ImportResponse = {
   raw_layouts?: unknown;
   layouts?: unknown;
   assets?: unknown;
+  fonts?: unknown;
 };
 
 export type GeneratedTemplateV2PresentationResponse = {
@@ -108,11 +109,10 @@ export function normalizeTemplateV2Fonts(
   template: TemplateV2ImportResponse,
   fallbackFonts: Record<string, string> = {},
 ): Record<string, string> {
-  const assets = asRecord(template.assets);
-  const assetFonts = asRecord(assets?.fonts);
+
+  const assetFonts = asRecord(template?.fonts);
   const fonts =
     assetFonts && Object.keys(assetFonts).length > 0 ? assetFonts : fallbackFonts;
-
   return Object.fromEntries(
     Object.entries(fonts)
       .filter(
@@ -148,29 +148,29 @@ export function adaptGeneratedTemplateV2PresentationToDeck(
   const slides =
     generatedSlides.length > 0
       ? generatedSlides.slice(0, 50).map((slide, index) => {
-          const uiLayout = readGeneratedSlideUiLayout(slide);
-          if (uiLayout) {
-            return adaptLayoutToSlide(uiLayout, index);
-          }
+        const uiLayout = readGeneratedSlideUiLayout(slide);
+        if (uiLayout) {
+          return adaptLayoutToSlide(uiLayout, index);
+        }
 
-          const layoutId = readString(slide.layout);
-          const layout =
-            (layoutId ? layoutById.get(layoutId) : null) ??
-            layouts[index % layouts.length];
-          if (!layout) {
-            throw new Error(
-              `Generated slide ${index + 1} did not include a renderable template v2 layout.`,
-            );
-          }
-          return adaptLayoutToSlide(layout, index);
-        })
+        const layoutId = readString(slide.layout);
+        const layout =
+          (layoutId ? layoutById.get(layoutId) : null) ??
+          layouts[index % layouts.length];
+        if (!layout) {
+          throw new Error(
+            `Generated slide ${index + 1} did not include a renderable template v2 layout.`,
+          );
+        }
+        return adaptLayoutToSlide(layout, index);
+      })
       : layouts.slice(0, 50).map(adaptLayoutToSlide);
 
   const deck = {
     title: truncateString(
       readString(presentationRecord.title) ??
-        readString(presentationRecord.id) ??
-        "Generated presentation",
+      readString(presentationRecord.id) ??
+      "Generated presentation",
       90,
     ),
     description:
@@ -234,14 +234,14 @@ export function withEqualTemplateV2FlowChildSizes(
   const contentWidth = Math.max(
     MIN_ELEMENT_SIZE,
     width -
-      (readNumber(padding ?? {}, "left") ?? 0) -
-      (readNumber(padding ?? {}, "right") ?? 0),
+    (readNumber(padding ?? {}, "left") ?? 0) -
+    (readNumber(padding ?? {}, "right") ?? 0),
   );
   const contentHeight = Math.max(
     MIN_ELEMENT_SIZE,
     height -
-      (readNumber(padding ?? {}, "top") ?? 0) -
-      (readNumber(padding ?? {}, "bottom") ?? 0),
+    (readNumber(padding ?? {}, "top") ?? 0) -
+    (readNumber(padding ?? {}, "bottom") ?? 0),
   );
   const type = readString(element.type);
 
@@ -258,15 +258,15 @@ export function withEqualTemplateV2FlowChildSizes(
     const gap =
       direction === "row"
         ? readNumber(element, "column_gap") ??
-          readNumber(element, "gap") ??
-          0
+        readNumber(element, "gap") ??
+        0
         : readNumber(element, "row_gap") ??
-          readNumber(element, "gap") ??
-          0;
+        readNumber(element, "gap") ??
+        0;
     const availableMain = Math.max(
       MIN_ELEMENT_SIZE,
       (direction === "row" ? contentWidth : contentHeight) -
-        gap * Math.max(0, children.length - 1),
+      gap * Math.max(0, children.length - 1),
     );
     const mainSize = availableMain / children.length;
     return children.map((child) =>
@@ -484,11 +484,11 @@ function componentToGroupElement(
     size: { width: frame.width, height: frame.height },
     children: componentFrame
       ? renderedElements.map((element) =>
-          frameTopLevelFlowElementToComponent(element, componentFrame),
-        )
+        frameTopLevelFlowElementToComponent(element, componentFrame),
+      )
       : renderedElements.map((element) =>
-          localizeRawElementToFrame(element, frame),
-        ),
+        localizeRawElementToFrame(element, frame),
+      ),
     name: componentId,
     component_id: componentId,
     component_instance_id: `${componentId}:${componentIndex}`,
@@ -573,11 +573,11 @@ function rawElementFrame(
   const frame =
     hasPosition && width != null && height != null
       ? {
-          x: offsetX + x,
-          y: offsetY + y,
-          width: Math.max(1, width),
-          height: Math.max(1, height),
-        }
+        x: offsetX + x,
+        y: offsetY + y,
+        width: Math.max(1, width),
+        height: Math.max(1, height),
+      }
       : null;
   const childOffsetX = hasPosition ? offsetX + x : offsetX;
   const childOffsetY = hasPosition ? offsetY + y : offsetY;
@@ -655,13 +655,13 @@ function localizeRawElementToFrame(
   const position = readRecord(element, "position");
   const localized: UnknownRecord = position
     ? {
-        ...element,
-        position: {
-          ...position,
-          x: (readNumber(position, "x") ?? 0) - frame.x,
-          y: (readNumber(position, "y") ?? 0) - frame.y,
-        },
-      }
+      ...element,
+      position: {
+        ...position,
+        x: (readNumber(position, "x") ?? 0) - frame.x,
+        y: (readNumber(position, "y") ?? 0) - frame.y,
+      },
+    }
     : { ...element };
 
   if (!position) {
@@ -1471,17 +1471,17 @@ function adaptTableCells(value: unknown[]): TableCell[] {
       const textRecord = asRecord(textValue);
       const text = truncateString(
         runText ||
-          (textRecord
-            ? readString(textRecord.text) ?? ""
-            : readString(textValue) ?? ""),
+        (textRecord
+          ? readString(textRecord.text) ?? ""
+          : readString(textValue) ?? ""),
         80,
       );
       const runs =
         rawRuns.map(adaptTextRun).filter((run): run is TextRun => Boolean(run))
           .length > 0
           ? rawRuns
-              .map(adaptTextRun)
-              .filter((run): run is TextRun => Boolean(run))
+            .map(adaptTextRun)
+            .filter((run): run is TextRun => Boolean(run))
           : text
             ? [textRun(text)]
             : [];
