@@ -18444,29 +18444,11 @@
                   "decorative": false,
                   "name": "visual_card_image",
                   "is_icon": false
-                },
-                {
-                  "type": "image",
-                  "size": {
-                    "width": 297,
-                    "height": 492.65
-                  },
-                  "data": "/static/images/replaceable_template_image.png",
-                  "fit": "cover",
-                  "border_radius": {
-                    "tl": 13.19,
-                    "tr": 13.19,
-                    "bl": 13.19,
-                    "br": 13.19
-                  },
-                  "decorative": false,
-                  "name": "visual_card_image",
-                  "is_icon": false
                 }
               ],
               "name": "image_column_row",
               "max_children": 2,
-              "min_children": 2
+              "min_children": 1
             }
           ]
         },
@@ -27710,6 +27692,178 @@
               "justify_content": "flex-start",
               "gap": 64.23,
               "children": [
+                {
+                  "type": "group",
+                  "size": {
+                    "width": 625.94,
+                    "height": 70.01
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "size": {
+                        "width": 385.63,
+                        "height": 24.62
+                      },
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Heavy",
+                        "color": "#2E3545",
+                        "bold": true,
+                        "line_height": 1
+                      },
+                      "alignment": {
+                        "horizontal": "left",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Consumer Buying Trends",
+                          "font": {
+                            "size": 23.11,
+                            "family": "Lato Heavy",
+                            "color": "#2E3545",
+                            "bold": true,
+                            "line_height": 1
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "section_heading",
+                      "max_length": 33,
+                      "min_length": 11
+                    },
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 0,
+                        "y": 33.96
+                      },
+                      "size": {
+                        "width": 625.94,
+                        "height": 36.05
+                      },
+                      "font": {
+                        "size": 14.22,
+                        "family": "Lato",
+                        "color": "#000000",
+                        "line_height": 1.29,
+                        "letter_spacing": 0.25
+                      },
+                      "alignment": {
+                        "horizontal": "left",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Customers increasingly prefer convenient, personalized, and digital-first shopping experiences, emphasizing the importance of omnichannel sales strategies and customer engagement.",
+                          "font": {
+                            "size": 14.22,
+                            "family": "Lato",
+                            "color": "#000000",
+                            "line_height": 1.29,
+                            "letter_spacing": 0.25
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "section_body",
+                      "max_length": 96,
+                      "min_length": 77
+                    }
+                  ],
+                  "name": "explanation_section"
+                },
+                {
+                  "type": "group",
+                  "size": {
+                    "width": 625.94,
+                    "height": 70.01
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "size": {
+                        "width": 385.63,
+                        "height": 24.62
+                      },
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Heavy",
+                        "color": "#2E3545",
+                        "bold": true,
+                        "line_height": 1
+                      },
+                      "alignment": {
+                        "horizontal": "left",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Consumer Buying Trends",
+                          "font": {
+                            "size": 23.11,
+                            "family": "Lato Heavy",
+                            "color": "#2E3545",
+                            "bold": true,
+                            "line_height": 1
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "section_heading",
+                      "max_length": 33,
+                      "min_length": 11
+                    },
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 0,
+                        "y": 33.96
+                      },
+                      "size": {
+                        "width": 625.94,
+                        "height": 36.05
+                      },
+                      "font": {
+                        "size": 14.22,
+                        "family": "Lato",
+                        "color": "#000000",
+                        "line_height": 1.29,
+                        "letter_spacing": 0.25
+                      },
+                      "alignment": {
+                        "horizontal": "left",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Customers increasingly prefer convenient, personalized, and digital-first shopping experiences, emphasizing the importance of omnichannel sales strategies and customer engagement.",
+                          "font": {
+                            "size": 14.22,
+                            "family": "Lato",
+                            "color": "#000000",
+                            "line_height": 1.29,
+                            "letter_spacing": 0.25
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "section_body",
+                      "max_length": 96,
+                      "min_length": 77
+                    }
+                  ],
+                  "name": "explanation_section"
+                },
                 {
                   "type": "group",
                   "size": {
