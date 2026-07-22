@@ -7,19 +7,25 @@ const frameBoundNodes = new WeakSet<Konva.Group>();
 export function constrainComponentTransformBounds(node: Konva.Group) {
   if (frameBoundNodes.has(node)) return;
   frameBoundNodes.add(node);
+ // Konva ignores a Group's width/height when measuring it and unions its
+     // descendants instead. Keep the component frame in that measurement, but
+      // do not discard descendants: wrapped flex/grid content can legitimately
+     // render outside the stored frame and the selection must cover it too.
+      const getRenderedClientRect = node.getClientRect.bind(node);
 
-  // Konva ignores a Group's width/height when measuring it and unions all of
-  // its descendants instead. Transformer requests a skip-transform rect, so
-  // answer that query with the component frame to keep layout overflow from
-  // feeding back into the next resize sample.
-  const getRenderedClientRect = node.getClientRect.bind(node);
   node.getClientRect = ((config: ClientRectConfig = {}) => {
     if (config.skipTransform) {
+            const rendered = getRenderedClientRect(config);
+        const left = Math.min(0, rendered.x);
+       const top = Math.min(0, rendered.y);
+        const right = Math.max(node.width(), rendered.x + rendered.width);
+         const bottom = Math.max(node.height(), rendered.y + rendered.height);
+
       return {
-        x: 0,
-        y: 0,
-        width: node.width(),
-        height: node.height(),
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
       };
     }
     return getRenderedClientRect(config);
