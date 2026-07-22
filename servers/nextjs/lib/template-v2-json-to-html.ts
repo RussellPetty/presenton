@@ -510,6 +510,7 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
 
   return `<div style="${frameStyle(item, mode)}${transformStyle(item)}${fontStyle(font, {
     includeLineHeight: false,
+    includeTextDecoration: false,
   })}${textShadowStyle(item)}display:flex;align-items:${verticalAlign(
     vertical
   )};justify-content:${horizontalAlign(horizontal)};${lineHeightStyle(
@@ -541,7 +542,8 @@ function renderTextList(item: JsonRecord, mode: RenderMode): string {
     }`;
 
   return `<div style="${frameStyle(item, mode)}${transformStyle(item)}${fontStyle(
-    font
+    font,
+    { includeTextDecoration: false }
   )}${textOverflowStyle()}"><${tag} style="${listStyle}">${entries}</${tag}></div>`;
 }
 
@@ -2163,7 +2165,7 @@ function transformStyle(item: JsonRecord): string {
 
 function fontStyle(
   fontValue: unknown,
-  options: { includeLineHeight?: boolean } = {}
+  options: { includeLineHeight?: boolean; includeTextDecoration?: boolean } = {}
 ): string {
   const font = readRecord(fontValue);
   let style = `color:${escapeCssColor(
@@ -2182,7 +2184,25 @@ function fontStyle(
   if (options.includeLineHeight !== false) style += lineHeightStyle(font);
   const letterSpacing = readNumber(font.letterSpacing ?? font.letter_spacing);
   if (letterSpacing != null) style += `letter-spacing:${cssNumber(letterSpacing)}px;`;
+  if (options.includeTextDecoration !== false) {
+    style += textDecorationStyle(font);
+  }
   return style;
+}
+
+function textDecorationStyle(font: JsonRecord): string {
+  if (hasOwn(font, "underline")) {
+    return readBoolean(font.underline)
+      ? "text-decoration:underline;"
+      : "text-decoration:none;";
+  }
+
+  const decorations = [font.text_decoration, font.textDecoration]
+    .map((value) => readString(value)?.toLowerCase())
+    .filter(Boolean);
+  if (decorations.includes("underline")) return "text-decoration:underline;";
+  if (decorations.includes("none")) return "text-decoration:none;";
+  return "";
 }
 
 function lineHeightStyle(font: JsonRecord, fallback?: number): string {
@@ -2229,7 +2249,9 @@ function tableCellStyle(
     ? colorWithOpacity(fillColor, readNumber(fill.opacity))
     : "transparent";
   const forceHeaderBold = header && !tableCellHasExplicitBold(cellValue);
-  let style = `${fontStyle(cellFont)}display:flex;align-items:center;justify-content:${horizontalAlign(
+  let style = `${fontStyle(cellFont, {
+    includeTextDecoration: false,
+  })}display:flex;align-items:center;justify-content:${horizontalAlign(
     alignment
   )};border:${cssNumber(
     readNumber(stroke.width) ?? 1
