@@ -183,8 +183,17 @@ class PatchTemplateSlideLayoutRequest(BaseModel):
 
 
 class UpdateTemplateMetadataRequest(BaseModel):
+    id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    layout_count: Optional[int] = Field(default=None, ge=0)
+    thumbnail: Optional[str] = None
+    is_default: Optional[bool] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    merged_components: Optional[dict[str, Any]] = None
+    layouts: Optional[dict[str, Any]] = None
+    fonts: Optional[dict[str, str]] = None
     icon_type: Optional[IconType] = None
 
 
@@ -1410,19 +1419,86 @@ async def update_template_metadata(
     request: UpdateTemplateMetadataRequest = Body(...),
     sql_session: AsyncSession = Depends(get_async_session),
 ):
+    if request.id is not None and request.id != template_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Template ID in path does not match request body ID",
+        )
+
     template = await sql_session.get(TemplateV2, template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+
+    has_updates = False
 
     if "name" in request.model_fields_set:
         name = (request.name or "").strip()
         if not name:
             raise HTTPException(status_code=400, detail="Template name is required")
         template.name = name
+        has_updates = True
 
     if "description" in request.model_fields_set:
         description = (request.description or "").strip()
         template.description = description or None
+        has_updates = True
+
+    if "merged_components" in request.model_fields_set:
+        if request.merged_components is None:
+            template.merged_components = None
+        else:
+            try:
+                merged_components = MergedComponents.model_validate(
+                    request.merged_components
+                )
+            except ValidationError as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Template merged components are invalid",
+                ) from exc
+            template.merged_components = merged_components.model_dump(
+                mode="json",
+                exclude_none=True,
+            )
+        has_updates = True
+
+    if "layouts" in request.model_fields_set:
+        assets = dict(template.assets) if isinstance(template.assets, dict) else {}
+        if request.layouts is None:
+            template.layouts = None
+            assets["layout_indexes"] = []
+        else:
+            try:
+                layouts = _coerce_template_slide_layouts(request.layouts)
+            except ValidationError as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Template layouts are invalid",
+                ) from exc
+            assets["layout_indexes"] = _layout_indexes_from_assets(
+                assets,
+                len(layouts.layouts),
+            )
+            _set_template_icon_type_asset(assets, layouts)
+            template.layouts = layouts.model_dump(mode="json", exclude_none=True)
+        template.assets = assets
+        has_updates = True
+
+    if "thumbnail" in request.model_fields_set:
+        assets = dict(template.assets) if isinstance(template.assets, dict) else {}
+        thumbnail = (request.thumbnail or "").strip()
+        if thumbnail:
+            assets["thumbnail"] = thumbnail
+        else:
+            assets.pop("thumbnail", None)
+        template.assets = assets
+        has_updates = True
+
+    if "fonts" in request.model_fields_set:
+        assets = dict(template.assets) if isinstance(template.assets, dict) else {}
+        assets["fonts"] = _coerce_font_map(request.fonts)
+        template.assets = assets
+        has_updates = True
 
     if "icon_type" in request.model_fields_set:
         assets = dict(template.assets) if isinstance(template.assets, dict) else {}
@@ -1430,6 +1506,10 @@ async def update_template_metadata(
         assets["icon_type"] = icon_type
         assets["icon_weight"] = icon_type
         template.assets = assets
+        has_updates = True
+
+    if not has_updates:
+        return template
 
     sql_session.add(template)
     await sql_session.commit()

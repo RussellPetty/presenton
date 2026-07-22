@@ -1205,6 +1205,110 @@ def test_update_template_metadata_rejects_blank_name(fake_async_session):
     assert fake_async_session.commit_count == 0
 
 
+def test_update_template_replaces_full_layout_collection(fake_async_session):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(
+        id=template_id,
+        name="Custom",
+        layouts=_two_template_layouts(),
+        raw_layouts=_two_raw_layouts(),
+        assets={"layout_indexes": [0, 1], "thumbnail": "old.png"},
+    )
+    fake_async_session._get_results[template_id] = template
+    replacement_layout = deepcopy(TEMPLATE_LAYOUTS["layouts"][0])
+    replacement_layout["id"] = "replacement-layout"
+
+    response = asyncio.run(
+        update_template_metadata(
+            template_id,
+            UpdateTemplateMetadataRequest(
+                id=template_id,
+                name="  Updated Template  ",
+                layouts={"layouts": [replacement_layout]},
+            ),
+            sql_session=fake_async_session,
+        )
+    )
+
+    assert response == template
+    assert template.name == "Updated Template"
+    assert template.layouts == {"layouts": [replacement_layout]}
+    assert template.assets == {
+        "layout_indexes": [0],
+        "thumbnail": "old.png",
+    }
+    assert fake_async_session.added == [template]
+    assert fake_async_session.commit_count == 1
+
+
+def test_update_template_updates_response_assets_and_components(fake_async_session):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(
+        id=template_id,
+        name="Custom",
+        layouts=TEMPLATE_LAYOUTS,
+        assets={"thumbnail": "old.png", "fonts": {"Old": "old.woff2"}},
+    )
+    fake_async_session._get_results[template_id] = template
+
+    asyncio.run(
+        update_template_metadata(
+            template_id,
+            UpdateTemplateMetadataRequest(
+                id=template_id,
+                thumbnail="new.png",
+                fonts={"Inter": "inter.woff2"},
+                merged_components=MERGED_COMPONENTS.model_dump(
+                    mode="json", exclude_none=True
+                ),
+            ),
+            sql_session=fake_async_session,
+        )
+    )
+
+    assert template.assets == {
+        "thumbnail": "new.png",
+        "fonts": {"Inter": "inter.woff2"},
+    }
+    assert template.merged_components == MERGED_COMPONENTS.model_dump(
+        mode="json", exclude_none=True
+    )
+    assert fake_async_session.commit_count == 1
+
+
+def test_update_template_rejects_path_body_id_mismatch(fake_async_session):
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(
+            update_template_metadata(
+                "template-one",
+                UpdateTemplateMetadataRequest(id="template-two"),
+                sql_session=fake_async_session,
+            )
+        )
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail == "Template ID in path does not match request body ID"
+    assert fake_async_session.commit_count == 0
+
+
+def test_update_template_id_only_does_not_write(fake_async_session):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(id=template_id, name="Custom", layouts=TEMPLATE_LAYOUTS)
+    fake_async_session._get_results[template_id] = template
+
+    response = asyncio.run(
+        update_template_metadata(
+            template_id,
+            UpdateTemplateMetadataRequest(id=template_id),
+            sql_session=fake_async_session,
+        )
+    )
+
+    assert response == template
+    assert fake_async_session.added == []
+    assert fake_async_session.commit_count == 0
+
+
 def test_delete_template_deletes_template(fake_async_session):
     template_id = str(uuid.uuid4())
     template = TemplateV2(name="Custom", layouts=RAW_LAYOUTS)

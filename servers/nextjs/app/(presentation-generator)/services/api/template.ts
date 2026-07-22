@@ -79,6 +79,10 @@ export interface UpdateTemplateMetadataPayload {
     description?: string | null;
 }
 
+export interface UpdateTemplatePayload extends Partial<TemplateDetailsResponse> {
+    id: string;
+}
+
 export interface UpdateTemplateLayoutsPayload {
     layouts: Array<{
         index: number;
@@ -188,15 +192,25 @@ class TemplateService {
         templateId: string,
         payload: UpdateTemplateMetadataPayload,
     ) {
+        return this.updateTemplate(templateId, {
+            id: templateId,
+            ...payload,
+        });
+    }
+
+    static async updateTemplate(
+        templateId: string,
+        payload: UpdateTemplatePayload,
+    ) {
         try {
             const response = await fetch(getApiUrl(`/api/v1/ppt/template/${encodeURIComponent(templateId)}`), {
                 method: "PATCH",
                 headers: getHeader(),
                 body: JSON.stringify(payload),
             });
-            return await ApiResponseHandler.handleResponse(response, "Failed to update template metadata");
+            return await ApiResponseHandler.handleResponse(response, "Failed to update template");
         } catch (error) {
-            console.error("Failed to update template metadata", error);
+            console.error("Failed to update template", error);
             throw error;
         }
     }
