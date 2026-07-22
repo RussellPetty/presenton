@@ -214,6 +214,18 @@ const GroupLayoutPreview = ({
     }
   }, [activeLayoutIndex, activeLayoutToken, templateId]);
 
+  const copyTemplateId = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(templateId);
+      track(ANALYTICS_EVENTS.TEMPLATE_ID_COPIED, {
+        template_id: templateId,
+      });
+      notify.success("Copied", "Template ID copied.");
+    } catch {
+      notify.error("Copy failed", activeLayoutToken);
+    }
+  }, [templateId]);
+
   const commitTemplateName = useCallback(async () => {
     if (!templateId || !template) return;
     if (!canEditTemplate) {
@@ -670,7 +682,7 @@ const GroupLayoutPreview = ({
         isSaving={isSaving}
         templateName={templateNameDraft}
         onBack={() => router.push("/templates")}
-        onCopy={copyActiveLayoutId}
+        onCopy={copyTemplateId}
         onDelete={openDeleteTemplateDialog}
         onTemplateNameCancel={cancelTemplateNameEdit}
         onTemplateNameChange={setTemplateNameDraft}

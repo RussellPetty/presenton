@@ -15,6 +15,7 @@ export const ANALYTICS_EVENTS = {
   TEMPLATE_PREVIEW_LAYOUT_DUPLICATED: "Template Preview Layout Duplicated",
   TEMPLATE_PREVIEW_LAYOUT_MOVED: "Template Preview Layout Moved",
   TEMPLATE_PREVIEW_LAYOUT_DELETED: "Template Preview Layout Deleted",
+  TEMPLATE_ID_COPIED: "Template Preview ID Copied",
   TEMPLATE_PREVIEW_LAYOUT_RECONSTRUCT_REQUESTED:
     "Template Preview Layout Reconstruct Requested",
   TEMPLATE_PREVIEW_LAYOUT_RECONSTRUCTED:
