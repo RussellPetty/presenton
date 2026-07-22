@@ -1326,6 +1326,8 @@ class PresentationChatMemoryLayer:
         table_cell: dict[str, Any] | None = None,
         table: dict[str, Any] | None = None,
         chart: dict[str, Any] | None = None,
+        vector: dict[str, Any] | None = None,
+        infographic: dict[str, Any] | None = None,
         element_patch: dict[str, Any] | None = None,
         position: dict[str, Any] | None = None,
         size: dict[str, Any] | None = None,
@@ -1339,11 +1341,14 @@ class PresentationChatMemoryLayer:
             _normalize_chart_element,
             _resolve_element_path,
             _resolve_image_update_payload,
+            _validate_current_element_model,
             _update_chart_element,
+            _update_infographic_element,
             _update_table_element,
             _update_table_cell,
             _update_text_element,
             _update_text_list_element,
+            _update_vector_element,
         )
 
         slide = await self._get_slide_by_index(index)
@@ -1378,6 +1383,8 @@ class PresentationChatMemoryLayer:
             table_cell=table_cell,
             table=table,
             chart=chart,
+            vector=vector,
+            infographic=infographic,
         )
 
         if content_update_requested and element_type == "text":
@@ -1399,6 +1406,16 @@ class PresentationChatMemoryLayer:
             if chart is None:
                 raise ValueError("chart is required for chart elements.")
             _update_chart_element(element, chart, theme)
+        elif content_update_requested and element_type == "vector":
+            if vector is None:
+                raise ValueError("vector is required for vector content updates.")
+            _update_vector_element(element, vector)
+        elif content_update_requested and element_type == "infographic":
+            if infographic is None:
+                raise ValueError(
+                    "infographic is required for infographic content updates."
+                )
+            _update_infographic_element(element, infographic)
         elif content_update_requested and element_type == "image":
             payload = _resolve_image_update_payload(text, items)
             if payload is None:
@@ -1419,9 +1436,14 @@ class PresentationChatMemoryLayer:
         elif content_update_requested:
             raise ValueError(f"Element type '{element_type}' is not content-editable.")
 
-        geometry_updated = self._update_ui_box(element, position=position, size=size)
+        geometry_updated = self._update_ui_element_box(
+            element,
+            position=position,
+            size=size,
+        )
         if not content_update_requested and not geometry_updated and not element_updated:
             raise ValueError("No element content or geometry update was provided.")
+        _validate_current_element_model(element)
 
         await self._save_slide_ui(slide, ui)
         component_id = _component_id_for_path(ui, element_path)
@@ -2284,6 +2306,22 @@ class PresentationChatMemoryLayer:
         else:
             position_box = new_element.get("position") if isinstance(new_element.get("position"), dict) else {}
             size_box = new_element.get("size") if isinstance(new_element.get("size"), dict) else {}
+            is_vector = str(new_element.get("type") or "").lower() == "vector"
+            vector_box = self._vector_element_box(new_element) if is_vector else None
+            component_x = float(
+                position_box.get("x")
+                if isinstance(position_box.get("x"), (int, float))
+                else vector_box["x"]
+                if vector_box is not None
+                else 128
+            )
+            component_y = float(
+                position_box.get("y")
+                if isinstance(position_box.get("y"), (int, float))
+                else vector_box["y"]
+                if vector_box is not None
+                else 120
+            )
             component = {
                 "id": self._unique_ui_component_id(
                     str(new_element.get("name") or new_element.get("type") or "element"),
@@ -2291,16 +2329,32 @@ class PresentationChatMemoryLayer:
                 ),
                 "description": f"Element {new_element.get('type') or ''} added via assistant.".strip(),
                 "position": {
-                    "x": float(position_box.get("x") or 128),
-                    "y": float(position_box.get("y") or 120),
+                    "x": component_x,
+                    "y": component_y,
                 },
                 "elements": [new_element],
             }
-            new_element["position"] = {"x": 0, "y": 0}
-            new_element["size"] = {
-                "width": float(size_box.get("width") or 320),
-                "height": float(size_box.get("height") or 120),
-            }
+            if is_vector and vector_box is not None:
+                target_size = (
+                    {
+                        "width": float(size_box["width"]),
+                        "height": float(size_box["height"]),
+                    }
+                    if isinstance(size_box.get("width"), (int, float))
+                    and isinstance(size_box.get("height"), (int, float))
+                    else None
+                )
+                self._update_ui_element_box(
+                    new_element,
+                    position={"x": 0.0, "y": 0.0},
+                    size=target_size,
+                )
+            else:
+                new_element["position"] = {"x": 0, "y": 0}
+                new_element["size"] = {
+                    "width": float(size_box.get("width") or 320),
+                    "height": float(size_box.get("height") or 120),
+                }
             self._normalize_added_visual_block(component)
             self._fit_component_to_stage(component)
             component_position = len(components) if insert_index is None else min(max(0, insert_index), len(components))
@@ -2611,6 +2665,54 @@ class PresentationChatMemoryLayer:
         if target_index >= len(values):
             return False
         values.pop(target_index)
+        return True
+
+    @classmethod
+    def _update_ui_element_box(
+        cls,
+        target: dict[str, Any],
+        *,
+        position: dict[str, Any] | None = None,
+        size: dict[str, Any] | None = None,
+    ) -> bool:
+        if str(target.get("type") or "").lower() != "vector":
+            return cls._update_ui_box(target, position=position, size=size)
+        if position is None and size is None:
+            return False
+
+        box = cls._vector_element_box(target)
+        points = target.get("points")
+        if box is None or not isinstance(points, list):
+            raise ValueError("Vector geometry requires at least two numeric points.")
+
+        next_x = float(position["x"]) if position is not None else box["x"]
+        next_y = float(position["y"]) if position is not None else box["y"]
+        next_width = float(size["width"]) if size is not None else box["width"]
+        next_height = float(size["height"]) if size is not None else box["height"]
+        scale_x = next_width / box["width"]
+        scale_y = next_height / box["height"]
+
+        target["points"] = [
+            {
+                **point,
+                "x": next_x + (float(point["x"]) - box["x"]) * scale_x,
+                "y": next_y + (float(point["y"]) - box["y"]) * scale_y,
+            }
+            for point in points
+            if isinstance(point, dict)
+            and isinstance(point.get("x"), (int, float))
+            and isinstance(point.get("y"), (int, float))
+        ]
+        if size is not None and isinstance(target.get("corner_radii"), list):
+            radius_scale = min(abs(scale_x), abs(scale_y))
+            target["corner_radii"] = [
+                float(value) * radius_scale
+                if isinstance(value, (int, float))
+                else value
+                for value in target["corner_radii"]
+            ]
+        target.pop("position", None)
+        target.pop("size", None)
         return True
 
     @staticmethod

@@ -54,6 +54,17 @@ const TRANSFORM_FONT_SCALE_EPSILON = 0.001;
 
 const richMeasureCtx: { ctx: CanvasRenderingContext2D | null } = { ctx: null };
 let renderTextMeasureCanvas: HTMLCanvasElement | null = null;
+const NON_BREAKING_SPACE = "\u00A0";
+
+export function isRenderWhitespaceText(text: string) {
+  return text.length > 0 && /^\s+$/u.test(text);
+}
+
+export function renderKonvaTextSegment(text: string) {
+  return isRenderWhitespaceText(text)
+    ? text.replace(/ /g, NON_BREAKING_SPACE)
+    : text;
+}
 
 function withoutFontWrap(font: UnknownRecord): UnknownRecord {
   return Object.fromEntries(
@@ -187,7 +198,7 @@ export function normalizeRawTextMarkdownElement(
     originalSourceRuns,
     rawText,
   );
-  const sourceRuns = normalizeStyledSourceRunBoundaries(reconciledSourceRuns);
+  const sourceRuns = reconciledSourceRuns;
   const renderedRuns = renderMarkdownTextRuns(sourceRuns);
   const renderedText = textRunsContent(renderedRuns);
   const sourceHasMarkdown = sourceRuns.some((run) =>
@@ -342,9 +353,7 @@ export function rawTextListRunsForEditor(
 
   items.forEach((item, index) => {
     const itemRuns = renderMarkdownTextRuns(
-      normalizeStyledSourceRunBoundaries(
-        rawTextListItemSourceRuns(item, baseFont),
-      ),
+      rawTextListItemSourceRuns(item, baseFont),
     );
     const itemFont = itemRuns[0]?.font ?? fallbackFont;
     const prefix = textListMarkerPrefix(element.marker, index);
@@ -380,9 +389,7 @@ export function rawTextListRenderItems(
 
   return items.map((item, index) => {
     const itemRuns = renderMarkdownTextRuns(
-      normalizeStyledSourceRunBoundaries(
-        rawTextListItemSourceRuns(item, baseFont),
-      ),
+      rawTextListItemSourceRuns(item, baseFont),
     );
     const markerFont = fontFromRecord(
       asRecord(itemRuns[0]?.font ?? fallbackFont),
@@ -755,7 +762,6 @@ export function layoutRichText(
       flush();
       continue;
     }
-    if (tok.space && cur.length === 0) continue;
     if (
       wrap !== "none" &&
       !tok.space &&
@@ -780,11 +786,7 @@ export function layoutRichText(
 
   const laid: LaidToken[] = [];
   for (const line of lines) {
-    let lineWidth = line.width;
-    for (let i = line.toks.length - 1; i >= 0 && line.toks[i].space; i--) {
-      lineWidth -= line.toks[i].width;
-    }
-    let x = lineStartX(align, maxWidth, lineWidth, wrap === "none");
+    let x = lineStartX(align, maxWidth, line.width, wrap === "none");
     for (const tok of line.toks) {
       if (tok.text) {
         const tokenBoxHeight = tok.font.size * tok.font.lineHeight;
@@ -946,7 +948,7 @@ export function layoutRenderTextRuns(
         pushLine();
         continue;
       }
-      const isWhitespace = part.trim().length === 0;
+      const isWhitespace = isRenderWhitespaceText(part);
       const segments =
         wrap !== "none" && !isWhitespace
           ? splitOversizedTextSegment(part, run.font, width, measureRenderText)
@@ -1413,51 +1415,6 @@ function reconcileTextRunsWithStoredText(
     runs[runs.length - 1]?.font,
   );
   return textRunsContent(reconciled) === storedText ? reconciled : runs;
-}
-
-function normalizeStyledSourceRunBoundaries(runs: TextRun[]): TextRun[] {
-  if (runs.length < 2) return runs;
-
-  const normalized: TextRun[] = [];
-  for (const run of runs) {
-    const previous = normalized[normalized.length - 1];
-    if (previous && shouldPreserveStyledRunBoundarySpace(previous, run)) {
-      appendRunText(normalized, " ", previous.font);
-    }
-    normalized.push(cloneTextRun(run));
-  }
-
-  return sameTextRuns(normalized, runs) ? runs : normalized;
-}
-
-function shouldPreserveStyledRunBoundarySpace(left: TextRun, right: TextRun) {
-  if (!hasInlineStyleBoundary(left.font, right.font)) return false;
-  if (!left.text || !right.text) return false;
-  if (/\s$/.test(left.text) || /^\s/.test(right.text)) return false;
-
-  const leftCharacter = left.text.match(/\S(?=\s*$)/u)?.[0];
-  const rightCharacter = right.text.match(/\S/u)?.[0];
-  return Boolean(
-    leftCharacter &&
-    rightCharacter &&
-    isWordLikeBoundaryCharacter(leftCharacter) &&
-    isWordLikeBoundaryCharacter(rightCharacter),
-  );
-}
-
-function hasInlineStyleBoundary(
-  left: TextRun["font"],
-  right: TextRun["font"],
-) {
-  return (
-    Boolean(left?.bold) !== Boolean(right?.bold) ||
-    Boolean(left?.italic) !== Boolean(right?.italic) ||
-    Boolean(left?.underline) !== Boolean(right?.underline)
-  );
-}
-
-function isWordLikeBoundaryCharacter(character: string) {
-  return /[\p{L}\p{N}%°]/u.test(character);
 }
 
 function appendRunText(
