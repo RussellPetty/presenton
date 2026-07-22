@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import {
   Popover,
@@ -66,18 +66,22 @@ const SlideActionBar = ({
   revealOnGroupHover = false,
 }: SlideActionBarProps) => {
   const dispatch = useDispatch();
+  const store = useStore();
   const pathname = usePathname();
   const [showNewSlideSelection, setShowNewSlideSelection] = useState(false);
   const [isSpeakerPopoverOpen, setIsSpeakerPopoverOpen] = useState(false);
   const [isSlideMenuOpen, setIsSlideMenuOpen] = useState(false);
-  const { presentationData, isStreaming } = useSelector(
-    (state: RootState) => state.presentationGeneration
+  const isStreaming = useSelector(
+    (state: RootState) => state.presentationGeneration.isStreaming
+  );
+  const slideCount = useSelector((state: RootState) => {
+    const currentSlides = state.presentationGeneration.presentationData?.slides;
+    return Array.isArray(currentSlides) ? currentSlides.length : 0;
+  });
+  const hasPresentation = useSelector(
+    (state: RootState) => Boolean(state.presentationGeneration.presentationData)
   );
 
-  const slides = Array.isArray(presentationData?.slides)
-    ? presentationData.slides
-    : [];
-  const slideCount = slides.length;
   const hasReachedSlideLimit = slideCount >= MAX_NUMBER_OF_SLIDES;
   const currentIndex = Number.isInteger(selectedSlide)
     ? selectedSlide
@@ -92,14 +96,18 @@ const SlideActionBar = ({
   const keepVisible =
     showNewSlideSelection || isSpeakerPopoverOpen || isSlideMenuOpen;
 
-  if (!slide || !presentationData || slideCount === 0 || isStreaming) {
+  if (!slide || !hasPresentation || slideCount === 0 || isStreaming) {
     return null;
   }
 
   const rememberSlides = (actionType: string) => {
+    const currentSlides = (store.getState() as RootState)
+      .presentationGeneration.presentationData?.slides;
+    if (!Array.isArray(currentSlides)) return;
+
     dispatch(
       addToHistory({
-        slides,
+        slides: currentSlides,
         actionType,
       })
     );

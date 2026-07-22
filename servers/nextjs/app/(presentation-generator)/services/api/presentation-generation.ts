@@ -145,14 +145,14 @@ export class PresentationGenerationApi {
     }
   }
 
-  static async updatePresentationContent(body: any) {
+  static async updatePresentationContent(body: unknown) {
     try {
       const response = await fetch(
         getApiUrl(`/api/v1/ppt/presentation/update`),
         {
           method: "PATCH",
           headers: getHeader(),
-          body: JSON.stringify(body),
+          body: typeof body === "string" ? body : JSON.stringify(body),
           cache: "no-cache",
         }
       );
