@@ -160,6 +160,8 @@ def test_generate_presentation_handler_full_flow_uses_mocked_dependencies():
     assert len(session.added_all) == 2
     assert all(slide.presentation == presentation_id for slide in session.added_all)
     assert all(slide.ui is not None for slide in session.added_all)
+    assert get_slide_content.call_args_list[0].kwargs["slide_number"] == 1
+    assert get_slide_content.call_args_list[1].kwargs["slide_number"] == 2
 
 
 def test_generate_presentation_handler_uses_template_layout():
@@ -723,9 +725,11 @@ def test_stream_presentation_uses_template_schema_for_content_generation():
     )
     session = FakeAsyncSession(get_results={presentation_id: presentation})
     generated_layouts: list[SlideLayoutModel] = []
+    generated_slide_numbers: list[int] = []
 
-    async def fake_slide_content(slide_layout, *_args, **_kwargs):
+    async def fake_slide_content(slide_layout, *_args, **kwargs):
         generated_layouts.append(slide_layout)
+        generated_slide_numbers.append(kwargs["slide_number"])
         return {
             "hero": {"headline": "Causes"},
             "__speaker_note__": "Speaker note for this generated slide.",
@@ -762,6 +766,7 @@ def test_stream_presentation_uses_template_schema_for_content_generation():
 
     assert chunks
     assert len(generated_layouts) == 1
+    assert generated_slide_numbers == [1]
     generated_layout = generated_layouts[0]
     assert generated_layout.id == "template-layout-1"
     assert generated_layout.name == "template-layout-1"

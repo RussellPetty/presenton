@@ -70,6 +70,7 @@ English
 # Slide Language:
 {language}
 
+{slide_number_section}
 # SLIDE CONTENT: START
 {content}
 # SLIDE CONTENT: END
@@ -141,10 +142,19 @@ def get_system_prompt(
     )
 
 
-def get_user_prompt(outline: str, language: Optional[str]):
+def _get_slide_number_section(slide_number: Optional[int]) -> str:
+    if slide_number is None:
+        return ""
+    return f"# Slide Number:\n{slide_number}\n"
+
+
+def get_user_prompt(
+    outline: str, language: Optional[str], slide_number: Optional[int] = None
+):
     return SLIDE_CONTENT_USER_PROMPT.format(
         current_date_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         language=_resolve_prompt_language(language),
+        slide_number_section=_get_slide_number_section(slide_number),
         content=outline,
     )
 
@@ -156,6 +166,8 @@ def get_messages(
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
     response_schema: Optional[dict] = None,
+    *,
+    slide_number: Optional[int] = None,
 ) -> list[Message]:
 
     return [
@@ -168,7 +180,7 @@ def get_messages(
             ),
         ),
         UserMessage(
-            content=get_user_prompt(outline, language),
+            content=get_user_prompt(outline, language, slide_number),
         ),
     ]
 
@@ -214,6 +226,8 @@ async def get_slide_content_from_type_and_outline(
     tone: Optional[str] = None,
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
+    *,
+    slide_number: Optional[int] = None,
     disconnect_checker: Optional[DisconnectChecker] = None,
 ):
     response_schema = _prepare_response_schema(slide_layout.json_schema)
@@ -236,6 +250,7 @@ async def get_slide_content_from_type_and_outline(
             verbosity,
             instructions,
             response_schema,
+            slide_number=slide_number,
         )
 
         return await generate_structured_with_schema_retries(
