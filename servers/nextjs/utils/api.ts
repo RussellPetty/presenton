@@ -270,6 +270,30 @@ export function resolveBackendAssetSource(
   return resolveBackendAssetUrl(getBackendAssetSource(asset));
 }
 
+function isAssetLikeString(value: string): boolean {
+  const candidate = value.trim();
+  if (!candidate) return false;
+
+  if (/^(?:https?:|data:|blob:|file:)/i.test(candidate)) {
+    return true;
+  }
+
+  const { path } = splitPathAndSuffix(candidate);
+  const normalizedPath = path.replace(/\\/g, "/");
+  const startsLikePath =
+    normalizedPath.startsWith("/") ||
+    normalizedPath.startsWith("./") ||
+    normalizedPath.startsWith("../") ||
+    /^[A-Za-z]:\//.test(normalizedPath) ||
+    /^(?:static|app_data|images|uploads|fonts)\//.test(normalizedPath);
+
+  if (!startsLikePath) return false;
+
+  return hasBackendAssetPrefix(
+    toBackendServedPath(withLeadingSlash(normalizedPath))
+  );
+}
+
 export const normalizeBackendAssetUrls = <T,>(input: T): T => {
   if (Array.isArray(input)) {
     return input.map((item) => normalizeBackendAssetUrls(item)) as T;
@@ -282,7 +306,9 @@ export const normalizeBackendAssetUrls = <T,>(input: T): T => {
     )) {
       normalized[key] =
         typeof value === "string"
-          ? resolveBackendAssetUrl(value)
+          ? isAssetLikeString(value)
+            ? resolveBackendAssetUrl(value)
+            : value
           : normalizeBackendAssetUrls(value);
     }
     return normalized as T;
