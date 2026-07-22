@@ -29,7 +29,7 @@ export const usePresentationData = (
         );
         setLoading(false);
         router.replace("/dashboard");
-        return;
+        return undefined;
       }
 
       const normalizedData = normalizeBackendAssetUrls(data);
@@ -49,11 +49,13 @@ export const usePresentationData = (
         const el = document.getElementById("presentation-slides-wrapper");
         applyPresentationThemeToElement(el, normalizedData.theme);
       }
+      return normalizedData;
     } catch (error) {
       setError(true);
       notify.error("Failed to load presentation", "The presentation could not be loaded. Please try again.");
       console.error("Error fetching user slides:", error);
       setLoading(false);
+      return undefined;
     }
   }, [presentationId, dispatch, router, setLoading, setError]);
 

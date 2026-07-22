@@ -30,6 +30,7 @@ import { PresentationPageProps } from "../types";
 import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
 
 import { replaceSlidesWithBlankFallback } from "@/store/slices/presentationGeneration";
+import { addToHistory } from "@/store/slices/undoRedoSlice";
 import {
   createBlankPresentationSlide,
   getPresentationTemplateId,
@@ -170,12 +171,17 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
+  const presentationDataRef = useRef(presentationData);
   const slidesLength = presentationData?.slides?.length ?? 0;
   const isTemplateV2Presentation =
     presentationData?.version === "v2-standard" ||
     hasTemplateV2Layouts(presentationData?.layout) ||
     hasTemplateV2Slides(presentationData?.slides);
   const editingDisabled = isStreaming === true;
+
+  useEffect(() => {
+    presentationDataRef.current = presentationData;
+  }, [presentationData]);
 
   const closeMobileAssistant = useCallback(() => {
     setIsMobileAssistantOpen(false);
@@ -408,9 +414,30 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     });
   }, []);
 
-  const handlePresentationChanged = useCallback(() => {
-    return fetchUserSlides({ clearHistory: false });
-  }, [fetchUserSlides]);
+  const handlePresentationChanged = useCallback(async () => {
+    const currentPresentationData = presentationDataRef.current;
+    if (currentPresentationData?.slides) {
+      dispatch(
+        addToHistory({
+          slides: currentPresentationData.slides,
+          actionType: "CHAT_ASSISTANT_BEFORE_REFRESH",
+        })
+      );
+    }
+
+    const updatedPresentation = await fetchUserSlides({ clearHistory: false });
+    if (updatedPresentation) {
+      presentationDataRef.current = updatedPresentation;
+    }
+    if (updatedPresentation?.slides) {
+      dispatch(
+        addToHistory({
+          slides: updatedPresentation.slides,
+          actionType: "CHAT_ASSISTANT_REFRESH",
+        })
+      );
+    }
+  }, [dispatch, fetchUserSlides]);
 
   const handleChatSendingStateChange = useCallback((sending: boolean) => {
     setIsChatSending(sending);
