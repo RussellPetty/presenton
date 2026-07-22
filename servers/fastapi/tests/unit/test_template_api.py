@@ -1241,6 +1241,66 @@ def test_update_template_replaces_full_layout_collection(fake_async_session):
     assert fake_async_session.commit_count == 1
 
 
+def test_update_template_preserves_text_font_and_spacing_changes(fake_async_session):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(
+        id=template_id,
+        name="Custom",
+        layouts=TEMPLATE_LAYOUTS,
+    )
+    fake_async_session._get_results[template_id] = template
+    replacement_layout = deepcopy(TEMPLATE_LAYOUTS["layouts"][0])
+    replacement_layout["components"][0]["elements"] = [
+        {
+            "type": "text",
+            "position": {"x": 0, "y": 0},
+            "size": {"width": 480, "height": 100},
+            "font": {
+                "family": "Montserrat",
+                "size": 42,
+                "color": "#112233",
+                "bold": True,
+                "italic": True,
+                "underline": True,
+                "line_height": 1.35,
+                "letter_spacing": 2.5,
+            },
+            "runs": [
+                {
+                    "text": "Styled heading",
+                    "font": {
+                        "family": "Montserrat",
+                        "size": 42,
+                        "underline": True,
+                        "line_height": 1.35,
+                        "letter_spacing": 2.5,
+                    },
+                }
+            ],
+            "decorative": False,
+            "name": "heading",
+            "min_length": 4,
+            "max_length": 30,
+        }
+    ]
+
+    asyncio.run(
+        update_template_metadata(
+            template_id,
+            UpdateTemplateMetadataRequest(
+                id=template_id,
+                layouts={"layouts": [replacement_layout]},
+            ),
+            sql_session=fake_async_session,
+        )
+    )
+
+    saved_text = template.layouts["layouts"][0]["components"][0]["elements"][0]
+    replacement_text = replacement_layout["components"][0]["elements"][0]
+    assert saved_text["font"] == replacement_text["font"]
+    assert saved_text["runs"][0]["font"] == replacement_text["runs"][0]["font"]
+
+
 def test_update_template_updates_response_assets_and_components(fake_async_session):
     template_id = str(uuid.uuid4())
     template = TemplateV2(

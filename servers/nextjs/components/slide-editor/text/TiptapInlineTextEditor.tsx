@@ -23,6 +23,9 @@ import {
   type TextSelectionRange,
 } from "@/components/slide-editor/text/text-runs";
 
+export const COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT =
+  "presenton:commit-template-v2-inline-text";
+
 type RunStyleAttrs = {
   family?: string | null;
   size?: number | null;
@@ -355,6 +358,24 @@ export function TiptapInlineTextEditor({
     document.addEventListener("pointerdown", handlePointerDown, true);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [callbacksRef, flushPendingRuns]);
+
+  useEffect(() => {
+    const commitBeforeExternalAction = () => {
+      flushPendingRuns();
+      callbacksRef.current.onBlurOutside();
+    };
+
+    window.addEventListener(
+      COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT,
+      commitBeforeExternalAction,
+    );
+    return () => {
+      window.removeEventListener(
+        COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT,
+        commitBeforeExternalAction,
+      );
     };
   }, [callbacksRef, flushPendingRuns]);
 

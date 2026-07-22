@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
 import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
+import { COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT } from "@/components/slide-editor/text/TiptapInlineTextEditor";
 import { normalizeBackendAssetUrls } from "@/utils/api";
 import TemplateService from "../../services/api/template";
 import { useTemplateDetails } from "../../hooks/useTemplateDetails";
@@ -70,6 +71,7 @@ const GroupLayoutPreview = ({
   const { template, layouts, fonts, loading, error } =
     useTemplateDetails(templateId);
   const [editableLayouts, setEditableLayouts] = useState<TemplateV2Layout[]>([]);
+  const editableLayoutsRef = useRef<TemplateV2Layout[]>([]);
   const [activeLayoutIndex, setActiveLayoutIndex] = useState(0);
   const [activePanel, setActivePanel] = useState<PanelMode>("schema");
   const [density, setDensity] = useState<Density>("");
@@ -143,6 +145,7 @@ const GroupLayoutPreview = ({
   }, [fonts]);
 
   useEffect(() => {
+    editableLayoutsRef.current = layouts;
     setEditableLayouts(layouts);
     setActiveLayoutIndex(0);
     setDensity("");
@@ -237,17 +240,28 @@ const GroupLayoutPreview = ({
     setTemplateNameDraft(savedTemplateName);
   }, [savedTemplateName]);
 
+  const updateEditableLayouts = useCallback(
+    (
+      updater: (currentLayouts: TemplateV2Layout[]) => TemplateV2Layout[],
+    ) => {
+      const nextLayouts = updater(editableLayoutsRef.current);
+      editableLayoutsRef.current = nextLayouts;
+      setEditableLayouts(nextLayouts);
+    },
+    [],
+  );
+
   const updateActiveLayout = useCallback(
     (layout: TemplateV2Layout) => {
       if (!canEditTemplate) return;
-      setEditableLayouts((currentLayouts) =>
+      updateEditableLayouts((currentLayouts) =>
         currentLayouts.map((currentLayout, index) =>
           index === activeLayoutIndex ? layout : currentLayout,
         ),
       );
       setHasUnsavedChanges(true);
     },
-    [activeLayoutIndex, canEditTemplate],
+    [activeLayoutIndex, canEditTemplate, updateEditableLayouts],
   );
 
   const handlePreviewLayoutChange = useCallback(
@@ -316,7 +330,7 @@ const GroupLayoutPreview = ({
     const duplicated = cloneLayout(activeLayout) as UnknownRecord;
     const nextId = `${activeLayoutId}-copy`;
     duplicated.id = nextId;
-    setEditableLayouts((currentLayouts) => {
+    updateEditableLayouts((currentLayouts) => {
       const nextLayouts = [...currentLayouts];
       nextLayouts.splice(
         activeLayoutIndex + 1,
@@ -340,6 +354,7 @@ const GroupLayoutPreview = ({
     canEditTemplate,
     editableLayouts.length,
     templateId,
+    updateEditableLayouts,
   ]);
 
   const moveActiveLayout = useCallback(
@@ -347,7 +362,7 @@ const GroupLayoutPreview = ({
       const nextIndex = activeLayoutIndex + direction;
       if (!canEditTemplate) return;
       if (nextIndex < 0 || nextIndex >= editableLayouts.length) return;
-      setEditableLayouts((currentLayouts) => {
+      updateEditableLayouts((currentLayouts) => {
         const nextLayouts = [...currentLayouts];
         const [layout] = nextLayouts.splice(activeLayoutIndex, 1);
         if (!layout) return currentLayouts;
@@ -363,7 +378,13 @@ const GroupLayoutPreview = ({
         layout_count: editableLayouts.length,
       });
     },
-    [activeLayoutIndex, canEditTemplate, editableLayouts.length, templateId],
+    [
+      activeLayoutIndex,
+      canEditTemplate,
+      editableLayouts.length,
+      templateId,
+      updateEditableLayouts,
+    ],
   );
 
   const deleteActiveLayout = useCallback(() => {
@@ -376,7 +397,7 @@ const GroupLayoutPreview = ({
       return;
     }
 
-    setEditableLayouts((currentLayouts) =>
+    updateEditableLayouts((currentLayouts) =>
       currentLayouts.filter((_, index) => index !== activeLayoutIndex),
     );
     setActiveLayoutIndex((index) =>
@@ -389,7 +410,13 @@ const GroupLayoutPreview = ({
       layout_count_before: editableLayouts.length,
       layout_count_after: editableLayouts.length - 1,
     });
-  }, [activeLayoutIndex, canEditTemplate, editableLayouts.length, templateId]);
+  }, [
+    activeLayoutIndex,
+    canEditTemplate,
+    editableLayouts.length,
+    templateId,
+    updateEditableLayouts,
+  ]);
 
   const reconstructActiveLayout = useCallback(async () => {
     if (!canEditTemplate || !templateId || !activeLayout || isReconstructing) {
@@ -473,23 +500,34 @@ const GroupLayoutPreview = ({
   }, [activeLayoutIndex, canEditTemplate, prompt, templateId]);
 
   const saveTemplate = useCallback(async () => {
+    let layoutsToSave = editableLayoutsRef.current;
     if (
       !canEditTemplate ||
       !templateId ||
       !template ||
-      editableLayouts.length === 0
+      layoutsToSave.length === 0
     ) {
       return;
     }
 
     setIsSaving(true);
     const startedAt = Date.now();
-    track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_TEMPLATE_SAVE_REQUESTED, {
-      template_id: templateId,
-      layout_count: editableLayouts.length,
-      had_unsaved_changes: hasUnsavedChanges,
-    });
     try {
+      // Save can be clicked while Tiptap still has an update queued for the
+      // active text element. Force that editor to flush and close before the
+      // request takes its layout snapshot.
+      window.dispatchEvent(
+        new Event(COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT),
+      );
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+      layoutsToSave = editableLayoutsRef.current;
+
+      track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_TEMPLATE_SAVE_REQUESTED, {
+        template_id: templateId,
+        layout_count: layoutsToSave.length,
+        had_unsaved_changes: hasUnsavedChanges,
+      });
+
       const nextTemplateName = templateNameDraft.trim() || "Untitled Template";
       if (nextTemplateName !== templateNameDraft) {
         setTemplateNameDraft(nextTemplateName);
@@ -497,7 +535,7 @@ const GroupLayoutPreview = ({
 
       const targetTemplateId = template.id || templateId;
       const payload = buildTemplateSavePayload({
-        layouts: editableLayouts,
+        layouts: layoutsToSave,
         name: nextTemplateName,
         targetTemplateId,
         template,
@@ -512,7 +550,7 @@ const GroupLayoutPreview = ({
       );
       track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_TEMPLATE_SAVED, {
         template_id: templateId,
-        layout_count: editableLayouts.length,
+        layout_count: layoutsToSave.length,
         duration_ms: Date.now() - startedAt,
       });
     } catch (saveError) {
@@ -524,7 +562,7 @@ const GroupLayoutPreview = ({
       );
       track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_TEMPLATE_SAVE_FAILED, {
         template_id: templateId,
-        layout_count: editableLayouts.length,
+        layout_count: layoutsToSave.length,
         duration_ms: Date.now() - startedAt,
         ...getPresentationErrorProperties(saveError),
       });
@@ -533,7 +571,6 @@ const GroupLayoutPreview = ({
     }
   }, [
     canEditTemplate,
-    editableLayouts,
     hasUnsavedChanges,
     template,
     templateId,

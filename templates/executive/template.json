@@ -1223,6 +1223,7 @@
                 "width": 711.74,
                 "height": 72.77
               },
+              "rotation": 0,
               "font": {
                 "size": 24,
                 "family": "Montserrat Semi-Bold",
@@ -1251,8 +1252,7 @@
               "decorative": false,
               "name": "supporting_tagline",
               "max_length": 109,
-              "min_length": 26,
-              "rotation": 0
+              "min_length": 26
             }
           ]
         },
@@ -1314,6 +1314,7 @@
                 "width": 788.47,
                 "height": 64.35
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -1342,8 +1343,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 126,
-              "min_length": 64,
-              "rotation": 0
+              "min_length": 64
             }
           ]
         },
@@ -1455,6 +1455,7 @@
                 "width": 621.17,
                 "height": 62
               },
+              "rotation": 0,
               "font": {
                 "size": 55,
                 "family": "Anton",
@@ -1481,8 +1482,7 @@
               "decorative": false,
               "name": "main_heading_start",
               "max_length": 25,
-              "min_length": 27,
-              "rotation": 0
+              "min_length": 27
             },
             {
               "type": "text",
@@ -1532,6 +1532,7 @@
                 "width": 842.34,
                 "height": 62
               },
+              "rotation": 0,
               "font": {
                 "size": 55,
                 "family": "Anton",
@@ -1558,8 +1559,7 @@
               "decorative": false,
               "name": "main_heading_second_line",
               "max_length": 34,
-              "min_length": 11,
-              "rotation": 0
+              "min_length": 11
             },
             {
               "type": "text",
@@ -1621,6 +1621,7 @@
                 "width": 1174,
                 "height": 97.54
               },
+              "rotation": 0,
               "font": {
                 "size": 46,
                 "family": "Anton",
@@ -1649,8 +1650,7 @@
               "decorative": false,
               "name": "main_heading",
               "max_length": 94,
-              "min_length": 24,
-              "rotation": 0
+              "min_length": 24
             },
             {
               "type": "text",
@@ -1752,6 +1752,7 @@
                 "width": 1160,
                 "height": 82.08
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -1780,8 +1781,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 330,
-              "min_length": 59,
-              "rotation": 0
+              "min_length": 59
             }
           ]
         },
@@ -1817,7 +1817,7 @@
               },
               "runs": [
                 {
-                  "text": "Productivity Growth Analysis\n",
+                  "text": "Productivity Growth Analysis",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -1839,7 +1839,7 @@
                   }
                 },
                 {
-                  "text": " of Task Completion",
+                  "text": "of Task Completion",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -1928,7 +1928,7 @@
               },
               "runs": [
                 {
-                  "text": "The ",
+                  "text": "The",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -1948,7 +1948,7 @@
                   }
                 },
                 {
-                  "text": " also reflects the positive improve accountability",
+                  "text": "also reflects the positive improve accountability",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -1973,6 +1973,7 @@
                 "width": 1173.35,
                 "height": 60.94
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -2001,8 +2002,7 @@
               "decorative": false,
               "name": "subtitle_text",
               "max_length": 162,
-              "min_length": 81,
-              "rotation": 0
+              "min_length": 81
             }
           ]
         },
@@ -2024,6 +2024,7 @@
                 "width": 1173.35,
                 "height": 124.64
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -2038,7 +2039,7 @@
               },
               "runs": [
                 {
-                  "text": "Implementation Plan ",
+                  "text": "Implementation Plan",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -2063,8 +2064,7 @@
               "decorative": false,
               "name": "main_headline",
               "max_length": 93,
-              "min_length": 20,
-              "rotation": 0
+              "min_length": 20
             },
             {
               "type": "text",
@@ -2076,6 +2076,7 @@
                 "width": 1173.35,
                 "height": 60.94
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -2104,8 +2105,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 242,
-              "min_length": 105,
-              "rotation": 0
+              "min_length": 105
             }
           ]
         },
@@ -2230,7 +2230,7 @@
               },
               "runs": [
                 {
-                  "text": "Goal Develop a ",
+                  "text": "Goal Develop a",
                   "font": {
                     "size": 48,
                     "family": "Anton",
@@ -2250,7 +2250,7 @@
                   }
                 },
                 {
-                  "text": " that simplifies",
+                  "text": "that simplifies",
                   "font": {
                     "size": 48,
                     "family": "Anton",
@@ -2331,6 +2331,7 @@
                 "width": 227.68,
                 "height": 18.49
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat",
@@ -2357,8 +2358,7 @@
               "decorative": false,
               "name": "presenter_label",
               "max_length": 30,
-              "min_length": 6,
-              "rotation": 0
+              "min_length": 6
             },
             {
               "type": "text",
@@ -2514,6 +2514,7 @@
                 "width": 1146.37,
                 "height": 131.78
               },
+              "rotation": 0,
               "font": {
                 "size": 97.78,
                 "family": "Anton",
@@ -2537,9 +2538,8 @@
               ],
               "decorative": false,
               "name": "section_title",
-              "min_length": 3,
-              "rotation": 0,
-              "max_length": 26
+              "max_length": 26,
+              "min_length": 3
             }
           ]
         },
@@ -2561,6 +2561,7 @@
                 "width": 610,
                 "height": 157.73
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -2575,7 +2576,7 @@
               },
               "runs": [
                 {
-                  "text": "What is a \n",
+                  "text": "What is a",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -2586,7 +2587,7 @@
                   }
                 },
                 {
-                  "text": "Smart Task Management\n",
+                  "text": "Smart Task Management",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -2610,9 +2611,8 @@
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 20,
-              "rotation": 0,
-              "max_length": 126
+              "max_length": 126,
+              "min_length": 20
             }
           ]
         },
@@ -2634,6 +2634,7 @@
                 "width": 1159.08,
                 "height": 146.23
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -2662,8 +2663,7 @@
               "decorative": false,
               "name": "slide_heading",
               "max_length": 92,
-              "min_length": 50,
-              "rotation": 0
+              "min_length": 50
             }
           ]
         }
@@ -2691,6 +2691,7 @@
                 "width": 1084.9,
                 "height": 387.23
               },
+              "rotation": 0,
               "direction": "column",
               "wrap": false,
               "align_items": "flex-start",
@@ -2728,7 +2729,7 @@
                       }
                     },
                     {
-                      "text": " Introduction",
+                      "text": "Introduction",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -2775,7 +2776,7 @@
                       }
                     },
                     {
-                      "text": " Problem Statement",
+                      "text": "Problem Statement",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -2822,7 +2823,7 @@
                       }
                     },
                     {
-                      "text": " Solution",
+                      "text": "Solution",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -2869,7 +2870,7 @@
                       }
                     },
                     {
-                      "text": " Frameworks",
+                      "text": "Frameworks",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -2916,7 +2917,7 @@
                       }
                     },
                     {
-                      "text": " Process",
+                      "text": "Process",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -2963,7 +2964,7 @@
                       }
                     },
                     {
-                      "text": " Goals",
+                      "text": "Goals",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -3010,7 +3011,7 @@
                       }
                     },
                     {
-                      "text": " Benefits",
+                      "text": "Benefits",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -3057,7 +3058,7 @@
                       }
                     },
                     {
-                      "text": " Conclusion",
+                      "text": "Conclusion",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -3076,8 +3077,7 @@
               ],
               "name": "vertical_text_stack",
               "max_children": 10,
-              "min_children": 3,
-              "rotation": 0
+              "min_children": 3
             }
           ]
         }
@@ -3674,7 +3674,7 @@
                   }
                 },
                 {
-                  "text": " 08",
+                  "text": "08",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -3997,7 +3997,7 @@
                   }
                 },
                 {
-                  "text": " 12",
+                  "text": "12",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -4142,7 +4142,7 @@
                   }
                 },
                 {
-                  "text": "  14",
+                  "text": "14",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -4376,7 +4376,7 @@
                   }
                 },
                 {
-                  "text": " 17",
+                  "text": "17",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
@@ -4523,7 +4523,7 @@
                   }
                 },
                 {
-                  "text": " 19",
+                  "text": "19",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
@@ -4670,7 +4670,7 @@
                   }
                 },
                 {
-                  "text": "  21",
+                  "text": "21",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
@@ -5007,7 +5007,7 @@
                   }
                 },
                 {
-                  "text": " 25",
+                  "text": "25",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -5418,7 +5418,7 @@
                   }
                 },
                 {
-                  "text": " 30",
+                  "text": "30",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
@@ -5747,6 +5747,7 @@
                 "width": 514.02,
                 "height": 513.33
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -5774,9 +5775,8 @@
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 19,
-              "rotation": 0,
-              "max_length": 149
+              "max_length": 149,
+              "min_length": 19
             },
             {
               "type": "text",
@@ -5788,6 +5788,7 @@
                 "width": 511.84,
                 "height": 79.92
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat",
@@ -5814,8 +5815,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 127,
-              "min_length": 64,
-              "rotation": 0
+              "min_length": 64
             }
           ]
         },
@@ -5875,6 +5875,7 @@
                 "width": 1004.81,
                 "height": 50
               },
+              "rotation": 0,
               "font": {
                 "size": 17.8,
                 "family": "Montserrat Medium",
@@ -5903,8 +5904,7 @@
               "decorative": false,
               "name": "subtitle_text",
               "max_length": 182,
-              "min_length": 78,
-              "rotation": 0
+              "min_length": 78
             }
           ]
         },
@@ -5926,6 +5926,7 @@
                 "width": 535.26,
                 "height": 126.55
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -5954,8 +5955,7 @@
               "decorative": false,
               "name": "intro_headline",
               "max_length": 45,
-              "min_length": 22,
-              "rotation": 0
+              "min_length": 22
             },
             {
               "type": "text",
@@ -5967,6 +5967,7 @@
                 "width": 535.26,
                 "height": 429.51
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -5994,9 +5995,8 @@
               ],
               "decorative": false,
               "name": "intro_description",
-              "min_length": 83,
-              "rotation": 0,
-              "max_length": 844
+              "max_length": 844,
+              "min_length": 83
             }
           ]
         },
@@ -6018,6 +6018,7 @@
                 "width": 1045.15,
                 "height": 60
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -6044,8 +6045,7 @@
               "decorative": false,
               "name": "title_primary_line",
               "max_length": 43,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -6057,6 +6057,7 @@
                 "width": 1018.05,
                 "height": 62
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -6083,8 +6084,7 @@
               "decorative": false,
               "name": "title_emphasis_line",
               "max_length": 40,
-              "min_length": 14,
-              "rotation": 0
+              "min_length": 14
             },
             {
               "type": "text",
@@ -6096,6 +6096,7 @@
                 "width": 1045,
                 "height": 89.76
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -6124,8 +6125,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 308,
-              "min_length": 80,
-              "rotation": 0
+              "min_length": 80
             }
           ]
         },
@@ -6237,6 +6237,7 @@
                 "width": 590.33,
                 "height": 122.83
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -6265,8 +6266,7 @@
               "decorative": false,
               "name": "headline_text",
               "max_length": 44,
-              "min_length": 20,
-              "rotation": 0
+              "min_length": 20
             },
             {
               "type": "text",
@@ -6278,6 +6278,7 @@
                 "width": 579.31,
                 "height": 83.34
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -6306,8 +6307,7 @@
               "decorative": false,
               "name": "intro_statement",
               "max_length": 170,
-              "min_length": 61,
-              "rotation": 0
+              "min_length": 61
             }
           ]
         },
@@ -6369,6 +6369,7 @@
                 "width": 580,
                 "height": 228.37
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -6397,8 +6398,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 511,
-              "min_length": 69,
-              "rotation": 0
+              "min_length": 69
             }
           ]
         },
@@ -6460,6 +6460,7 @@
                 "width": 681.52,
                 "height": 110.21
               },
+              "rotation": 0,
               "font": {
                 "size": 17.8,
                 "family": "Montserrat Medium",
@@ -6487,9 +6488,8 @@
               ],
               "decorative": false,
               "name": "supporting_statement",
-              "min_length": 69,
-              "rotation": 0,
-              "max_length": 271
+              "max_length": 271,
+              "min_length": 69
             }
           ]
         },
@@ -6625,6 +6625,7 @@
                 "width": 297.78,
                 "height": 56
               },
+              "rotation": 0,
               "font": {
                 "size": 48,
                 "family": "Anton",
@@ -6651,7 +6652,6 @@
               "decorative": false,
               "name": "headline_closing_text",
               "max_length": 15,
-              "rotation": 0,
               "min_length": 15
             },
             {
@@ -6664,6 +6664,7 @@
                 "width": 632,
                 "height": 126.98
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -6691,9 +6692,8 @@
               ],
               "decorative": false,
               "name": "summary_text",
-              "min_length": 65,
-              "rotation": 0,
-              "max_length": 315
+              "max_length": 315,
+              "min_length": 65
             }
           ]
         },
@@ -6740,8 +6740,8 @@
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 32,
-              "max_length": 80
+              "max_length": 80,
+              "min_length": 32
             },
             {
               "type": "text",
@@ -6753,6 +6753,7 @@
                 "width": 632,
                 "height": 81.95
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -6767,7 +6768,7 @@
               },
               "runs": [
                 {
-                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure. ",
+                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -6781,8 +6782,7 @@
               "decorative": false,
               "name": "intro_text",
               "max_length": 135,
-              "min_length": 68,
-              "rotation": 0
+              "min_length": 68
             }
           ]
         },
@@ -6818,7 +6818,7 @@
               },
               "runs": [
                 {
-                  "text": "The company managed ",
+                  "text": "The company managed",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -6840,7 +6840,7 @@
                   }
                 },
                 {
-                  "text": " weekly tasks",
+                  "text": "weekly tasks",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
@@ -6866,6 +6866,7 @@
                 "width": 606,
                 "height": 228.76
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -6880,7 +6881,7 @@
               },
               "runs": [
                 {
-                  "text": "A university implemented the Digital Learning Platform to improve online education, simplify course management, and enhance student engagement. ",
+                  "text": "A university implemented the Digital Learning Platform to improve online education, simplify course management, and enhance student engagement.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -6893,9 +6894,8 @@
               ],
               "decorative": false,
               "name": "supporting_paragraph",
-              "min_length": 72,
-              "rotation": 0,
-              "max_length": 500
+              "max_length": 500,
+              "min_length": 72
             }
           ]
         },
@@ -6957,6 +6957,7 @@
                 "width": 525,
                 "height": 155.25
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -6984,9 +6985,8 @@
               ],
               "decorative": false,
               "name": "intro_description",
-              "min_length": 76,
-              "rotation": 0,
-              "max_length": 317
+              "max_length": 317,
+              "min_length": 76
             }
           ]
         },
@@ -7048,6 +7048,7 @@
                 "width": 524.63,
                 "height": 90.15
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -7062,7 +7063,7 @@
               },
               "runs": [
                 {
-                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure. ",
+                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -7076,8 +7077,7 @@
               "decorative": false,
               "name": "supporting_summary",
               "max_length": 153,
-              "min_length": 68,
-              "rotation": 0
+              "min_length": 68
             }
           ]
         },
@@ -7099,6 +7099,7 @@
                 "width": 605.06,
                 "height": 68
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -7125,8 +7126,7 @@
               "decorative": false,
               "name": "main_heading_text",
               "max_length": 24,
-              "min_length": 5,
-              "rotation": 0
+              "min_length": 5
             },
             {
               "type": "text",
@@ -7138,6 +7138,7 @@
                 "width": 603.75,
                 "height": 101.86
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -7152,7 +7153,7 @@
               },
               "runs": [
                 {
-                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement. ",
+                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -7166,8 +7167,7 @@
               "decorative": false,
               "name": "supporting_description_text",
               "max_length": 233,
-              "min_length": 71,
-              "rotation": 0
+              "min_length": 71
             }
           ]
         },
@@ -7189,6 +7189,7 @@
                 "width": 524.34,
                 "height": 126.92
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -7217,8 +7218,7 @@
               "decorative": false,
               "name": "main_heading",
               "max_length": 29,
-              "min_length": 4,
-              "rotation": 0
+              "min_length": 4
             },
             {
               "type": "text",
@@ -7230,6 +7230,7 @@
                 "width": 521.78,
                 "height": 168.55
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -7258,8 +7259,7 @@
               "decorative": false,
               "name": "summary_text",
               "max_length": 300,
-              "min_length": 72,
-              "rotation": 0
+              "min_length": 72
             }
           ]
         },
@@ -7294,7 +7294,7 @@
               },
               "runs": [
                 {
-                  "text": "Identifying ",
+                  "text": "Identifying",
                   "font": {
                     "size": 55.99,
                     "family": "Impact",
@@ -7379,6 +7379,7 @@
                 "width": 1159.68,
                 "height": 62.16
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -7407,8 +7408,7 @@
               "decorative": false,
               "name": "headline_text",
               "max_length": 37,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -7420,6 +7420,7 @@
                 "width": 1150.43,
                 "height": 48.44
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -7448,8 +7449,7 @@
               "decorative": false,
               "name": "supporting_copy",
               "max_length": 118,
-              "min_length": 72,
-              "rotation": 0
+              "min_length": 72
             }
           ]
         }
@@ -7657,10 +7657,15 @@
               "children": [
                 {
                   "type": "text",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
                   "size": {
                     "width": 538.57,
                     "height": 108.81
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat",
@@ -7687,13 +7692,7 @@
                   "decorative": false,
                   "name": "body_paragraph",
                   "max_length": 267,
-                  "min_length": 134,
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  },
-                  "rotation": 0,
-                  "__presenton_manual_position": true
+                  "min_length": 134
                 },
                 {
                   "type": "text",
@@ -7798,6 +7797,7 @@
                           "width": 169.97,
                           "height": 80.91
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 66.7,
                           "family": "Montserrat Bold",
@@ -7826,8 +7826,7 @@
                         "decorative": false,
                         "name": "card_index",
                         "max_length": 4,
-                        "min_length": 1,
-                        "rotation": 0
+                        "min_length": 1
                       },
                       {
                         "type": "text",
@@ -7944,6 +7943,7 @@
                           "width": 192.71,
                           "height": 90
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 66.7,
                           "family": "Montserrat Bold",
@@ -7972,8 +7972,7 @@
                         "decorative": false,
                         "name": "card_index",
                         "max_length": 4,
-                        "min_length": 1,
-                        "rotation": 0
+                        "min_length": 1
                       },
                       {
                         "type": "text",
@@ -8090,6 +8089,7 @@
                           "width": 174.51,
                           "height": 90
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 66.7,
                           "family": "Montserrat Bold",
@@ -8118,8 +8118,7 @@
                         "decorative": false,
                         "name": "card_index",
                         "max_length": 4,
-                        "min_length": 1,
-                        "rotation": 0
+                        "min_length": 1
                       },
                       {
                         "type": "text",
@@ -8236,6 +8235,7 @@
                           "width": 177.92,
                           "height": 90
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 66.7,
                           "family": "Montserrat Bold",
@@ -8264,8 +8264,7 @@
                         "decorative": false,
                         "name": "card_index",
                         "max_length": 4,
-                        "min_length": 1,
-                        "rotation": 0
+                        "min_length": 1
                       },
                       {
                         "type": "text",
@@ -8383,7 +8382,6 @@
               "children": [
                 {
                   "type": "group",
-                  "name": "card_lists_grid",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -8395,6 +8393,10 @@
                   "children": [
                     {
                       "type": "flex",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "direction": "column",
                       "align_items": "stretch",
                       "justify_content": "flex-start",
@@ -8473,17 +8475,13 @@
                       ],
                       "name": "card_text_stack",
                       "max_children": 4,
-                      "min_children": 1,
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "min_children": 1
                     }
-                  ]
+                  ],
+                  "name": "card_lists_grid"
                 },
                 {
                   "type": "group",
-                  "name": "card_group_lists_element",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -8495,6 +8493,10 @@
                   "children": [
                     {
                       "type": "flex",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "direction": "column",
                       "align_items": "stretch",
                       "justify_content": "flex-start",
@@ -8573,13 +8575,10 @@
                       ],
                       "name": "card_text_stack",
                       "max_children": 2,
-                      "min_children": 2,
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "min_children": 2
                     }
-                  ]
+                  ],
+                  "name": "card_group_lists_element"
                 }
               ],
               "name": "cards_grid",
@@ -8680,10 +8679,15 @@
                       },
                       {
                         "type": "text",
+                        "position": {
+                          "x": 0,
+                          "y": 40
+                        },
                         "size": {
                           "width": 250,
                           "height": 80.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -8710,13 +8714,7 @@
                         "decorative": false,
                         "name": "card_title",
                         "max_length": 9,
-                        "min_length": 5,
-                        "position": {
-                          "x": 0,
-                          "y": 40
-                        },
-                        "rotation": 0,
-                        "__presenton_manual_position": true
+                        "min_length": 5
                       }
                     ],
                     "name": "card_text_stack",
@@ -8791,10 +8789,15 @@
                       },
                       {
                         "type": "text",
+                        "position": {
+                          "x": 0,
+                          "y": 40
+                        },
                         "size": {
                           "width": 250,
                           "height": 92.77
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -8821,13 +8824,7 @@
                         "decorative": false,
                         "name": "card_title",
                         "max_length": 9,
-                        "min_length": 5,
-                        "position": {
-                          "x": 0,
-                          "y": 40
-                        },
-                        "rotation": 0,
-                        "__presenton_manual_position": true
+                        "min_length": 5
                       }
                     ],
                     "name": "card_text_stack",
@@ -8837,8 +8834,8 @@
                 }
               ],
               "name": "callout_card_grid",
-              "min_children": 1,
-              "max_children": 4
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -9315,7 +9312,7 @@
         },
         {
           "id": "cards_ list_grid_right",
-          "description": "right side card layout ",
+          "description": "right side card layout",
           "position": {
             "x": 711,
             "y": 67
@@ -9640,6 +9637,7 @@
                           "width": 461.81,
                           "height": 30.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -9654,7 +9652,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Centralized Learning ",
+                            "text": "Centralized Learning",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Semi-Bold",
@@ -9668,8 +9666,7 @@
                         "decorative": false,
                         "name": "card_heading",
                         "max_length": 26,
-                        "min_length": 11,
-                        "rotation": 0
+                        "min_length": 11
                       },
                       {
                         "type": "text",
@@ -9681,6 +9678,7 @@
                           "width": 505.92,
                           "height": 106.23
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 12.44,
                           "family": "Montserrat",
@@ -9707,8 +9705,7 @@
                         "decorative": false,
                         "name": "card_body",
                         "max_length": 225,
-                        "min_length": 78,
-                        "rotation": 0
+                        "min_length": 78
                       }
                     ],
                     "name": "card_content_group"
@@ -9769,6 +9766,7 @@
                           "width": 462.95,
                           "height": 30.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -9783,7 +9781,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Centralized Learning ",
+                            "text": "Centralized Learning",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Semi-Bold",
@@ -9797,8 +9795,7 @@
                         "decorative": false,
                         "name": "card_heading",
                         "max_length": 26,
-                        "min_length": 11,
-                        "rotation": 0
+                        "min_length": 11
                       },
                       {
                         "type": "text",
@@ -9810,6 +9807,7 @@
                           "width": 505.92,
                           "height": 99.42
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 12.44,
                           "family": "Montserrat",
@@ -9836,8 +9834,7 @@
                         "decorative": false,
                         "name": "card_body",
                         "max_length": 225,
-                        "min_length": 78,
-                        "rotation": 0
+                        "min_length": 78
                       }
                     ],
                     "name": "card_content_group"
@@ -9898,6 +9895,7 @@
                           "width": 467.49,
                           "height": 30.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -9912,7 +9910,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Centralized Learning ",
+                            "text": "Centralized Learning",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Semi-Bold",
@@ -9926,8 +9924,7 @@
                         "decorative": false,
                         "name": "card_heading",
                         "max_length": 26,
-                        "min_length": 11,
-                        "rotation": 0
+                        "min_length": 11
                       },
                       {
                         "type": "text",
@@ -9939,6 +9936,7 @@
                           "width": 505.92,
                           "height": 60.79
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 12.44,
                           "family": "Montserrat",
@@ -9965,8 +9963,7 @@
                         "decorative": false,
                         "name": "card_body",
                         "max_length": 225,
-                        "min_length": 78,
-                        "rotation": 0
+                        "min_length": 78
                       }
                     ],
                     "name": "card_content_group"
@@ -9974,8 +9971,8 @@
                 }
               ],
               "name": "cards_stack",
-              "min_children": 1,
-              "max_children": 3
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         },
@@ -10283,8 +10280,8 @@
                 }
               ],
               "name": "cards_grid",
-              "min_children": 1,
-              "max_children": 3
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         },
@@ -10306,6 +10303,7 @@
                 "width": 603,
                 "height": 566.07
               },
+              "rotation": 0,
               "columns": 1,
               "rows": 4,
               "gap": 52,
@@ -10363,7 +10361,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Phase 1: ",
+                            "text": "Phase 1:",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Bold",
@@ -10389,6 +10387,7 @@
                           "width": 409.13,
                           "height": 31
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -10417,8 +10416,7 @@
                         "decorative": false,
                         "name": "stage_title",
                         "max_length": 34,
-                        "min_length": 6,
-                        "rotation": 0
+                        "min_length": 6
                       },
                       {
                         "type": "text",
@@ -10430,6 +10428,7 @@
                           "width": 440,
                           "height": 95.4
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -10456,8 +10455,7 @@
                         "decorative": false,
                         "name": "stage_description",
                         "max_length": 219,
-                        "min_length": 56,
-                        "rotation": 0
+                        "min_length": 56
                       }
                     ],
                     "name": "stage_card_content"
@@ -10514,7 +10512,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Phase 2: ",
+                            "text": "Phase 2:",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Bold",
@@ -10540,6 +10538,7 @@
                           "width": 405.72,
                           "height": 31
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -10568,8 +10567,7 @@
                         "decorative": false,
                         "name": "stage_title",
                         "max_length": 34,
-                        "min_length": 6,
-                        "rotation": 0
+                        "min_length": 6
                       },
                       {
                         "type": "text",
@@ -10581,6 +10579,7 @@
                           "width": 440,
                           "height": 81.76
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -10607,8 +10606,7 @@
                         "decorative": false,
                         "name": "stage_description",
                         "max_length": 219,
-                        "min_length": 56,
-                        "rotation": 0
+                        "min_length": 56
                       }
                     ],
                     "name": "stage_card_content"
@@ -10617,8 +10615,7 @@
               ],
               "name": "process_cards_grid",
               "max_children": 4,
-              "min_children": 1,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         },
@@ -10663,6 +10660,7 @@
                         "width": 558,
                         "height": 66.64
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F0EEF8",
                         "opacity": 1
@@ -10672,8 +10670,7 @@
                         "tr": 32,
                         "bl": 32,
                         "br": 32
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -10685,6 +10682,7 @@
                         "width": 529.41,
                         "height": 30.27
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Semi-Bold",
@@ -10713,8 +10711,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 42,
-                      "min_length": 19,
-                      "rotation": 0
+                      "min_length": 19
                     },
                     {
                       "type": "text",
@@ -10726,6 +10723,7 @@
                         "width": 513.59,
                         "height": 123.1
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat",
@@ -10752,8 +10750,7 @@
                       "decorative": false,
                       "name": "card_body",
                       "max_length": 207,
-                      "min_length": 64,
-                      "rotation": 0
+                      "min_length": 64
                     }
                   ],
                   "name": "information_card"
@@ -10775,6 +10772,7 @@
                         "width": 558,
                         "height": 65.5
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F0EEF8",
                         "opacity": 1
@@ -10784,8 +10782,7 @@
                         "tr": 32,
                         "bl": 32,
                         "br": 32
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -10837,6 +10834,7 @@
                         "width": 522.38,
                         "height": 126.5
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat",
@@ -10863,8 +10861,7 @@
                       "decorative": false,
                       "name": "card_body",
                       "max_length": 207,
-                      "min_length": 64,
-                      "rotation": 0
+                      "min_length": 64
                     }
                   ],
                   "name": "information_card"
@@ -11031,6 +11028,7 @@
                     "width": 214.94,
                     "height": 99.42
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -11059,8 +11057,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 93,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -11112,6 +11109,7 @@
                     "width": 255.87,
                     "height": 108.81
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -11140,8 +11138,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 155,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -11153,6 +11150,7 @@
                     "width": 255.66,
                     "height": 29.1
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 21.33,
                     "family": "Montserrat Bold",
@@ -11181,8 +11179,7 @@
                   "decorative": false,
                   "name": "callout_title",
                   "max_length": 22,
-                  "min_length": 7,
-                  "rotation": 0
+                  "min_length": 7
                 },
                 {
                   "type": "text",
@@ -11194,6 +11191,7 @@
                     "width": 245.64,
                     "height": 101.99
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -11221,9 +11219,8 @@
                   ],
                   "decorative": false,
                   "name": "callout_description",
-                  "min_length": 26,
-                  "rotation": 0,
-                  "max_length": 121
+                  "max_length": 121,
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -11275,6 +11272,7 @@
                     "width": 229.72,
                     "height": 111.08
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -11303,8 +11301,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 131,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 }
               ],
               "name": "callout_framework_group"
@@ -11826,6 +11823,7 @@
                 "width": 513,
                 "height": 76.87
               },
+              "rotation": 0,
               "fill": {
                 "color": "#F0EEF8",
                 "opacity": 1
@@ -11835,8 +11833,7 @@
                 "tr": 50,
                 "bl": 50,
                 "br": 50
-              },
-              "rotation": 0
+              }
             },
             {
               "type": "text",
@@ -11898,6 +11895,7 @@
                 "width": 522,
                 "height": 78
               },
+              "rotation": 0,
               "fill": {
                 "color": "#F0EEF8",
                 "opacity": 1
@@ -11907,8 +11905,7 @@
                 "tr": 50,
                 "bl": 50,
                 "br": 50
-              },
-              "rotation": 0
+              }
             },
             {
               "type": "text",
@@ -11962,7 +11959,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_1",
               "position": {
                 "x": -3.41,
                 "y": -36.35
@@ -11971,12 +11967,13 @@
                 "width": 1065.55,
                 "height": 227
               },
+              "rotation": 0,
               "columns": 2,
+              "rows": 3,
               "gap": 0,
+              "column_gap": 80,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 8,
-              "max_children": 8,
               "children": [
                 {
                   "type": "text",
@@ -12055,9 +12052,9 @@
                   "min_length": 42
                 }
               ],
-              "rows": 3,
-              "column_gap": 80,
-              "rotation": 0
+              "name": "grid_1",
+              "max_children": 8,
+              "min_children": 8
             }
           ]
         },
@@ -12071,7 +12068,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_1",
               "position": {
                 "x": -1.14,
                 "y": -40.9
@@ -12080,14 +12076,16 @@
                 "width": 549.83,
                 "height": 203.63
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
+              "gap": 0,
+              "column_gap": 600,
               "align_items": "stretch",
               "justify_items": "stretch",
               "children": [
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -12256,11 +12254,11 @@
                       "max_length": 130,
                       "min_length": 57
                     }
-                  ]
+                  ],
+                  "name": "group_1"
                 },
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 0,
                     "y": 165
@@ -12431,14 +12429,13 @@
                       "max_length": 130,
                       "min_length": 57
                     }
-                  ]
+                  ],
+                  "name": "group_1"
                 }
               ],
-              "min_children": 1,
-              "column_gap": 600,
+              "name": "grid_1",
               "max_children": 4,
-              "gap": 0,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         }
@@ -12612,6 +12609,7 @@
                         "width": 439.39,
                         "height": 69.33
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 14.22,
                         "family": "Montserrat",
@@ -12638,8 +12636,7 @@
                       "decorative": false,
                       "name": "metric_description",
                       "max_length": 169,
-                      "min_length": 68,
-                      "rotation": 0
+                      "min_length": 68
                     }
                   ],
                   "name": "metric_callout_item"
@@ -12725,6 +12722,7 @@
                         "width": 439.39,
                         "height": 65.92
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 14.22,
                         "family": "Montserrat",
@@ -12751,8 +12749,7 @@
                       "decorative": false,
                       "name": "metric_description",
                       "max_length": 169,
-                      "min_length": 68,
-                      "rotation": 0
+                      "min_length": 68
                     }
                   ],
                   "name": "metric_callout_item"
@@ -12823,6 +12820,7 @@
                     "width": 118.87,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -12851,8 +12849,7 @@
                   "decorative": false,
                   "name": "metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -12864,6 +12861,7 @@
                     "width": 156,
                     "height": 36.54
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Montserrat Medium",
@@ -12892,8 +12890,7 @@
                   "decorative": false,
                   "name": "metric_caption",
                   "max_length": 48,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "vector",
@@ -12929,6 +12926,7 @@
                     "width": 121.15,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -12957,8 +12955,7 @@
                   "decorative": false,
                   "name": "large_metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -12970,6 +12967,7 @@
                     "width": 156,
                     "height": 35.41
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Montserrat Medium",
@@ -12998,8 +12996,7 @@
                   "decorative": false,
                   "name": "large_metric_caption",
                   "max_length": 42,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "vector",
@@ -13035,6 +13032,7 @@
                     "width": 130.24,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -13063,8 +13061,7 @@
                   "decorative": false,
                   "name": "lower_metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -13127,7 +13124,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "cards_horizontal",
               "position": {
                 "x": 0,
                 "y": 0
@@ -13136,16 +13132,15 @@
                 "width": 1067.86,
                 "height": 274.37
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -13295,11 +13290,10 @@
                       "min_length": 26
                     }
                   ],
-                  "__presenton_manual_position": true
+                  "name": "group_1"
                 },
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 292.23,
                     "y": 2.37
@@ -13449,11 +13443,10 @@
                       "min_length": 26
                     }
                   ],
-                  "__presenton_manual_position": true
+                  "name": "group_1"
                 },
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 594.23,
                     "y": 2.37
@@ -13603,11 +13596,10 @@
                       "min_length": 26
                     }
                   ],
-                  "__presenton_manual_position": true
+                  "name": "group_1"
                 },
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 892.23,
                     "y": 2.37
@@ -13757,11 +13749,12 @@
                       "min_length": 26
                     }
                   ],
-                  "__presenton_manual_position": true
+                  "name": "group_1"
                 }
               ],
-              "rotation": 0,
-              "max_children": 4
+              "name": "cards_horizontal",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         }
@@ -14246,8 +14239,8 @@
                 }
               ],
               "name": "cards_grid",
-              "min_children": 1,
-              "max_children": 2
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         },
@@ -14855,6 +14848,7 @@
                 "width": 541,
                 "height": 189.18
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat",
@@ -14881,8 +14875,7 @@
               "decorative": false,
               "name": "card_body",
               "max_length": 391,
-              "min_length": 191,
-              "rotation": 0
+              "min_length": 191
             }
           ]
         }
@@ -14971,6 +14964,7 @@
                 "width": 513,
                 "height": 163.03
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Medium",
@@ -14999,8 +14993,7 @@
               "decorative": false,
               "name": "testimonial_body",
               "max_length": 203,
-              "min_length": 86,
-              "rotation": 0
+              "min_length": 86
             }
           ]
         }
@@ -15175,6 +15168,7 @@
                         "width": 266.75,
                         "height": 24.22
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat Bold",
@@ -15203,8 +15197,7 @@
                       "decorative": false,
                       "name": "profile_name",
                       "max_length": 24,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -15216,6 +15209,7 @@
                         "width": 208.71,
                         "height": 17.56
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 12.44,
                         "family": "Montserrat",
@@ -15242,8 +15236,7 @@
                       "decorative": false,
                       "name": "profile_role",
                       "max_length": 18,
-                      "min_length": 8,
-                      "rotation": 0
+                      "min_length": 8
                     }
                   ],
                   "name": "profile_card"
@@ -15356,6 +15349,7 @@
                         "width": 280.4,
                         "height": 24.22
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat Bold",
@@ -15384,8 +15378,7 @@
                       "decorative": false,
                       "name": "profile_name",
                       "max_length": 24,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -15397,6 +15390,7 @@
                         "width": 197.35,
                         "height": 44.83
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 12.44,
                         "family": "Montserrat",
@@ -15423,8 +15417,7 @@
                       "decorative": false,
                       "name": "profile_role",
                       "max_length": 18,
-                      "min_length": 8,
-                      "rotation": 0
+                      "min_length": 8
                     }
                   ],
                   "name": "profile_card"
@@ -15483,6 +15476,7 @@
                         "width": 195.42,
                         "height": 33.87
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 24.88,
                         "family": "Montserrat Bold",
@@ -15511,8 +15505,7 @@
                       "decorative": false,
                       "name": "section_title",
                       "max_length": 14,
-                      "min_length": 3,
-                      "rotation": 0
+                      "min_length": 3
                     },
                     {
                       "type": "text",
@@ -15919,8 +15912,8 @@
                 }
               ],
               "name": "section_row",
-              "min_children": 5,
-              "max_children": 5
+              "max_children": 5,
+              "min_children": 5
             },
             {
               "type": "group",
@@ -16182,7 +16175,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "card_list_elements",
               "position": {
                 "x": 50.02,
                 "y": 4.54
@@ -16191,17 +16183,15 @@
                 "width": 1073.62,
                 "height": 245.66
               },
+              "rotation": 0,
               "columns": 3,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 3,
               "children": [
                 {
                   "type": "group",
-                  "name": "card_group_icon_description_title",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -16328,10 +16318,13 @@
                       "max_length": 96,
                       "min_length": 39
                     }
-                  ]
+                  ],
+                  "name": "card_group_icon_description_title"
                 }
               ],
-              "rotation": 0
+              "name": "card_list_elements",
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         }
@@ -16351,7 +16344,6 @@
           "elements": [
             {
               "type": "flex",
-              "name": "plan_card_list_group_element",
               "position": {
                 "x": -5.69,
                 "y": 61.34
@@ -16360,15 +16352,18 @@
                 "width": 329.92,
                 "height": 577.67
               },
+              "rotation": 0,
               "direction": "column",
-              "gap": 12,
               "align_items": "stretch",
               "justify_content": "flex-start",
-              "min_children": 1,
-              "max_children": 2,
+              "gap": 12,
               "children": [
                 {
                   "type": "group",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -16405,6 +16400,7 @@
                         "width": 184.56,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -16433,8 +16429,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -16446,6 +16441,7 @@
                         "width": 255.24,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -16474,8 +16470,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -16525,14 +16520,14 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 },
                 {
                   "type": "group",
+                  "position": {
+                    "x": 323.54,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -16569,6 +16564,7 @@
                         "width": 237.07,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -16597,8 +16593,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -16610,6 +16605,7 @@
                         "width": 245.01,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -16638,8 +16634,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -16689,18 +16684,15 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 323.54,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 }
               ],
-              "rotation": 0
+              "name": "plan_card_list_group_element",
+              "max_children": 2,
+              "min_children": 1
             },
             {
               "type": "flex",
-              "name": "card_list_flex",
               "position": {
                 "x": 342.25,
                 "y": 60.3
@@ -16709,14 +16701,18 @@
                 "width": 329.92,
                 "height": 577.67
               },
+              "rotation": 0,
               "direction": "column",
-              "gap": 12,
               "align_items": "stretch",
               "justify_content": "flex-start",
-              "min_children": 1,
+              "gap": 12,
               "children": [
                 {
                   "type": "group",
+                  "position": {
+                    "x": 323.54,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -16732,6 +16728,7 @@
                         "width": 344,
                         "height": 369.09
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F0EEF7",
                         "opacity": 1
@@ -16741,8 +16738,7 @@
                         "tr": 0,
                         "bl": 0,
                         "br": 0
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -16754,6 +16750,7 @@
                         "width": 237.07,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -16782,8 +16779,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -16795,6 +16791,7 @@
                         "width": 245.01,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -16823,8 +16820,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -16874,14 +16870,14 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 323.54,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 },
                 {
                   "type": "group",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -16897,6 +16893,7 @@
                         "width": 344,
                         "height": 367.95
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F8F6FC",
                         "opacity": 1
@@ -16906,8 +16903,7 @@
                         "tr": 0,
                         "bl": 0,
                         "br": 0
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -16919,6 +16915,7 @@
                         "width": 184.56,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -16947,8 +16944,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -16960,6 +16956,7 @@
                         "width": 255.24,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -16988,8 +16985,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -17039,15 +17035,12 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 }
               ],
-              "rotation": 0,
-              "max_children": 2
+              "name": "card_list_flex",
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         }
@@ -17179,6 +17172,7 @@
                 "width": 452.2,
                 "height": 29.1
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -17207,8 +17201,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -17220,6 +17213,7 @@
                 "width": 425.37,
                 "height": 83.95
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat Medium",
@@ -17248,8 +17242,7 @@
               "decorative": false,
               "name": "section_body",
               "max_length": 210,
-              "min_length": 110,
-              "rotation": 0
+              "min_length": 110
             }
           ]
         }
@@ -17277,6 +17270,7 @@
                 "width": 429.46,
                 "height": 30.27
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -17305,8 +17299,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 9,
-              "rotation": 0
+              "min_length": 9
             },
             {
               "type": "text",
@@ -17318,6 +17311,7 @@
                 "width": 430.56,
                 "height": 95.82
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat Medium",
@@ -17346,8 +17340,7 @@
               "decorative": false,
               "name": "section_body",
               "max_length": 210,
-              "min_length": 115,
-              "rotation": 0
+              "min_length": 115
             }
           ]
         },
@@ -17369,6 +17362,7 @@
                 "width": 427.64,
                 "height": 30.27
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -17397,8 +17391,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 5,
-              "rotation": 0
+              "min_length": 5
             },
             {
               "type": "text",
@@ -17617,6 +17610,7 @@
                 "width": 711.74,
                 "height": 72.77
               },
+              "rotation": 0,
               "font": {
                 "size": 24,
                 "family": "Montserrat Semi-Bold",
@@ -17645,8 +17639,7 @@
               "decorative": false,
               "name": "supporting_tagline",
               "max_length": 109,
-              "min_length": 26,
-              "rotation": 0
+              "min_length": 26
             }
           ]
         },
@@ -17668,6 +17661,7 @@
                 "width": 227.68,
                 "height": 18.49
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat",
@@ -17694,8 +17688,7 @@
               "decorative": false,
               "name": "presenter_label",
               "max_length": 30,
-              "min_length": 6,
-              "rotation": 0
+              "min_length": 6
             },
             {
               "type": "text",
@@ -17929,6 +17922,7 @@
                 "width": 1146.37,
                 "height": 131.78
               },
+              "rotation": 0,
               "font": {
                 "size": 97.78,
                 "family": "Anton",
@@ -17952,9 +17946,8 @@
               ],
               "decorative": false,
               "name": "section_title",
-              "min_length": 3,
-              "rotation": 0,
-              "max_length": 26
+              "max_length": 26,
+              "min_length": 3
             }
           ]
         },
@@ -17976,6 +17969,7 @@
                 "width": 1084.9,
                 "height": 387.23
               },
+              "rotation": 0,
               "direction": "column",
               "wrap": false,
               "align_items": "flex-start",
@@ -18013,7 +18007,7 @@
                       }
                     },
                     {
-                      "text": " Introduction",
+                      "text": "Introduction",
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -18032,8 +18026,7 @@
               ],
               "name": "vertical_text_stack",
               "max_children": 10,
-              "min_children": 1,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         },
@@ -18234,6 +18227,7 @@
                 "width": 514.02,
                 "height": 513.33
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -18251,19 +18245,21 @@
                   "text": "Smart Task demonstrates the measurable",
                   "font": {
                     "size": 56,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 0.99,
-                    "letter_spacing": -0.5
+                    "letter_spacing": -0.5,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 19,
-              "rotation": 0,
-              "max_length": 149
+              "max_length": 149,
+              "min_length": 19
             },
             {
               "type": "text",
@@ -18275,6 +18271,7 @@
                 "width": 511.84,
                 "height": 79.92
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat",
@@ -18301,8 +18298,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 127,
-              "min_length": 64,
-              "rotation": 0
+              "min_length": 64
             }
           ]
         },
@@ -18492,8 +18488,9 @@
               },
               "size": {
                 "width": 610,
-                "height": 157.73
+                "height": 118
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -18508,44 +18505,52 @@
               },
               "runs": [
                 {
-                  "text": "What is a \n",
+                  "text": "What is a ",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "Smart Task Management\n",
+                  "text": "Smart Task Management",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
-                    "color": "#5F4F9B",
+                    "color": "5F4F9B",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "Platform?",
+                  "text": " Platform ?",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 20,
-              "rotation": 0,
-              "max_length": 126
+              "max_length": 126,
+              "min_length": 20
             }
           ]
         },
@@ -18566,10 +18571,15 @@
               "children": [
                 {
                   "type": "text",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
                   "size": {
                     "width": 538.57,
                     "height": 108.81
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat",
@@ -18596,13 +18606,7 @@
                   "decorative": false,
                   "name": "body_paragraph",
                   "max_length": 267,
-                  "min_length": 134,
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  },
-                  "rotation": 0,
-                  "__presenton_manual_position": true
+                  "min_length": 134
                 },
                 {
                   "type": "text",
@@ -18844,6 +18848,7 @@
                 "width": 1004.81,
                 "height": 50
               },
+              "rotation": 0,
               "font": {
                 "size": 17.8,
                 "family": "Montserrat Medium",
@@ -18872,8 +18877,7 @@
               "decorative": false,
               "name": "subtitle_text",
               "max_length": 182,
-              "min_length": 78,
-              "rotation": 0
+              "min_length": 78
             }
           ]
         },
@@ -18933,6 +18937,7 @@
                           "width": 169.97,
                           "height": 80.91
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 66.7,
                           "family": "Montserrat Bold",
@@ -18961,8 +18966,7 @@
                         "decorative": false,
                         "name": "card_index",
                         "max_length": 4,
-                        "min_length": 1,
-                        "rotation": 0
+                        "min_length": 1
                       },
                       {
                         "type": "text",
@@ -19220,8 +19224,8 @@
           ]
         },
         {
-          "id": "left_intro_text",
-          "description": "Primary content region with a bold headline and supporting paragraph aligned in a narrow left column.",
+          "id": "left_intro_text_part_1",
+          "description": "Ungrouped component element",
           "position": {
             "x": 53.33,
             "y": 52.67
@@ -19234,9 +19238,10 @@
                 "y": 0
               },
               "size": {
-                "width": 535.26,
-                "height": 126.55
+                "width": 583.26,
+                "height": 8
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -19254,30 +19259,43 @@
                   "text": "Our Solution Smart Task Management Platform",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "intro_headline",
               "max_length": 45,
-              "min_length": 22,
-              "rotation": 0
-            },
+              "min_length": 22
+            }
+          ]
+        },
+        {
+          "id": "left_intro_text_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 53.33,
+            "y": 199.39999999999998
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 146.73
+                "y": 0
               },
               "size": {
                 "width": 535.26,
                 "height": 429.51
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -19305,9 +19323,8 @@
               ],
               "decorative": false,
               "name": "intro_description",
-              "min_length": 83,
-              "rotation": 0,
-              "max_length": 844
+              "max_length": 844,
+              "min_length": 83
             }
           ]
         },
@@ -19390,6 +19407,7 @@
                           "width": 461.81,
                           "height": 30.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -19404,7 +19422,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Centralized Learning ",
+                            "text": "Centralized Learning",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Semi-Bold",
@@ -19418,8 +19436,7 @@
                         "decorative": false,
                         "name": "card_heading",
                         "max_length": 26,
-                        "min_length": 11,
-                        "rotation": 0
+                        "min_length": 11
                       },
                       {
                         "type": "text",
@@ -19431,6 +19448,7 @@
                           "width": 505.92,
                           "height": 106.23
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 12.44,
                           "family": "Montserrat",
@@ -19457,8 +19475,7 @@
                         "decorative": false,
                         "name": "card_body",
                         "max_length": 225,
-                        "min_length": 78,
-                        "rotation": 0
+                        "min_length": 78
                       }
                     ],
                     "name": "card_content_group"
@@ -19466,8 +19483,8 @@
                 }
               ],
               "name": "cards_stack",
-              "min_children": 1,
-              "max_children": 3
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         },
@@ -19734,11 +19751,14 @@
                   "text": "System Framework for\nSmart Task Management Platform",
                   "font": {
                     "size": 52,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.03,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -19757,6 +19777,7 @@
                 "width": 788.47,
                 "height": 64.35
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -19785,8 +19806,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 126,
-              "min_length": 64,
-              "rotation": 0
+              "min_length": 64
             }
           ]
         },
@@ -19939,6 +19959,7 @@
                     "width": 214.94,
                     "height": 99.42
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -19967,8 +19988,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 93,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -20020,6 +20040,7 @@
                     "width": 255.87,
                     "height": 108.81
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -20048,8 +20069,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 155,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -20061,6 +20081,7 @@
                     "width": 255.66,
                     "height": 29.1
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 21.33,
                     "family": "Montserrat Bold",
@@ -20089,8 +20110,7 @@
                   "decorative": false,
                   "name": "callout_title",
                   "max_length": 22,
-                  "min_length": 7,
-                  "rotation": 0
+                  "min_length": 7
                 },
                 {
                   "type": "text",
@@ -20102,6 +20122,7 @@
                     "width": 245.64,
                     "height": 101.99
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -20129,9 +20150,8 @@
                   ],
                   "decorative": false,
                   "name": "callout_description",
-                  "min_length": 26,
-                  "rotation": 0,
-                  "max_length": 121
+                  "max_length": 121,
+                  "min_length": 26
                 },
                 {
                   "type": "text",
@@ -20183,6 +20203,7 @@
                     "width": 229.72,
                     "height": 111.08
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Medium",
@@ -20211,8 +20232,7 @@
                   "decorative": false,
                   "name": "callout_description",
                   "max_length": 131,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 }
               ],
               "name": "callout_framework_group"
@@ -20331,6 +20351,7 @@
                 "width": 1045.15,
                 "height": 60
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -20357,8 +20378,7 @@
               "decorative": false,
               "name": "title_primary_line",
               "max_length": 43,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -20370,6 +20390,7 @@
                 "width": 1018.05,
                 "height": 62
               },
+              "rotation": 0,
               "font": {
                 "size": 56,
                 "family": "Anton",
@@ -20396,8 +20417,7 @@
               "decorative": false,
               "name": "title_emphasis_line",
               "max_length": 40,
-              "min_length": 14,
-              "rotation": 0
+              "min_length": 14
             },
             {
               "type": "text",
@@ -20409,6 +20429,7 @@
                 "width": 1045,
                 "height": 89.76
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -20437,8 +20458,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 308,
-              "min_length": 80,
-              "rotation": 0
+              "min_length": 80
             }
           ]
         },
@@ -20484,7 +20504,7 @@
                   }
                 },
                 {
-                  "text": " 08",
+                  "text": "08",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -20519,6 +20539,7 @@
                 "width": 513,
                 "height": 76.87
               },
+              "rotation": 0,
               "fill": {
                 "color": "#F0EEF8",
                 "opacity": 1
@@ -20528,8 +20549,7 @@
                 "tr": 50,
                 "bl": 50,
                 "br": 50
-              },
-              "rotation": 0
+              }
             },
             {
               "type": "text",
@@ -20591,6 +20611,7 @@
                 "width": 522,
                 "height": 78
               },
+              "rotation": 0,
               "fill": {
                 "color": "#F0EEF8",
                 "opacity": 1
@@ -20600,8 +20621,7 @@
                 "tr": 50,
                 "bl": 50,
                 "br": 50
-              },
-              "rotation": 0
+              }
             },
             {
               "type": "text",
@@ -20655,7 +20675,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_1",
               "position": {
                 "x": -3.41,
                 "y": -36.35
@@ -20664,12 +20683,13 @@
                 "width": 1065.55,
                 "height": 227
               },
+              "rotation": 0,
               "columns": 2,
+              "rows": 3,
               "gap": 0,
+              "column_gap": 80,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 8,
-              "max_children": 8,
               "children": [
                 {
                   "type": "text",
@@ -20748,14 +20768,13 @@
                   "min_length": 42
                 }
               ],
-              "rows": 3,
-              "column_gap": 80,
-              "rotation": 0
+              "name": "grid_1",
+              "max_children": 8,
+              "min_children": 8
             }
           ]
         }
-      ],
-      "elements": []
+      ]
     },
     {
       "id": "title_cards_chart_footer_2861",
@@ -20823,11 +20842,14 @@
                   "text": "Growth Opportunities as business Growth",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -21043,8 +21065,8 @@
                 }
               ],
               "name": "cards_grid",
-              "min_children": 1,
-              "max_children": 3
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         },
@@ -21213,6 +21235,7 @@
                 "width": 590.33,
                 "height": 122.83
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -21230,19 +21253,21 @@
                   "text": "Metrics Opportunities as business Growth",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "headline_text",
               "max_length": 44,
-              "min_length": 20,
-              "rotation": 0
+              "min_length": 20
             },
             {
               "type": "text",
@@ -21254,6 +21279,7 @@
                 "width": 579.31,
                 "height": 83.34
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -21282,8 +21308,7 @@
               "decorative": false,
               "name": "intro_statement",
               "max_length": 170,
-              "min_length": 61,
-              "rotation": 0
+              "min_length": 61
             }
           ]
         },
@@ -21392,6 +21417,7 @@
                         "width": 439.39,
                         "height": 69.33
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 14.22,
                         "family": "Montserrat",
@@ -21418,8 +21444,7 @@
                       "decorative": false,
                       "name": "metric_description",
                       "max_length": 169,
-                      "min_length": 68,
-                      "rotation": 0
+                      "min_length": 68
                     }
                   ],
                   "name": "metric_callout_item"
@@ -21676,6 +21701,7 @@
                 "width": 580,
                 "height": 228.37
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -21704,8 +21730,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 511,
-              "min_length": 69,
-              "rotation": 0
+              "min_length": 69
             }
           ]
         },
@@ -21762,6 +21787,7 @@
                     "width": 118.87,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -21790,8 +21816,7 @@
                   "decorative": false,
                   "name": "metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -21803,6 +21828,7 @@
                     "width": 156,
                     "height": 36.54
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Montserrat Medium",
@@ -21831,8 +21857,7 @@
                   "decorative": false,
                   "name": "metric_caption",
                   "max_length": 48,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "vector",
@@ -21868,6 +21893,7 @@
                     "width": 121.15,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -21896,8 +21922,7 @@
                   "decorative": false,
                   "name": "large_metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -21909,6 +21934,7 @@
                     "width": 156,
                     "height": 35.41
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Montserrat Medium",
@@ -21937,8 +21963,7 @@
                   "decorative": false,
                   "name": "large_metric_caption",
                   "max_length": 42,
-                  "min_length": 26,
-                  "rotation": 0
+                  "min_length": 26
                 },
                 {
                   "type": "vector",
@@ -21974,6 +21999,7 @@
                     "width": 130.24,
                     "height": 43
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 31.1,
                     "family": "Montserrat Bold",
@@ -22002,8 +22028,7 @@
                   "decorative": false,
                   "name": "lower_metric_value",
                   "max_length": 6,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 },
                 {
                   "type": "text",
@@ -22276,7 +22301,7 @@
                   }
                 },
                 {
-                  "text": " 12",
+                  "text": "12",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -22303,7 +22328,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "cards_horizontal",
               "position": {
                 "x": 0,
                 "y": 0
@@ -22312,16 +22336,15 @@
                 "width": 1067.86,
                 "height": 274.37
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -22471,16 +22494,16 @@
                       "min_length": 26
                     }
                   ],
-                  "__presenton_manual_position": true
+                  "name": "group_1"
                 }
               ],
-              "rotation": 0,
-              "max_children": 4
+              "name": "cards_horizontal",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         }
-      ],
-      "elements": []
+      ]
     },
     {
       "id": "title_cards_chart_panel_9233",
@@ -22605,6 +22628,7 @@
                 "width": 681.52,
                 "height": 110.21
               },
+              "rotation": 0,
               "font": {
                 "size": 17.8,
                 "family": "Montserrat Medium",
@@ -22632,9 +22656,8 @@
               ],
               "decorative": false,
               "name": "supporting_statement",
-              "min_length": 69,
-              "rotation": 0,
-              "max_length": 271
+              "max_length": 271,
+              "min_length": 69
             }
           ]
         },
@@ -22665,7 +22688,6 @@
               "children": [
                 {
                   "type": "group",
-                  "name": "card_lists_grid",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -22677,6 +22699,10 @@
                   "children": [
                     {
                       "type": "flex",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "direction": "column",
                       "align_items": "stretch",
                       "justify_content": "flex-start",
@@ -22755,13 +22781,10 @@
                       ],
                       "name": "card_text_stack",
                       "max_children": 4,
-                      "min_children": 1,
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "min_children": 1
                     }
-                  ]
+                  ],
+                  "name": "card_lists_grid"
                 }
               ],
               "name": "cards_grid",
@@ -22917,23 +22940,24 @@
       "description": "A centered header area sits above a balanced card matrix with circular badges and a small footer marker.",
       "components": [
         {
-          "id": "header_section",
-          "description": "Centered title and subtitle occupy the upper portion with strong emphasis and spacious margins.",
+          "id": "header_section_part_1",
+          "description": "Ungrouped component element",
           "position": {
-            "x": 0,
+            "x": 72,
             "y": 52
           },
           "elements": [
             {
               "type": "text",
               "position": {
-                "x": 72,
+                "x": 0,
                 "y": 0
               },
               "size": {
-                "width": 621.17,
-                "height": 62
+                "width": 1099.1699999999998,
+                "height": 116
               },
+              "rotation": 0,
               "font": {
                 "size": 55,
                 "family": "Anton",
@@ -22947,31 +22971,58 @@
               },
               "runs": [
                 {
-                  "text": "Essential Functionalities for",
+                  "text": "Essential Functionalities ",
                   "font": {
                     "size": 55,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
+                  }
+                },
+                {
+                  "text": "for Efficient Task Planning \nand Team Collaboration",
+                  "font": {
+                    "size": 55,
+                    "family": "Anton",
+                    "color": "5F4F9B",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.05,
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "main_heading_start",
               "max_length": 25,
-              "min_length": 27,
-              "rotation": 0
-            },
+              "min_length": 27
+            }
+          ]
+        },
+        {
+          "id": "header_section_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 700,
+            "y": 52
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
-                "x": 700,
+                "x": 0,
                 "y": 0
               },
               "size": {
                 "width": 520,
-                "height": 62
+                "height": 58
               },
               "font": {
                 "size": 55,
@@ -22986,7 +23037,7 @@
               },
               "runs": [
                 {
-                  "text": "Efficient Task Planning",
+                  "text": " ",
                   "font": {
                     "size": 55,
                     "family": "Anton",
@@ -23000,17 +23051,28 @@
               "name": "main_heading_emphasis",
               "max_length": 20,
               "min_length": 12
-            },
+            }
+          ]
+        },
+        {
+          "id": "header_section_part_3",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 374,
+            "y": 114
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
-                "x": 374,
-                "y": 62
+                "x": 0,
+                "y": 0
               },
               "size": {
                 "width": 842.34,
-                "height": 62
+                "height": 120
               },
+              "rotation": 0,
               "font": {
                 "size": 55,
                 "family": "Anton",
@@ -23024,7 +23086,7 @@
               },
               "runs": [
                 {
-                  "text": "and Team Collaboration",
+                  "text": " ",
                   "font": {
                     "size": 55,
                     "family": "Anton",
@@ -23037,18 +23099,27 @@
               "decorative": false,
               "name": "main_heading_second_line",
               "max_length": 34,
-              "min_length": 11,
-              "rotation": 0
-            },
+              "min_length": 11
+            }
+          ]
+        },
+        {
+          "id": "header_section_part_4",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 78,
+            "y": 187
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
-                "x": 78,
-                "y": 135
+                "x": 0,
+                "y": 0
               },
               "size": {
                 "width": 1124,
-                "height": 54
+                "height": 74.75999999999999
               },
               "font": {
                 "size": 17.8,
@@ -23112,22 +23183,31 @@
               },
               "runs": [
                 {
-                  "text": "Page",
+                  "text": "Page ",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat Bold",
                     "color": "#000000",
                     "bold": true,
-                    "line_height": 1.4
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.4,
+                    "letter_spacing": 0,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "  14",
+                  "text": "14",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
                     "color": "#000000",
-                    "line_height": 1.4
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.4,
+                    "letter_spacing": 0,
+                    "opacity": 1
                   }
                 }
               ],
@@ -23148,7 +23228,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_1",
               "position": {
                 "x": -1.14,
                 "y": -40.9
@@ -23157,14 +23236,16 @@
                 "width": 549.83,
                 "height": 203.63
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
+              "gap": 0,
+              "column_gap": 600,
               "align_items": "stretch",
               "justify_items": "stretch",
               "children": [
                 {
                   "type": "group",
-                  "name": "group_1",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -23333,19 +23414,17 @@
                       "max_length": 130,
                       "min_length": 57
                     }
-                  ]
+                  ],
+                  "name": "group_1"
                 }
               ],
-              "min_children": 1,
-              "column_gap": 600,
+              "name": "grid_1",
               "max_children": 4,
-              "gap": 0,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         }
-      ],
-      "elements": []
+      ]
     },
     {
       "id": "title_with_chart_cards_footer_7145",
@@ -23369,6 +23448,7 @@
                 "width": 1174,
                 "height": 97.54
               },
+              "rotation": 0,
               "font": {
                 "size": 46,
                 "family": "Anton",
@@ -23386,19 +23466,21 @@
                   "text": "Performance Chart Monthly Task Completion Trend",
                   "font": {
                     "size": 46,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.35
+                    "letter_spacing": -0.35,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "main_heading",
               "max_length": 94,
-              "min_length": 24,
-              "rotation": 0
+              "min_length": 24
             },
             {
               "type": "text",
@@ -23616,8 +23698,8 @@
                 }
               ],
               "name": "cards_grid",
-              "min_children": 1,
-              "max_children": 2
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         },
@@ -23817,6 +23899,7 @@
                 "width": 1160,
                 "height": 82.08
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -23845,8 +23928,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 330,
-              "min_length": 59,
-              "rotation": 0
+              "min_length": 59
             }
           ]
         },
@@ -23994,10 +24076,15 @@
                       },
                       {
                         "type": "text",
+                        "position": {
+                          "x": 0,
+                          "y": 40
+                        },
                         "size": {
                           "width": 250,
                           "height": 80.27
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -24024,13 +24111,7 @@
                         "decorative": false,
                         "name": "card_title",
                         "max_length": 9,
-                        "min_length": 5,
-                        "position": {
-                          "x": 0,
-                          "y": 40
-                        },
-                        "rotation": 0,
-                        "__presenton_manual_position": true
+                        "min_length": 5
                       }
                     ],
                     "name": "card_text_stack",
@@ -24040,8 +24121,8 @@
                 }
               ],
               "name": "callout_card_grid",
-              "min_children": 1,
-              "max_children": 4
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -24198,8 +24279,8 @@
                 "y": 0
               },
               "size": {
-                "width": 1159.82,
-                "height": 122.83
+                "width": 1160.2499938964845,
+                "height": 123
               },
               "font": {
                 "size": 55.99,
@@ -24215,36 +24296,45 @@
               },
               "runs": [
                 {
-                  "text": "Productivity Growth Analysis\n",
+                  "text": "Productivity Growth Analysis ",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "Performance Trend",
+                  "text": "Performance Trend ",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#5F4F9B",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " of Task Completion",
+                  "text": "of Task Completion",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -24637,24 +24727,31 @@
               },
               "runs": [
                 {
-                  "text": "Page",
+                  "text": "Page ",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Bold",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " 17",
+                  "text": "17",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 }
               ],
@@ -24672,8 +24769,8 @@
       "description": "A presentation layout with prominent heading text, a large chart region on the left, and metric cards arranged in a right-side grid.",
       "components": [
         {
-          "id": "title_and_summary",
-          "description": "Top-left text block containing a bold multi-line headline and a short supporting summary beneath it.",
+          "id": "title_and_summary_part_1",
+          "description": "Ungrouped component element",
           "position": {
             "x": 53,
             "y": 52
@@ -24686,8 +24783,8 @@
                 "y": 0
               },
               "size": {
-                "width": 390,
-                "height": 56
+                "width": 647.0000000000001,
+                "height": 101
               },
               "font": {
                 "size": 48,
@@ -24702,13 +24799,45 @@
               },
               "runs": [
                 {
-                  "text": "The chart steady",
+                  "text": "The chart steady ",
                   "font": {
                     "size": 48,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.4
+                    "letter_spacing": -0.4,
+                    "opacity": 1
+                  }
+                },
+                {
+                  "text": "increase in \nthe number of",
+                  "font": {
+                    "size": 48,
+                    "family": "Anton",
+                    "color": "5F4F9B",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.05,
+                    "letter_spacing": -0.4,
+                    "opacity": 1
+                  }
+                },
+                {
+                  "text": " tasks",
+                  "font": {
+                    "size": 48,
+                    "family": "Anton",
+                    "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.05,
+                    "letter_spacing": -0.4,
+                    "opacity": 1
                   }
                 }
               ],
@@ -24716,16 +24845,26 @@
               "name": "headline_leading_text",
               "max_length": 19,
               "min_length": 19
-            },
+            }
+          ]
+        },
+        {
+          "id": "title_and_summary_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 435,
+            "y": 52
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
-                "x": 382,
+                "x": 0,
                 "y": 0
               },
               "size": {
                 "width": 260,
-                "height": 56
+                "height": 51
               },
               "font": {
                 "size": 48,
@@ -24740,7 +24879,7 @@
               },
               "runs": [
                 {
-                  "text": "increase in",
+                  "text": " ",
                   "font": {
                     "size": 48,
                     "family": "Anton",
@@ -24754,16 +24893,26 @@
               "name": "headline_emphasis_text",
               "max_length": 11,
               "min_length": 11
-            },
+            }
+          ]
+        },
+        {
+          "id": "title_and_summary_part_3",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 53,
+            "y": 113
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 61
+                "y": 0
               },
               "size": {
                 "width": 330,
-                "height": 56
+                "height": 112
               },
               "font": {
                 "size": 48,
@@ -24778,7 +24927,7 @@
               },
               "runs": [
                 {
-                  "text": "the number of",
+                  "text": " ",
                   "font": {
                     "size": 48,
                     "family": "Anton",
@@ -24792,17 +24941,28 @@
               "name": "headline_secondary_text",
               "max_length": 15,
               "min_length": 15
-            },
+            }
+          ]
+        },
+        {
+          "id": "title_and_summary_part_4",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 375,
+            "y": 113
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
-                "x": 322,
-                "y": 61
+                "x": 0,
+                "y": 0
               },
               "size": {
                 "width": 297.78,
-                "height": 56
+                "height": 112
               },
+              "rotation": 0,
               "font": {
                 "size": 48,
                 "family": "Anton",
@@ -24816,32 +24976,46 @@
               },
               "runs": [
                 {
-                  "text": "tasks",
+                  "text": " ",
                   "font": {
                     "size": 48,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.4
+                    "letter_spacing": -0.4,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "headline_closing_text",
               "max_length": 15,
-              "rotation": 0,
               "min_length": 15
-            },
+            }
+          ]
+        },
+        {
+          "id": "title_and_summary_part_5",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 53,
+            "y": 179
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 127
+                "y": 0
               },
               "size": {
                 "width": 632,
                 "height": 126.98
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -24869,9 +25043,8 @@
               ],
               "decorative": false,
               "name": "summary_text",
-              "min_length": 65,
-              "rotation": 0,
-              "max_length": 315
+              "max_length": 315,
+              "min_length": 65
             }
           ]
         },
@@ -25010,7 +25183,7 @@
         },
         {
           "id": "cards_ list_grid_right",
-          "description": "right side card layout ",
+          "description": "right side card layout",
           "position": {
             "x": 711,
             "y": 67
@@ -25145,8 +25318,7 @@
             }
           ]
         }
-      ],
-      "elements": []
+      ]
     },
     {
       "id": "title_metrics_cards_footer_1626",
@@ -25188,28 +25360,40 @@
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "consistent growth",
+                  "text": "consistent Growth",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
-                    "color": "#5F4F9B",
+                    "color": "5F4F9B",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " also reflects the positive improve accountability",
+                  "text": " reflects the positive improve accountability",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -25228,6 +25412,7 @@
                 "width": 1173.35,
                 "height": 60.94
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -25256,8 +25441,7 @@
               "decorative": false,
               "name": "subtitle_text",
               "max_length": 162,
-              "min_length": 81,
-              "rotation": 0
+              "min_length": 81
             }
           ]
         },
@@ -25450,24 +25634,31 @@
               },
               "runs": [
                 {
-                  "text": "Page",
+                  "text": "Page ",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Bold",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " 19",
+                  "text": "19",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 }
               ],
@@ -25587,8 +25778,8 @@
               ],
               "decorative": false,
               "name": "headline_text",
-              "min_length": 32,
-              "max_length": 80
+              "max_length": 80,
+              "min_length": 32
             },
             {
               "type": "text",
@@ -25600,6 +25791,7 @@
                 "width": 632,
                 "height": 81.95
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -25614,7 +25806,7 @@
               },
               "runs": [
                 {
-                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure. ",
+                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -25628,8 +25820,7 @@
               "decorative": false,
               "name": "intro_text",
               "max_length": 135,
-              "min_length": 68,
-              "rotation": 0
+              "min_length": 68
             }
           ]
         },
@@ -25712,6 +25903,7 @@
                 "width": 541,
                 "height": 189.18
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat",
@@ -25738,8 +25930,7 @@
               "decorative": false,
               "name": "card_body",
               "max_length": 391,
-              "min_length": 191,
-              "rotation": 0
+              "min_length": 191
             }
           ]
         },
@@ -25994,6 +26185,7 @@
                 "width": 513,
                 "height": 163.03
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Medium",
@@ -26022,8 +26214,7 @@
               "decorative": false,
               "name": "testimonial_body",
               "max_length": 203,
-              "min_length": 86,
-              "rotation": 0
+              "min_length": 86
             }
           ]
         },
@@ -26096,7 +26287,7 @@
                   }
                 },
                 {
-                  "text": "  21",
+                  "text": "21",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
@@ -26175,7 +26366,7 @@
               },
               "size": {
                 "width": 620.85,
-                "height": 122.83
+                "height": 123
               },
               "font": {
                 "size": 55.99,
@@ -26197,30 +26388,39 @@
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "over 500",
+                  "text": "over 500 ",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#5F4F9B",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " weekly tasks",
+                  "text": "weekly tasks",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -26239,6 +26439,7 @@
                 "width": 606,
                 "height": 228.76
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -26253,7 +26454,7 @@
               },
               "runs": [
                 {
-                  "text": "A university implemented the Digital Learning Platform to improve online education, simplify course management, and enhance student engagement. ",
+                  "text": "A university implemented the Digital Learning Platform to improve online education, simplify course management, and enhance student engagement.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -26266,9 +26467,8 @@
               ],
               "decorative": false,
               "name": "supporting_paragraph",
-              "min_length": 72,
-              "rotation": 0,
-              "max_length": 500
+              "max_length": 500,
+              "min_length": 72
             }
           ]
         },
@@ -26418,6 +26618,7 @@
                 "width": 1159.08,
                 "height": 146.23
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -26446,8 +26647,7 @@
               "decorative": false,
               "name": "slide_heading",
               "max_length": 92,
-              "min_length": 50,
-              "rotation": 0
+              "min_length": 50
             }
           ]
         },
@@ -26583,6 +26783,7 @@
                         "width": 266.75,
                         "height": 24.22
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat Bold",
@@ -26611,8 +26812,7 @@
                       "decorative": false,
                       "name": "profile_name",
                       "max_length": 24,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -26624,6 +26824,7 @@
                         "width": 208.71,
                         "height": 17.56
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 12.44,
                         "family": "Montserrat",
@@ -26650,8 +26851,7 @@
                       "decorative": false,
                       "name": "profile_role",
                       "max_length": 18,
-                      "min_length": 8,
-                      "rotation": 0
+                      "min_length": 8
                     }
                   ],
                   "name": "profile_card"
@@ -26921,8 +27121,9 @@
               },
               "size": {
                 "width": 1173.35,
-                "height": 124.64
+                "height": 62
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -26937,33 +27138,52 @@
               },
               "runs": [
                 {
-                  "text": "Implementation Plan ",
+                  "text": "Implementation ",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "managed weekly tasks",
+                  "text": "Plan Manage Weekly",
                   "font": {
                     "size": 55.99,
                     "family": "Anton",
-                    "color": "#5F4F9B",
+                    "color": "5F4F9B",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
+                  }
+                },
+                {
+                  "text": " Tasks",
+                  "font": {
+                    "size": 55.99,
+                    "family": "Anton",
+                    "color": "#000000",
+                    "bold": true,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.09,
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "main_headline",
               "max_length": 93,
-              "min_length": 20,
-              "rotation": 0
+              "min_length": 20
             },
             {
               "type": "text",
@@ -26975,6 +27195,7 @@
                 "width": 1173.35,
                 "height": 60.94
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -27003,8 +27224,7 @@
               "decorative": false,
               "name": "supporting_subtitle",
               "max_length": 242,
-              "min_length": 105,
-              "rotation": 0
+              "min_length": 105
             }
           ]
         },
@@ -27049,6 +27269,7 @@
                         "width": 195.42,
                         "height": 33.87
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 24.88,
                         "family": "Montserrat Bold",
@@ -27077,8 +27298,7 @@
                       "decorative": false,
                       "name": "section_title",
                       "max_length": 14,
-                      "min_length": 3,
-                      "rotation": 0
+                      "min_length": 3
                     },
                     {
                       "type": "text",
@@ -27485,8 +27705,8 @@
                 }
               ],
               "name": "section_row",
-              "min_children": 5,
-              "max_children": 5
+              "max_children": 5,
+              "min_children": 5
             },
             {
               "type": "group",
@@ -27890,6 +28110,7 @@
                 "width": 525,
                 "height": 155.25
               },
+              "rotation": 0,
               "font": {
                 "size": 18,
                 "family": "Montserrat Medium",
@@ -27917,9 +28138,8 @@
               ],
               "decorative": false,
               "name": "intro_description",
-              "min_length": 76,
-              "rotation": 0,
-              "max_length": 317
+              "max_length": 317,
+              "min_length": 76
             }
           ]
         },
@@ -27933,7 +28153,6 @@
           "elements": [
             {
               "type": "flex",
-              "name": "plan_card_list_group_element",
               "position": {
                 "x": -5.69,
                 "y": 61.34
@@ -27942,15 +28161,18 @@
                 "width": 329.92,
                 "height": 577.67
               },
+              "rotation": 0,
               "direction": "column",
-              "gap": 12,
               "align_items": "stretch",
               "justify_content": "flex-start",
-              "min_children": 1,
-              "max_children": 2,
+              "gap": 12,
               "children": [
                 {
                   "type": "group",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -27987,6 +28209,7 @@
                         "width": 184.56,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -28015,8 +28238,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -28028,6 +28250,7 @@
                         "width": 255.24,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -28056,8 +28279,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -28107,18 +28329,15 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 }
               ],
-              "rotation": 0
+              "name": "plan_card_list_group_element",
+              "max_children": 2,
+              "min_children": 1
             },
             {
               "type": "flex",
-              "name": "card_list_flex",
               "position": {
                 "x": 342.25,
                 "y": 60.3
@@ -28127,14 +28346,18 @@
                 "width": 329.92,
                 "height": 577.67
               },
+              "rotation": 0,
               "direction": "column",
-              "gap": 12,
               "align_items": "stretch",
               "justify_content": "flex-start",
-              "min_children": 1,
+              "gap": 12,
               "children": [
                 {
                   "type": "group",
+                  "position": {
+                    "x": 323.54,
+                    "y": 0
+                  },
                   "size": {
                     "width": 344,
                     "height": 360
@@ -28150,6 +28373,7 @@
                         "width": 344,
                         "height": 369.09
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F0EEF7",
                         "opacity": 1
@@ -28159,8 +28383,7 @@
                         "tr": 0,
                         "bl": 0,
                         "br": 0
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -28172,6 +28395,7 @@
                         "width": 237.07,
                         "height": 35
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 25,
                         "family": "Montserrat Bold",
@@ -28200,8 +28424,7 @@
                       "decorative": false,
                       "name": "plan_name",
                       "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -28213,6 +28436,7 @@
                         "width": 245.01,
                         "height": 60
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 49,
                         "family": "Montserrat Semi-Bold",
@@ -28241,8 +28465,7 @@
                       "decorative": false,
                       "name": "plan_price",
                       "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
+                      "min_length": 1
                     },
                     {
                       "type": "text-list",
@@ -28292,180 +28515,12 @@
                       "min_item_length": 16
                     }
                   ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 323.54,
-                    "y": 0
-                  }
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 344,
-                    "height": 360
-                  },
-                  "children": [
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": -7.95
-                      },
-                      "size": {
-                        "width": 344,
-                        "height": 367.95
-                      },
-                      "fill": {
-                        "color": "#F8F6FC",
-                        "opacity": 1
-                      },
-                      "border_radius": {
-                        "tl": 0,
-                        "tr": 0,
-                        "bl": 0,
-                        "br": 0
-                      },
-                      "rotation": 0
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 62,
-                        "y": 64
-                      },
-                      "size": {
-                        "width": 184.56,
-                        "height": 35
-                      },
-                      "font": {
-                        "size": 25,
-                        "family": "Montserrat Bold",
-                        "color": "#8958F4",
-                        "bold": true,
-                        "line_height": 1.5,
-                        "letter_spacing": 0.14
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Free",
-                          "font": {
-                            "size": 25,
-                            "family": "Montserrat Bold",
-                            "color": "#8958F4",
-                            "bold": true,
-                            "line_height": 1.5,
-                            "letter_spacing": 0.14
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "plan_name",
-                      "max_length": 14,
-                      "min_length": 2,
-                      "rotation": 0
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 62,
-                        "y": 116
-                      },
-                      "size": {
-                        "width": 255.24,
-                        "height": 60
-                      },
-                      "font": {
-                        "size": 49,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#8958F4",
-                        "bold": true,
-                        "line_height": 1.2,
-                        "letter_spacing": 0.28
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "$0",
-                          "font": {
-                            "size": 49,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#8958F4",
-                            "bold": true,
-                            "line_height": 1.2,
-                            "letter_spacing": 0.28
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "plan_price",
-                      "max_length": 7,
-                      "min_length": 1,
-                      "rotation": 0
-                    },
-                    {
-                      "type": "text-list",
-                      "position": {
-                        "x": 74,
-                        "y": 198
-                      },
-                      "size": {
-                        "width": 240,
-                        "height": 110
-                      },
-                      "font": {
-                        "size": 14.2,
-                        "family": "Montserrat",
-                        "color": "#000000",
-                        "line_height": 1.85,
-                        "letter_spacing": 0.08
-                      },
-                      "marker": "none",
-                      "items": [
-                        [
-                          {
-                            "text": "· Access to essential courses"
-                          }
-                        ],
-                        [
-                          {
-                            "text": "· Limited learning materials"
-                          }
-                        ],
-                        [
-                          {
-                            "text": "· Community support"
-                          }
-                        ],
-                        [
-                          {
-                            "text": "· Progress tracking"
-                          }
-                        ]
-                      ],
-                      "decorative": false,
-                      "name": "feature_list",
-                      "max_items": 4,
-                      "min_items": 1,
-                      "max_item_length": 31,
-                      "min_item_length": 16
-                    }
-                  ],
-                  "name": "pricing_card",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  }
+                  "name": "pricing_card"
                 }
               ],
-              "rotation": 0,
-              "max_children": 2
+              "name": "card_list_flex",
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         },
@@ -28511,7 +28566,7 @@
                   }
                 },
                 {
-                  "text": " 25",
+                  "text": "25",
                   "font": {
                     "size": 14.2,
                     "family": "Montserrat",
@@ -28636,6 +28691,7 @@
                 "width": 524.63,
                 "height": 90.15
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -28650,7 +28706,7 @@
               },
               "runs": [
                 {
-                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure. ",
+                  "text": "It empowers teams to work smarter through automation, real-time collaboration, intelligent analytics, and secure cloud infrastructure.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -28664,8 +28720,7 @@
               "decorative": false,
               "name": "supporting_summary",
               "max_length": 153,
-              "min_length": 68,
-              "rotation": 0
+              "min_length": 68
             }
           ]
         },
@@ -28687,6 +28742,7 @@
                 "width": 603,
                 "height": 566.07
               },
+              "rotation": 0,
               "columns": 1,
               "rows": 4,
               "gap": 52,
@@ -28744,7 +28800,7 @@
                         },
                         "runs": [
                           {
-                            "text": "Phase 1: ",
+                            "text": "Phase 1:",
                             "font": {
                               "size": 21.33,
                               "family": "Montserrat Bold",
@@ -28770,6 +28826,7 @@
                           "width": 409.13,
                           "height": 31
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 21.33,
                           "family": "Montserrat Semi-Bold",
@@ -28798,8 +28855,7 @@
                         "decorative": false,
                         "name": "stage_title",
                         "max_length": 34,
-                        "min_length": 6,
-                        "rotation": 0
+                        "min_length": 6
                       },
                       {
                         "type": "text",
@@ -28811,6 +28867,7 @@
                           "width": 440,
                           "height": 95.4
                         },
+                        "rotation": 0,
                         "font": {
                           "size": 14.22,
                           "family": "Montserrat",
@@ -28837,8 +28894,7 @@
                         "decorative": false,
                         "name": "stage_description",
                         "max_length": 219,
-                        "min_length": 56,
-                        "rotation": 0
+                        "min_length": 56
                       }
                     ],
                     "name": "stage_card_content"
@@ -28847,8 +28903,7 @@
               ],
               "name": "process_cards_grid",
               "max_children": 4,
-              "min_children": 1,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         },
@@ -29040,6 +29095,7 @@
                 "width": 605.06,
                 "height": 68
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -29066,8 +29122,7 @@
               "decorative": false,
               "name": "main_heading_text",
               "max_length": 24,
-              "min_length": 5,
-              "rotation": 0
+              "min_length": 5
             },
             {
               "type": "text",
@@ -29079,6 +29134,7 @@
                 "width": 603.75,
                 "height": 101.86
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -29093,7 +29149,7 @@
               },
               "runs": [
                 {
-                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement. ",
+                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement.",
                   "font": {
                     "size": 17.78,
                     "family": "Montserrat Medium",
@@ -29107,8 +29163,7 @@
               "decorative": false,
               "name": "supporting_description_text",
               "max_length": 233,
-              "min_length": 71,
-              "rotation": 0
+              "min_length": 71
             }
           ]
         },
@@ -29251,6 +29306,7 @@
                 "width": 524.34,
                 "height": 126.92
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -29268,19 +29324,21 @@
                   "text": "Summary",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -1.1
+                    "letter_spacing": -1.1,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "main_heading",
               "max_length": 29,
-              "min_length": 4,
-              "rotation": 0
+              "min_length": 4
             },
             {
               "type": "text",
@@ -29292,6 +29350,7 @@
                 "width": 521.78,
                 "height": 168.55
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -29320,8 +29379,7 @@
               "decorative": false,
               "name": "summary_text",
               "max_length": 300,
-              "min_length": 72,
-              "rotation": 0
+              "min_length": 72
             }
           ]
         },
@@ -29366,6 +29424,7 @@
                         "width": 558,
                         "height": 66.64
                       },
+                      "rotation": 0,
                       "fill": {
                         "color": "#F0EEF8",
                         "opacity": 1
@@ -29375,8 +29434,7 @@
                         "tr": 32,
                         "bl": 32,
                         "br": 32
-                      },
-                      "rotation": 0
+                      }
                     },
                     {
                       "type": "text",
@@ -29388,6 +29446,7 @@
                         "width": 529.41,
                         "height": 30.27
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Semi-Bold",
@@ -29416,8 +29475,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 42,
-                      "min_length": 19,
-                      "rotation": 0
+                      "min_length": 19
                     },
                     {
                       "type": "text",
@@ -29429,6 +29487,7 @@
                         "width": 513.59,
                         "height": 123.1
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.78,
                         "family": "Montserrat",
@@ -29455,8 +29514,7 @@
                       "decorative": false,
                       "name": "card_body",
                       "max_length": 207,
-                      "min_length": 64,
-                      "rotation": 0
+                      "min_length": 64
                     }
                   ],
                   "name": "information_card"
@@ -29662,7 +29720,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "card_list_elements",
               "position": {
                 "x": 50.02,
                 "y": 4.54
@@ -29671,17 +29728,15 @@
                 "width": 1073.62,
                 "height": 245.66
               },
+              "rotation": 0,
               "columns": 3,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 3,
               "children": [
                 {
                   "type": "group",
-                  "name": "card_group_icon_description_title",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -29808,10 +29863,13 @@
                       "max_length": 96,
                       "min_length": 39
                     }
-                  ]
+                  ],
+                  "name": "card_group_icon_description_title"
                 }
               ],
-              "rotation": 0
+              "name": "card_list_elements",
+              "max_children": 3,
+              "min_children": 1
             }
           ]
         },
@@ -30059,7 +30117,7 @@
               },
               "size": {
                 "width": 1173.35,
-                "height": 62.16
+                "height": 62
               },
               "font": {
                 "size": 55.99,
@@ -30077,20 +30135,28 @@
                   "text": "Identifying ",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 },
                 {
                   "text": "Potential Risks",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#5F4F9B",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
@@ -30257,6 +30323,7 @@
                 "width": 452.2,
                 "height": 29.1
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -30285,8 +30352,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -30298,6 +30364,7 @@
                 "width": 425.37,
                 "height": 83.95
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat Medium",
@@ -30326,8 +30393,7 @@
               "decorative": false,
               "name": "section_body",
               "max_length": 210,
-              "min_length": 110,
-              "rotation": 0
+              "min_length": 110
             }
           ]
         },
@@ -30349,6 +30415,7 @@
                 "width": 429.46,
                 "height": 30.27
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -30377,8 +30444,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 9,
-              "rotation": 0
+              "min_length": 9
             },
             {
               "type": "text",
@@ -30390,6 +30456,7 @@
                 "width": 430.56,
                 "height": 95.82
               },
+              "rotation": 0,
               "font": {
                 "size": 14.22,
                 "family": "Montserrat Medium",
@@ -30418,8 +30485,7 @@
               "decorative": false,
               "name": "section_body",
               "max_length": 210,
-              "min_length": 115,
-              "rotation": 0
+              "min_length": 115
             }
           ]
         },
@@ -30441,6 +30507,7 @@
                 "width": 427.64,
                 "height": 30.27
               },
+              "rotation": 0,
               "font": {
                 "size": 21.33,
                 "family": "Montserrat Bold",
@@ -30469,8 +30536,7 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 34,
-              "min_length": 5,
-              "rotation": 0
+              "min_length": 5
             },
             {
               "type": "text",
@@ -30545,24 +30611,31 @@
               },
               "runs": [
                 {
-                  "text": "Page",
+                  "text": "Page ",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat Bold",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " 30",
+                  "text": "30",
                   "font": {
                     "size": 14.22,
                     "family": "Montserrat",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.4,
-                    "letter_spacing": 0.08
+                    "letter_spacing": 0.08,
+                    "opacity": 1
                   }
                 }
               ],
@@ -30673,7 +30746,7 @@
               },
               "size": {
                 "width": 1200,
-                "height": 58
+                "height": 51
               },
               "font": {
                 "size": 48,
@@ -30693,28 +30766,40 @@
                     "size": 48,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.45
+                    "letter_spacing": -0.45,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": "smart platform",
+                  "text": "smart platform ",
                   "font": {
                     "size": 48,
                     "family": "Anton",
                     "color": "#5F4F9B",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.45
+                    "letter_spacing": -0.45,
+                    "opacity": 1
                   }
                 },
                 {
-                  "text": " that simplifies",
+                  "text": "that simplifies",
                   "font": {
                     "size": 48,
                     "family": "Anton",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.05,
-                    "letter_spacing": -0.45
+                    "letter_spacing": -0.45,
+                    "opacity": 1
                   }
                 }
               ],
@@ -31412,6 +31497,7 @@
                 "width": 1159.68,
                 "height": 62.16
               },
+              "rotation": 0,
               "font": {
                 "size": 55.99,
                 "family": "Anton",
@@ -31429,19 +31515,21 @@
                   "text": "Any questions ?",
                   "font": {
                     "size": 55.99,
-                    "family": "Impact",
+                    "family": "Anton",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.09,
-                    "letter_spacing": -0.55
+                    "letter_spacing": -0.55,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "headline_text",
               "max_length": 37,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -31453,6 +31541,7 @@
                 "width": 1150.43,
                 "height": 48.44
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Montserrat Medium",
@@ -31481,8 +31570,7 @@
               "decorative": false,
               "name": "supporting_copy",
               "max_length": 118,
-              "min_length": 72,
-              "rotation": 0
+              "min_length": 72
             }
           ]
         },

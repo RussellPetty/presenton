@@ -588,6 +588,7 @@
                     "width": 84.69,
                     "height": 16
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 12.44,
                     "family": "Lato Bold",
@@ -616,8 +617,7 @@
                   "decorative": false,
                   "name": "brand_year_text",
                   "max_length": 14,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 }
               ],
               "name": "brand_header_group"
@@ -2842,6 +2842,7 @@
                 "width": 661,
                 "height": 250.8
               },
+              "rotation": 0,
               "font": {
                 "size": 151.11,
                 "family": "Lato Heavy",
@@ -2870,8 +2871,7 @@
               "decorative": false,
               "name": "cover_title",
               "max_length": 15,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -2883,6 +2883,7 @@
                 "width": 650,
                 "height": 54.67
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -2909,8 +2910,7 @@
               "decorative": false,
               "name": "cover_subtitle",
               "max_length": 182,
-              "min_length": 36,
-              "rotation": 0
+              "min_length": 36
             }
           ]
         },
@@ -2932,6 +2932,7 @@
                 "width": 530.43,
                 "height": 92
               },
+              "rotation": 0,
               "font": {
                 "size": 86,
                 "family": "Lato Heavy",
@@ -2960,8 +2961,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 13,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -2973,6 +2973,7 @@
                 "width": 488.13,
                 "height": 135.09
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -2999,8 +3000,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 400,
-              "min_length": 104,
-              "rotation": 0
+              "min_length": 104
             }
           ]
         },
@@ -3022,6 +3022,7 @@
                 "width": 450.46,
                 "height": 90
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -3050,8 +3051,7 @@
               "decorative": false,
               "name": "section_title",
               "max_length": 12,
-              "min_length": 4,
-              "rotation": 0
+              "min_length": 4
             },
             {
               "type": "text",
@@ -3063,6 +3063,7 @@
                 "width": 416.88,
                 "height": 80.56
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -3089,8 +3090,7 @@
               "decorative": false,
               "name": "section_description",
               "max_length": 164,
-              "min_length": 79,
-              "rotation": 0
+              "min_length": 79
             }
           ]
         },
@@ -3112,6 +3112,7 @@
                 "width": 1134.17,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -3140,8 +3141,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 26,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -3201,6 +3201,7 @@
                 "width": 1141.1,
                 "height": 89.24
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -3228,9 +3229,8 @@
               ],
               "decorative": false,
               "name": "main_title",
-              "min_length": 7,
-              "rotation": 0,
-              "max_length": 26
+              "max_length": 26,
+              "min_length": 7
             },
             {
               "type": "text",
@@ -3378,6 +3378,7 @@
                 "width": 1124.95,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -3406,8 +3407,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 27,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -3507,6 +3507,7 @@
                 "width": 424.74,
                 "height": 198.26
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -3533,8 +3534,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 503,
-              "min_length": 127,
-              "rotation": 0
+              "min_length": 127
             }
           ]
         },
@@ -3820,6 +3820,7 @@
                 "width": 675.45,
                 "height": 86.43
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -3848,8 +3849,7 @@
               "decorative": false,
               "name": "main_headline",
               "max_length": 15,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -3974,8 +3974,8 @@
               ],
               "decorative": false,
               "name": "supporting_description",
-              "min_length": 136,
-              "max_length": 256
+              "max_length": 256,
+              "min_length": 136
             }
           ]
         },
@@ -4062,8 +4062,8 @@
               ],
               "decorative": false,
               "name": "intro_paragraph",
-              "min_length": 165,
-              "max_length": 315
+              "max_length": 315,
+              "min_length": 165
             }
           ]
         },
@@ -4138,7 +4138,7 @@
               },
               "runs": [
                 {
-                  "text": "The next steps outline the immediate priorities that will help us improve sales performance, strengthen customer relationships, and achieve our strategic business goals. ",
+                  "text": "The next steps outline the immediate priorities that will help us improve sales performance, strengthen customer relationships, and achieve our strategic business goals.",
                   "font": {
                     "size": 16,
                     "family": "Arial",
@@ -4261,6 +4261,7 @@
                 "width": 947.83,
                 "height": 117.66
               },
+              "rotation": 0,
               "font": {
                 "size": 121.58,
                 "family": "Lato Heavy",
@@ -4289,8 +4290,7 @@
               "decorative": false,
               "name": "main_headline",
               "max_length": 13,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -4302,6 +4302,7 @@
                 "width": 786.41,
                 "height": 165.08
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -4328,8 +4329,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 259,
-              "min_length": 130,
-              "rotation": 0
+              "min_length": 130
             }
           ]
         }
@@ -4370,7 +4370,7 @@
               },
               "runs": [
                 {
-                  "text": "Presenter: ",
+                  "text": "Presenter:",
                   "font": {
                     "size": 16,
                     "family": "Lato Heavy",
@@ -4406,6 +4406,7 @@
                 "width": 262.98,
                 "height": 22
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -4419,7 +4420,7 @@
               },
               "runs": [
                 {
-                  "text": "Date: ",
+                  "text": "Date:",
                   "font": {
                     "size": 16,
                     "family": "Lato Heavy",
@@ -4443,8 +4444,7 @@
               "decorative": false,
               "name": "date_metadata",
               "max_length": 31,
-              "min_length": 9,
-              "rotation": 0
+              "min_length": 9
             }
           ]
         }
@@ -4678,6 +4678,7 @@
                 "width": 1037.34,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -4706,8 +4707,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 24,
-              "min_length": 3,
-              "rotation": 0
+              "min_length": 3
             }
           ]
         },
@@ -4777,7 +4777,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_items_elements_with_descrtipiton_title",
               "position": {
                 "x": 0,
                 "y": 0
@@ -4786,13 +4785,12 @@
                 "width": 1174.66,
                 "height": 173.38
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 2,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 8,
               "children": [
                 {
                   "type": "group",
@@ -4904,7 +4902,9 @@
                   "name": "agenda_items"
                 }
               ],
-              "rotation": 0
+              "name": "grid_items_elements_with_descrtipiton_title",
+              "max_children": 8,
+              "min_children": 1
             }
           ]
         }
@@ -6539,6 +6539,7 @@
                     "width": 43.88,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -6567,8 +6568,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -6816,6 +6816,7 @@
                     "width": 41.59,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -6844,8 +6845,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -6955,6 +6955,7 @@
                     "width": 42.73,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -6983,8 +6984,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -7167,6 +7167,7 @@
                         "width": 399.23,
                         "height": 20
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 16,
                         "family": "Lato Heavy",
@@ -7193,8 +7194,7 @@
                       "decorative": false,
                       "name": "step_heading_text",
                       "max_length": 58,
-                      "min_length": 10,
-                      "rotation": 0
+                      "min_length": 10
                     },
                     {
                       "type": "text",
@@ -7206,6 +7206,7 @@
                         "width": 410,
                         "height": 64.72
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 14.21,
                         "family": "Lato",
@@ -7232,8 +7233,7 @@
                       "decorative": false,
                       "name": "step_description_text",
                       "max_length": 188,
-                      "min_length": 54,
-                      "rotation": 0
+                      "min_length": 54
                     }
                   ],
                   "name": "step_item_group"
@@ -7539,7 +7539,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_cards_with_image_text",
               "position": {
                 "x": 0,
                 "y": -11.36
@@ -7548,12 +7547,12 @@
                 "width": 728.82,
                 "height": 274.41
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
@@ -7668,8 +7667,9 @@
                   "name": "content_card"
                 }
               ],
+              "name": "grid_cards_with_image_text",
               "max_children": 2,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         }
@@ -7791,6 +7791,7 @@
                 "width": 492.69,
                 "height": 190
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -7819,8 +7820,7 @@
               "decorative": false,
               "name": "main_headline_text",
               "max_length": 17,
-              "min_length": 11,
-              "rotation": 0
+              "min_length": 11
             }
           ]
         },
@@ -7842,6 +7842,7 @@
                 "width": 839.79,
                 "height": 160
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -7870,8 +7871,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 20,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             }
           ]
         }
@@ -7891,7 +7891,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_with_icon_description_title",
               "position": {
                 "x": 0,
                 "y": 0
@@ -7900,13 +7899,12 @@
                 "width": 1148.95,
                 "height": 302
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 4,
               "children": [
                 {
                   "type": "group",
@@ -8093,7 +8091,9 @@
                   "name": "process_step_card"
                 }
               ],
-              "rotation": 0
+              "name": "grid_with_icon_description_title",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -8151,7 +8151,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Launch New Marketing ",
+                          "text": "Launch New Marketing",
                           "font": {
                             "size": 16,
                             "family": "Lato Bold",
@@ -8320,7 +8320,6 @@
                 },
                 {
                   "type": "grid",
-                  "name": "grid_element",
                   "position": {
                     "x": 328.19,
                     "y": 0
@@ -8329,16 +8328,19 @@
                     "width": 519.84,
                     "height": 371
                   },
+                  "rotation": 0,
                   "columns": 2,
                   "rows": 1,
                   "gap": 12,
                   "align_items": "stretch",
                   "justify_items": "stretch",
-                  "min_children": 1,
-                  "max_children": 2,
                   "children": [
                     {
                       "type": "group",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "size": {
                         "width": 250,
                         "height": 371
@@ -8526,14 +8528,14 @@
                           "icon_type": "thin"
                         }
                       ],
-                      "name": "timeline_card",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "name": "timeline_card"
                     },
                     {
                       "type": "group",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "size": {
                         "width": 250,
                         "height": 371
@@ -8721,15 +8723,12 @@
                           "icon_type": "thin"
                         }
                       ],
-                      "name": "timeline_card",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "name": "timeline_card"
                     }
                   ],
-                  "rotation": 0,
-                  "__presenton_manual_position": true
+                  "name": "grid_element",
+                  "max_children": 2,
+                  "min_children": 1
                 },
                 {
                   "type": "group",
@@ -9786,6 +9785,7 @@
                         "width": 197.07,
                         "height": 56.43
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -9812,8 +9812,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -9838,7 +9837,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Digital platforms, company websites, and e-commerce channels contribute the largest share of sales. ",
+                          "text": "Digital platforms, company websites, and e-commerce channels contribute the largest share of sales.",
                           "font": {
                             "size": 14.22,
                             "family": "Lato",
@@ -9964,6 +9963,7 @@
                         "width": 197.07,
                         "height": 53.02
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -9990,8 +9990,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -10142,6 +10141,7 @@
                         "width": 197.07,
                         "height": 57.57
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -10168,8 +10168,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -10485,8 +10484,8 @@
               ],
               "decorative": false,
               "name": "subtitle_text",
-              "min_length": 69,
-              "max_length": 211
+              "max_length": 211,
+              "min_length": 69
             }
           ]
         },
@@ -10596,6 +10595,7 @@
                 "width": 814.81,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -10624,8 +10624,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 21,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -10712,8 +10711,8 @@
               ],
               "decorative": false,
               "name": "main_title",
-              "min_length": 4,
-              "max_length": 27
+              "max_length": 27,
+              "min_length": 4
             },
             {
               "type": "text",
@@ -10926,8 +10925,8 @@
               ],
               "decorative": false,
               "name": "slide_intro",
-              "min_length": 145,
-              "max_length": 165
+              "max_length": 165,
+              "min_length": 145
             }
           ]
         }
@@ -12124,6 +12123,7 @@
                     "width": 143.4,
                     "height": 56.27
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -12150,8 +12150,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 77,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -12267,6 +12266,7 @@
                     "width": 143.4,
                     "height": 60.82
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -12293,8 +12293,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -12410,6 +12409,7 @@
                     "width": 143.4,
                     "height": 76.72
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -12436,8 +12436,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -12553,6 +12552,7 @@
                     "width": 143.4,
                     "height": 68.77
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -12579,8 +12579,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -12696,6 +12695,7 @@
                     "width": 143.4,
                     "height": 57.42
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -12722,8 +12722,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 }
               ],
               "name": "feature_card_groups"
@@ -12841,6 +12840,7 @@
                     "width": 185,
                     "height": 164.03
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -12867,8 +12867,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 65,
-                  "rotation": 0
+                  "min_length": 65
                 }
               ],
               "name": "content_card"
@@ -12936,6 +12935,7 @@
                     "width": 185,
                     "height": 86.13
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 23.1,
                     "family": "Lato Bold",
@@ -12964,8 +12964,7 @@
                   "decorative": false,
                   "name": "card_title",
                   "max_length": 24,
-                  "min_length": 9,
-                  "rotation": 0
+                  "min_length": 9
                 },
                 {
                   "type": "text",
@@ -12977,6 +12976,7 @@
                     "width": 185,
                     "height": 152.67
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -13003,8 +13003,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 56,
-                  "rotation": 0
+                  "min_length": 56
                 }
               ],
               "name": "content_card"
@@ -13112,6 +13111,7 @@
                     "width": 185,
                     "height": 162.45
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -13138,8 +13138,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 66,
-                  "rotation": 0
+                  "min_length": 66
                 }
               ],
               "name": "content_card"
@@ -13162,7 +13161,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_collection",
               "position": {
                 "x": 0,
                 "y": -23.04
@@ -13171,17 +13169,15 @@
                 "width": 1162.59,
                 "height": 395.99
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 2,
               "children": [
                 {
                   "type": "group",
-                  "name": "grid_with_card_stacked_with_description_title",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -13210,7 +13206,6 @@
                     },
                     {
                       "type": "group",
-                      "name": "grid_with_indv_element",
                       "position": {
                         "x": 211.82,
                         "y": 110.39
@@ -13251,6 +13246,7 @@
                             "width": 224.23,
                             "height": 49.6
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 47.99,
                             "family": "Lato Heavy",
@@ -13277,8 +13273,7 @@
                           "decorative": false,
                           "name": "metric_value",
                           "max_length": 9,
-                          "min_length": 3,
-                          "rotation": 0
+                          "min_length": 3
                         },
                         {
                           "type": "text",
@@ -13328,6 +13323,7 @@
                             "width": 219.47,
                             "height": 17.87
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 16,
                             "family": "Lato Heavy",
@@ -13354,10 +13350,10 @@
                           "decorative": false,
                           "name": "metric_detail",
                           "max_length": 31,
-                          "min_length": 3,
-                          "rotation": 0
+                          "min_length": 3
                         }
-                      ]
+                      ],
+                      "name": "grid_with_indv_element"
                     },
                     {
                       "type": "text",
@@ -13435,10 +13431,13 @@
                       "max_length": 135,
                       "min_length": 68
                     }
-                  ]
+                  ],
+                  "name": "grid_with_card_stacked_with_description_title"
                 }
               ],
-              "rotation": 0
+              "name": "grid_collection",
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         },
@@ -13524,6 +13523,7 @@
                 "width": 279.94,
                 "height": 49.6
               },
+              "rotation": 0,
               "font": {
                 "size": 47.99,
                 "family": "Lato Heavy",
@@ -13537,7 +13537,7 @@
               },
               "runs": [
                 {
-                  "text": "+20% ",
+                  "text": "+20%",
                   "font": {
                     "size": 47.99,
                     "family": "Lato Heavy",
@@ -13550,8 +13550,7 @@
               "decorative": false,
               "name": "metric_value",
               "max_length": 12,
-              "min_length": 3,
-              "rotation": 0
+              "min_length": 3
             },
             {
               "type": "text",
@@ -13563,6 +13562,7 @@
                 "width": 297.92,
                 "height": 18.89
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Lato Heavy",
@@ -13589,8 +13589,7 @@
               "decorative": false,
               "name": "metric_label",
               "max_length": 33,
-              "min_length": 6,
-              "rotation": 0
+              "min_length": 6
             },
             {
               "type": "text",
@@ -13719,6 +13718,7 @@
                     "width": 309.5,
                     "height": 49.6
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 47.99,
                     "family": "Lato Heavy",
@@ -13732,7 +13732,7 @@
                   },
                   "runs": [
                     {
-                      "text": "+20% ",
+                      "text": "+20%",
                       "font": {
                         "size": 47.99,
                         "family": "Lato Heavy",
@@ -13745,8 +13745,7 @@
                   "decorative": false,
                   "name": "metric_value",
                   "max_length": 14,
-                  "min_length": 3,
-                  "rotation": 0
+                  "min_length": 3
                 },
                 {
                   "type": "text",
@@ -13758,6 +13757,7 @@
                     "width": 246.77,
                     "height": 18.89
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 17.78,
                     "family": "Lato Heavy",
@@ -13784,8 +13784,7 @@
                   "decorative": false,
                   "name": "metric_label",
                   "max_length": 26,
-                  "min_length": 6,
-                  "rotation": 0
+                  "min_length": 6
                 },
                 {
                   "type": "text",
@@ -14198,7 +14197,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Digital Marketing ",
+                          "text": "Digital Marketing",
                           "font": {
                             "size": 17.78,
                             "family": "Lato Heavy",
@@ -14941,6 +14940,7 @@
                 "width": 463.73,
                 "height": 30
               },
+              "rotation": 0,
               "font": {
                 "size": 23.1,
                 "family": "Lato Heavy",
@@ -14969,12 +14969,10 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 41,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "grid",
-              "name": "section_grid_lists",
               "position": {
                 "x": -30.71,
                 "y": 49.74
@@ -14983,17 +14981,15 @@
                 "width": 510.65,
                 "height": 7.04
               },
+              "rotation": 0,
               "columns": 1,
               "rows": 1,
               "gap": 70,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 4,
               "children": [
                 {
                   "type": "group",
-                  "name": "item",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -15013,6 +15009,7 @@
                         "width": 79.65,
                         "height": 20.06
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 16,
                         "family": "Lato Bold",
@@ -15041,8 +15038,7 @@
                       "decorative": false,
                       "name": "note_label",
                       "max_length": 3,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -15067,7 +15063,7 @@
                       },
                       "runs": [
                         {
-                          "text": " Sales started steadily at $320K, establishing a solid foundation for the year.",
+                          "text": "Sales started steadily at $320K, establishing a solid foundation for the year.",
                           "font": {
                             "size": 16,
                             "family": "Lato",
@@ -15082,10 +15078,13 @@
                       "max_length": 78,
                       "min_length": 39
                     }
-                  ]
+                  ],
+                  "name": "item"
                 }
               ],
-              "rotation": 0
+              "name": "section_grid_lists",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -15409,7 +15408,7 @@
                 "width": 466.67,
                 "height": 466.67
               },
-              "data": "static/image-e381ac23bf94ab2a.png",
+              "data": "/static/images/replaceable_template_image.png",
               "fit": "fill",
               "decorative": false,
               "name": "outer_metric_circle",
@@ -15796,6 +15795,7 @@
                 "width": 413.1,
                 "height": 103.82
               },
+              "rotation": 0,
               "font": {
                 "size": 23.1,
                 "family": "Lato",
@@ -15822,8 +15822,7 @@
               "decorative": false,
               "name": "quote_body_text",
               "max_length": 91,
-              "min_length": 46,
-              "rotation": 0
+              "min_length": 46
             },
             {
               "type": "text",
@@ -15891,13 +15890,13 @@
                 "width": 372.28,
                 "height": 389.57
               },
+              "rotation": 0,
               "data": "/static/images/replaceable_template_image.png",
               "fit": "cover",
               "clip_path": "path('M 15.3332 0 L 548.0868 0 C 556.5547 0 563.42 6.8653 563.42 15.3332 L 563.42 548.0868 C 563.42 556.5547 556.5547 563.42 548.0868 563.42 L 15.3332 563.42 C 6.8653 563.42 0 556.5547 0 548.0868 L 0 15.3332 C 0 6.8653 6.8653 0 15.3332 0 Z')",
               "decorative": false,
               "name": "portrait_photo",
-              "is_icon": false,
-              "rotation": 0
+              "is_icon": false
             }
           ]
         }
@@ -15917,7 +15916,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "image_text_description_grid",
               "position": {
                 "x": 0,
                 "y": 0
@@ -15926,12 +15924,12 @@
                 "width": 1206.28,
                 "height": 400.53
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
@@ -16108,8 +16106,9 @@
                   "name": "profile_card_group"
                 }
               ],
+              "name": "image_text_description_grid",
               "max_children": 4,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         }
@@ -16219,6 +16218,7 @@
                         "width": 196.61,
                         "height": 24
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.77,
                         "family": "Lato Bold",
@@ -16247,8 +16247,7 @@
                       "decorative": false,
                       "name": "card_title",
                       "max_length": 23,
-                      "min_length": 5,
-                      "rotation": 0
+                      "min_length": 5
                     },
                     {
                       "type": "text",
@@ -16260,6 +16259,7 @@
                         "width": 173.17,
                         "height": 60.15
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 12.44,
                         "family": "Lato",
@@ -16286,8 +16286,7 @@
                       "decorative": false,
                       "name": "card_description",
                       "max_length": 84,
-                      "min_length": 17,
-                      "rotation": 0
+                      "min_length": 17
                     },
                     {
                       "type": "vector",
@@ -16350,7 +16349,6 @@
                     },
                     {
                       "type": "flex",
-                      "name": "flex_items",
                       "position": {
                         "x": 24.16,
                         "y": 334.79
@@ -16360,11 +16358,9 @@
                         "height": 167.35
                       },
                       "direction": "column",
-                      "gap": 12,
                       "align_items": "stretch",
                       "justify_content": "flex-start",
-                      "min_children": 1,
-                      "max_children": 4,
+                      "gap": 12,
                       "children": [
                         {
                           "type": "text",
@@ -16376,6 +16372,7 @@
                             "width": 173.17,
                             "height": 47.65
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 12.44,
                             "family": "Lato",
@@ -16402,10 +16399,12 @@
                           "decorative": false,
                           "name": "each_item_individ",
                           "max_length": 16,
-                          "min_length": 16,
-                          "rotation": 0
+                          "min_length": 16
                         }
-                      ]
+                      ],
+                      "name": "flex_items",
+                      "max_children": 4,
+                      "min_children": 1
                     }
                   ],
                   "name": "pricing_card"
@@ -16832,7 +16831,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -17038,7 +17037,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -17244,7 +17243,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -17570,6 +17569,7 @@
                 "width": 661,
                 "height": 250.8
               },
+              "rotation": 0,
               "font": {
                 "size": 151.11,
                 "family": "Lato Heavy",
@@ -17598,8 +17598,7 @@
               "decorative": false,
               "name": "cover_title",
               "max_length": 15,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -17611,6 +17610,7 @@
                 "width": 650,
                 "height": 54.67
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -17637,8 +17637,7 @@
               "decorative": false,
               "name": "cover_subtitle",
               "max_length": 182,
-              "min_length": 36,
-              "rotation": 0
+              "min_length": 36
             }
           ]
         },
@@ -17673,7 +17672,7 @@
               },
               "runs": [
                 {
-                  "text": "Presenter: ",
+                  "text": "Presenter:",
                   "font": {
                     "size": 16,
                     "family": "Lato Heavy",
@@ -17709,6 +17708,7 @@
                 "width": 262.98,
                 "height": 22
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -17722,7 +17722,7 @@
               },
               "runs": [
                 {
-                  "text": "Date: ",
+                  "text": "Date:",
                   "font": {
                     "size": 16,
                     "family": "Lato Heavy",
@@ -17746,8 +17746,7 @@
               "decorative": false,
               "name": "date_metadata",
               "max_length": 31,
-              "min_length": 9,
-              "rotation": 0
+              "min_length": 9
             }
           ]
         },
@@ -17959,6 +17958,7 @@
                 "width": 1037.34,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -17987,8 +17987,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 24,
-              "min_length": 3,
-              "rotation": 0
+              "min_length": 3
             }
           ]
         },
@@ -18002,7 +18001,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_items_elements_with_descrtipiton_title",
               "position": {
                 "x": 0,
                 "y": 0
@@ -18011,13 +18009,12 @@
                 "width": 1174.66,
                 "height": 173.38
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 2,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 8,
               "children": [
                 {
                   "type": "group",
@@ -18129,7 +18126,9 @@
                   "name": "agenda_items"
                 }
               ],
-              "rotation": 0
+              "name": "grid_items_elements_with_descrtipiton_title",
+              "max_children": 8,
+              "min_children": 1
             }
           ]
         }
@@ -18331,6 +18330,7 @@
                 "width": 530.43,
                 "height": 92
               },
+              "rotation": 0,
               "font": {
                 "size": 86,
                 "family": "Lato Heavy",
@@ -18359,8 +18359,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 13,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -18372,6 +18371,7 @@
                 "width": 488.13,
                 "height": 135.09
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -18398,8 +18398,7 @@
               "decorative": false,
               "name": "supporting_description",
               "max_length": 400,
-              "min_length": 104,
-              "rotation": 0
+              "min_length": 104
             }
           ]
         },
@@ -18661,6 +18660,7 @@
                 "width": 450.46,
                 "height": 90
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -18689,8 +18689,7 @@
               "decorative": false,
               "name": "section_title",
               "max_length": 12,
-              "min_length": 4,
-              "rotation": 0
+              "min_length": 4
             },
             {
               "type": "text",
@@ -18702,6 +18701,7 @@
                 "width": 416.88,
                 "height": 80.56
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -18728,8 +18728,7 @@
               "decorative": false,
               "name": "section_description",
               "max_length": 164,
-              "min_length": 79,
-              "rotation": 0
+              "min_length": 79
             }
           ]
         },
@@ -18785,6 +18784,7 @@
                     "width": 43.88,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -18813,8 +18813,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -19062,6 +19061,7 @@
                     "width": 41.59,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -19090,8 +19090,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -19201,6 +19200,7 @@
                     "width": 42.73,
                     "height": 34.35
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 27.55,
                     "family": "Lato Bold",
@@ -19229,8 +19229,7 @@
                   "decorative": false,
                   "name": "marker_label",
                   "max_length": 1,
-                  "min_length": 1,
-                  "rotation": 0
+                  "min_length": 1
                 },
                 {
                   "type": "vector",
@@ -19559,6 +19558,7 @@
                 "width": 1134.17,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -19587,8 +19587,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 26,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             },
             {
               "type": "text",
@@ -20136,6 +20135,7 @@
                     "width": 84.69,
                     "height": 16
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 12.44,
                     "family": "Lato Bold",
@@ -20164,8 +20164,7 @@
                   "decorative": false,
                   "name": "brand_year_text",
                   "max_length": 14,
-                  "min_length": 2,
-                  "rotation": 0
+                  "min_length": 2
                 }
               ],
               "name": "brand_header_group"
@@ -20190,6 +20189,7 @@
                 "width": 492.69,
                 "height": 190
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -20218,8 +20218,7 @@
               "decorative": false,
               "name": "main_headline_text",
               "max_length": 17,
-              "min_length": 11,
-              "rotation": 0
+              "min_length": 11
             }
           ]
         },
@@ -20324,6 +20323,7 @@
                         "width": 399.23,
                         "height": 20
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 16,
                         "family": "Lato Heavy",
@@ -20350,8 +20350,7 @@
                       "decorative": false,
                       "name": "step_heading_text",
                       "max_length": 58,
-                      "min_length": 10,
-                      "rotation": 0
+                      "min_length": 10
                     },
                     {
                       "type": "text",
@@ -20363,6 +20362,7 @@
                         "width": 410,
                         "height": 64.72
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 14.21,
                         "family": "Lato",
@@ -20389,8 +20389,7 @@
                       "decorative": false,
                       "name": "step_description_text",
                       "max_length": 188,
-                      "min_length": 54,
-                      "rotation": 0
+                      "min_length": 54
                     }
                   ],
                   "name": "step_item_group"
@@ -20564,8 +20563,8 @@
           ]
         },
         {
-          "id": "title_description_block",
-          "description": "Large left aligned title with a full width descriptive paragraph beneath it.",
+          "id": "title_description_block_part_1",
+          "description": "Ungrouped component element",
           "position": {
             "x": 56.67,
             "y": 132
@@ -20579,8 +20578,9 @@
               },
               "size": {
                 "width": 1141.1,
-                "height": 89.24
+                "height": 80
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -20595,32 +20595,44 @@
               },
               "runs": [
                 {
-                  "text": "Sales\nProcess",
+                  "text": "Sales Process",
                   "font": {
                     "size": 88.88,
                     "family": "Lato Heavy",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 0.9,
-                    "letter_spacing": -5.95
+                    "letter_spacing": -5.95,
+                    "opacity": 1
                   }
                 }
               ],
               "decorative": false,
               "name": "main_title",
-              "min_length": 7,
-              "rotation": 0,
-              "max_length": 26
-            },
+              "max_length": 26,
+              "min_length": 7
+            }
+          ]
+        },
+        {
+          "id": "title_description_block_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 56.67,
+            "y": 219.18
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 87.18
+                "y": 0
               },
               "size": {
                 "width": 1151.33,
-                "height": 40.56
+                "height": 42
               },
               "font": {
                 "size": 16,
@@ -20640,8 +20652,12 @@
                     "size": 16,
                     "family": "Lato",
                     "color": "#000000",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.29,
-                    "letter_spacing": 0.28
+                    "letter_spacing": 0.28,
+                    "opacity": 1
                   }
                 }
               ],
@@ -20662,7 +20678,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_with_icon_description_title",
               "position": {
                 "x": 0,
                 "y": 0
@@ -20671,13 +20686,12 @@
                 "width": 1148.95,
                 "height": 302
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 4,
               "children": [
                 {
                   "type": "group",
@@ -20743,8 +20757,8 @@
                       },
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
-                      "color": "#FFFFFF",
                       "clip_path": "path('M 0 0 L 38.67 0 L 38.67 38.67 L 0 38.67 L 0 0 Z')",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "step_icon",
                       "is_icon": true,
@@ -20865,7 +20879,9 @@
                   "name": "process_step_card"
                 }
               ],
-              "rotation": 0
+              "name": "grid_with_icon_description_title",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -21541,10 +21557,10 @@
           ]
         },
         {
-          "id": "centered_title_block",
-          "description": "Large centered headline with a short centered supporting sentence below it.",
+          "id": "centered_title_block_part_1",
+          "description": "Ungrouped component element",
           "position": {
-            "x": 223,
+            "x": 35.999999999999886,
             "y": 132
           },
           "elements": [
@@ -21555,8 +21571,8 @@
                 "y": 0
               },
               "size": {
-                "width": 834,
-                "height": 118
+                "width": 1119.5,
+                "height": 80
               },
               "font": {
                 "size": 88.88,
@@ -21572,14 +21588,17 @@
               },
               "runs": [
                 {
-                  "text": "Core Business\nStrengths",
+                  "text": "Core Business Strengths",
                   "font": {
                     "size": 88.88,
                     "family": "Lato Heavy",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 0.9,
-                    "letter_spacing": -5.95
+                    "letter_spacing": -5.95,
+                    "opacity": 1
                   }
                 }
               ],
@@ -21587,12 +21606,22 @@
               "name": "main_heading",
               "max_length": 17,
               "min_length": 12
-            },
+            }
+          ]
+        },
+        {
+          "id": "centered_title_block_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 223,
+            "y": 225
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 93
+                "y": 0
               },
               "size": {
                 "width": 834,
@@ -21623,8 +21652,8 @@
               ],
               "decorative": false,
               "name": "subtitle_text",
-              "min_length": 69,
-              "max_length": 211
+              "max_length": 211,
+              "min_length": 69
             }
           ]
         },
@@ -22671,14 +22700,21 @@
                   "font": {
                     "size": 23.11,
                     "family": "Lato Bold",
-                    "color": "#000000",
+                    "color": "#FFFFFF",
                     "bold": true,
                     "line_height": 1
                   },
                   "alignment": "left",
                   "runs": [
                     {
-                      "text": "Metric"
+                      "text": "Metric",
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Bold",
+                        "color": "F6F5F4",
+                        "bold": true,
+                        "line_height": 1
+                      }
                     }
                   ]
                 },
@@ -22690,14 +22726,21 @@
                   "font": {
                     "size": 23.11,
                     "family": "Lato Bold",
-                    "color": "#000000",
+                    "color": "#FFFFFF",
                     "bold": true,
                     "line_height": 1
                   },
                   "alignment": "left",
                   "runs": [
                     {
-                      "text": "Last Year"
+                      "text": "Last Year",
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Bold",
+                        "color": "F6F5F4",
+                        "bold": true,
+                        "line_height": 1
+                      }
                     }
                   ]
                 },
@@ -22709,14 +22752,21 @@
                   "font": {
                     "size": 23.11,
                     "family": "Lato Bold",
-                    "color": "#000000",
+                    "color": "#FFFFFF",
                     "bold": true,
                     "line_height": 1
                   },
                   "alignment": "left",
                   "runs": [
                     {
-                      "text": "This Year"
+                      "text": "This Year",
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Bold",
+                        "color": "F6F5F4",
+                        "bold": true,
+                        "line_height": 1
+                      }
                     }
                   ]
                 },
@@ -22728,14 +22778,21 @@
                   "font": {
                     "size": 23.11,
                     "family": "Lato Bold",
-                    "color": "#000000",
+                    "color": "#FFFFFF",
                     "bold": true,
                     "line_height": 1
                   },
                   "alignment": "left",
                   "runs": [
                     {
-                      "text": "Growth"
+                      "text": "Growth",
+                      "font": {
+                        "size": 23.11,
+                        "family": "Lato Bold",
+                        "color": "F6F5F4",
+                        "bold": true,
+                        "line_height": 1
+                      }
                     }
                   ]
                 }
@@ -23035,67 +23092,6 @@
             }
           ]
         }
-      ],
-      "elements": [
-        {
-          "type": "container",
-          "position": {
-            "x": 44.1,
-            "y": 490.91
-          },
-          "size": {
-            "width": 270.04,
-            "height": 516.82
-          },
-          "rotation": 110.61,
-          "child": {
-            "type": "image",
-            "position": {
-              "x": -779.13,
-              "y": -124.46
-            },
-            "size": {
-              "width": 1140.06,
-              "height": 641.28
-            },
-            "data": "static/image3-28baa466293d.png",
-            "fit": "fill",
-            "clip_path": "path('M 779.13 124.46 L 1049.1701 124.46 L 1049.1701 641.28 L 779.13 641.28 L 779.13 124.46 Z')",
-            "decorative": true,
-            "name": "bottom_corner_accent",
-            "is_icon": false
-          }
-        },
-        {
-          "type": "container",
-          "position": {
-            "x": 1194.69,
-            "y": -200.43
-          },
-          "size": {
-            "width": 205.13,
-            "height": 622.06
-          },
-          "rotation": -70.86,
-          "child": {
-            "type": "image",
-            "position": {
-              "x": -972.82,
-              "y": -85.48
-            },
-            "size": {
-              "width": 1341,
-              "height": 754.33
-            },
-            "data": "static/image3-28baa466293d.png",
-            "fit": "fill",
-            "clip_path": "path('M 997.48 132.27 L 1202.61 132.27 L 1202.61 754.3301 L 997.48 754.3301 L 997.48 132.27 Z')",
-            "decorative": true,
-            "name": "top_corner_accent",
-            "is_icon": false,
-            "__presenton_manual_position": true
-          }
-        }
       ]
     },
     {
@@ -23227,6 +23223,7 @@
                 "width": 1124.95,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -23255,8 +23252,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 27,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -23378,8 +23374,8 @@
                   "data": "/static/icons/placeholder.svg",
                   "fit": "contain",
                   "clip_path": "path('M 0 0 L 50.65 0 L 50.65 50.6501 L 0 50.6501 L 0 0 Z')",
-                  "decorative": false,
                   "color": "#FFFFFF",
+                  "decorative": false,
                   "name": "card_icon",
                   "is_icon": true,
                   "icon_type": "regular"
@@ -23432,6 +23428,7 @@
                     "width": 143.4,
                     "height": 56.27
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -23458,8 +23455,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 77,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -23576,6 +23572,7 @@
                     "width": 143.4,
                     "height": 60.82
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -23602,8 +23599,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -23665,8 +23661,8 @@
                   },
                   "data": "/static/icons/placeholder.svg",
                   "fit": "contain",
-                  "color": "#FFFFFF",
                   "clip_path": "path('M 0 0 L 50.6501 0 L 50.6501 50.6501 L 0 50.6501 L 0 0 Z')",
+                  "color": "#FFFFFF",
                   "decorative": false,
                   "name": "card_icon",
                   "is_icon": true,
@@ -23720,6 +23716,7 @@
                     "width": 143.4,
                     "height": 76.72
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -23746,8 +23743,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -23809,8 +23805,8 @@
                   },
                   "data": "/static/icons/placeholder.svg",
                   "fit": "contain",
-                  "color": "#FFFFFF",
                   "clip_path": "path('M 0 0 L 50.6501 0 L 50.6501 50.65 L 0 50.65 L 0 0 Z')",
+                  "color": "#FFFFFF",
                   "decorative": false,
                   "name": "card_icon",
                   "is_icon": true,
@@ -23864,6 +23860,7 @@
                     "width": 143.4,
                     "height": 68.77
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -23890,8 +23887,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 },
                 {
                   "type": "image",
@@ -23953,8 +23949,8 @@
                   },
                   "data": "/static/icons/placeholder.svg",
                   "fit": "contain",
-                  "color": "#FFFFFF",
                   "clip_path": "path('M 0 0 L 50.6501 0 L 50.6501 50.6501 L 0 50.6501 L 0 0 Z')",
+                  "color": "#FFFFFF",
                   "decorative": false,
                   "name": "card_icon",
                   "is_icon": true,
@@ -24008,6 +24004,7 @@
                     "width": 143.4,
                     "height": 57.42
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 10.67,
                     "family": "Lato",
@@ -24034,8 +24031,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 79,
-                  "min_length": 39,
-                  "rotation": 0
+                  "min_length": 39
                 }
               ],
               "name": "feature_card_groups"
@@ -24379,7 +24375,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_collection",
               "position": {
                 "x": 0,
                 "y": -23.04
@@ -24388,17 +24383,15 @@
                 "width": 1162.59,
                 "height": 395.99
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 2,
               "children": [
                 {
                   "type": "group",
-                  "name": "grid_with_card_stacked_with_description_title",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -24427,7 +24420,6 @@
                     },
                     {
                       "type": "group",
-                      "name": "grid_with_indv_element",
                       "position": {
                         "x": 211.82,
                         "y": 110.39
@@ -24468,6 +24460,7 @@
                             "width": 224.23,
                             "height": 49.6
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 47.99,
                             "family": "Lato Heavy",
@@ -24494,8 +24487,7 @@
                           "decorative": false,
                           "name": "metric_value",
                           "max_length": 9,
-                          "min_length": 3,
-                          "rotation": 0
+                          "min_length": 3
                         },
                         {
                           "type": "text",
@@ -24545,6 +24537,7 @@
                             "width": 219.47,
                             "height": 17.87
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 16,
                             "family": "Lato Heavy",
@@ -24571,10 +24564,10 @@
                           "decorative": false,
                           "name": "metric_detail",
                           "max_length": 31,
-                          "min_length": 3,
-                          "rotation": 0
+                          "min_length": 3
                         }
-                      ]
+                      ],
+                      "name": "grid_with_indv_element"
                     },
                     {
                       "type": "text",
@@ -24652,10 +24645,13 @@
                       "max_length": 135,
                       "min_length": 68
                     }
-                  ]
+                  ],
+                  "name": "grid_with_card_stacked_with_description_title"
                 }
               ],
-              "rotation": 0
+              "name": "grid_collection",
+              "max_children": 2,
+              "min_children": 1
             }
           ]
         },
@@ -24878,6 +24874,7 @@
                 "width": 424.74,
                 "height": 198.26
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -24904,8 +24901,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 503,
-              "min_length": 127,
-              "rotation": 0
+              "min_length": 127
             }
           ]
         },
@@ -25361,7 +25357,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Digital Marketing ",
+                          "text": "Digital Marketing",
                           "font": {
                             "size": 17.78,
                             "family": "Lato Heavy",
@@ -26525,6 +26521,7 @@
                 "width": 463.73,
                 "height": 30
               },
+              "rotation": 0,
               "font": {
                 "size": 23.1,
                 "family": "Lato Heavy",
@@ -26553,12 +26550,10 @@
               "decorative": false,
               "name": "section_heading",
               "max_length": 41,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "grid",
-              "name": "section_grid_lists",
               "position": {
                 "x": -30.71,
                 "y": 49.74
@@ -26567,17 +26562,15 @@
                 "width": 510.65,
                 "height": 7.04
               },
+              "rotation": 0,
               "columns": 1,
               "rows": 1,
               "gap": 70,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
-              "max_children": 4,
               "children": [
                 {
                   "type": "group",
-                  "name": "item",
                   "position": {
                     "x": 0,
                     "y": 0
@@ -26597,6 +26590,7 @@
                         "width": 79.65,
                         "height": 20.06
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 16,
                         "family": "Lato Bold",
@@ -26625,8 +26619,7 @@
                       "decorative": false,
                       "name": "note_label",
                       "max_length": 3,
-                      "min_length": 2,
-                      "rotation": 0
+                      "min_length": 2
                     },
                     {
                       "type": "text",
@@ -26651,7 +26644,7 @@
                       },
                       "runs": [
                         {
-                          "text": " Sales started steadily at $320K, establishing a solid foundation for the year.",
+                          "text": "Sales started steadily at $320K, establishing a solid foundation for the year.",
                           "font": {
                             "size": 16,
                             "family": "Lato",
@@ -26666,10 +26659,13 @@
                       "max_length": 78,
                       "min_length": 39
                     }
-                  ]
+                  ],
+                  "name": "item"
                 }
               ],
-              "rotation": 0
+              "name": "section_grid_lists",
+              "max_children": 4,
+              "min_children": 1
             }
           ]
         },
@@ -26941,8 +26937,8 @@
           ]
         },
         {
-          "id": "hero_title_description",
-          "description": "Prominent headline content occupies the upper left with supporting paragraph text spanning toward the center.",
+          "id": "hero_title_description_part_1",
+          "description": "Ungrouped component element",
           "position": {
             "x": 56.67,
             "y": 132
@@ -26955,8 +26951,8 @@
                 "y": 0
               },
               "size": {
-                "width": 668.89,
-                "height": 154
+                "width": 926.8899999999999,
+                "height": 8
               },
               "font": {
                 "size": 88.88,
@@ -26987,16 +26983,26 @@
               "name": "main_heading",
               "max_length": 19,
               "min_length": 10
-            },
+            }
+          ]
+        },
+        {
+          "id": "hero_title_description_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 56.67,
+            "y": 211.61
+          },
+          "elements": [
             {
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 79.61
+                "y": 0
               },
               "size": {
                 "width": 985.66,
-                "height": 40.56
+                "height": 41.28
               },
               "font": {
                 "size": 16,
@@ -27293,6 +27299,7 @@
                 "width": 814.81,
                 "height": 86
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -27321,8 +27328,7 @@
               "decorative": false,
               "name": "slide_title",
               "max_length": 21,
-              "min_length": 8,
-              "rotation": 0
+              "min_length": 8
             },
             {
               "type": "text",
@@ -27382,7 +27388,7 @@
                 "width": 466.67,
                 "height": 466.67
               },
-              "data": "static/image-e381ac23bf94ab2a.png",
+              "data": "/static/images/replaceable_template_image.png",
               "fit": "fill",
               "decorative": false,
               "name": "outer_metric_circle",
@@ -28249,6 +28255,7 @@
                 "width": 839.79,
                 "height": 160
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -28277,8 +28284,7 @@
               "decorative": false,
               "name": "main_title",
               "max_length": 20,
-              "min_length": 10,
-              "rotation": 0
+              "min_length": 10
             }
           ]
         },
@@ -28370,6 +28376,7 @@
                 "width": 413.1,
                 "height": 103.82
               },
+              "rotation": 0,
               "font": {
                 "size": 23.1,
                 "family": "Lato",
@@ -28396,8 +28403,7 @@
               "decorative": false,
               "name": "quote_body_text",
               "max_length": 91,
-              "min_length": 46,
-              "rotation": 0
+              "min_length": 46
             },
             {
               "type": "text",
@@ -28459,13 +28465,13 @@
                 "width": 372.28,
                 "height": 389.57
               },
+              "rotation": 0,
               "data": "/static/images/replaceable_template_image.png",
               "fit": "cover",
               "clip_path": "path('M 15.3332 0 L 548.0868 0 C 556.5547 0 563.42 6.8653 563.42 15.3332 L 563.42 548.0868 C 563.42 556.5547 556.5547 563.42 548.0868 563.42 L 15.3332 563.42 C 6.8653 563.42 0 556.5547 0 548.0868 L 0 15.3332 C 0 6.8653 6.8653 0 15.3332 0 Z')",
               "decorative": false,
               "name": "portrait_photo",
-              "is_icon": false,
-              "rotation": 0
+              "is_icon": false
             }
           ]
         },
@@ -28605,6 +28611,7 @@
                 "width": 279.94,
                 "height": 49.6
               },
+              "rotation": 0,
               "font": {
                 "size": 47.99,
                 "family": "Lato Heavy",
@@ -28618,7 +28625,7 @@
               },
               "runs": [
                 {
-                  "text": "+20% ",
+                  "text": "+20%",
                   "font": {
                     "size": 47.99,
                     "family": "Lato Heavy",
@@ -28631,8 +28638,7 @@
               "decorative": false,
               "name": "metric_value",
               "max_length": 12,
-              "min_length": 3,
-              "rotation": 0
+              "min_length": 3
             },
             {
               "type": "text",
@@ -28644,6 +28650,7 @@
                 "width": 297.92,
                 "height": 18.89
               },
+              "rotation": 0,
               "font": {
                 "size": 17.78,
                 "family": "Lato Heavy",
@@ -28670,8 +28677,7 @@
               "decorative": false,
               "name": "metric_label",
               "max_length": 33,
-              "min_length": 6,
-              "rotation": 0
+              "min_length": 6
             },
             {
               "type": "text",
@@ -28731,6 +28737,7 @@
                 "width": 675.45,
                 "height": 86.43
               },
+              "rotation": 0,
               "font": {
                 "size": 88.88,
                 "family": "Lato Heavy",
@@ -28759,8 +28766,7 @@
               "decorative": false,
               "name": "main_headline",
               "max_length": 15,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -28918,7 +28924,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "grid_cards_with_image_text",
               "position": {
                 "x": 0,
                 "y": -11.36
@@ -28927,12 +28932,12 @@
                 "width": 728.82,
                 "height": 274.41
               },
+              "rotation": 0,
               "columns": 2,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
@@ -29047,8 +29052,9 @@
                   "name": "content_card"
                 }
               ],
+              "name": "grid_cards_with_image_text",
               "max_children": 2,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         },
@@ -29272,8 +29278,8 @@
               ],
               "decorative": false,
               "name": "main_title",
-              "min_length": 4,
-              "max_length": 27
+              "max_length": 27,
+              "min_length": 4
             },
             {
               "type": "text",
@@ -29325,7 +29331,6 @@
           "elements": [
             {
               "type": "grid",
-              "name": "image_text_description_grid",
               "position": {
                 "x": 0,
                 "y": 0
@@ -29334,12 +29339,12 @@
                 "width": 1206.28,
                 "height": 400.53
               },
+              "rotation": 0,
               "columns": 4,
               "rows": 1,
               "gap": 12,
               "align_items": "stretch",
               "justify_items": "stretch",
-              "min_children": 1,
               "children": [
                 {
                   "type": "group",
@@ -29516,8 +29521,9 @@
                   "name": "profile_card_group"
                 }
               ],
+              "name": "image_text_description_grid",
               "max_children": 4,
-              "rotation": 0
+              "min_children": 1
             }
           ]
         },
@@ -29824,7 +29830,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Launch New Marketing ",
+                          "text": "Launch New Marketing",
                           "font": {
                             "size": 16,
                             "family": "Lato Bold",
@@ -29982,8 +29988,8 @@
                       },
                       "data": "/static/icons/placeholder.svg",
                       "fit": "contain",
-                      "color": "#FFFFFF",
                       "clip_path": "path('M 0 0 L 37.33 0 L 37.33 37.33 L 0 37.33 L 0 0 Z')",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "milestone_icon",
                       "is_icon": true,
@@ -29994,7 +30000,6 @@
                 },
                 {
                   "type": "grid",
-                  "name": "grid_element",
                   "position": {
                     "x": 328.19,
                     "y": 0
@@ -30003,16 +30008,19 @@
                     "width": 519.84,
                     "height": 371
                   },
+                  "rotation": 0,
                   "columns": 2,
                   "rows": 1,
                   "gap": 12,
                   "align_items": "stretch",
                   "justify_items": "stretch",
-                  "min_children": 1,
-                  "max_children": 2,
                   "children": [
                     {
                       "type": "group",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "size": {
                         "width": 250,
                         "height": 371
@@ -30193,22 +30201,22 @@
                           },
                           "data": "/static/icons/placeholder.svg",
                           "fit": "contain",
-                          "color": "#FFFFFF",
                           "clip_path": "path('M 0 0 L 37.33 0 L 37.33 37.33 L 0 37.33 L 0 0 Z')",
+                          "color": "#FFFFFF",
                           "decorative": false,
                           "name": "milestone_icon",
                           "is_icon": true,
                           "icon_type": "thin"
                         }
                       ],
-                      "name": "timeline_card",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "name": "timeline_card"
                     },
                     {
                       "type": "group",
+                      "position": {
+                        "x": 0,
+                        "y": 0
+                      },
                       "size": {
                         "width": 250,
                         "height": 371
@@ -30389,23 +30397,20 @@
                           },
                           "data": "/static/icons/placeholder.svg",
                           "fit": "contain",
-                          "color": "#FFFFFF",
                           "clip_path": "path('M 0 0 L 37.33 0 L 37.33 37.33 L 0 37.33 L 0 0 Z')",
+                          "color": "#FFFFFF",
                           "decorative": false,
                           "name": "milestone_icon",
                           "is_icon": true,
                           "icon_type": "thin"
                         }
                       ],
-                      "name": "timeline_card",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      }
+                      "name": "timeline_card"
                     }
                   ],
-                  "rotation": 0,
-                  "__presenton_manual_position": true
+                  "name": "grid_element",
+                  "max_children": 2,
+                  "min_children": 1
                 },
                 {
                   "type": "group",
@@ -30591,8 +30596,8 @@
                       },
                       "data": "/static/icons/placeholder.svg",
                       "fit": "contain",
-                      "color": "#FFFFFF",
                       "clip_path": "path('M 0 0 L 37.33 0 L 37.33 37.33 L 0 37.33 L 0 0 Z')",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "milestone_icon",
                       "is_icon": true,
@@ -30891,8 +30896,8 @@
               ],
               "decorative": false,
               "name": "supporting_description",
-              "min_length": 136,
-              "max_length": 256
+              "max_length": 256,
+              "min_length": 136
             }
           ]
         },
@@ -31007,6 +31012,7 @@
                     "width": 185,
                     "height": 164.03
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -31033,8 +31039,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 65,
-                  "rotation": 0
+                  "min_length": 65
                 }
               ],
               "name": "content_card"
@@ -31102,6 +31107,7 @@
                     "width": 185,
                     "height": 86.13
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 23.1,
                     "family": "Lato Bold",
@@ -31130,8 +31136,7 @@
                   "decorative": false,
                   "name": "card_title",
                   "max_length": 24,
-                  "min_length": 9,
-                  "rotation": 0
+                  "min_length": 9
                 },
                 {
                   "type": "text",
@@ -31143,6 +31148,7 @@
                     "width": 185,
                     "height": 152.67
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -31169,8 +31175,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 56,
-                  "rotation": 0
+                  "min_length": 56
                 }
               ],
               "name": "content_card"
@@ -31278,6 +31283,7 @@
                     "width": 185,
                     "height": 162.45
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 16,
                     "family": "Lato",
@@ -31304,8 +31310,7 @@
                   "decorative": false,
                   "name": "card_body",
                   "max_length": 160,
-                  "min_length": 66,
-                  "rotation": 0
+                  "min_length": 66
                 }
               ],
               "name": "content_card"
@@ -31556,8 +31561,8 @@
               ],
               "decorative": false,
               "name": "intro_paragraph",
-              "min_length": 165,
-              "max_length": 315
+              "max_length": 315,
+              "min_length": 165
             }
           ]
         },
@@ -31661,6 +31666,7 @@
                         "width": 196.61,
                         "height": 24
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 17.77,
                         "family": "Lato Bold",
@@ -31689,8 +31695,7 @@
                       "decorative": false,
                       "name": "card_title",
                       "max_length": 23,
-                      "min_length": 5,
-                      "rotation": 0
+                      "min_length": 5
                     },
                     {
                       "type": "text",
@@ -31702,6 +31707,7 @@
                         "width": 173.17,
                         "height": 60.15
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 12.44,
                         "family": "Lato",
@@ -31728,8 +31734,7 @@
                       "decorative": false,
                       "name": "card_description",
                       "max_length": 84,
-                      "min_length": 17,
-                      "rotation": 0
+                      "min_length": 17
                     },
                     {
                       "type": "vector",
@@ -31792,7 +31797,6 @@
                     },
                     {
                       "type": "flex",
-                      "name": "flex_items",
                       "position": {
                         "x": 24.16,
                         "y": 334.79
@@ -31802,11 +31806,9 @@
                         "height": 167.35
                       },
                       "direction": "column",
-                      "gap": 12,
                       "align_items": "stretch",
                       "justify_content": "flex-start",
-                      "min_children": 1,
-                      "max_children": 4,
+                      "gap": 12,
                       "children": [
                         {
                           "type": "text",
@@ -31818,6 +31820,7 @@
                             "width": 173.17,
                             "height": 47.65
                           },
+                          "rotation": 0,
                           "font": {
                             "size": 12.44,
                             "family": "Lato",
@@ -31844,10 +31847,12 @@
                           "decorative": false,
                           "name": "each_item_individ",
                           "max_length": 16,
-                          "min_length": 16,
-                          "rotation": 0
+                          "min_length": 16
                         }
-                      ]
+                      ],
+                      "name": "flex_items",
+                      "max_children": 4,
+                      "min_children": 1
                     }
                   ],
                   "name": "pricing_card"
@@ -32195,8 +32200,8 @@
               ],
               "decorative": false,
               "name": "slide_intro",
-              "min_length": 145,
-              "max_length": 165
+              "max_length": 165,
+              "min_length": 145
             }
           ]
         },
@@ -32332,6 +32337,7 @@
                         "width": 197.07,
                         "height": 56.43
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -32358,8 +32364,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -32384,7 +32389,7 @@
                       },
                       "runs": [
                         {
-                          "text": "Digital platforms, company websites, and e-commerce channels contribute the largest share of sales. ",
+                          "text": "Digital platforms, company websites, and e-commerce channels contribute the largest share of sales.",
                           "font": {
                             "size": 14.22,
                             "family": "Lato",
@@ -32510,6 +32515,7 @@
                         "width": 197.07,
                         "height": 53.02
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -32536,8 +32542,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -32688,6 +32693,7 @@
                         "width": 197.07,
                         "height": 57.57
                       },
+                      "rotation": 0,
                       "font": {
                         "size": 23.11,
                         "family": "Lato Heavy",
@@ -32714,8 +32720,7 @@
                       "decorative": false,
                       "name": "card_heading",
                       "max_length": 25,
-                      "min_length": 6,
-                      "rotation": 0
+                      "min_length": 6
                     },
                     {
                       "type": "text",
@@ -33200,7 +33205,7 @@
               },
               "runs": [
                 {
-                  "text": "The next steps outline the immediate priorities that will help us improve sales performance, strengthen customer relationships, and achieve our strategic business goals. ",
+                  "text": "The next steps outline the immediate priorities that will help us improve sales performance, strengthen customer relationships, and achieve our strategic business goals.",
                   "font": {
                     "size": 16,
                     "family": "Arial",
@@ -33626,7 +33631,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -33832,7 +33837,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -34038,7 +34043,7 @@
                             },
                             "runs": [
                               {
-                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification ",
+                                "text": "Enhance lead generation by implementing targeted marketing campaigns, improving lead qualification",
                                 "font": {
                                   "size": 12.44,
                                   "family": "Arial",
@@ -34446,8 +34451,8 @@
                 "y": 0
               },
               "size": {
-                "width": 692.48,
-                "height": 86
+                "width": 720.4800000000001,
+                "height": 80
               },
               "font": {
                 "size": 88.88,
@@ -34469,8 +34474,11 @@
                     "family": "Lato Heavy",
                     "color": "#000000",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 0.9,
-                    "letter_spacing": -5.95
+                    "letter_spacing": -5.95,
+                    "opacity": 1
                   }
                 }
               ],
@@ -34486,7 +34494,7 @@
                 "y": 93.11
               },
               "size": {
-                "width": 692.48,
+                "width": 720.4800000000001,
                 "height": 80.56
               },
               "font": {
@@ -34704,6 +34712,7 @@
                     "width": 309.5,
                     "height": 49.6
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 47.99,
                     "family": "Lato Heavy",
@@ -34717,7 +34726,7 @@
                   },
                   "runs": [
                     {
-                      "text": "+20% ",
+                      "text": "+20%",
                       "font": {
                         "size": 47.99,
                         "family": "Lato Heavy",
@@ -34730,8 +34739,7 @@
                   "decorative": false,
                   "name": "metric_value",
                   "max_length": 14,
-                  "min_length": 3,
-                  "rotation": 0
+                  "min_length": 3
                 },
                 {
                   "type": "text",
@@ -34743,6 +34751,7 @@
                     "width": 246.77,
                     "height": 18.89
                   },
+                  "rotation": 0,
                   "font": {
                     "size": 17.78,
                     "family": "Lato Heavy",
@@ -34769,8 +34778,7 @@
                   "decorative": false,
                   "name": "metric_label",
                   "max_length": 26,
-                  "min_length": 6,
-                  "rotation": 0
+                  "min_length": 6
                 },
                 {
                   "type": "text",
@@ -35008,6 +35016,7 @@
                 "width": 947.83,
                 "height": 117.66
               },
+              "rotation": 0,
               "font": {
                 "size": 121.58,
                 "family": "Lato Heavy",
@@ -35036,8 +35045,7 @@
               "decorative": false,
               "name": "main_headline",
               "max_length": 13,
-              "min_length": 7,
-              "rotation": 0
+              "min_length": 7
             },
             {
               "type": "text",
@@ -35049,6 +35057,7 @@
                 "width": 786.41,
                 "height": 165.08
               },
+              "rotation": 0,
               "font": {
                 "size": 16,
                 "family": "Lato",
@@ -35075,8 +35084,7 @@
               "decorative": false,
               "name": "supporting_paragraph",
               "max_length": 259,
-              "min_length": 130,
-              "rotation": 0
+              "min_length": 130
             }
           ]
         },

@@ -119,6 +119,7 @@ class Font(BaseModel):
     color: Optional[str] = None
     bold: Optional[bool] = None
     italic: Optional[bool] = None
+    underline: Optional[bool] = None
     line_height: Optional[float] = None
     letter_spacing: Optional[float] = None
     ellipsis: Optional[bool] = None
