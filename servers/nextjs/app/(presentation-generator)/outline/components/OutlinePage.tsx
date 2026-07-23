@@ -488,7 +488,7 @@ const OutlinePage: React.FC = () => {
             className={cn(
               "fixed z-50 flex items-center gap-2",
               isOutlineAssistantVisible
-                ? "bottom-8 left-[40%] -translate-x-[40%]"
+                ? "bottom-8 left-[39%] -translate-x-[38%]"
                 : "bottom-[26px] right-[26px]"
             )}
           >

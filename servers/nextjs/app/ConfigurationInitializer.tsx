@@ -36,7 +36,7 @@ function ConfigurationLoadingScreen() {
           width={14}
         />
         <p className="whitespace-nowrap font-manrope text-[14px] font-medium leading-normal tracking-[0.3px] text-[#6172F3]">
-          Checking &amp; configuration application assets.
+          Checking &amp; configuring application assets.
         </p>
       </div>
     </main>
