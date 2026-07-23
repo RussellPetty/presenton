@@ -77,7 +77,7 @@ def test_generate_presentation_handler_full_flow_uses_mocked_dependencies():
         template="general",
     )
     presentation_id = uuid.uuid4()
-    template_id = "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    template_id = "general"
     template = TemplateV2(
         id=template_id,
         name="General",
@@ -262,7 +262,7 @@ def test_generate_presentation_handler_uses_template_layout():
 
 
 def test_default_template_name_resolves_bundled_template_without_schema_page():
-    template_id = "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    template_id = "general"
     template = TemplateV2(
         id=template_id,
         name="General",

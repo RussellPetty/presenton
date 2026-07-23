@@ -76,7 +76,7 @@ def test_upgrade_from_baseline_stamp_skips_existing_theme_column(tmp_path):
                 )
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert "theme" in columns
         assert "fonts" in columns
         assert "async_tasks" in tables
@@ -128,7 +128,7 @@ def test_upgrade_from_theme_stamp_skips_existing_template_create_infos_table(tmp
                 )
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert "template_create_infos" in tables
     finally:
         engine.dispose()
@@ -188,7 +188,7 @@ def test_upgrade_from_template_stamp_skips_existing_chat_history_table(tmp_path)
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert {
             "ix_chat_history_messages_conversation_id",
             "ix_chat_history_messages_position",
@@ -256,7 +256,7 @@ def test_consolidated_migration_adds_presentation_version(tmp_path):
                 for row in connection.execute(text("PRAGMA table_info(slides)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert presentation_version == "v1-standard"
         assert version_column[3] == 1
         assert version_column[4] is None
@@ -313,7 +313,7 @@ def test_async_task_status_migration_maps_processing_to_pending(tmp_path):
                 ).all()
             )
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert statuses == {
             "task-completed": "completed",
             "task-pending": "pending",
@@ -425,7 +425,7 @@ def test_upgrade_from_template_v2_revision_adds_slide_ui(tmp_path):
                 for row in connection.execute(text("PRAGMA table_info(slides)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert "ui" in slide_columns
     finally:
         engine.dispose()
@@ -564,7 +564,7 @@ def test_upgrade_from_font_uploads_revision_converts_template_v2_ids_to_strings(
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert stored_template_id == expected_template_id
         assert stored_chat_template_id == expected_template_id
         assert template_id_type == "VARCHAR"
@@ -711,7 +711,7 @@ def test_removed_intermediate_revision_upgrades_through_consolidated_migration(
                 for row in connection.execute(text("PRAGMA table_info(template_v2)"))
             }
 
-        assert version == migrations.REVISION_ASYNC_TASK_STATUS_NORMALIZED
+        assert version == migrations.REVISION_USERNAME_PROVIDER_SETTINGS
         assert {"description", "components", "assets"}.issubset(template_columns)
         assert "is_default" in template_columns
         assert "cluster_candidates" not in template_columns

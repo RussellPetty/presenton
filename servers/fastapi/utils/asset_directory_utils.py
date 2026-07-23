@@ -3,6 +3,16 @@ from typing import Optional
 from urllib.parse import urlparse, unquote
 
 from utils.get_env import get_app_data_directory_env, get_fastapi_public_base_url
+from api.v1.auth.context import get_current_owner_id
+
+
+def _owned_directory(root_name: str) -> str:
+    directory = os.path.join(get_app_data_directory_env(), root_name)
+    owner_id = get_current_owner_id()
+    if owner_id is not None:
+        directory = os.path.join(directory, "users", str(owner_id))
+    os.makedirs(directory, exist_ok=True)
+    return directory
 
 
 def absolute_fastapi_asset_url(path: str) -> str:
@@ -140,17 +150,11 @@ def resolve_image_path_to_filesystem(path_or_url: str) -> Optional[str]:
 
 
 def get_images_directory():
-    images_directory = os.path.join(get_app_data_directory_env(), "images")
-    os.makedirs(images_directory, exist_ok=True)
-    return images_directory
+    return _owned_directory("images")
 
 
 def get_exports_directory():
-    export_directory = os.path.join(get_app_data_directory_env(), "exports")
-    os.makedirs(export_directory, exist_ok=True)
-    return export_directory
+    return _owned_directory("exports")
 
 def get_uploads_directory():
-    uploads_directory = os.path.join(get_app_data_directory_env(), "uploads")
-    os.makedirs(uploads_directory, exist_ok=True)
-    return uploads_directory
+    return _owned_directory("uploads")

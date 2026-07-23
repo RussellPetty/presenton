@@ -91,10 +91,10 @@ from utils.llm_utils import message_content_to_text
 from utils.sse import safe_sse_stream
 from utils.simple_auth import (
     SESSION_COOKIE_NAME,
-    create_session_token,
     get_session_token_from_request,
 )
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
+from api.v1.auth.context import get_current_owner_id
 from models.presentation_layout import PresentationLayoutModel, SlideLayoutModel
 from templates.v2.schema import get_template_schema
 from templates.default_templates import resolve_default_template_id
@@ -1212,19 +1212,15 @@ def _build_export_cookie_header(request: Request) -> Optional[str]:
     if cookie_header:
         return cookie_header
 
+    internal_session_token = getattr(
+        request.state, "internal_session_token", None
+    )
+    if isinstance(internal_session_token, str) and internal_session_token:
+        return f"{SESSION_COOKIE_NAME}={internal_session_token}"
+
     session_token = get_session_token_from_request(request)
     if session_token:
         return f"{SESSION_COOKIE_NAME}={session_token}"
-
-    username = getattr(request.state, "auth_username", None)
-    if isinstance(username, str) and username.strip():
-        try:
-            session_token = create_session_token(username.strip())
-            return f"{SESSION_COOKIE_NAME}={session_token}"
-        except Exception:
-            logger.exception(
-                "[presentation.generate] failed to create export session token"
-            )
 
     return None
 
@@ -1723,7 +1719,10 @@ async def stream_presentation(
 
         # Moved this here to make sure new slides are generated before deleting the old ones
         await sql_session.execute(
-            delete(SlideModel).where(SlideModel.presentation == id)
+            delete(SlideModel).where(
+                SlideModel.presentation == id,
+                SlideModel.owner_id == get_current_owner_id(),
+            )
         )
         await sql_session.commit()
 
@@ -1801,7 +1800,10 @@ async def update_presentation(
             slide.id = uuid.UUID(slide.id)
 
         await sql_session.execute(
-            delete(SlideModel).where(SlideModel.presentation == presentation.id)
+            delete(SlideModel).where(
+                SlideModel.presentation == presentation.id,
+                SlideModel.owner_id == get_current_owner_id(),
+            )
         )
         sql_session.add_all(slides)
 
@@ -2514,7 +2516,10 @@ async def edit_presentation_with_new_content(
             slides_to_delete.append(each_slide.id)
 
     await sql_session.execute(
-        delete(SlideModel).where(SlideModel.id.in_(slides_to_delete))
+        delete(SlideModel).where(
+            SlideModel.id.in_(slides_to_delete),
+            SlideModel.owner_id == get_current_owner_id(),
+        )
     )
 
     sql_session.add_all(new_slides)

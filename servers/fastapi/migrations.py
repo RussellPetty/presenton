@@ -26,6 +26,8 @@ REVISION_TEMPLATE_V2_ID_STRINGS = "3f2a1b4c5d6e"
 REVISION_TEMPLATE_V2_IS_DEFAULT = "4b7c9d0e1f2a"
 REVISION_ASYNC_TASKS = "a7d4c9e2f1b3"
 REVISION_ASYNC_TASK_STATUS_NORMALIZED = "b8e2f4a7c9d1"
+REVISION_MULTI_USER_AUTH = "c9f1a2b3d4e5"
+REVISION_USERNAME_PROVIDER_SETTINGS = "d0a2b4c6e8f1"
 
 
 async def migrate_database_on_startup() -> None:
@@ -111,6 +113,27 @@ def _infer_revision_from_schema(
     _head_revision: str,
 ) -> str:
     """Best-effort: map existing SQLite/Postgres schema to our linear migration chain."""
+    owned_tables = {
+        "presentations",
+        "slides",
+        "presentation_layout_codes",
+        "templates",
+        "async_tasks",
+        "async_presentation_generation_tasks",
+        "chat_history_messages",
+        "imageasset",
+        "template_create_infos",
+        "template_v2",
+        "webhook_subscriptions",
+    }
+    ownership_ready = all(
+        table not in tables or _has_column(inspector, table, "owner_id")
+        for table in owned_tables
+    )
+    if "provider_settings" in tables and "user" in tables and ownership_ready:
+        return REVISION_USERNAME_PROVIDER_SETTINGS
+    if "user" in tables and ownership_ready:
+        return REVISION_MULTI_USER_AUTH
     if "template_v2" in tables:
         cols = {c["name"] for c in inspector.get_columns("template_v2")}
         final_template_columns = {
@@ -264,6 +287,9 @@ def _is_unversioned_populated_database(database_url: str) -> bool:
         "chat_history_messages",
         "template_v2",
         "font_uploads",
+        "user",
+        "access_tokens",
+        "provider_settings",
     }
     engine = create_engine(database_url)
     try:

@@ -1,107 +1,173 @@
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from utils.simple_auth import (
-    clear_session_cookie,
-    create_session_token,
-    get_auth_status,
-    get_basic_auth_credentials_from_request,
-    get_session_token_from_request,
-    is_auth_configured,
-    set_session_cookie,
-    setup_initial_credentials,
-    verify_credentials,
+from api.v1.auth.schemas import AuthCredentialsRequest
+from api.v1.auth.principal import resolve_request_principal
+from api.v1.auth.users import (
+    PASSWORD_HELPER,
+    get_jwt_strategy,
+    read_user_from_cookie,
+    serialize_user,
 )
+from models.sql.user import User
+from services.database import get_async_session
 from utils.get_env import is_disable_auth_enabled
+from utils.simple_auth import SESSION_COOKIE_NAME, SESSION_TTL_SECONDS
+from api.v1.auth.token import TOKEN_ROUTER
+
 
 API_V1_AUTH_ROUTER = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
+API_V1_AUTH_ROUTER.include_router(TOKEN_ROUTER)
 
 
-class AuthCredentialsRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=128)
-    password: str = Field(min_length=6, max_length=256)
+def normalize_username(username: str) -> str:
+    return username.strip()
+
+
+async def _account_count(session: AsyncSession) -> int:
+    return int(await session.scalar(select(func.count()).select_from(User)) or 0)
+
+
+def _secure_request(request: Request) -> bool:
+    return (
+        request.headers.get("x-forwarded-proto", "").lower() == "https"
+        or request.url.scheme == "https"
+    )
+
+
+def _set_login_cookie(response: JSONResponse, token: str, request: Request) -> None:
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        max_age=SESSION_TTL_SECONDS,
+        httponly=True,
+        secure=_secure_request(request),
+        samesite="lax",
+        path="/",
+    )
 
 
 @API_V1_AUTH_ROUTER.get("/status")
-async def get_status(request: Request):
+async def get_status(
+    session: AsyncSession = Depends(get_async_session),
+    user: User | None = Depends(read_user_from_cookie),
+):
     if is_disable_auth_enabled():
-        return {"configured": True, "authenticated": True, "username": "electron"}
-    token = get_session_token_from_request(request)
-    return get_auth_status(token)
+        return {
+            "configured": True,
+            "authenticated": True,
+            "username": "electron",
+            "user_id": None,
+            "role": "admin",
+        }
+    configured = await _account_count(session) > 0
+    return {
+        "configured": configured,
+        "authenticated": user is not None,
+        "username": user.username if user else None,
+        "user_id": str(user.id) if user else None,
+        "role": "admin" if user and user.is_superuser else ("user" if user else None),
+    }
 
 
 @API_V1_AUTH_ROUTER.get("/verify")
-async def verify_session(request: Request):
+async def verify_session(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
     if is_disable_auth_enabled():
-        return {"authenticated": True, "username": "electron"}
-
-    auth_status = get_auth_status(get_session_token_from_request(request))
-    if not auth_status["configured"]:
+        return {
+            "authenticated": True,
+            "username": "electron",
+            "role": "admin",
+            "method": "local",
+        }
+    principal, user = await resolve_request_principal(request, session)
+    if principal is None or user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-    if not auth_status["authenticated"]:
-        basic_credentials = get_basic_auth_credentials_from_request(request)
-        if basic_credentials and verify_credentials(
-            basic_credentials[0], basic_credentials[1]
-        ):
-            return {
-                "authenticated": True,
-                "username": basic_credentials[0].strip(),
-            }
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
     return {
         "authenticated": True,
-        "username": auth_status.get("username"),
+        **serialize_user(user),
+        "method": principal.method,
     }
 
 
 @API_V1_AUTH_ROUTER.post("/setup")
-async def setup_credentials(body: AuthCredentialsRequest, request: Request):
-    if is_auth_configured():
+async def setup_credentials(
+    body: AuthCredentialsRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
+    if await _account_count(session):
         raise HTTPException(status_code=409, detail="Credentials already configured")
 
-    try:
-        setup_initial_credentials(body.username, body.password)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    username = body.username.strip()
-    return JSONResponse(
-        {
-            "configured": True,
-            "authenticated": False,
-            "username": username,
-        }
+    username = normalize_username(body.username)
+    user = User(
+        username=username,
+        hashed_password=PASSWORD_HELPER.hash(body.password),
+        is_active=True,
+        is_verified=True,
+        is_superuser=True,
+        auth_version=1,
     )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return {
+        "configured": True,
+        "authenticated": False,
+        "username": user.username,
+        "role": "admin",
+    }
 
 
 @API_V1_AUTH_ROUTER.post("/login")
-async def login(body: AuthCredentialsRequest, request: Request):
-    if not is_auth_configured():
+async def login(
+    body: AuthCredentialsRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
+    if not await _account_count(session):
         raise HTTPException(status_code=428, detail="Login setup is required")
-
-    if not verify_credentials(body.username, body.password):
+    username = normalize_username(body.username)
+    user = await session.scalar(
+        select(User).where(func.lower(User.username) == username.casefold())
+    )
+    if user is None or not user.is_active:
+        PASSWORD_HELPER.hash(body.password)
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    username = body.username.strip()
-    token = create_session_token(username)
+    verified, replacement_hash = PASSWORD_HELPER.verify_and_update(
+        body.password, user.hashed_password
+    )
+    if not verified:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if replacement_hash:
+        user.hashed_password = replacement_hash
+        await session.commit()
+
+    token = await get_jwt_strategy().write_token(user)
     response = JSONResponse(
         {
             "configured": True,
             "authenticated": True,
-            "username": username,
-            "access_token": token,
-            "token_type": "bearer",
+            **serialize_user(user),
         }
     )
-    set_session_cookie(response, token, request)
+    _set_login_cookie(response, token, request)
     return response
 
 
 @API_V1_AUTH_ROUTER.post("/logout")
 async def logout(request: Request):
     response = JSONResponse({"success": True})
-    clear_session_cookie(response, request)
+    response.delete_cookie(
+        SESSION_COOKIE_NAME,
+        httponly=True,
+        secure=_secure_request(request),
+        samesite="lax",
+        path="/",
+    )
     return response

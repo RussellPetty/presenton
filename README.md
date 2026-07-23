@@ -411,39 +411,38 @@ Sign out from the app: **Settings → Other → Sign out**.
 
 #### MCP authentication
 
-When auth is configured (`AUTH_USERNAME` / `AUTH_PASSWORD`), the MCP endpoint at `/mcp` now requires authentication as well.
+When auth is enabled, the MCP endpoint at `/mcp` requires an admin-generated
+Presenton access key. Browser JWT cookies are not accepted as MCP credentials.
 
-1. Log in once to get a bearer token:
+1. The Presenton administrator opens **Admin → API keys**, chooses
+   **Generate key**, and securely gives that key to the MCP user. The MCP user
+   does not need a Presenton account or an admin browser login.
 
-```bash
-curl -s -X POST http://localhost:5001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"changeme123"}'
-```
-
-The response includes:
-
-- `access_token` (session token)
-- `token_type` (`bearer`)
-
-2. Configure your MCP client to send that token on every request:
+2. Configure the MCP client to send the generated `sk-presenton-...` key on
+   every request:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "presenton": {
       "url": "http://localhost:5001/mcp",
+      "type": "http",
       "headers": {
-        "Authorization": "Bearer <access_token>"
+        "Authorization": "Bearer sk-presenton-REPLACE_WITH_YOUR_KEY"
       }
     }
-  }
+  },
+  "inputs": []
 }
 ```
 
 Notes:
 
-- If you rotate credentials with `AUTH_OVERRIDE_FROM_ENV=true`, previously issued session tokens are invalidated.
+- This example uses VS Code's `.vscode/mcp.json` format. Use the equivalent
+  static-header configuration for other MCP clients.
+- Access keys authenticate API/MCP requests only; they cannot sign in to the
+  Presenton browser UI.
+- Revoking the key from the admin panel takes effect immediately.
 - MCP is not available in the Electron desktop app (`PRESENTON_ELECTRON=true`). Electron runs with `DISABLE_AUTH=true` by default, and the MCP server is disabled there to avoid auth conflicts.
 
 > Note: LLM and image variables above are forwarded from **`docker-compose.yml`** when set in `.env`.

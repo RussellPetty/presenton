@@ -17,6 +17,7 @@ type AuthStatus = {
   configured: boolean;
   authenticated: boolean;
   username: string | null;
+  role?: "admin" | "user" | null;
 };
 
 const initialStatus: AuthStatus = {
@@ -150,10 +151,10 @@ export default function AuthGate() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       notify.warning(
         "Password too short",
-        "Your password must be at least 6 characters."
+        "Your password must be at least 8 characters."
       );
       return;
     }

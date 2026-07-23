@@ -334,7 +334,7 @@ def test_bundled_general_template_json_matches_template_v2_shapes():
 
     template = default_templates._load_default_template(template_dir)
 
-    template_id = "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    template_id = "general"
     assert template.id == template_id
     assert template.is_default is True
     assert list(template.layouts) == ["layouts"]
@@ -351,7 +351,7 @@ def test_resolve_default_template_id_maps_public_name_to_json_id():
 
     assert default_templates.resolve_default_template_id(
         "general", templates_root
-    ) == "06e3980c-9dd2-4e44-ad78-518c766a07db"
+    ) == "general"
 
 
 def test_resolve_default_template_id_rejects_paths(tmp_path):

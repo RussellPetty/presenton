@@ -74,7 +74,7 @@ def _encode_password_hash(password: str) -> str:
     )
 
 
-def _verify_password_hash(password: str, encoded_hash: str) -> bool:
+def verify_legacy_password_hash(password: str, encoded_hash: str) -> bool:
     try:
         algorithm, iterations_str, salt_encoded, digest_encoded = encoded_hash.split("$")
         if algorithm != "pbkdf2_sha256":
@@ -174,7 +174,24 @@ def verify_credentials(username: str, password: str) -> bool:
     if not hmac.compare_digest(cleaned_username, stored_username):
         return False
 
-    return _verify_password_hash(password or "", stored_hash)
+    return verify_legacy_password_hash(password or "", stored_hash)
+
+
+def get_or_create_auth_secret() -> str:
+    """Return the deployment signing secret used by database-backed JWT auth."""
+    config = _load_user_config()
+    return _get_or_create_auth_secret(config)
+
+
+def get_legacy_admin_credentials() -> tuple[Optional[str], Optional[str]]:
+    """Return the pre-multi-user username and encoded password hash, if present."""
+    config = _load_user_config()
+    username = config.get("AUTH_USERNAME")
+    password_hash = config.get("AUTH_PASSWORD_HASH")
+    return (
+        username.strip() if isinstance(username, str) and username.strip() else None,
+        password_hash if isinstance(password_hash, str) and password_hash else None,
+    )
 
 
 def _sign_payload(payload_encoded: str, secret: str) -> str:

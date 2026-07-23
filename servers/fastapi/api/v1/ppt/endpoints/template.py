@@ -1243,6 +1243,7 @@ async def create_template_slide_layouts(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if not isinstance(template.raw_layouts, dict):
         raise HTTPException(
@@ -1326,6 +1327,7 @@ async def generate_template_blocks(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if template.layouts is None:
         raise HTTPException(
@@ -1378,6 +1380,7 @@ async def patch_template_slide_layout(
         template = await sql_session.get(TemplateV2, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
+        _require_private_template(template)
 
         try:
             updated_layouts, layout_indexes = _merge_template_layout_items(
@@ -1428,6 +1431,7 @@ async def update_template_metadata(
     template = await sql_session.get(TemplateV2, template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     has_updates = False
 
@@ -1554,6 +1558,13 @@ async def delete_template(
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
+    _require_private_template(template)
     await sql_session.delete(template)
     await sql_session.commit()
     return Response(status_code=204)
+def _require_private_template(template: TemplateV2) -> None:
+    if template.is_default:
+        raise HTTPException(
+            status_code=403,
+            detail="Built-in templates are read-only",
+        )
