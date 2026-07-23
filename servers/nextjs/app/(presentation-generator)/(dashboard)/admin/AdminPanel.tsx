@@ -345,7 +345,7 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
                     <div>
                       <p className="text-sm font-semibold text-[#101323]">{user.username}</p>
                       <p className="mt-1 text-xs text-[#667085]">
-                        {user.role === "admin" ? "Bootstrap admin" : "User"}
+                        {user.role === "admin" ? "Administrator" : "User"}
                         {user.created_at
                           ? ` · ${new Date(user.created_at).toLocaleDateString()}`
                           : ""}

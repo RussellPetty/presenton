@@ -130,7 +130,7 @@ async def reset_user_password(
     if user.id == admin.id or user.is_superuser:
         raise HTTPException(
             status_code=403,
-            detail="The bootstrap admin password can only be reset from environment",
+            detail="The primary administrator password is managed through deployment settings",
         )
     user.hashed_password = PASSWORD_HELPER.hash(body.password)
     user.auth_version += 1
@@ -148,7 +148,10 @@ async def delete_user(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     if user.id == admin.id or user.is_superuser:
-        raise HTTPException(status_code=403, detail="The bootstrap admin cannot be deleted")
+        raise HTTPException(
+            status_code=403,
+            detail="The primary administrator account cannot be deleted",
+        )
     await session.execute(
         delete(KeyValueSqlModel).where(
             KeyValueSqlModel.key == f"presentation_custom_themes:{user.id}"
