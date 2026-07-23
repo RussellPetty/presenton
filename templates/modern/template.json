@@ -7047,7 +7047,7 @@
   ],
   "layouts": [
     {
-      "id": "left_cover_text_right_image_8282",
+      "id": "title_slide",
       "description": "A split cover slide with a left text introduction, compact attribution card, and a large rounded image panel on the right.",
       "components": [
         {
@@ -7495,7 +7495,7 @@
       "elements": []
     },
     {
-      "id": "left_title_right_feature_grid_7051",
+      "id": "title_description_bullet_points_grid_with_icon",
       "description": "A split slide with a large text panel on the left and a feature card grid on the right.",
       "components": [
         {
@@ -8026,7 +8026,7 @@
       "elements": []
     },
     {
-      "id": "left_title_right_stacked_cards_9936",
+      "id": "title_description_bullet_points_list_with_icon",
       "description": "A split slide with a large text block on the left and stacked rounded information cards on the right.",
       "components": [
         {
@@ -8757,7 +8757,7 @@
       "elements": []
     },
     {
-      "id": "left_title_description_right_chart_2511",
+      "id": "title_description_chart",
       "description": "Split slide with a left-aligned text block, rounded chart panel on the right, and a thin bottom accent rule.",
       "components": [
         {
@@ -9017,7 +9017,7 @@
       ]
     },
     {
-      "id": "left_title_chart_right_table_2157",
+      "id": "title_description_chart_table",
       "description": "Split layout with a large left title and chart card balanced by explanatory text and a metric table on the right.",
       "components": [
         {
@@ -9164,19 +9164,19 @@
               "points": [
                 {
                   "x": 0,
-                  "y": 0
+                  "y": -24.35
                 },
                 {
                   "x": 473,
-                  "y": 0
+                  "y": -24.35
                 },
                 {
                   "x": 473,
-                  "y": 288
+                  "y": 428.16
                 },
                 {
                   "x": 0,
-                  "y": 288
+                  "y": 428.16
                 }
               ],
               "closed": true,
@@ -9185,7 +9185,8 @@
                 43.2,
                 43.2,
                 43.2
-              ]
+              ],
+              "rotation": 0
             },
             {
               "type": "chart",
@@ -9306,43 +9307,6 @@
           },
           "elements": [
             {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "shadow": {
-                "color": "#3B82F6",
-                "opacity": 0.5
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 599,
-                  "y": 0
-                },
-                {
-                  "x": 599,
-                  "y": 495
-                },
-                {
-                  "x": 0,
-                  "y": 495
-                }
-              ],
-              "closed": true,
-              "corner_radii": [
-                74.25,
-                74.25,
-                74.25,
-                74.25
-              ]
-            },
-            {
               "type": "table",
               "position": {
                 "x": 0,
@@ -9358,7 +9322,8 @@
                     "size": 14,
                     "family": "Montserrat",
                     "color": "#1E4CD9",
-                    "line_height": 1.14
+                    "line_height": 1.14,
+                    "bold": true
                   },
                   "alignment": "left",
                   "runs": [
@@ -9368,17 +9333,22 @@
                         "size": 14,
                         "family": "Montserrat",
                         "color": "#1E4CD9",
-                        "line_height": 1.14
+                        "line_height": 1.14,
+                        "bold": true
                       }
                     }
-                  ]
+                  ],
+                  "color": {
+                    "color": "#ffffff"
+                  }
                 },
                 {
                   "font": {
                     "size": 14,
                     "family": "Montserrat",
                     "color": "#1E4CD9",
-                    "line_height": 1.14
+                    "line_height": 1.14,
+                    "bold": true
                   },
                   "alignment": "left",
                   "runs": [
@@ -9388,7 +9358,8 @@
                         "size": 14,
                         "family": "Montserrat",
                         "color": "#1E4CD9",
-                        "line_height": 1.14
+                        "line_height": 1.14,
+                        "bold": true
                       }
                     }
                   ]
@@ -9646,524 +9617,21 @@
                       }
                     ]
                   }
-                ],
-                [
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "Users",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "10K+",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  }
-                ],
-                [
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "Users",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "10K+",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  }
-                ],
-                [
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "Users",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "10K+",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  }
-                ],
-                [
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "Users",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "font": {
-                      "size": 14,
-                      "family": "Montserrat",
-                      "color": "#334155",
-                      "line_height": 1.14
-                    },
-                    "alignment": "left",
-                    "runs": [
-                      {
-                        "text": "10K+",
-                        "font": {
-                          "size": 14,
-                          "family": "Montserrat",
-                          "color": "#334155",
-                          "line_height": 1.14
-                        }
-                      }
-                    ]
-                  }
                 ]
               ],
               "decorative": false,
               "name": "two_column_table",
               "max_columns": 2,
               "min_columns": 1,
-              "max_rows": 8,
-              "min_rows": 5
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "points": [
-                {
-                  "x": -1,
-                  "y": -1
-                },
-                {
-                  "x": 600,
-                  "y": -1
-                },
-                {
-                  "x": 600,
-                  "y": 1
-                },
-                {
-                  "x": -1,
-                  "y": 1
-                }
-              ],
-              "closed": true
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "points": [
-                {
-                  "x": -1,
-                  "y": 494
-                },
-                {
-                  "x": 600,
-                  "y": 494
-                },
-                {
-                  "x": 600,
-                  "y": 497
-                },
-                {
-                  "x": -1,
-                  "y": 497
-                }
-              ],
-              "closed": true
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "points": [
-                {
-                  "x": -1,
-                  "y": 0
-                },
-                {
-                  "x": 1,
-                  "y": 0
-                },
-                {
-                  "x": 1,
-                  "y": 495
-                },
-                {
-                  "x": -1,
-                  "y": 495
-                }
-              ],
-              "closed": true
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "points": [
-                {
-                  "x": 598,
-                  "y": 0
-                },
-                {
-                  "x": 600,
-                  "y": 0
-                },
-                {
-                  "x": 600,
-                  "y": 495
-                },
-                {
-                  "x": 598,
-                  "y": 495
-                }
-              ],
-              "closed": true
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "fill": {
-                "color": "#FFFFFF",
-                "opacity": 1
-              },
-              "points": [
-                {
-                  "x": 298.5,
-                  "y": 0
-                },
-                {
-                  "x": 301.5,
-                  "y": 0
-                },
-                {
-                  "x": 301.5,
-                  "y": 495
-                },
-                {
-                  "x": 298.5,
-                  "y": 495
-                }
-              ],
-              "closed": true
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 45
-                },
-                {
-                  "x": 599,
-                  "y": 45
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 90
-                },
-                {
-                  "x": 599,
-                  "y": 90
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 135
-                },
-                {
-                  "x": 599,
-                  "y": 135
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 180
-                },
-                {
-                  "x": 599,
-                  "y": 180
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 225
-                },
-                {
-                  "x": 599,
-                  "y": 225
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 270
-                },
-                {
-                  "x": 599,
-                  "y": 270
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 315
-                },
-                {
-                  "x": 599,
-                  "y": 315
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 360
-                },
-                {
-                  "x": 599,
-                  "y": 360
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 405
-                },
-                {
-                  "x": 599,
-                  "y": 405
-                }
-              ],
-              "closed": false
-            },
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "stroke": {
-                "color": "#E5E7EB",
-                "opacity": 1,
-                "width": 1
-              },
-              "points": [
-                {
-                  "x": 0,
-                  "y": 450
-                },
-                {
-                  "x": 599,
-                  "y": 450
-                }
-              ],
-              "closed": false
+              "min_rows": 3,
+              "max_rows": 6
             }
           ]
         }
       ]
     },
     {
-      "id": "left_image_right_title_description_7780",
+      "id": "title_description_image",
       "description": "A clean split slide with a large image on the left and stacked title plus paragraph text on the right.",
       "components": [
         {
@@ -10337,7 +9805,7 @@
       ]
     },
     {
-      "id": "title_mosaic_card_groups_3239",
+      "id": "title_list_of_cards_with_alternating_image",
       "description": "A clean slide with a large header, side-by-side mosaic card groups, and a thin footer accent line.",
       "components": [
         {
@@ -11023,7 +10491,7 @@
       ]
     },
     {
-      "id": "title_profile_cards_5986",
+      "id": "title_list_of_cards_with_image",
       "description": "A clean title-led slide with equal profile cards aligned horizontally above a thin bottom accent line.",
       "components": [
         {
@@ -11519,7 +10987,7 @@
       ]
     },
     {
-      "id": "left_title_map_right_metrics_8378",
+      "id": "title_image_description_list_with_highlighted_text_heading_description",
       "description": "A clean split slide with a left title, map visual and paragraph, plus a stacked metric summary column on the right.",
       "components": [
         {
@@ -12049,7 +11517,7 @@
       ]
     },
     {
-      "id": "title_index_grid_5706",
+      "id": "table_of_contents",
       "description": "A clean index-style slide layout with a large header, card-based navigation grid, and thin bottom accent rule.",
       "components": [
         {

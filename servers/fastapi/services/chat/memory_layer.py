@@ -3516,6 +3516,7 @@ class PresentationChatMemoryLayer:
         theme: dict[str, Any] | None = None,
         direct_value: bool = False,
         preferred_content_keys: list[str] | None = None,
+        name_occurrences: dict[str, int] | None = None,
     ) -> None:
         content_values = content if isinstance(content, dict) else {}
         element_type = element.get("type")
@@ -3523,6 +3524,12 @@ class PresentationChatMemoryLayer:
         has_value = False
         value = None
         if isinstance(name, str):
+            if preferred_content_keys is None and name_occurrences is not None:
+                preferred_content_keys = cls._template_repeated_content_keys_for_name(
+                    name,
+                    content_values,
+                    name_occurrences,
+                )
             has_value, value = cls._template_content_value(
                 content_values,
                 name,
@@ -3556,6 +3563,11 @@ class PresentationChatMemoryLayer:
 
         nested_content = value if isinstance(value, dict) else content_values
         nested_direct_value = direct_value and not has_value
+        nested_name_occurrences = (
+            {}
+            if has_value and isinstance(value, dict)
+            else name_occurrences
+        )
 
         child = element.get("child")
         if isinstance(child, dict):
@@ -3564,6 +3576,7 @@ class PresentationChatMemoryLayer:
                 nested_content,
                 theme=theme,
                 direct_value=nested_direct_value,
+                name_occurrences=nested_name_occurrences,
             )
 
         children = element.get("children")
@@ -3588,6 +3601,7 @@ class PresentationChatMemoryLayer:
                 nested_content,
                 theme=theme,
                 direct_value=nested_direct_value,
+                name_occurrences=nested_name_occurrences,
             )
 
     @classmethod
@@ -3598,35 +3612,28 @@ class PresentationChatMemoryLayer:
         *,
         theme: dict[str, Any] | None = None,
         direct_value: bool = False,
+        name_occurrences: dict[str, int] | None = None,
     ) -> None:
-        content_values = content if isinstance(content, dict) else {}
-        name_occurrences: dict[str, int] = {}
+        scoped_name_occurrences = (
+            name_occurrences if name_occurrences is not None else {}
+        )
         for element in elements:
             if not isinstance(element, dict):
                 continue
-            preferred_keys = cls._template_repeated_sibling_content_keys(
-                element,
-                content_values,
-                name_occurrences,
-            )
             cls._apply_template_element_content(
                 element,
                 content,
                 theme=theme,
                 direct_value=direct_value,
-                preferred_content_keys=preferred_keys,
+                name_occurrences=scoped_name_occurrences,
             )
 
     @staticmethod
-    def _template_repeated_sibling_content_keys(
-        element: dict[str, Any],
+    def _template_repeated_content_keys_for_name(
+        name: str,
         content: dict[str, Any],
         name_occurrences: dict[str, int],
     ) -> list[str] | None:
-        name = element.get("name")
-        if not isinstance(name, str) or not name:
-            return None
-
         occurrence_index = name_occurrences.get(name, 0)
         name_occurrences[name] = occurrence_index + 1
         if occurrence_index == 0:

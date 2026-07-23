@@ -492,6 +492,7 @@ def _apply_template_content_to_element(
     *,
     direct_value: bool = False,
     preferred_content_keys: list[str] | None = None,
+    name_occurrences: dict[str, int] | None = None,
 ) -> Any:
     if not isinstance(element, dict):
         return element
@@ -502,6 +503,12 @@ def _apply_template_content_to_element(
     has_value = False
     value = None
     if name:
+        if preferred_content_keys is None and name_occurrences is not None:
+            preferred_content_keys = _template_repeated_content_keys_for_name(
+                name,
+                content_values,
+                name_occurrences,
+            )
         has_value, value = _template_content_value(
             content_values,
             name,
@@ -531,6 +538,11 @@ def _apply_template_content_to_element(
 
     nested_content = value if isinstance(value, dict) else content_values
     nested_direct_value = direct_value and not has_value
+    nested_name_occurrences = (
+        {}
+        if has_value and isinstance(value, dict)
+        else name_occurrences
+    )
 
     if element_type == "container":
         updated = copy.deepcopy(element)
@@ -538,6 +550,7 @@ def _apply_template_content_to_element(
             element.get("child"),
             nested_content,
             direct_value=nested_direct_value,
+            name_occurrences=nested_name_occurrences,
         )
         return updated
 
@@ -551,6 +564,7 @@ def _apply_template_content_to_element(
             value,
             nested_content,
             direct_value=nested_direct_value,
+            name_occurrences=nested_name_occurrences,
         )
         return updated
 
@@ -598,6 +612,7 @@ def _apply_template_content_to_children(
     content: Any,
     *,
     direct_value: bool = False,
+    name_occurrences: dict[str, int] | None = None,
 ) -> list[Any]:
     if isinstance(value, list) and children:
         return [
@@ -613,6 +628,7 @@ def _apply_template_content_to_children(
         children,
         content,
         direct_value=direct_value,
+        name_occurrences=name_occurrences,
     )
 
 
@@ -621,39 +637,27 @@ def _apply_template_content_to_element_list(
     content: Any,
     *,
     direct_value: bool = False,
+    name_occurrences: dict[str, int] | None = None,
 ) -> list[Any]:
-    content_values = content if isinstance(content, dict) else {}
-    name_occurrences: dict[str, int] = {}
+    scoped_name_occurrences = name_occurrences if name_occurrences is not None else {}
     hydrated_elements: list[Any] = []
     for element in elements:
-        preferred_keys = _template_repeated_sibling_content_keys(
-            element,
-            content_values,
-            name_occurrences,
-        )
         hydrated_elements.append(
             _apply_template_content_to_element(
                 element,
                 content,
                 direct_value=direct_value,
-                preferred_content_keys=preferred_keys,
+                name_occurrences=scoped_name_occurrences,
             )
         )
     return hydrated_elements
 
 
-def _template_repeated_sibling_content_keys(
-    element: Any,
+def _template_repeated_content_keys_for_name(
+    name: str,
     content: dict[str, Any],
     name_occurrences: dict[str, int],
 ) -> list[str] | None:
-    if not isinstance(element, dict):
-        return None
-
-    name = element.get("name")
-    if not isinstance(name, str) or not name:
-        return None
-
     occurrence_index = name_occurrences.get(name, 0)
     name_occurrences[name] = occurrence_index + 1
     if occurrence_index == 0:
