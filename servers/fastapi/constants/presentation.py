@@ -4,11 +4,13 @@ MAX_NUMBER_OF_SLIDES = 50
 MAX_OUTLINE_CONTENT_WORDS = 100
 
 _PREFERRED_TEMPLATE_ORDER = [
+    "momentum",
+    "dynamic",
+    "executive",
     "general",
     "modern",
     "standard",
     "swift",
-    "dynamic",
 ]
 
 

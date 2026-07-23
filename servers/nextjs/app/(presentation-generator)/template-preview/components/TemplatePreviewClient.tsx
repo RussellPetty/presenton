@@ -123,7 +123,7 @@ const GroupLayoutPreview = ({
       template_id: templateId,
       template_source: template.is_default ? "default" : "custom",
       layout_count: layouts.length,
-      can_edit: true,
+      can_edit: !template.is_default,
     });
   }, [error, layouts.length, loading, template, templateId]);
 
@@ -163,7 +163,7 @@ const GroupLayoutPreview = ({
     setSavedTemplateName(nextName);
   }, [template?.name, templateId]);
 
-  const canEditTemplate = Boolean(template);
+  const canEditTemplate = Boolean(template && !template.is_default);
   const activeLayout = editableLayouts[activeLayoutIndex] ?? null;
   const previewLayouts = useMemo(
     () =>

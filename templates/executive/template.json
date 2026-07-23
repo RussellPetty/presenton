@@ -165,78 +165,6 @@
           ]
         },
         {
-          "id": "background_regions",
-          "description": "Decorative full-slide background areas create a clean left content field and a soft tinted right panel.",
-          "position": {
-            "x": 0,
-            "y": 0
-          },
-          "elements": [
-            {
-              "type": "vector",
-              "points": [
-                {
-                  "x": 592,
-                  "y": 0
-                },
-                {
-                  "x": 1280,
-                  "y": 0
-                },
-                {
-                  "x": 1280,
-                  "y": 720
-                },
-                {
-                  "x": 592,
-                  "y": 720
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#F7F5F9",
-                "opacity": 1
-              },
-              "stroke": {
-                "color": "#F7F5F9",
-                "opacity": 0,
-                "width": 0
-              }
-            },
-            {
-              "type": "vector",
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 52,
-                  "y": 0
-                },
-                {
-                  "x": 52,
-                  "y": 720
-                },
-                {
-                  "x": 0,
-                  "y": 720
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#F8F5FF",
-                "opacity": 0.65
-              },
-              "stroke": {
-                "color": "#F8F5FF",
-                "opacity": 0,
-                "width": 0
-              }
-            }
-          ]
-        },
-        {
           "id": "background_accents",
           "description": "Subtle decorative background imagery positioned behind the main content area for visual texture.",
           "position": {
@@ -509,128 +437,6 @@
               "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
               "decorative": true,
               "name": "background_glow",
-              "is_icon": false
-            }
-          ]
-        },
-        {
-          "id": "background_regions",
-          "description": "Fixed background areas and subtle lower corner accents frame the content without changing the slide message.",
-          "position": {
-            "x": 0,
-            "y": 0
-          },
-          "elements": [
-            {
-              "type": "container",
-              "position": {
-                "x": 640,
-                "y": 0
-              },
-              "size": {
-                "width": 640,
-                "height": 720
-              },
-              "fill": {
-                "color": "#F8F7FC",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "image",
-              "position": {
-                "x": -602.42,
-                "y": 560
-              },
-              "size": {
-                "width": 1017.57,
-                "height": 997.22
-              },
-              "opacity": 0.45,
-              "data": "static/image1-7f30c6c93dd1.png",
-              "fit": "fill",
-              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
-              "decorative": true,
-              "name": "lower_corner_accent",
-              "is_icon": false
-            },
-            {
-              "type": "image",
-              "position": {
-                "x": -657.89,
-                "y": 516.78
-              },
-              "size": {
-                "width": 1017.57,
-                "height": 997.22
-              },
-              "opacity": 0.45,
-              "data": "static/image2-f9ab39ea57ed.png",
-              "fit": "fill",
-              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
-              "decorative": true,
-              "name": "soft_bottom_accent",
-              "is_icon": false
-            }
-          ]
-        },
-        {
-          "id": "decorative_background",
-          "description": "Full slide background with pale right panel and subtle ornamental accents near the lower-left edge.",
-          "position": {
-            "x": 0,
-            "y": 0
-          },
-          "elements": [
-            {
-              "type": "container",
-              "position": {
-                "x": 705,
-                "y": 0
-              },
-              "size": {
-                "width": 575,
-                "height": 720
-              },
-              "fill": {
-                "color": "#F7F5FA",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "image",
-              "position": {
-                "x": -612,
-                "y": 623
-              },
-              "size": {
-                "width": 1018,
-                "height": 997
-              },
-              "opacity": 0.28,
-              "data": "static/image1-7f30c6c93dd1.png",
-              "fit": "fill",
-              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.2201 L 0 997.2201 L 0 0 Z')",
-              "decorative": true,
-              "name": "lower_accent_image",
-              "is_icon": false
-            },
-            {
-              "type": "image",
-              "position": {
-                "x": -668,
-                "y": 580
-              },
-              "size": {
-                "width": 1018,
-                "height": 997
-              },
-              "opacity": 0.28,
-              "data": "static/image2-f9ab39ea57ed.png",
-              "fit": "fill",
-              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
-              "decorative": true,
-              "name": "lower_shadow_accent",
               "is_icon": false
             }
           ]
@@ -2797,7 +2603,7 @@
                 {
                   "type": "text",
                   "size": {
-                    "width": 333.5,
+                    "width": 1080.36,
                     "height": 32.54
                   },
                   "font": {
@@ -2838,8 +2644,14 @@
                   ],
                   "decorative": false,
                   "name": "list_item",
-                  "max_length": 103,
-                  "min_length": 5
+                  "max_length": 70,
+                  "min_length": 5,
+                  "__presenton_manual_position": true,
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "rotation": 0
                 }
               ],
               "name": "vertical_text_stack",
@@ -5323,6 +5135,206 @@
       ]
     },
     {
+      "id": "background_regions",
+      "description": "Decorative full-slide background areas create a clean left content field and a soft tinted right panel.",
+      "variants": [
+        {
+          "id": "background_regions",
+          "description": "Decorative full-slide background areas create a clean left content field and a soft tinted right panel.",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "elements": [
+            {
+              "type": "vector",
+              "points": [
+                {
+                  "x": 592,
+                  "y": 0
+                },
+                {
+                  "x": 1280,
+                  "y": 0
+                },
+                {
+                  "x": 1280,
+                  "y": 720
+                },
+                {
+                  "x": 592,
+                  "y": 720
+                }
+              ],
+              "closed": true,
+              "fill": {
+                "color": "#F7F5F9",
+                "opacity": 1
+              },
+              "stroke": {
+                "color": "#F7F5F9",
+                "opacity": 0,
+                "width": 0
+              }
+            },
+            {
+              "type": "vector",
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 52,
+                  "y": 0
+                },
+                {
+                  "x": 52,
+                  "y": 720
+                },
+                {
+                  "x": 0,
+                  "y": 720
+                }
+              ],
+              "closed": true,
+              "fill": {
+                "color": "#F8F5FF",
+                "opacity": 0.65
+              },
+              "stroke": {
+                "color": "#F8F5FF",
+                "opacity": 0,
+                "width": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "background_regions",
+          "description": "Fixed background areas and subtle lower corner accents frame the content without changing the slide message.",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "elements": [
+            {
+              "type": "container",
+              "position": {
+                "x": 640,
+                "y": 0
+              },
+              "size": {
+                "width": 640,
+                "height": 720
+              },
+              "fill": {
+                "color": "#F8F7FC",
+                "opacity": 1
+              }
+            },
+            {
+              "type": "image",
+              "position": {
+                "x": -602.42,
+                "y": 560
+              },
+              "size": {
+                "width": 1017.57,
+                "height": 997.22
+              },
+              "opacity": 0.45,
+              "data": "static/image1-7f30c6c93dd1.png",
+              "fit": "fill",
+              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
+              "decorative": true,
+              "name": "lower_corner_accent",
+              "is_icon": false
+            },
+            {
+              "type": "image",
+              "position": {
+                "x": -657.89,
+                "y": 516.78
+              },
+              "size": {
+                "width": 1017.57,
+                "height": 997.22
+              },
+              "opacity": 0.45,
+              "data": "static/image2-f9ab39ea57ed.png",
+              "fit": "fill",
+              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
+              "decorative": true,
+              "name": "soft_bottom_accent",
+              "is_icon": false
+            }
+          ]
+        },
+        {
+          "id": "decorative_background",
+          "description": "Full slide background with pale right panel and subtle ornamental accents near the lower-left edge.",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "elements": [
+            {
+              "type": "container",
+              "position": {
+                "x": 705,
+                "y": 0
+              },
+              "size": {
+                "width": 575,
+                "height": 720
+              },
+              "fill": {
+                "color": "#F7F5FA",
+                "opacity": 1
+              }
+            },
+            {
+              "type": "image",
+              "position": {
+                "x": -612,
+                "y": 623
+              },
+              "size": {
+                "width": 1018,
+                "height": 997
+              },
+              "opacity": 0.28,
+              "data": "static/image1-7f30c6c93dd1.png",
+              "fit": "fill",
+              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.2201 L 0 997.2201 L 0 0 Z')",
+              "decorative": true,
+              "name": "lower_accent_image",
+              "is_icon": false
+            },
+            {
+              "type": "image",
+              "position": {
+                "x": -668,
+                "y": 580
+              },
+              "size": {
+                "width": 1018,
+                "height": 997
+              },
+              "opacity": 0.28,
+              "data": "static/image2-f9ab39ea57ed.png",
+              "fit": "fill",
+              "clip_path": "path('M 0 0 L 1017.57 0 L 1017.57 997.22 L 0 997.22 L 0 0 Z')",
+              "decorative": true,
+              "name": "lower_shadow_accent",
+              "is_icon": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "left_text_column",
       "description": "Left aligned content column with a bold headline near the top and supporting paragraph near the bottom.",
       "variants": [
@@ -6397,96 +6409,6 @@
               "name": "supporting_summary",
               "max_length": 153,
               "min_length": 68
-            }
-          ]
-        },
-        {
-          "id": "title_description_block",
-          "description": "A right-side text block containing a prominent heading and supporting description aligned vertically near the slide center.",
-          "position": {
-            "x": 632.12,
-            "y": 238.5
-          },
-          "elements": [
-            {
-              "type": "text",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 605.06,
-                "height": 68
-              },
-              "rotation": 0,
-              "font": {
-                "size": 55.99,
-                "family": "Anton",
-                "color": "#000000",
-                "line_height": 1.05,
-                "letter_spacing": -0.55
-              },
-              "alignment": {
-                "horizontal": "left",
-                "vertical": "top"
-              },
-              "runs": [
-                {
-                  "text": "Next Steps",
-                  "font": {
-                    "size": 55.99,
-                    "family": "Anton",
-                    "color": "#000000",
-                    "line_height": 1.05,
-                    "letter_spacing": -0.55
-                  }
-                }
-              ],
-              "decorative": false,
-              "name": "main_heading_text",
-              "max_length": 24,
-              "min_length": 5
-            },
-            {
-              "type": "text",
-              "position": {
-                "x": 0,
-                "y": 74.5
-              },
-              "size": {
-                "width": 603.75,
-                "height": 101.86
-              },
-              "rotation": 0,
-              "font": {
-                "size": 17.78,
-                "family": "Montserrat Medium",
-                "color": "#000000",
-                "bold": true,
-                "line_height": 1.4,
-                "letter_spacing": 0.11
-              },
-              "alignment": {
-                "horizontal": "left",
-                "vertical": "top"
-              },
-              "runs": [
-                {
-                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement.",
-                  "font": {
-                    "size": 17.78,
-                    "family": "Montserrat Medium",
-                    "color": "#000000",
-                    "bold": true,
-                    "line_height": 1.4,
-                    "letter_spacing": 0.11
-                  }
-                }
-              ],
-              "decorative": false,
-              "name": "supporting_description_text",
-              "max_length": 233,
-              "min_length": 71
             }
           ]
         },
@@ -7781,6 +7703,143 @@
               ],
               "name": "card_columns_grid",
               "max_children": 2,
+              "min_children": 1
+            }
+          ]
+        },
+        {
+          "id": "cards_ list_grid_right",
+          "description": "right side card layout",
+          "position": {
+            "x": 711,
+            "y": 67
+          },
+          "elements": [
+            {
+              "type": "grid",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 521,
+                "height": 611
+              },
+              "columns": 2,
+              "rows": 2,
+              "column_gap": 20,
+              "row_gap": 16,
+              "align_items": "stretch",
+              "justify_items": "stretch",
+              "children": [
+                {
+                  "type": "container",
+                  "size": {
+                    "width": 250,
+                    "height": 298
+                  },
+                  "fill": {
+                    "color": "#F7F6FB",
+                    "opacity": 1
+                  },
+                  "border_radius": {
+                    "tl": 20,
+                    "tr": 20,
+                    "bl": 20,
+                    "br": 20
+                  },
+                  "padding": {
+                    "top": 63,
+                    "right": 24,
+                    "bottom": 32,
+                    "left": 24
+                  },
+                  "child": {
+                    "type": "flex",
+                    "direction": "column",
+                    "align_items": "center",
+                    "justify_content": "flex-start",
+                    "gap": 17,
+                    "children": [
+                      {
+                        "type": "text",
+                        "size": {
+                          "width": 180,
+                          "height": 67
+                        },
+                        "font": {
+                          "size": 50,
+                          "family": "Montserrat Bold",
+                          "color": "#8958F4",
+                          "bold": true,
+                          "line_height": 1.25,
+                          "letter_spacing": -0.2
+                        },
+                        "alignment": {
+                          "horizontal": "center",
+                          "vertical": "middle"
+                        },
+                        "runs": [
+                          {
+                            "text": "$10",
+                            "font": {
+                              "size": 50,
+                              "family": "Montserrat Bold",
+                              "color": "#8958F4",
+                              "bold": true,
+                              "line_height": 1.25,
+                              "letter_spacing": -0.2
+                            }
+                          }
+                        ],
+                        "decorative": false,
+                        "name": "metric_value",
+                        "max_length": 4,
+                        "min_length": 2
+                      },
+                      {
+                        "type": "text",
+                        "size": {
+                          "width": 183,
+                          "height": 92
+                        },
+                        "font": {
+                          "size": 12.5,
+                          "family": "Montserrat",
+                          "color": "#000000",
+                          "line_height": 1.5,
+                          "letter_spacing": 0.07
+                        },
+                        "alignment": {
+                          "horizontal": "center",
+                          "vertical": "top"
+                        },
+                        "runs": [
+                          {
+                            "text": "Monthly completed tasks increase consistently, indicating continuous improvement in team performance.",
+                            "font": {
+                              "size": 12.5,
+                              "family": "Montserrat",
+                              "color": "#000000",
+                              "line_height": 1.5,
+                              "letter_spacing": 0.07
+                            }
+                          }
+                        ],
+                        "decorative": false,
+                        "name": "metric_value",
+                        "max_length": 4,
+                        "min_length": 2
+                      }
+                    ],
+                    "name": "metric_card_content",
+                    "max_children": 2,
+                    "min_children": 2
+                  }
+                }
+              ],
+              "name": "metric_cards_grid",
+              "max_children": 4,
               "min_children": 1
             }
           ]
@@ -9728,169 +9787,6 @@
               "name": "timeline_marker_graphic"
             }
           ]
-        },
-        {
-          "id": "workflow_timeline_cards",
-          "description": "A row of workflow cards uses icon panels, centered labels, descriptions, and dotted connectors between steps.",
-          "position": {
-            "x": 53.33,
-            "y": 290
-          },
-          "elements": [
-            {
-              "type": "grid",
-              "position": {
-                "x": 50.02,
-                "y": 4.54
-              },
-              "size": {
-                "width": 1073.62,
-                "height": 245.66
-              },
-              "rotation": 0,
-              "columns": 3,
-              "rows": 1,
-              "gap": 12,
-              "align_items": "stretch",
-              "justify_items": "stretch",
-              "children": [
-                {
-                  "type": "group",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  },
-                  "size": {
-                    "width": 242.93,
-                    "height": 245.66
-                  },
-                  "children": [
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 51.39,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 140.15,
-                        "height": 140
-                      },
-                      "fill": {
-                        "color": "#F7F5FA",
-                        "opacity": 1
-                      },
-                      "border_radius": {
-                        "tl": 48,
-                        "tr": 48,
-                        "bl": 48,
-                        "br": 48
-                      }
-                    },
-                    {
-                      "type": "image",
-                      "position": {
-                        "x": 79.91,
-                        "y": 28.44
-                      },
-                      "size": {
-                        "width": 83.12,
-                        "height": 83.12
-                      },
-                      "data": "/static/icons/placeholder.svg",
-                      "fit": "contain",
-                      "color": "#6E5DAA",
-                      "decorative": false,
-                      "name": "step_icon",
-                      "is_icon": true,
-                      "icon_type": "regular"
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 151.88
-                      },
-                      "size": {
-                        "width": 242.93,
-                        "height": 28.6
-                      },
-                      "font": {
-                        "size": 21.32,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#000000",
-                        "bold": true,
-                        "line_height": 1.5,
-                        "letter_spacing": -0.08
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Project Setup",
-                          "font": {
-                            "size": 21.32,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#000000",
-                            "bold": true,
-                            "line_height": 1.5,
-                            "letter_spacing": -0.08
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "step_title",
-                      "max_length": 21,
-                      "min_length": 7
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 6.71,
-                        "y": 190.89
-                      },
-                      "size": {
-                        "width": 229.52,
-                        "height": 54.77
-                      },
-                      "font": {
-                        "size": 12.44,
-                        "family": "Montserrat",
-                        "color": "#000000",
-                        "line_height": 1.5,
-                        "letter_spacing": 0.07
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Users log in, create or join a project, define project details and deadlines, and assign roles .",
-                          "font": {
-                            "size": 12.44,
-                            "family": "Montserrat",
-                            "color": "#000000",
-                            "line_height": 1.5,
-                            "letter_spacing": 0.07
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "step_description",
-                      "max_length": 96,
-                      "min_length": 39
-                    }
-                  ],
-                  "name": "card_group_icon_description_title"
-                }
-              ],
-              "name": "card_list_elements",
-              "max_children": 3,
-              "min_children": 1
-            }
-          ]
         }
       ]
     },
@@ -10413,109 +10309,6 @@
               "grid_color": "#E7E7E7",
               "decorative": false,
               "name": "line_chart"
-            }
-          ]
-        },
-        {
-          "id": "left_chart_panel",
-          "description": "A standalone chart region occupies the lower left area and compares categories with vertical bars.",
-          "position": {
-            "x": 66,
-            "y": 305
-          },
-          "elements": [
-            {
-              "type": "chart",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 362,
-                "height": 337
-              },
-              "chart_type": "bar",
-              "title_color": "#000000",
-              "colors": [
-                "#8554EB"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#333333",
-              "categories": [
-                "Sales",
-                "Finance",
-                "Marketing",
-                "HR"
-              ],
-              "series": [
-                {
-                  "name": "Value",
-                  "values": [
-                    78,
-                    60,
-                    45,
-                    30
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#ECECEC",
-              "decorative": false,
-              "name": "category_bar_chart"
-            }
-          ]
-        },
-        {
-          "id": "right_horizontal_chart",
-          "description": "A right-side horizontal bar chart compares categories with axis labels and clean gridlines inside an open plotting region.",
-          "position": {
-            "x": 730,
-            "y": 200
-          },
-          "elements": [
-            {
-              "type": "chart",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 485,
-                "height": 390
-              },
-              "chart_type": "horizontal_bar",
-              "colors": [
-                "#8855F2"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#333333",
-              "categories": [
-                "Sales",
-                "Finance",
-                "Marketing",
-                "HR"
-              ],
-              "series": [
-                {
-                  "name": "Value",
-                  "values": [
-                    78,
-                    60,
-                    45,
-                    30
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": true,
-              "y_axis_grid": false,
-              "grid_color": "#E6E6E6",
-              "decorative": false,
-              "name": "comparison_chart"
             }
           ]
         }
@@ -11835,6 +11628,115 @@
       ]
     },
     {
+      "id": "left_chart_panel",
+      "description": "A standalone chart region occupies the lower left area and compares categories with vertical bars.",
+      "variants": [
+        {
+          "id": "left_chart_panel",
+          "description": "A standalone chart region occupies the lower left area and compares categories with vertical bars.",
+          "position": {
+            "x": 66,
+            "y": 305
+          },
+          "elements": [
+            {
+              "type": "chart",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 362,
+                "height": 337
+              },
+              "chart_type": "bar",
+              "title_color": "#000000",
+              "colors": [
+                "#8554EB"
+              ],
+              "x_axis": true,
+              "y_axis": true,
+              "axis_color": "#333333",
+              "categories": [
+                "Sales",
+                "Finance",
+                "Marketing",
+                "HR"
+              ],
+              "series": [
+                {
+                  "name": "Value",
+                  "values": [
+                    78,
+                    60,
+                    45,
+                    30
+                  ]
+                }
+              ],
+              "legend": false,
+              "x_axis_grid": false,
+              "y_axis_grid": true,
+              "grid_color": "#ECECEC",
+              "decorative": false,
+              "name": "category_bar_chart"
+            }
+          ]
+        },
+        {
+          "id": "right_horizontal_chart",
+          "description": "A right-side horizontal bar chart compares categories with axis labels and clean gridlines inside an open plotting region.",
+          "position": {
+            "x": 730,
+            "y": 200
+          },
+          "elements": [
+            {
+              "type": "chart",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 485,
+                "height": 390
+              },
+              "chart_type": "horizontal_bar",
+              "colors": [
+                "#8855F2"
+              ],
+              "x_axis": true,
+              "y_axis": true,
+              "axis_color": "#333333",
+              "categories": [
+                "Sales",
+                "Finance",
+                "Marketing",
+                "HR"
+              ],
+              "series": [
+                {
+                  "name": "Value",
+                  "values": [
+                    78,
+                    60,
+                    45,
+                    30
+                  ]
+                }
+              ],
+              "legend": false,
+              "x_axis_grid": true,
+              "y_axis_grid": false,
+              "grid_color": "#E6E6E6",
+              "decorative": false,
+              "name": "comparison_chart"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "title_and_summary_part_1",
       "description": "Ungrouped component element",
       "variants": [
@@ -12139,149 +12041,6 @@
               "name": "summary_text",
               "max_length": 315,
               "min_length": 65
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cards_list_grid_right",
-      "description": "right side card layout",
-      "variants": [
-        {
-          "id": "cards_ list_grid_right",
-          "description": "right side card layout",
-          "position": {
-            "x": 711,
-            "y": 67
-          },
-          "elements": [
-            {
-              "type": "grid",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 521,
-                "height": 611
-              },
-              "columns": 2,
-              "rows": 2,
-              "column_gap": 20,
-              "row_gap": 16,
-              "align_items": "stretch",
-              "justify_items": "stretch",
-              "children": [
-                {
-                  "type": "container",
-                  "size": {
-                    "width": 250,
-                    "height": 298
-                  },
-                  "fill": {
-                    "color": "#F7F6FB",
-                    "opacity": 1
-                  },
-                  "border_radius": {
-                    "tl": 20,
-                    "tr": 20,
-                    "bl": 20,
-                    "br": 20
-                  },
-                  "padding": {
-                    "top": 63,
-                    "right": 24,
-                    "bottom": 32,
-                    "left": 24
-                  },
-                  "child": {
-                    "type": "flex",
-                    "direction": "column",
-                    "align_items": "center",
-                    "justify_content": "flex-start",
-                    "gap": 17,
-                    "children": [
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 180,
-                          "height": 67
-                        },
-                        "font": {
-                          "size": 50,
-                          "family": "Montserrat Bold",
-                          "color": "#8958F4",
-                          "bold": true,
-                          "line_height": 1.25,
-                          "letter_spacing": -0.2
-                        },
-                        "alignment": {
-                          "horizontal": "center",
-                          "vertical": "middle"
-                        },
-                        "runs": [
-                          {
-                            "text": "$10",
-                            "font": {
-                              "size": 50,
-                              "family": "Montserrat Bold",
-                              "color": "#8958F4",
-                              "bold": true,
-                              "line_height": 1.25,
-                              "letter_spacing": -0.2
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "metric_value",
-                        "max_length": 4,
-                        "min_length": 2
-                      },
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 183,
-                          "height": 92
-                        },
-                        "font": {
-                          "size": 12.5,
-                          "family": "Montserrat",
-                          "color": "#000000",
-                          "line_height": 1.5,
-                          "letter_spacing": 0.07
-                        },
-                        "alignment": {
-                          "horizontal": "center",
-                          "vertical": "top"
-                        },
-                        "runs": [
-                          {
-                            "text": "Monthly completed tasks increase consistently, indicating continuous improvement in team performance.",
-                            "font": {
-                              "size": 12.5,
-                              "family": "Montserrat",
-                              "color": "#000000",
-                              "line_height": 1.5,
-                              "letter_spacing": 0.07
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "metric_value",
-                        "max_length": 4,
-                        "min_length": 2
-                      }
-                    ],
-                    "name": "metric_card_content",
-                    "max_children": 2,
-                    "min_children": 2
-                  }
-                }
-              ],
-              "name": "metric_cards_grid",
-              "max_children": 4,
-              "min_children": 1
             }
           ]
         }
@@ -13153,6 +12912,271 @@
               ],
               "name": "card_list_flex",
               "max_children": 2,
+              "min_children": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "title_description_block",
+      "description": "A right-side text block containing a prominent heading and supporting description aligned vertically near the slide center.",
+      "variants": [
+        {
+          "id": "title_description_block",
+          "description": "A right-side text block containing a prominent heading and supporting description aligned vertically near the slide center.",
+          "position": {
+            "x": 632.12,
+            "y": 238.5
+          },
+          "elements": [
+            {
+              "type": "text",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 605.06,
+                "height": 68
+              },
+              "rotation": 0,
+              "font": {
+                "size": 55.99,
+                "family": "Anton",
+                "color": "#000000",
+                "line_height": 1.05,
+                "letter_spacing": -0.55
+              },
+              "alignment": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "runs": [
+                {
+                  "text": "Next Steps",
+                  "font": {
+                    "size": 55.99,
+                    "family": "Anton",
+                    "color": "#000000",
+                    "line_height": 1.05,
+                    "letter_spacing": -0.55
+                  }
+                }
+              ],
+              "decorative": false,
+              "name": "main_heading_text",
+              "max_length": 24,
+              "min_length": 5
+            },
+            {
+              "type": "text",
+              "position": {
+                "x": 0,
+                "y": 74.5
+              },
+              "size": {
+                "width": 603.75,
+                "height": 101.86
+              },
+              "rotation": 0,
+              "font": {
+                "size": 17.78,
+                "family": "Montserrat Medium",
+                "color": "#000000",
+                "bold": true,
+                "line_height": 1.4,
+                "letter_spacing": 0.11
+              },
+              "alignment": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "runs": [
+                {
+                  "text": "A university implemented the Digital Learning Platform improve online education, simplify course management, and enhance student engagement.",
+                  "font": {
+                    "size": 17.78,
+                    "family": "Montserrat Medium",
+                    "color": "#000000",
+                    "bold": true,
+                    "line_height": 1.4,
+                    "letter_spacing": 0.11
+                  }
+                }
+              ],
+              "decorative": false,
+              "name": "supporting_description_text",
+              "max_length": 233,
+              "min_length": 71
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workflow_timeline_cards",
+      "description": "A row of workflow cards uses icon panels, centered labels, descriptions, and dotted connectors between steps.",
+      "variants": [
+        {
+          "id": "workflow_timeline_cards",
+          "description": "A row of workflow cards uses icon panels, centered labels, descriptions, and dotted connectors between steps.",
+          "position": {
+            "x": 53.33,
+            "y": 290
+          },
+          "elements": [
+            {
+              "type": "grid",
+              "position": {
+                "x": 50.02,
+                "y": 4.54
+              },
+              "size": {
+                "width": 1073.62,
+                "height": 245.66
+              },
+              "rotation": 0,
+              "columns": 3,
+              "rows": 1,
+              "gap": 12,
+              "align_items": "stretch",
+              "justify_items": "stretch",
+              "children": [
+                {
+                  "type": "group",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "size": {
+                    "width": 242.93,
+                    "height": 245.66
+                  },
+                  "children": [
+                    {
+                      "type": "container",
+                      "position": {
+                        "x": 51.39,
+                        "y": 0
+                      },
+                      "size": {
+                        "width": 140.15,
+                        "height": 140
+                      },
+                      "fill": {
+                        "color": "#F7F5FA",
+                        "opacity": 1
+                      },
+                      "border_radius": {
+                        "tl": 48,
+                        "tr": 48,
+                        "bl": 48,
+                        "br": 48
+                      }
+                    },
+                    {
+                      "type": "image",
+                      "position": {
+                        "x": 79.91,
+                        "y": 28.44
+                      },
+                      "size": {
+                        "width": 83.12,
+                        "height": 83.12
+                      },
+                      "data": "/static/icons/placeholder.svg",
+                      "fit": "contain",
+                      "color": "#6E5DAA",
+                      "decorative": false,
+                      "name": "step_icon",
+                      "is_icon": true,
+                      "icon_type": "regular"
+                    },
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 0,
+                        "y": 151.88
+                      },
+                      "size": {
+                        "width": 242.93,
+                        "height": 28.6
+                      },
+                      "font": {
+                        "size": 21.32,
+                        "family": "Montserrat Semi-Bold",
+                        "color": "#000000",
+                        "bold": true,
+                        "line_height": 1.5,
+                        "letter_spacing": -0.08
+                      },
+                      "alignment": {
+                        "horizontal": "center",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Project Setup",
+                          "font": {
+                            "size": 21.32,
+                            "family": "Montserrat Semi-Bold",
+                            "color": "#000000",
+                            "bold": true,
+                            "line_height": 1.5,
+                            "letter_spacing": -0.08
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "step_title",
+                      "max_length": 21,
+                      "min_length": 7
+                    },
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 6.71,
+                        "y": 190.89
+                      },
+                      "size": {
+                        "width": 229.52,
+                        "height": 54.77
+                      },
+                      "font": {
+                        "size": 12.44,
+                        "family": "Montserrat",
+                        "color": "#000000",
+                        "line_height": 1.5,
+                        "letter_spacing": 0.07
+                      },
+                      "alignment": {
+                        "horizontal": "center",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "Users log in, create or join a project, define project details and deadlines, and assign roles .",
+                          "font": {
+                            "size": 12.44,
+                            "family": "Montserrat",
+                            "color": "#000000",
+                            "line_height": 1.5,
+                            "letter_spacing": 0.07
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "step_description",
+                      "max_length": 96,
+                      "min_length": 39
+                    }
+                  ],
+                  "name": "card_group_icon_description_title"
+                }
+              ],
+              "name": "card_list_elements",
+              "max_children": 3,
               "min_children": 1
             }
           ]
@@ -14583,7 +14607,7 @@
                 {
                   "type": "text",
                   "size": {
-                    "width": 333.5,
+                    "width": 1080.36,
                     "height": 32.54
                   },
                   "font": {
@@ -14624,8 +14648,14 @@
                   ],
                   "decorative": false,
                   "name": "list_item",
-                  "max_length": 103,
-                  "min_length": 5
+                  "max_length": 70,
+                  "min_length": 5,
+                  "__presenton_manual_position": true,
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "rotation": 0
                 }
               ],
               "name": "vertical_text_stack",

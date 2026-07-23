@@ -113,7 +113,7 @@ export function LegacyPresentationsTable({
         />
         <p className="text-[#4C4C4C]">
           These presentations were created in an older format and can&apos;t be
-          opened in Presenton 0.9.0-beta. {" "}
+          opened in Presenton 0.9.2-beta. {" "}
           <a
             href={LEGACY_RELEASE_URL}
             target="_blank"
