@@ -74,6 +74,87 @@ def _duplicate_named_group_headings(ui):
     ]
 
 
+def _nested_duplicate_text_containers_ui():
+    def marker_label(text):
+        return {
+            "type": "text",
+            "decorative": False,
+            "name": "marker_label",
+            "runs": [{"text": text}],
+        }
+
+    def callout_text(text):
+        return {
+            "type": "container",
+            "child": {
+                "type": "text",
+                "decorative": False,
+                "name": "callout_text",
+                "runs": [{"text": text}],
+            },
+        }
+
+    return {
+        "id": "marker_callouts",
+        "components": [
+            {
+                "id": "marker_callout_sections",
+                "elements": [
+                    {
+                        "type": "group",
+                        "name": "callout_marker_groups",
+                        "children": [
+                            marker_label("1"),
+                            callout_text("Old callout 1"),
+                            marker_label("2"),
+                            callout_text("Old callout 2"),
+                            marker_label("3"),
+                            callout_text("Old callout 3"),
+                            marker_label("4"),
+                            callout_text("Old callout 4"),
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def _nested_duplicate_text_containers_content():
+    return {
+        "marker_callout_sections": {
+            "callout_marker_groups": {
+                "marker_label": "A",
+                "callout_text": "Active since 2006.",
+                "marker_label_2": "B",
+                "callout_text_2": "Supported over 2,000 artists.",
+                "marker_label_3": "C",
+                "callout_text_3": "Gift cards help with road expenses.",
+                "marker_label_4": "D",
+                "callout_text_4": "Commercials and events boost exposure.",
+            }
+        }
+    }
+
+
+def _nested_duplicate_callout_labels(ui):
+    children = ui["components"][0]["elements"][0]["children"]
+    return [
+        element["runs"][0]["text"]
+        for element in children
+        if element.get("type") == "text"
+    ]
+
+
+def _nested_duplicate_callout_texts(ui):
+    children = ui["components"][0]["elements"][0]["children"]
+    return [
+        element["child"]["runs"][0]["text"]
+        for element in children
+        if element.get("type") == "container"
+    ]
+
+
 def test_apply_template_content_to_ui_uses_schema_content_keys():
     ui = {
         "id": "layout-1",
@@ -289,6 +370,38 @@ def test_chat_template_content_uses_suffixed_content_for_duplicate_group_names()
         "Limited-Time Items",
         "Customization",
         "Occasion Fit",
+    ]
+
+
+def test_apply_template_content_to_ui_uses_suffixed_content_inside_unnamed_containers():
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        _nested_duplicate_text_containers_ui(),
+        _nested_duplicate_text_containers_content(),
+    )
+
+    assert _nested_duplicate_callout_labels(hydrated) == ["A", "B", "C", "D"]
+    assert _nested_duplicate_callout_texts(hydrated) == [
+        "Active since 2006.",
+        "Supported over 2,000 artists.",
+        "Gift cards help with road expenses.",
+        "Commercials and events boost exposure.",
+    ]
+
+
+def test_chat_template_content_uses_suffixed_content_inside_unnamed_containers():
+    ui = _nested_duplicate_text_containers_ui()
+
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
+        ui,
+        _nested_duplicate_text_containers_content(),
+    )
+
+    assert _nested_duplicate_callout_labels(ui) == ["A", "B", "C", "D"]
+    assert _nested_duplicate_callout_texts(ui) == [
+        "Active since 2006.",
+        "Supported over 2,000 artists.",
+        "Gift cards help with road expenses.",
+        "Commercials and events boost exposure.",
     ]
 
 
