@@ -3,8 +3,14 @@ from sqlalchemy import func, select
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
+from api.v1.auth.assets import is_app_data_path_authorized
 from api.v1.auth.principal import resolve_request_principal
-from api.v1.auth.context import reset_current_owner_id, set_current_owner_id
+from api.v1.auth.context import (
+    reset_current_owner_id,
+    reset_current_owner_is_admin,
+    set_current_owner_id,
+    set_current_owner_is_admin,
+)
 from api.v1.auth.users import get_jwt_strategy
 from models.sql.user import User
 from services.database import async_session_maker
@@ -29,7 +35,7 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
     }
     _PUBLIC_APP_DATA_PREFIXES = (
         "/app_data/fonts/",
-        "/app_data/pptx-to-html/",
+        "/app_data/templates/",
     )
     _PROTECTED_NON_API_PATHS = {"/docs", "/openapi.json", "/redoc"}
 
@@ -92,23 +98,15 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
                     status_code=403,
                     content={"detail": "Admin browser session required"},
                 )
-            private_asset_prefixes = (
-                "/app_data/images/",
-                "/app_data/exports/",
-                "/app_data/uploads/",
-            )
-            if any(path.startswith(prefix) for prefix in private_asset_prefixes):
-                expected_segment = f"/users/{principal.user_id}/"
-                if "/users/" in path and expected_segment not in path:
-                    return JSONResponse(
-                        status_code=404,
-                        content={"detail": "Asset not found"},
-                    )
-                if "/users/" not in path and not principal.is_admin:
-                    return JSONResponse(
-                        status_code=404,
-                        content={"detail": "Asset not found"},
-                    )
+            if path.startswith("/app_data/") and not is_app_data_path_authorized(
+                path,
+                user_id=principal.user_id,
+                is_admin=principal.is_admin,
+            ):
+                return JSONResponse(
+                    status_code=404,
+                    content={"detail": "Asset not found"},
+                )
             request.state.auth_principal = principal
             request.state.current_user = user
             request.state.auth_username = principal.username
@@ -117,7 +115,9 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
                     await get_jwt_strategy().write_token(user)
                 )
             context_token = set_current_owner_id(principal.user_id)
+            admin_context_token = set_current_owner_is_admin(principal.is_admin)
             try:
                 return await call_next(request)
             finally:
+                reset_current_owner_is_admin(admin_context_token)
                 reset_current_owner_id(context_token)

@@ -4,7 +4,7 @@
 			"url": "http://localhost:5001/mcp",
 			"type": "http",
 			"headers": {
-				"Authorization": "Bearer sk-presenton-914ba783dd43cdd94364b25838cbc8fa03ee4102"
+				"Authorization": "Bearer sk-presenton-YOUR_KEY"
 			}
 		}
 	},

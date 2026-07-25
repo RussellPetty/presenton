@@ -34,18 +34,26 @@ function allowedReadableFileBaseDirs(scope?: FileOwnerScope): string[] {
 
   if (scope?.userId) {
     const userId = scope.userId;
-    const userRoots = ["images", "uploads", "exports"].map((directory) =>
+    const userRoots = [
+      "images",
+      "uploads",
+      "exports",
+      "pptx-to-html",
+      "pptx-to-json",
+    ].map((directory) =>
       path.join(appDataDirectory, directory, "users", userId)
     );
     const sharedRoots = [
       path.join(appDataDirectory, "fonts"),
-      path.join(appDataDirectory, "pptx-to-html"),
+      path.join(appDataDirectory, "templates"),
     ];
     const legacyAdminRoots = scope.isAdmin
       ? [
           path.join(appDataDirectory, "images"),
           path.join(appDataDirectory, "uploads"),
           path.join(appDataDirectory, "exports"),
+          path.join(appDataDirectory, "pptx-to-html"),
+          path.join(appDataDirectory, "pptx-to-json"),
           tempDirectory,
         ]
       : [];

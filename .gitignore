@@ -19,6 +19,7 @@ chroma
 container.db
 .next-build
 .cursor
+.vscode
 .agents
 skills-lock.json
 .codex/

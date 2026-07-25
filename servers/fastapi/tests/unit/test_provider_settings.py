@@ -71,5 +71,7 @@ def test_startup_migrates_user_config_and_rewrites_compatibility_file(
     assert read_user_config_file(str(path)) == {
         "LLM": "openai",
         "OPENAI_API_KEY": "provider-key",
+        "AUTH_USERNAME": "admin",
+        "AUTH_PASSWORD_HASH": "legacy-hash",
         "AUTH_SECRET_KEY": "jwt-secret",
     }

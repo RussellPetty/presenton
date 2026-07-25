@@ -151,10 +151,11 @@ export default function AuthGate() {
       return;
     }
 
-    if (password.length < 8) {
+    const minimumPasswordLength = isSetupMode ? 8 : 6;
+    if (password.length < minimumPasswordLength) {
       notify.warning(
         "Password too short",
-        "Your password must be at least 8 characters."
+        `Your password must be at least ${minimumPasswordLength} characters.`
       );
       return;
     }

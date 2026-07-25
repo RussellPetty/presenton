@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.auth.schemas import InternalUserCreate
 from models.sql.user import User
 from services.database import get_async_session
-from utils.simple_auth import (
+from api.v1.auth.config import (
     SESSION_COOKIE_NAME,
     SESSION_TTL_SECONDS,
     get_or_create_auth_secret,

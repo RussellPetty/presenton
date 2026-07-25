@@ -790,6 +790,7 @@ def test_font_face_css_for_declared_fonts_uses_actual_font_metadata(
     monkeypatch,
     tmp_path,
 ):
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
     font_path = tmp_path / "Formula-Bold.otf"
     font_path.write_bytes(b"font")
     font_url = font_path.resolve().as_uri()

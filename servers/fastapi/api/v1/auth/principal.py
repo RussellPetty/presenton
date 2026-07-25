@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.auth.users import UsernameUserDatabase, UserManager, get_jwt_strategy
 from models.sql.access_token import AccessToken
 from models.sql.user import User
-from utils.simple_auth import SESSION_COOKIE_NAME
+from api.v1.auth.config import SESSION_COOKIE_NAME
 
 
 @dataclass(frozen=True)

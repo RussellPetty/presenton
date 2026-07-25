@@ -4,6 +4,7 @@ import json
 import logging
 import mimetypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 from json import JSONDecodeError
 from time import perf_counter
 from typing import Any, Callable
@@ -232,6 +233,7 @@ def generate_template(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
+                copy_context().run,
                 generate_slide_layout,
                 layout,
                 index,

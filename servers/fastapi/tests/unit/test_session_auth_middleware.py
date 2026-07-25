@@ -8,11 +8,15 @@ def test_only_shared_app_data_asset_prefixes_do_not_require_auth():
     assert middleware._requires_auth("/app_data/fonts/embedded/font.ttf") is False
     assert (
         middleware._requires_auth("/app_data/pptx-to-html/session/fonts/font.ttf")
+        is True
+    )
+    assert (
+        middleware._requires_auth("/app_data/templates/default/thumbnail.png")
         is False
     )
     assert (
         middleware._requires_auth("/app_data/pptx-to-html/session/images/image.png")
-        is False
+        is True
     )
 
 

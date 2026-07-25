@@ -23,6 +23,13 @@ class AuthCredentialsRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class LoginCredentialsRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=128)
+    # The pre-multi-user release allowed six-character passwords. Login keeps
+    # that compatibility while all newly-created passwords require eight.
+    password: str = Field(min_length=6, max_length=128)
+
+
 class AdminCreateUserRequest(AuthCredentialsRequest):
     pass
 

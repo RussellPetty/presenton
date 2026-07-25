@@ -4,6 +4,7 @@ import os
 import random
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 from datetime import datetime
 from functools import partial
 from typing import Annotated, Any, Optional
@@ -501,8 +502,10 @@ async def _generate_slide_layouts_with_task_progress(
     layouts_by_index: dict[int, SlideLayout] = {}
 
     async def generate_one(index: int, executor: ThreadPoolExecutor):
+        context = copy_context()
         generated_layout = await loop.run_in_executor(
             executor,
+            context.run,
             partial(
                 generate_slide_layout,
                 raw_layouts.layouts[index],
@@ -570,11 +573,12 @@ async def _generate_slide_layouts_with_task_progress(
 
 async def _run_template_generation_thread(func: Any, *args: Any) -> Any:
     loop = asyncio.get_running_loop()
+    context = copy_context()
     with ThreadPoolExecutor(
         max_workers=1,
         thread_name_prefix="template-generation",
     ) as executor:
-        return await loop.run_in_executor(executor, partial(func, *args))
+        return await loop.run_in_executor(executor, context.run, partial(func, *args))
 
 
 def _coerce_generated_slide_layouts(generated_layouts: Any) -> SlideLayouts:
@@ -827,12 +831,15 @@ def _generate_indexed_slide_layouts(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                generate_slide_layout,
-                raw_layouts.layouts[index],
-                index,
-                slide_image_urls[index],
-                fonts,
-                max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                copy_context().run,
+                partial(
+                    generate_slide_layout,
+                    raw_layouts.layouts[index],
+                    index,
+                    slide_image_urls[index],
+                    fonts,
+                    max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                ),
             ): index
             for index in indices
         }

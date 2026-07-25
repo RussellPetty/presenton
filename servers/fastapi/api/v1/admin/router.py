@@ -98,6 +98,11 @@ async def create_user(
     session: AsyncSession = Depends(get_async_session),
 ):
     username = body.username.strip()
+    if len(username) < 3:
+        raise HTTPException(
+            status_code=422,
+            detail="Username must be at least 3 characters",
+        )
     exists = await session.scalar(
         select(User.id).where(func.lower(User.username) == username.casefold())
     )
@@ -163,6 +168,8 @@ async def delete_user(
         os.path.join(get_app_data_directory_env(), "images", "users"),
         os.path.join(get_app_data_directory_env(), "exports", "users"),
         os.path.join(get_app_data_directory_env(), "uploads", "users"),
+        os.path.join(get_app_data_directory_env(), "pptx-to-html", "users"),
+        os.path.join(get_app_data_directory_env(), "pptx-to-json", "users"),
         get_temp_directory_env() or "/tmp/presenton",
     )
     for root in roots:

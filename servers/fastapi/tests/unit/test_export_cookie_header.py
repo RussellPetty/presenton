@@ -1,7 +1,7 @@
 from starlette.requests import Request
 
 from api.v1.ppt.endpoints.presentation import _build_export_cookie_header
-from utils.simple_auth import SESSION_COOKIE_NAME
+from api.v1.auth.config import SESSION_COOKIE_NAME
 
 
 def _request(*, headers: dict[str, str]) -> Request:

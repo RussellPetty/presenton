@@ -14,7 +14,6 @@ from utils.user_config_store import read_user_config_file, update_user_config_fi
 logger = logging.getLogger(__name__)
 
 PROVIDER_SETTINGS_ID = 1
-AUTH_SECRET_FIELD = "AUTH_SECRET_KEY"
 CODEX_MANAGED_FIELDS = {
     "CODEX_ACCESS_TOKEN",
     "CODEX_REFRESH_TOKEN",
@@ -67,12 +66,12 @@ def _mirror_to_legacy_file(config: dict[str, Any]) -> None:
         return
 
     def replace_provider_config(existing: dict[str, Any]) -> dict[str, Any]:
-        # The JWT signing key is not a provider setting, but retaining it keeps
-        # active browser sessions valid across upgrades and restarts.
-        auth_secret = existing.get(AUTH_SECRET_FIELD)
         mirrored = dict(config)
-        if auth_secret:
-            mirrored[AUTH_SECRET_FIELD] = auth_secret
+        # Authentication is database-backed now, but the compatibility file is
+        # also the rollback/recovery copy. Never discard its credential fields.
+        for key, value in existing.items():
+            if key.upper().startswith("AUTH_"):
+                mirrored[key] = value
         return mirrored
 
     update_user_config_file(path, replace_provider_config)

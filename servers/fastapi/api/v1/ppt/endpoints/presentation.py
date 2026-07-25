@@ -89,10 +89,7 @@ from utils.process_slides import (
 from utils.icon_weights import DEFAULT_ICON_TYPE, extract_icon_type_from_settings
 from utils.llm_utils import message_content_to_text
 from utils.sse import safe_sse_stream
-from utils.simple_auth import (
-    SESSION_COOKIE_NAME,
-    get_session_token_from_request,
-)
+from api.v1.auth.config import SESSION_COOKIE_NAME
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
 from api.v1.auth.context import get_current_owner_id
 from models.presentation_layout import PresentationLayoutModel, SlideLayoutModel
@@ -1218,7 +1215,7 @@ def _build_export_cookie_header(request: Request) -> Optional[str]:
     if isinstance(internal_session_token, str) and internal_session_token:
         return f"{SESSION_COOKIE_NAME}={internal_session_token}"
 
-    session_token = get_session_token_from_request(request)
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
     if session_token:
         return f"{SESSION_COOKIE_NAME}={session_token}"
 

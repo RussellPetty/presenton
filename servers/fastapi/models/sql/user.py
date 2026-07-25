@@ -24,6 +24,9 @@ class User(UserBase):
     username: Mapped[str] = mapped_column(
         String(128), unique=True, index=True, nullable=False
     )
+    admin_slot: Mapped[Optional[str]] = mapped_column(
+        String(32), unique=True, nullable=True
+    )
     hashed_password: Mapped[str] = mapped_column(String(1024), nullable=False)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
