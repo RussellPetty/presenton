@@ -587,8 +587,10 @@ Relevant source:
 ### Next.js protection
 
 Server layouts call `requireAppSession()` for the application and
-`requireAdminSession()` for admin/settings pages. Next.js API routes separately
-call the FastAPI auth-status endpoint with the incoming cookie.
+`requireAdminSession()` for admin-only pages. The settings page renders the full
+provider/admin interface for administrators and an account-only username/sign-out
+view for standard users. Next.js API routes separately call the FastAPI
+auth-status endpoint with the incoming cookie.
 
 The proxy forwards `/api/v1` and `/api/v2` to FastAPI and rejects API keys on
 local Next.js routes:
@@ -1120,8 +1122,9 @@ There is no soft delete, delayed cleanup, archive, or audit log.
 ### 9. Global provider credentials
 
 Provider settings are shared by the instance. Standard users can consume the
-configured providers through application workflows even though only the admin
-can view/change settings.
+configured providers through application workflows, but their settings page
+only shows their username and sign-out action. Only the admin can view or change
+provider settings.
 
 ### 10. Standalone FastAPI CORS fallback
 

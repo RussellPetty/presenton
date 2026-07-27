@@ -328,8 +328,16 @@ export default function AuthGate() {
               id="username"
               autoComplete="username"
               value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              onChange={(event) =>
+                setUsername(event.target.value.replace(/\s/g, ""))
+              }
               placeholder="your-admin-user"
+              minLength={3}
+              maxLength={128}
+              pattern="\S+"
+              title="Username cannot contain spaces"
+              required
+              spellCheck={false}
               className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
               disabled={isSubmitting}
             />
@@ -346,6 +354,9 @@ export default function AuthGate() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="At least 6 characters"
+              minLength={isSetupMode ? 8 : 6}
+              maxLength={128}
+              required
               className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
               disabled={isSubmitting}
             />
@@ -363,6 +374,9 @@ export default function AuthGate() {
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Re-enter your password"
+                minLength={8}
+                maxLength={128}
+                required
                 className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
                 disabled={isSubmitting}
               />

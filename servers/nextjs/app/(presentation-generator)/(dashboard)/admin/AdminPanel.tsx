@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { notify } from "@/components/ui/sonner";
+import { formatFastApiDetail } from "@/utils/authErrors";
 
 type AdminUser = {
   id: string;
@@ -50,7 +51,9 @@ type AdminPanelProps = {
 
 async function errorDetail(response: Response): Promise<string> {
   const payload = await response.json().catch(() => null);
-  return payload?.detail || `Request failed (${response.status})`;
+  return payload?.detail === undefined
+    ? `Request failed (${response.status})`
+    : formatFastApiDetail(payload.detail);
 }
 
 function maskedKey(token: string) {
@@ -292,9 +295,14 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
                   placeholder="Username"
                   minLength={3}
                   maxLength={128}
+                  pattern="\S+"
+                  title="Username cannot contain spaces"
                   value={username}
-                  onChange={(event) => setUsername(event.target.value)}
+                  onChange={(event) =>
+                    setUsername(event.target.value.replace(/\s/g, ""))
+                  }
                   required
+                  spellCheck={false}
                 />
                 <input
                   aria-label="Password"
