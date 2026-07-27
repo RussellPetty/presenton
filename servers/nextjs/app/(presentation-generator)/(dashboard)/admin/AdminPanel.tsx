@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { notify } from "@/components/ui/sonner";
+import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { formatFastApiDetail } from "@/utils/authErrors";
+import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 
 type AdminUser = {
   id: string;
@@ -76,50 +78,132 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
   const [busy, setBusy] = useState<string | null>(null);
   const [dialog, setDialog] = useState<AdminDialog>(null);
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (
+    trigger: "initial" | "manual" | "user_created" | "user_deleted" = "initial"
+  ) => {
     setBusy("users");
-    const response = await fetch("/api/v1/admin/users", {
-      cache: "no-store",
-      credentials: "include",
-    });
-    if (response.ok) setUsers(await response.json());
-    else notify.error("Could not load users", await errorDetail(response));
-    setBusy(null);
+    try {
+      const response = await fetch("/api/v1/admin/users", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const loadedUsers = (await response.json()) as AdminUser[];
+        setUsers(loadedUsers);
+        trackEvent(MixpanelEvent.Auth_Admin_User_List_Loaded, {
+          trigger,
+          user_count: loadedUsers.length,
+        });
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_User_List_Failed, {
+          trigger,
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not load users", detail);
+      }
+    } catch (loadError) {
+      trackEvent(MixpanelEvent.Auth_Admin_User_List_Failed, {
+        trigger,
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          loadError,
+          "Could not load users"
+        ),
+      });
+      notify.error("Could not load users", "Please try again.");
+    } finally {
+      setBusy(null);
+    }
   }, []);
 
   const loadKeys = useCallback(async () => {
     setBusy("keys");
-    const response = await fetch("/api/v1/auth/token/list", {
-      cache: "no-store",
-      credentials: "include",
-    });
-    if (response.ok) setKeys(await response.json());
-    else notify.error("Could not load API keys", await errorDetail(response));
-    setBusy(null);
+    try {
+      const response = await fetch("/api/v1/auth/token/list", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const loadedKeys = (await response.json()) as ApiKey[];
+        setKeys(loadedKeys);
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_List_Loaded, {
+          api_key_count: loadedKeys.length,
+        });
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_List_Failed, {
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not load API keys", detail);
+      }
+    } catch (loadError) {
+      trackEvent(MixpanelEvent.Auth_Admin_API_Key_List_Failed, {
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          loadError,
+          "Could not load API keys"
+        ),
+      });
+      notify.error("Could not load API keys", "Please try again.");
+    } finally {
+      setBusy(null);
+    }
   }, []);
 
   useEffect(() => {
+    trackEvent(MixpanelEvent.Auth_Admin_Viewed, {
+      embedded,
+    });
     void Promise.all([loadUsers(), loadKeys()]);
-  }, [loadKeys, loadUsers]);
+  }, [embedded, loadKeys, loadUsers]);
 
   const addUser = async (event: FormEvent) => {
     event.preventDefault();
+    const cleanedUsername = username.trim();
     setBusy("add");
-    const response = await fetch("/api/v1/admin/users", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: username.trim(), password }),
+    trackEvent(MixpanelEvent.Auth_Admin_User_Create_Started, {
+      username_length: cleanedUsername.length,
+      user_count_before: users.length,
     });
-    if (response.ok) {
-      notify.success("User created", `${username.trim()} can now sign in.`);
-      setUsername("");
-      setPassword("");
-      await loadUsers();
-    } else {
-      notify.error("Could not create user", await errorDetail(response));
+    try {
+      const response = await fetch("/api/v1/admin/users", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanedUsername, password }),
+      });
+      if (response.ok) {
+        trackEvent(MixpanelEvent.Auth_Admin_User_Create_Completed, {
+          username_length: cleanedUsername.length,
+          user_count_after: users.length + 1,
+        });
+        notify.success("User created", `${cleanedUsername} can now sign in.`);
+        setUsername("");
+        setPassword("");
+        await loadUsers("user_created");
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_User_Create_Failed, {
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not create user", detail);
+      }
+    } catch (createError) {
+      trackEvent(MixpanelEvent.Auth_Admin_User_Create_Failed, {
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          createError,
+          "Could not create user"
+        ),
+      });
+      notify.error("Could not create user", "Please try again.");
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   const openResetPassword = (user: AdminUser) => {
@@ -133,20 +217,46 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
 
     const { user } = dialog;
     setBusy(`reset:${user.id}`);
-    const response = await fetch(`/api/v1/admin/users/${user.id}/password`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: resetPasswordValue }),
+    trackEvent(MixpanelEvent.Auth_Admin_User_Password_Reset_Started, {
+      target_role: user.role,
     });
-    if (response.ok) {
-      notify.success("Password reset", "Existing sessions were signed out.");
-      setDialog(null);
-      setResetPasswordValue("");
-    } else {
-      notify.error("Could not reset password", await errorDetail(response));
+    try {
+      const response = await fetch(`/api/v1/admin/users/${user.id}/password`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPasswordValue }),
+      });
+      if (response.ok) {
+        trackEvent(MixpanelEvent.Auth_Admin_User_Password_Reset_Completed, {
+          target_role: user.role,
+          sessions_invalidated: true,
+        });
+        notify.success("Password reset", "Existing sessions were signed out.");
+        setDialog(null);
+        setResetPasswordValue("");
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_User_Password_Reset_Failed, {
+          target_role: user.role,
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not reset password", detail);
+      }
+    } catch (resetError) {
+      trackEvent(MixpanelEvent.Auth_Admin_User_Password_Reset_Failed, {
+        target_role: user.role,
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          resetError,
+          "Could not reset password"
+        ),
+      });
+      notify.error("Could not reset password", "Please try again.");
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   const deleteUser = async () => {
@@ -154,39 +264,89 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
 
     const { user } = dialog;
     setBusy(`delete:${user.id}`);
-    const response = await fetch(`/api/v1/admin/users/${user.id}`, {
-      method: "DELETE",
-      credentials: "include",
+    trackEvent(MixpanelEvent.Auth_Admin_User_Delete_Started, {
+      target_role: user.role,
+      user_count_before: users.length,
     });
-    if (response.ok) {
-      notify.success("User deleted", `${user.username}'s workspace was removed.`);
-      setDialog(null);
-      await loadUsers();
-    } else {
-      notify.error("Could not delete user", await errorDetail(response));
+    try {
+      const response = await fetch(`/api/v1/admin/users/${user.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (response.ok) {
+        trackEvent(MixpanelEvent.Auth_Admin_User_Delete_Completed, {
+          target_role: user.role,
+          user_count_after: Math.max(0, users.length - 1),
+        });
+        notify.success("User deleted", `${user.username}'s workspace was removed.`);
+        setDialog(null);
+        await loadUsers("user_deleted");
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_User_Delete_Failed, {
+          target_role: user.role,
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not delete user", detail);
+      }
+    } catch (deleteError) {
+      trackEvent(MixpanelEvent.Auth_Admin_User_Delete_Failed, {
+        target_role: user.role,
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          deleteError,
+          "Could not delete user"
+        ),
+      });
+      notify.error("Could not delete user", "Please try again.");
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   const createKey = async () => {
     setBusy("create-key");
-    const response = await fetch("/api/v1/auth/token/create", {
-      method: "POST",
-      credentials: "include",
+    trackEvent(MixpanelEvent.Auth_Admin_API_Key_Create_Started, {
+      api_key_count_before: keys.length,
     });
-    if (response.ok) {
-      const key = (await response.json()) as ApiKey;
-      setKeys((current) => [key, ...current]);
-      try {
-        await navigator.clipboard.writeText(key.token);
-        notify.success("API key created", "The new key was copied to your clipboard.");
-      } catch {
-        notify.success("API key created", "Use the copy button to copy the new key.");
+    try {
+      const response = await fetch("/api/v1/auth/token/create", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const key = (await response.json()) as ApiKey;
+        setKeys((current) => [key, ...current]);
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_Create_Completed, {
+          api_key_count_after: keys.length + 1,
+        });
+        try {
+          await navigator.clipboard.writeText(key.token);
+          notify.success("API key created", "The new key was copied to your clipboard.");
+        } catch {
+          notify.success("API key created", "Use the copy button to copy the new key.");
+        }
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_Create_Failed, {
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not create API key", detail);
       }
-    } else {
-      notify.error("Could not create API key", await errorDetail(response));
+    } catch (createError) {
+      trackEvent(MixpanelEvent.Auth_Admin_API_Key_Create_Failed, {
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          createError,
+          "Could not create API key"
+        ),
+      });
+      notify.error("Could not create API key", "Please try again.");
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   const revokeKey = async () => {
@@ -194,25 +354,48 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
 
     const { key } = dialog;
     setBusy(`revoke:${key.token}`);
-    const response = await fetch("/api/v1/auth/token/revoke", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: key.token }),
+    trackEvent(MixpanelEvent.Auth_Admin_API_Key_Revoke_Started, {
+      api_key_count_before: keys.length,
     });
-    if (response.ok) {
-      setKeys((current) => current.filter((item) => item.token !== key.token));
-      setVisibleKeys((current) => {
-        const next = new Set(current);
-        next.delete(key.token);
-        return next;
+    try {
+      const response = await fetch("/api/v1/auth/token/revoke", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: key.token }),
       });
-      setDialog(null);
-      notify.success("API key revoked");
-    } else {
-      notify.error("Could not revoke API key", await errorDetail(response));
+      if (response.ok) {
+        setKeys((current) => current.filter((item) => item.token !== key.token));
+        setVisibleKeys((current) => {
+          const next = new Set(current);
+          next.delete(key.token);
+          return next;
+        });
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_Revoke_Completed, {
+          api_key_count_after: Math.max(0, keys.length - 1),
+        });
+        setDialog(null);
+        notify.success("API key revoked");
+      } else {
+        const detail = await errorDetail(response);
+        trackEvent(MixpanelEvent.Auth_Admin_API_Key_Revoke_Failed, {
+          status_code: response.status,
+          error_message: sanitizeAnalyticsError(detail),
+        });
+        notify.error("Could not revoke API key", detail);
+      }
+    } catch (revokeError) {
+      trackEvent(MixpanelEvent.Auth_Admin_API_Key_Revoke_Failed, {
+        status_code: null,
+        error_message: sanitizeAnalyticsError(
+          revokeError,
+          "Could not revoke API key"
+        ),
+      });
+      notify.error("Could not revoke API key", "Please try again.");
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   const toggleKeyVisibility = (token: string) => {
@@ -347,7 +530,7 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
                   type="button"
                   aria-label="Refresh accounts"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-[#EDEEEF] text-[#667085] transition hover:bg-[#F9FAFB] hover:text-[#5146E5]"
-                  onClick={() => void loadUsers()}
+                  onClick={() => void loadUsers("manual")}
                 >
                   <RefreshCw className={`h-4 w-4 ${busy === "users" ? "animate-spin" : ""}`} />
                 </button>

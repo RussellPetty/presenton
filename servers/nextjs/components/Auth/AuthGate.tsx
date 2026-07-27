@@ -24,6 +24,7 @@ const initialStatus: AuthStatus = {
   configured: false,
   authenticated: false,
   username: null,
+  role: null,
 };
 
 export default function AuthGate() {
@@ -56,6 +57,7 @@ export default function AuthGate() {
         configured: true,
         authenticated: true,
         username: "electron",
+        role: "admin",
       });
       setIsLoading(false);
       return;
@@ -85,6 +87,9 @@ export default function AuthGate() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("reason") === "unauthorized") {
       if (status.configured && !status.authenticated) {
+        trackEvent(MixpanelEvent.Auth_Unauthorized_Redirect, {
+          configured: true,
+        });
         notify.error("Unauthorized", "Sign in to view this page.", {
           id: "auth-unauthorized-redirect",
           duration: 5000,
@@ -113,11 +118,13 @@ export default function AuthGate() {
         configured: Boolean(data.configured),
         authenticated: Boolean(data.authenticated),
         auth_disabled: false,
+        role: data.role ?? null,
       });
       setStatus({
         configured: Boolean(data.configured),
         authenticated: Boolean(data.authenticated),
         username: data.username ?? null,
+        role: data.role ?? null,
       });
     } catch (fetchError) {
       console.error(fetchError);
@@ -139,11 +146,36 @@ export default function AuthGate() {
     }
   };
 
+  useEffect(() => {
+    if (
+      isLoading ||
+      isRedirecting ||
+      status.authenticated ||
+      !hasMetSplashDuration
+    ) {
+      return;
+    }
+
+    trackEvent(MixpanelEvent.Auth_Gate_Viewed, {
+      flow: status.configured ? "sign_in" : "setup",
+    });
+  }, [
+    hasMetSplashDuration,
+    isLoading,
+    isRedirecting,
+    status.authenticated,
+    status.configured,
+  ]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const cleanedUsername = username.trim();
     if (cleanedUsername.length < 3) {
+      trackEvent(MixpanelEvent.Auth_Validation_Failed, {
+        flow: isSetupMode ? "setup" : "sign_in",
+        reason: "username_too_short",
+      });
       notify.warning(
         "Username too short",
         "Your username must be at least 3 characters."
@@ -153,6 +185,10 @@ export default function AuthGate() {
 
     const minimumPasswordLength = isSetupMode ? 8 : 6;
     if (password.length < minimumPasswordLength) {
+      trackEvent(MixpanelEvent.Auth_Validation_Failed, {
+        flow: isSetupMode ? "setup" : "sign_in",
+        reason: "password_too_short",
+      });
       notify.warning(
         "Password too short",
         `Your password must be at least ${minimumPasswordLength} characters.`
@@ -161,6 +197,10 @@ export default function AuthGate() {
     }
 
     if (isSetupMode && password !== confirmPassword) {
+      trackEvent(MixpanelEvent.Auth_Validation_Failed, {
+        flow: "setup",
+        reason: "passwords_do_not_match",
+      });
       notify.warning(
         "Passwords do not match",
         "Make sure both password fields match before continuing."
@@ -233,6 +273,7 @@ export default function AuthGate() {
           configured: true,
           authenticated: false,
           username: (payload as AuthStatus).username ?? cleanedUsername,
+          role: (payload as AuthStatus).role ?? "admin",
         });
         setPassword("");
         setConfirmPassword("");
@@ -246,9 +287,11 @@ export default function AuthGate() {
         configured: Boolean((payload as AuthStatus).configured),
         authenticated: Boolean((payload as AuthStatus).authenticated),
         username: (payload as AuthStatus).username ?? cleanedUsername,
+        role: (payload as AuthStatus).role ?? null,
       });
       trackEvent(MixpanelEvent.Auth_SignIn_Completed, {
         username_length: cleanedUsername.length,
+        role: (payload as AuthStatus).role ?? null,
       });
       setPassword("");
       setConfirmPassword("");
