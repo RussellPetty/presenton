@@ -28,6 +28,7 @@ type ElementToolbarProps = {
   templateFonts?: TemplateFontOption[];
   textSelectionRange?: TextSelectionRange | null;
   onChange: (index: number, element: SlideElement, path?: string) => void;
+  onImageCropModeChange?: (active: boolean) => void;
   onEditImage: (index: number, path?: string) => void;
   onEditText?: (index: number, path?: string) => void;
 };
@@ -83,13 +84,22 @@ const TOOLBAR_RENDERERS: Partial<
         onChange={(index, element) => onChange(index, element, path)}
       />
     ) : null,
-  image: ({ anchorBox, element, index, onChange, path, scale }) =>
+  image: ({
+    anchorBox,
+    element,
+    index,
+    onChange,
+    onImageCropModeChange,
+    path,
+    scale,
+  }) =>
     element.type === "image" ? (
       <ImageToolbar
         element={element}
         index={index}
         anchorBox={anchorBox}
         scale={scale}
+        onCropModeChange={onImageCropModeChange}
         onChange={(index, element) => onChange(index, element, path)}
       />
     ) : null,

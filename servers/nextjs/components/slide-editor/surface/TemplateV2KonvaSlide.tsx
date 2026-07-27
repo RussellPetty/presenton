@@ -333,6 +333,7 @@ function TemplateV2KonvaSlideComponent({
   const [chartEditorSelection, setChartEditorSelection] =
     useState<ElementSelection | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageCropActive, setImageCropActive] = useState(false);
   const [, setHistoryAvailability] = useState({
     canUndo: false,
     canRedo: false,
@@ -492,6 +493,9 @@ function TemplateV2KonvaSlideComponent({
   const selectedIsVectorElement =
     selection?.kind === "element" &&
     isVectorType(readString(selectedElement?.type));
+  const selectedIsImageElement =
+    selection?.kind === "element" &&
+    readString(selectedElement?.type) === "image";
   const selectedCanEditVectorPoints =
     selection?.kind === "element" &&
     canEditVectorPointsForSelection(uiDraft, selection);
@@ -500,7 +504,8 @@ function TemplateV2KonvaSlideComponent({
     selection?.kind === "element" &&
     selectedCanEditVectorPoints &&
     vectorEditingKey === keyForSelection(selection);
-  const shouldHideParentComponentBoundary = inlineEdit || selectedIsVectorElement;
+  const shouldHideParentComponentBoundary =
+    inlineEdit || selectedIsVectorElement || imageCropActive;
   const transformerParentComponentKey = shouldHideParentComponentBoundary
     ? null
     : selectedParentComponentKey;
@@ -1840,7 +1845,10 @@ function TemplateV2KonvaSlideComponent({
         updateElement(target, (element) => ({
           ...element,
           data: imageUrl,
-          name: element.name ?? file.name,
+          name: file.name,
+          focus_x: 50,
+          focus_y: 50,
+          crop_scale: null,
         }));
         trackEvent(MixpanelEvent.Editor_Image_Replaced, {
           ...editorAnalyticsProps({
@@ -2169,11 +2177,13 @@ function TemplateV2KonvaSlideComponent({
               selectionKind={selection?.kind ?? null}
               horizontalResizeOnly={horizontalResizeOnly}
               fullElementTransform={
-                selectedIsVectorElement && selectedCanEditVectorPoints
+                selectedIsImageElement ||
+                (selectedIsVectorElement && selectedCanEditVectorPoints)
               }
               suppressSelectedOutline={Boolean(
                 selectedTableCell ||
                   inlineEdit ||
+                  imageCropActive ||
                   readString(selectedElement?.type) === "chart" ||
                   selectedIsVectorPointEditing,
               )}
@@ -2208,6 +2218,7 @@ function TemplateV2KonvaSlideComponent({
         onDeleteSelection={deleteSelection}
         onDuplicateSelection={duplicateSelection}
         onEditorChange={applyEditorToolbarTargetElementChange}
+        onImageCropModeChange={setImageCropActive}
         onLayoutChange={applyLayoutElementChange}
         onLayerAction={reorderSelectedComponentLayer}
         onTableChange={applyTableToolbarElementChange}
@@ -2242,6 +2253,7 @@ function TemplateV2KonvaSlideComponent({
               : null
           }
           onChange={(_index, element) => applyToolbarElementChange(element)}
+          onImageCropModeChange={setImageCropActive}
           onEditImage={() => openImageUpload(selection)}
           onEditText={() => openInlineEditor(selection)}
         />
