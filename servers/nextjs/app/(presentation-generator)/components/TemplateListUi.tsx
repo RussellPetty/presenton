@@ -18,25 +18,40 @@ import { TemplateTab } from "../hooks/useTemplateSummaries";
 export function TemplateThumbnailPreview({
   thumbnail,
   templateName,
+  selectionPage = false,
 }: {
   thumbnail?: string | null;
   templateName: string;
+  selectionPage?: boolean;
 }) {
   const resolvedThumbnail = thumbnail ? resolveBackendAssetUrl(thumbnail) : "";
 
   if (!resolvedThumbnail) {
     return (
-      <div className="relative z-10 flex h-full items-center justify-center rounded-xl border border-[#EDEEEF] bg-white/80">
+      <div
+        className={cn(
+          "relative z-10 flex w-full items-center justify-center rounded-[12px] border border-[#EDEEEF] bg-white/80",
+          "h-full"
+        )}
+      >
         <div className="h-10 w-16 rounded-md border border-dashed border-[#C9CDD8] bg-[#F7F8FB]" />
       </div>
     );
   }
 
   return (
-    <div className="relative z-10 flex h-full items-center justify-center">
+    <div
+      className={cn(
+        "relative z-10 flex w-full items-center justify-center",
+        "h-full"
+      )}
+    >
       <div
         aria-label={`${templateName} thumbnail`}
-        className="h-full w-full rounded-xl border border-[#EDEEEF] bg-white bg-cover bg-center shadow-sm"
+        className={cn(
+          "h-full w-full rounded-[12px] border border-[#EDEEEF] bg-white bg-center bg-no-repeat",
+          selectionPage ? "bg-contain" : "bg-cover shadow-sm"
+        )}
         role="img"
         style={{ backgroundImage: `url(${JSON.stringify(resolvedThumbnail)})` }}
       />
@@ -49,11 +64,13 @@ export const TemplateListCard = memo(function TemplateListCard({
   onClick,
   isSelected = false,
   showArrow = false,
+  selectionPage = false,
 }: {
   template: TemplateListItem;
   onClick: () => void;
   isSelected?: boolean;
   showArrow?: boolean;
+  selectionPage?: boolean;
 }) {
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -90,34 +107,59 @@ export const TemplateListCard = memo(function TemplateListCard({
       aria-pressed={isSelected}
       aria-label={`${showArrow ? "Open" : "Select"} ${template.name} template`}
       className={cn(
-        "relative transition-all duration-200 group overflow-hidden rounded-[22px] bg-white border outline-none",
+        "group relative overflow-hidden border bg-white shadow-none outline-none transition-all duration-200",
+        selectionPage ? "rounded-[12px]" : "rounded-[22px]",
         "cursor-pointer hover:-translate-y-1 hover:border-[#7A5AF8] hover:ring-2 hover:ring-[#7A5AF8]/20 hover:shadow-[0_18px_40px_rgba(34,31,54,0.12)] focus-visible:-translate-y-1 focus-visible:border-[#7A5AF8] focus-visible:ring-2 focus-visible:ring-[#7A5AF8]/30 focus-visible:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
         isSelected
-          ? " border-[#7A5AF8] ring-2 ring-[#7A5AF8]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]"
-          : " border-[#E8E9EC]"
+          ? cn(
+              "ring-2 ring-[#7A5AF8]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]",
+              selectionPage ? "!border-0" : "border-[#7A5AF8]"
+            )
+          : selectionPage
+            ? "!border-0 !shadow-[inset_0_0_0_1px_#EDEEEF]"
+            : "border-[#E8E9EC]"
       )}
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="pointer-events-none absolute inset-0 z-30 rounded-[22px] bg-[#7A5AF8]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 z-30 bg-[#7A5AF8]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100",
+          selectionPage ? "rounded-[12px]" : "rounded-[22px]"
+        )}
+      />
       {isSelected && (
         <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#7A5AF8] text-white shadow-sm">
           <CheckCircle2 className="h-4 w-4" />
         </span>
       )}
-      <TemplatePreviewStage>
-        <LayoutsBadge count={template.layout_count ?? 0} />
+      <TemplatePreviewStage selectionPage={selectionPage}>
+        <LayoutsBadge
+          count={template.layout_count ?? 0}
+          selectionPage={selectionPage}
+        />
         <TemplateThumbnailPreview
           thumbnail={template.thumbnail}
           templateName={template.name}
+          selectionPage={selectionPage}
         />
       </TemplatePreviewStage>
-      <div className="flex items-center justify-between px-6 py-5 bg-white border-t border-[#EDEEEF] relative z-40">
+      <div
+        className={cn(
+          "relative z-40 flex items-center justify-between gap-4 border-t border-[#EDEEEF] bg-white",
+          selectionPage ? "h-20 px-5 py-2.5" : "px-6 py-5"
+        )}
+      >
         <div className="min-w-0 flex-1">
           <h3
             className={cn(
-              "font-bold text-gray-900 capitalize font-syne",
-              showArrow ? "text-base" : "text-sm"
+              "font-syne capitalize",
+              selectionPage
+                ? "text-sm font-semibold tracking-[0.14px] text-[#191919]"
+                : cn(
+                    "font-bold text-gray-900",
+                    showArrow ? "text-base" : "text-sm"
+                  )
             )}
           >
             {template.name}
@@ -125,8 +167,13 @@ export const TemplateListCard = memo(function TemplateListCard({
           {template.description && (
             <p
               className={cn(
-                "text-gray-600 line-clamp-2 font-syne",
-                showArrow ? "mt-1 text-sm text-gray-500" : "text-xs"
+                "line-clamp-2 font-syne",
+                selectionPage
+                  ? "mt-1 text-[11px] font-semibold leading-3 tracking-[0.11px] text-[#808080]"
+                  : cn(
+                      "text-gray-600",
+                      showArrow ? "mt-1 text-sm text-gray-500" : "text-xs"
+                    )
               )}
             >
               {template.description}
@@ -141,7 +188,16 @@ export const TemplateListCard = memo(function TemplateListCard({
           )}
         </div>
         {showArrow && (
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-purple-600" />
+          <ArrowUpRight
+            aria-hidden="true"
+            strokeWidth={selectionPage ? 1.67 : 2}
+            className={cn(
+              "shrink-0",
+              selectionPage
+                ? "h-5 w-5 text-[#808080]"
+                : "h-4 w-4 text-gray-400 transition-colors group-hover:text-purple-600"
+            )}
+          />
         )}
       </div>
     </Card>
@@ -230,13 +286,22 @@ export const ProcessingTemplateListCard = memo(
 export function TemplateListSection({
   label,
   children,
+  selectionPage = false,
 }: {
   label: string;
   children: React.ReactNode;
+  selectionPage?: boolean;
 }) {
   return (
-    <section className="space-y-4">
-      <h3 className="font-syne text-sm font-semibold text-[#3A3A3A]">{label}</h3>
+    <section className={selectionPage ? "space-y-3" : "space-y-4"}>
+      <h3
+        className={cn(
+          "font-syne text-sm text-[#3A3A3A]",
+          selectionPage ? "text-base font-medium" : "font-semibold"
+        )}
+      >
+        {label}
+      </h3>
       {children}
     </section>
   );
