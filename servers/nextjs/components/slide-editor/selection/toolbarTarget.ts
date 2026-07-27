@@ -245,7 +245,8 @@ function isTemplateV2EditorToolbarElement(
   return (
     element?.type === "text" ||
     element?.type === "text-list" ||
-    element?.type === "vector"
+    element?.type === "vector" ||
+    (element?.type === "image" && element.is_icon === true)
   );
 }
 
