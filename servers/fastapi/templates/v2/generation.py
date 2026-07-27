@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import mimetypes
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextvars import copy_context
 from json import JSONDecodeError
@@ -159,6 +160,37 @@ Convert the provided raw slide elements to components.
 - Must use `previewSlide` tool at least once to preview generated slide layout before returning final JSON.
 - If no issues are identified in previewed slide image, return final json directly.
 """
+
+GENERATE_PROMPTED_TEMPLATE_LAYOUT_SYSTEM_PROMPT = """
+Create exactly one new editable Template V2 slide layout for the user's request.
+The result is an in-memory draft; do not modify the template or a presentation.
+
+Use the supplied reference layouts and reusable components to match the template's
+visual language: typography, colors, spacing, geometry, decorative assets, and
+component patterns.
+
+Rules:
+- Return one complete SlideLayout JSON object and no prose.
+- Create a unique structural snake_case layout id and a 10-300 character description.
+- Compose within a 1280x720 canvas. Component positions are canvas-relative and
+  element positions are local to their component.
+- Prefer adapting supplied layouts and reusable components over inventing structure.
+- Reuse decorative asset URLs only when they occur in the supplied template JSON.
+  Never invent an asset URL.
+- Mark replaceable semantic text, lists, images, icons, charts, tables, and metrics
+  as decorative=false. Keep backgrounds, logos, frames, dividers, and ornaments fixed.
+- Use /static/images/replaceable_template_image.png for new replaceable images and
+  /static/icons/placeholder.svg for new replaceable icons.
+- Include realistic neutral preview content, valid schema limits, unique component
+  ids, and enough room for the maximum declared content.
+- Use type=vector for scratch-built shapes, lines, dividers, connectors, and arrows.
+- Do not copy topic-specific wording from a reference layout.
+""".strip()
+
+PROMPTED_LAYOUT_MAX_REFERENCE_LAYOUTS = 4
+PROMPTED_LAYOUT_MAX_REUSABLE_COMPONENTS = 8
+PROMPTED_LAYOUT_MAX_CONTEXT_CHARS = 160_000
+PROMPTED_LAYOUT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]{2,79}$")
 
 CLUSTER_SIMILAR_COMPONENTS_SYSTEM_PROMPT = """
 Analyze components `id` and `description` and create clusters of similar components.
@@ -753,6 +785,184 @@ def generate_slide_layout(
         max_tokens=max_tokens,
     )
     return _replace_content_image_urls(layout)
+
+
+def generate_prompted_slide_layout(
+    prompt: str,
+    template_layouts: SlideLayouts,
+    merged_components: MergedComponents | None = None,
+    template_name: str | None = None,
+    template_description: str | None = None,
+    fonts: dict[str, str] | None = None,
+) -> SlideLayout:
+    normalized_prompt = prompt.strip()
+    if not normalized_prompt:
+        raise ValueError("Prompt is required")
+
+    context = _prompted_layout_context(
+        prompt=normalized_prompt,
+        template_layouts=template_layouts,
+        merged_components=merged_components,
+        template_name=template_name,
+        template_description=template_description,
+        fonts=fonts,
+    )
+    existing_layout_ids = {layout.id for layout in template_layouts.layouts}
+
+    def validate_generated_layout(layout: SlideLayout) -> None:
+        if not PROMPTED_LAYOUT_ID_PATTERN.fullmatch(layout.id):
+            raise ValueError(
+                "layout.id must be snake_case and begin with a lowercase letter"
+            )
+        if layout.id in existing_layout_ids:
+            raise ValueError(
+                f"layout.id '{layout.id}' already exists; create a unique layout id"
+            )
+        if not layout.components:
+            raise ValueError("layout.components must contain at least one component")
+        if not _contains_editable_template_content(
+            layout.model_dump(mode="json", exclude_none=True)
+        ):
+            raise ValueError(
+                "layout must contain at least one semantic element with decorative=false"
+            )
+
+    client = get_client(config=get_llm_config())
+    model = get_model()
+    generated = _generate_with_validation_retries(
+        client=client,
+        model=model,
+        messages=[
+            SystemMessage(content=GENERATE_PROMPTED_TEMPLATE_LAYOUT_SYSTEM_PROMPT),
+            UserMessage(
+                content=(
+                    f"User request:\n{normalized_prompt}\n\n"
+                    "Template context:\n"
+                    f"{json.dumps(context, ensure_ascii=False)}"
+                )
+            ),
+        ],
+        label="prompted template layout",
+        output_model=SlideLayout,
+        response_name="PromptedTemplateLayoutResponse",
+        validation_retries=DEFAULT_VALIDATION_RETRIES,
+        extra_validator=validate_generated_layout,
+        max_tokens=16_000,
+    )
+    return _replace_content_image_urls(SlideLayout.model_validate(generated))
+
+
+def _prompted_layout_context(
+    *,
+    prompt: str,
+    template_layouts: SlideLayouts,
+    merged_components: MergedComponents | None,
+    template_name: str | None,
+    template_description: str | None,
+    fonts: dict[str, str] | None,
+) -> dict[str, Any]:
+    prompt_terms = _search_terms(prompt)
+    ranked_layouts = sorted(
+        enumerate(template_layouts.layouts),
+        key=lambda item: (
+            -_template_context_match_score(
+                prompt_terms,
+                item[1].id,
+                item[1].description,
+                *(
+                    component.description
+                    for component in item[1].components
+                ),
+            ),
+            item[0],
+        ),
+    )
+    selected_layouts = [
+        layout.model_dump(mode="json", exclude_none=True)
+        for _, layout in ranked_layouts[:PROMPTED_LAYOUT_MAX_REFERENCE_LAYOUTS]
+    ]
+
+    ranked_components: list[tuple[int, int, MergedComponent]] = []
+    if merged_components is not None:
+        ranked_components = sorted(
+            (
+                (
+                    -_template_context_match_score(
+                        prompt_terms,
+                        component.id,
+                        component.description,
+                    ),
+                    index,
+                    component,
+                )
+                for index, component in enumerate(merged_components.components)
+            ),
+            key=lambda item: (item[0], item[1]),
+        )
+    selected_components = [
+        component.model_dump(mode="json", exclude_none=True)
+        for _, _, component in ranked_components[
+            :PROMPTED_LAYOUT_MAX_REUSABLE_COMPONENTS
+        ]
+    ]
+
+    context: dict[str, Any] = {
+        "template": {
+            "name": template_name,
+            "description": template_description,
+            "fonts": sorted((fonts or {}).keys()),
+            "existing_layout_ids": [
+                layout.id for layout in template_layouts.layouts
+            ],
+        },
+        "reference_layouts": selected_layouts,
+        "reusable_components": selected_components,
+    }
+
+    while (
+        len(json.dumps(context, ensure_ascii=False))
+        > PROMPTED_LAYOUT_MAX_CONTEXT_CHARS
+    ):
+        if context["reusable_components"]:
+            context["reusable_components"].pop()
+            continue
+        if len(context["reference_layouts"]) > 1:
+            context["reference_layouts"].pop()
+            continue
+        break
+
+    return context
+
+
+def _search_terms(value: str) -> set[str]:
+    return {
+        term
+        for term in re.findall(r"[a-z0-9]+", value.lower())
+        if len(term) > 2
+    }
+
+
+def _template_context_match_score(
+    prompt_terms: set[str],
+    *values: str,
+) -> int:
+    searchable = " ".join(values).lower().replace("_", " ")
+    return sum(1 for term in prompt_terms if term in searchable)
+
+
+def _contains_editable_template_content(value: Any) -> bool:
+    if isinstance(value, dict):
+        if value.get("decorative") is False and isinstance(
+            value.get("type"), str
+        ):
+            return True
+        return any(
+            _contains_editable_template_content(child)
+            for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(_contains_editable_template_content(child) for child in value)
+    return False
 
 
 def _replace_content_image_urls(layout: SlideLayout) -> SlideLayout:

@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
   Pencil,
   Check,
+  Keyboard,
   X,
   AlertTriangle,
 } from "lucide-react";
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { cn } from "@/lib/utils";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 
 const MAX_EXPORT_TITLE_LENGTH = 40;
 
@@ -94,6 +96,7 @@ const PresentationHeader = ({
   currentSlide?: number;
 }) => {
   const [open, setOpen] = useState(false);
+  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -533,6 +536,25 @@ const PresentationHeader = ({
             </ToolTip>
           </div>
 
+          <ToolTip content="Keyboard shortcuts (?)">
+            <button
+              type="button"
+              aria-label="Keyboard shortcuts"
+              aria-haspopup="dialog"
+              aria-expanded={shortcutsDialogOpen}
+              aria-keyshortcuts="?"
+              data-testid="keyboard-shortcuts-btn"
+              className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-[#EDECEC] bg-[#F6F6F9] text-[#101323] transition-colors hover:border-[#D8D3FE] hover:bg-[#F0EDFF] hover:text-[#6847F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2"
+              onClick={() => setShortcutsDialogOpen(true)}
+            >
+              <Keyboard
+                aria-hidden="true"
+                className="size-4"
+                strokeWidth={1.8}
+              />
+            </button>
+          </ToolTip>
+
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <button
@@ -597,6 +619,10 @@ const PresentationHeader = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <KeyboardShortcutsDialog
+        open={shortcutsDialogOpen}
+        onOpenChange={setShortcutsDialogOpen}
+      />
     </>
   );
 };

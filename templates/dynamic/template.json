@@ -1443,117 +1443,6 @@
           ]
         },
         {
-          "id": "left_text_stack",
-          "description": "Large left-aligned heading and smaller supporting copy arranged as a compact vertical stack.",
-          "position": {
-            "x": 62.9,
-            "y": 95.13
-          },
-          "elements": [
-            {
-              "type": "flex",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 349.2,
-                "height": 132.69
-              },
-              "rotation": 0,
-              "direction": "column",
-              "align_items": "flex-start",
-              "justify_content": "flex-start",
-              "gap": 11,
-              "children": [
-                {
-                  "type": "text",
-                  "position": {
-                    "x": 0,
-                    "y": 0
-                  },
-                  "size": {
-                    "width": 349.21,
-                    "height": 168.09
-                  },
-                  "rotation": 0,
-                  "font": {
-                    "size": 64,
-                    "family": "Montserrat Medium",
-                    "color": "#FFFFFF",
-                    "bold": true,
-                    "line_height": 1.25,
-                    "letter_spacing": -0.64
-                  },
-                  "alignment": {
-                    "horizontal": "left",
-                    "vertical": "top"
-                  },
-                  "runs": [
-                    {
-                      "text": "12+ TOOLS,\nONE FIX",
-                      "font": {
-                        "size": 64,
-                        "family": "Montserrat Medium",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.25,
-                        "letter_spacing": -0.64
-                      }
-                    }
-                  ],
-                  "decorative": false,
-                  "name": "primary_heading",
-                  "max_length": 17,
-                  "min_length": 9
-                },
-                {
-                  "type": "text",
-                  "position": {
-                    "x": 5.69,
-                    "y": 284.75
-                  },
-                  "size": {
-                    "width": 324.3,
-                    "height": 106.16
-                  },
-                  "rotation": 0,
-                  "font": {
-                    "size": 21.33,
-                    "family": "Montserrat",
-                    "color": "#FFFFFF",
-                    "line_height": 1.5,
-                    "letter_spacing": -0.21
-                  },
-                  "alignment": {
-                    "horizontal": "left",
-                    "vertical": "top"
-                  },
-                  "runs": [
-                    {
-                      "text": "Rippling unifies payroll, benefits, device ,apps and compliance",
-                      "font": {
-                        "size": 21.33,
-                        "family": "Montserrat",
-                        "color": "#FFFFFF",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.21
-                      }
-                    }
-                  ],
-                  "decorative": false,
-                  "name": "primary_heading",
-                  "max_length": 17,
-                  "min_length": 9
-                }
-              ],
-              "name": "left_copy_column",
-              "max_children": 2,
-              "min_children": 1
-            }
-          ]
-        },
-        {
           "id": "upper_left_header",
           "description": "Large title and two-line supporting copy are positioned in the upper-left area with generous spacing.",
           "position": {
@@ -2045,8 +1934,8 @@
                 "y": 0
               },
               "size": {
-                "width": 662.36,
-                "height": 79.47
+                "width": 704.3599999999999,
+                "height": 76.57644163902856
               },
               "font": {
                 "size": 64,
@@ -2068,8 +1957,11 @@
                     "family": "Montserrat Medium",
                     "color": "#FFFFFF",
                     "bold": true,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.25,
-                    "letter_spacing": -0.64
+                    "letter_spacing": -0.64,
+                    "opacity": 1
                   }
                 }
               ],
@@ -2082,11 +1974,11 @@
               "type": "text",
               "position": {
                 "x": 0,
-                "y": 77.47
+                "y": 74.15471167219427
               },
               "size": {
-                "width": 648.84,
-                "height": 30.27
+                "width": 689.9827018539767,
+                "height": 104.78528832780569
               },
               "font": {
                 "size": 21.33,
@@ -2106,8 +1998,12 @@
                     "size": 21.33,
                     "family": "Montserrat",
                     "color": "#D9D9D9",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
                     "line_height": 1.5,
-                    "letter_spacing": -0.21
+                    "letter_spacing": -0.21,
+                    "opacity": 1
                   }
                 }
               ],
@@ -3682,8 +3578,8 @@
                 "y": 0
               },
               "size": {
-                "width": 775.51,
-                "height": 183.33
+                "width": 1132.5099999999998,
+                "height": 46.21136477454381
               },
               "rotation": 0,
               "font": {
@@ -3706,56 +3602,6 @@
                     "family": "Montserrat Medium",
                     "color": "#FFFFFF",
                     "bold": true,
-                    "line_height": 1.25,
-                    "letter_spacing": -0.64
-                  }
-                }
-              ],
-              "decorative": false,
-              "name": "primary_heading",
-              "max_length": 35,
-              "min_length": 19
-            }
-          ]
-        },
-        {
-          "id": "upper_title_block",
-          "description": "Large centered title area positioned in the upper-left half, using bold white uppercase display typography.",
-          "position": {
-            "x": 72,
-            "y": 69.32999999999993
-          },
-          "elements": [
-            {
-              "type": "text",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 926.5048131680721,
-                "height": 160
-              },
-              "font": {
-                "size": 64,
-                "family": "Montserrat Medium",
-                "color": "#FFFFFF",
-                "bold": true,
-                "line_height": 1.25,
-                "letter_spacing": -0.64
-              },
-              "alignment": {
-                "horizontal": "left",
-                "vertical": "top"
-              },
-              "runs": [
-                {
-                  "text": "HEADING\nMETRICS",
-                  "font": {
-                    "size": 64,
-                    "family": "Montserrat Medium",
-                    "color": "#FFFFFF",
-                    "bold": true,
                     "italic": false,
                     "underline": false,
                     "line_height": 1.25,
@@ -3765,9 +3611,9 @@
                 }
               ],
               "decorative": false,
-              "name": "main_title",
-              "max_length": 52,
-              "min_length": 8
+              "name": "primary_heading",
+              "max_length": 35,
+              "min_length": 19
             }
           ]
         },
@@ -3940,7 +3786,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "items_desc_writer",
               "position": {
                 "x": 0,
                 "y": 0
@@ -3949,12 +3796,11 @@
                 "width": 1136,
                 "height": 266.51
               },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 34.54,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -4109,322 +3955,13 @@
                       "min_length": 6
                     }
                   ],
-                  "name": "card_panel"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 355.64,
-                    "height": 266.51
-                  },
-                  "children": [
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 0
-                        },
-                        {
-                          "x": 355.64,
-                          "y": 0
-                        },
-                        {
-                          "x": 355.64,
-                          "y": 266.51
-                        },
-                        {
-                          "x": 0,
-                          "y": 266.51
-                        }
-                      ],
-                      "closed": true,
-                      "fill": {
-                        "color": "#111111",
-                        "opacity": 0.96
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 17.31
-                      },
-                      "size": {
-                        "width": 299.32,
-                        "height": 158.27
-                      },
-                      "font": {
-                        "size": 21.33,
-                        "family": "Montserrat Italics",
-                        "color": "#D9D9D9",
-                        "italic": true,
-                        "line_height": 1.5,
-                        "letter_spacing": -0.21
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "The employee graph is real\nmagic - change someone’s department & their devices, apps and permission.",
-                          "font": {
-                            "size": 21.33,
-                            "family": "Montserrat Italics",
-                            "color": "#D9D9D9",
-                            "italic": true,
-                            "line_height": 1.5,
-                            "letter_spacing": -0.21
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "body_text",
-                      "max_length": 101,
-                      "min_length": 50
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 191.45
-                      },
-                      "size": {
-                        "width": 263.5,
-                        "height": 26.09
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#FFFFFF",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Your Name",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#FFFFFF",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "primary_label",
-                      "max_length": 24,
-                      "min_length": 5
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 221.16
-                      },
-                      "size": {
-                        "width": 254.24,
-                        "height": 23.78
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 17.78,
-                        "family": "Montserrat",
-                        "color": "#FFFFFF",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.18
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Designation",
-                          "font": {
-                            "size": 17.78,
-                            "family": "Montserrat",
-                            "color": "#FFFFFF",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.18
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "secondary_label",
-                      "max_length": 25,
-                      "min_length": 6
-                    }
-                  ],
-                  "name": "card_panel"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 355.64,
-                    "height": 266.51
-                  },
-                  "children": [
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 0
-                        },
-                        {
-                          "x": 355.64,
-                          "y": 0
-                        },
-                        {
-                          "x": 355.64,
-                          "y": 266.51
-                        },
-                        {
-                          "x": 0,
-                          "y": 266.51
-                        }
-                      ],
-                      "closed": true,
-                      "fill": {
-                        "color": "#111111",
-                        "opacity": 0.96
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 17.31
-                      },
-                      "size": {
-                        "width": 299.32,
-                        "height": 158.27
-                      },
-                      "font": {
-                        "size": 21.33,
-                        "family": "Montserrat Italics",
-                        "color": "#D9D9D9",
-                        "italic": true,
-                        "line_height": 1.5,
-                        "letter_spacing": -0.21
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "The employee graph is real\nmagic - change someone’s department & their devices, apps and permission.",
-                          "font": {
-                            "size": 21.33,
-                            "family": "Montserrat Italics",
-                            "color": "#D9D9D9",
-                            "italic": true,
-                            "line_height": 1.5,
-                            "letter_spacing": -0.21
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "body_text",
-                      "max_length": 101,
-                      "min_length": 50
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 191.45
-                      },
-                      "size": {
-                        "width": 263.5,
-                        "height": 26.09
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#FFFFFF",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Your Name",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#FFFFFF",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "primary_label",
-                      "max_length": 24,
-                      "min_length": 5
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 28.16,
-                        "y": 221.16
-                      },
-                      "size": {
-                        "width": 255.37,
-                        "height": 23.78
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 17.78,
-                        "family": "Montserrat",
-                        "color": "#FFFFFF",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.18
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Designation",
-                          "font": {
-                            "size": 17.78,
-                            "family": "Montserrat",
-                            "color": "#FFFFFF",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.18
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "secondary_label",
-                      "max_length": 25,
-                      "min_length": 6
-                    }
-                  ],
-                  "name": "card_panel"
+                  "name": "card_panel",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "three_panel_grid",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         },
@@ -4437,7 +3974,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flxing",
               "position": {
                 "x": 0,
                 "y": 0
@@ -4446,10 +3984,11 @@
                 "width": 1136,
                 "height": 253.65
               },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 45.17,
-              "row_gap": 0,
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -4642,13 +4181,46 @@
                       "min_length": 2
                     }
                   ],
-                  "name": "review_card"
-                },
+                  "name": "review_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "three_card_row",
+          "description": "Three matching rounded information cards are evenly distributed in one horizontal row with consistent internal text hierarchy.",
+          "position": {
+            "x": 102.94,
+            "y": 233.79
+          },
+          "elements": [
+            {
+              "type": "flex",
+              "name": "flx_card_elements",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 1074.12,
+                "height": 414.21
+              },
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
+              "children": [
                 {
                   "type": "group",
                   "size": {
-                    "width": 348.55,
-                    "height": 253.65
+                    "width": 329.52,
+                    "height": 414.21
                   },
                   "children": [
                     {
@@ -4658,382 +4230,443 @@
                         "y": 0
                       },
                       "size": {
-                        "width": 348.55,
-                        "height": 253.65
+                        "width": 329.52,
+                        "height": 414.21
                       },
-                      "data": "static/freeform_14-2a833ff3a969.svg",
+                      "data": "static/freeform_4-76dbf710432f.svg",
                       "fit": "fill",
                       "decorative": true,
-                      "name": "card_panel",
+                      "name": "card_background_panel",
                       "is_icon": false
                     },
                     {
-                      "type": "flex",
-                      "position": {
-                        "x": 124.6,
-                        "y": 40.45
-                      },
-                      "size": {
-                        "width": 99.36,
-                        "height": 15.06
-                      },
-                      "direction": "row",
-                      "wrap": false,
-                      "align_items": "center",
-                      "justify_content": "center",
-                      "gap": 5.08,
-                      "children": [
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        }
-                      ],
-                      "name": "rating_icons",
-                      "max_children": 5,
-                      "min_children": 5
-                    },
-                    {
                       "type": "text",
                       "position": {
-                        "x": 42.44,
-                        "y": 70.59
+                        "x": 50.77,
+                        "y": 44.41
                       },
                       "size": {
-                        "width": 263.69,
-                        "height": 102.71
-                      },
-                      "font": {
-                        "size": 17.64,
-                        "family": "Montserrat Italics",
-                        "color": "#E6E6E6",
-                        "italic": true,
-                        "line_height": 1.5,
-                        "letter_spacing": -0.17
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor\nincididunt ut labore et dolore",
-                          "font": {
-                            "size": 17.64,
-                            "family": "Montserrat Italics",
-                            "color": "#E6E6E6",
-                            "italic": true,
-                            "line_height": 1.5,
-                            "letter_spacing": -0.17
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "review_quote",
-                      "max_length": 80,
-                      "min_length": 55
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 42.62,
-                        "y": 189.55
-                      },
-                      "size": {
-                        "width": 258.78,
-                        "height": 23.8
+                        "width": 230.04,
+                        "height": 31.96
                       },
                       "rotation": 0,
                       "font": {
-                        "size": 17.64,
+                        "size": 23.53,
                         "family": "Montserrat Semi-Bold",
                         "color": "#FFFFFF",
                         "bold": true,
                         "line_height": 1.4,
-                        "letter_spacing": -0.17
+                        "letter_spacing": -0.23
                       },
                       "alignment": {
-                        "horizontal": "center",
+                        "horizontal": "left",
                         "vertical": "top"
                       },
                       "runs": [
                         {
-                          "text": "Name",
+                          "text": "Heading",
                           "font": {
-                            "size": 17.64,
+                            "size": 23.53,
                             "family": "Montserrat Semi-Bold",
                             "color": "#FFFFFF",
                             "bold": true,
                             "line_height": 1.4,
-                            "letter_spacing": -0.17
+                            "letter_spacing": -0.23
                           }
                         }
                       ],
                       "decorative": false,
-                      "name": "review_attribution",
-                      "max_length": 23,
-                      "min_length": 2
+                      "name": "card_heading_text",
+                      "max_length": 17,
+                      "min_length": 4
+                    },
+                    {
+                      "type": "text",
+                      "position": {
+                        "x": 50.77,
+                        "y": 78.7
+                      },
+                      "size": {
+                        "width": 255.54,
+                        "height": 62.59
+                      },
+                      "rotation": 0,
+                      "font": {
+                        "size": 47.06,
+                        "family": "Montserrat Medium",
+                        "color": "#FD7536",
+                        "bold": true,
+                        "line_height": 1.4,
+                        "letter_spacing": -0.46
+                      },
+                      "alignment": {
+                        "horizontal": "left",
+                        "vertical": "top"
+                      },
+                      "runs": [
+                        {
+                          "text": "$1 / Month",
+                          "font": {
+                            "size": 47.06,
+                            "family": "Montserrat Medium",
+                            "color": "#FD7536",
+                            "bold": true,
+                            "line_height": 1.4,
+                            "letter_spacing": -0.46
+                          }
+                        }
+                      ],
+                      "decorative": false,
+                      "name": "card_large_value",
+                      "max_length": 9,
+                      "min_length": 5
+                    },
+                    {
+                      "type": "text-list",
+                      "position": {
+                        "x": 46,
+                        "y": 155.32
+                      },
+                      "size": {
+                        "width": 230.45,
+                        "height": 208.66
+                      },
+                      "font": {
+                        "size": 16.68,
+                        "family": "Montserrat",
+                        "color": "#D9D9D9",
+                        "line_height": 1.35,
+                        "letter_spacing": -0.16
+                      },
+                      "marker": "bullet",
+                      "items": [
+                        [
+                          {
+                            "text": "Lorem ipsum dolor sit amet, consectetur",
+                            "font": {
+                              "size": 16.68,
+                              "family": "Montserrat",
+                              "color": "#D9D9D9",
+                              "line_height": 1.35,
+                              "letter_spacing": -0.16
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "text": "Ncididunt ut labore et dolore",
+                            "font": {
+                              "size": 16.68,
+                              "family": "Montserrat",
+                              "color": "#D9D9D9",
+                              "line_height": 1.35,
+                              "letter_spacing": -0.16
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "text": "Adipiscing elit, sed do eiusmod tempor",
+                            "font": {
+                              "size": 16.68,
+                              "family": "Montserrat",
+                              "color": "#D9D9D9",
+                              "line_height": 1.35,
+                              "letter_spacing": -0.16
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "text": "Ncididunt ut labore et dolore",
+                            "font": {
+                              "size": 16.68,
+                              "family": "Montserrat",
+                              "color": "#D9D9D9",
+                              "line_height": 1.35,
+                              "letter_spacing": -0.16
+                            }
+                          }
+                        ]
+                      ],
+                      "decorative": false,
+                      "name": "card_feature_list",
+                      "max_items": 4,
+                      "min_items": 1,
+                      "max_item_length": 40,
+                      "min_item_length": 28
                     }
                   ],
-                  "name": "review_card"
-                },
+                  "name": "information_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "lower_card_grid",
+          "description": "Three equal rounded cards arranged in a horizontal grid, each containing a prominent metric and centered supporting copy.",
+          "position": {
+            "x": 72,
+            "y": 356.16
+          },
+          "elements": [
+            {
+              "type": "flex",
+              "name": "flx_card_with_ev",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 1136,
+                "height": 253.65
+              },
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
+              "children": [
                 {
-                  "type": "group",
+                  "type": "container",
                   "size": {
                     "width": 348.55,
                     "height": 253.65
                   },
-                  "children": [
-                    {
-                      "type": "image",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 348.55,
-                        "height": 253.65
-                      },
-                      "data": "static/freeform_25-2a833ff3a969.svg",
-                      "fit": "fill",
-                      "decorative": true,
-                      "name": "card_panel",
-                      "is_icon": false
+                  "alignment": {
+                    "horizontal": "center",
+                    "vertical": "top"
+                  },
+                  "fill": {
+                    "color": "#191919",
+                    "opacity": 0.88
+                  },
+                  "border_radius": {
+                    "tl": 15,
+                    "tr": 15,
+                    "bl": 15,
+                    "br": 15
+                  },
+                  "padding": {
+                    "top": 24,
+                    "right": 42,
+                    "bottom": 18,
+                    "left": 42
+                  },
+                  "child": {
+                    "type": "flex",
+                    "size": {
+                      "width": 264.55,
+                      "height": 211.65
                     },
-                    {
-                      "type": "flex",
-                      "position": {
-                        "x": 124.6,
-                        "y": 40.45
-                      },
-                      "size": {
-                        "width": 99.36,
-                        "height": 15.06
-                      },
-                      "direction": "row",
-                      "wrap": false,
-                      "align_items": "center",
-                      "justify_content": "center",
-                      "gap": 5.08,
-                      "children": [
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
+                    "direction": "column",
+                    "wrap": false,
+                    "align_items": "center",
+                    "justify_content": "flex-start",
+                    "gap": 15,
+                    "column_gap": 0,
+                    "row_gap": 15,
+                    "children": [
+                      {
+                        "type": "text",
+                        "size": {
+                          "width": 130,
+                          "height": 67
                         },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
+                        "font": {
+                          "size": 49.78,
+                          "family": "Montserrat",
+                          "color": "#FD7536",
+                          "line_height": 1.4,
+                          "letter_spacing": -0.5
                         },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
+                        "alignment": {
+                          "horizontal": "center",
+                          "vertical": "top"
                         },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        },
-                        {
-                          "type": "image",
-                          "size": {
-                            "width": 15.81,
-                            "height": 15.06
-                          },
-                          "data": "/static/icons/placeholder.svg",
-                          "fit": "fill",
-                          "color": "#F4511E",
-                          "decorative": false,
-                          "name": "rating_icon",
-                          "is_icon": true
-                        }
-                      ],
-                      "name": "rating_icons",
-                      "max_children": 5,
-                      "min_children": 5
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 42.43,
-                        "y": 70.59
-                      },
-                      "size": {
-                        "width": 263.69,
-                        "height": 102.71
-                      },
-                      "font": {
-                        "size": 17.64,
-                        "family": "Montserrat Italics",
-                        "color": "#E6E6E6",
-                        "italic": true,
-                        "line_height": 1.5,
-                        "letter_spacing": -0.17
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor\nincididunt ut labore et dolore",
-                          "font": {
-                            "size": 17.64,
-                            "family": "Montserrat Italics",
-                            "color": "#E6E6E6",
-                            "italic": true,
-                            "line_height": 1.5,
-                            "letter_spacing": -0.17
+                        "runs": [
+                          {
+                            "text": "00%",
+                            "font": {
+                              "size": 49.78,
+                              "family": "Montserrat",
+                              "color": "#FD7536",
+                              "line_height": 1.4,
+                              "letter_spacing": -0.5
+                            }
                           }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "review_quote",
-                      "max_length": 80,
-                      "min_length": 55
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 46.02,
-                        "y": 189.55
+                        ],
+                        "decorative": false,
+                        "name": "metric_value",
+                        "max_length": 3,
+                        "min_length": 2
                       },
-                      "size": {
-                        "width": 240.59,
-                        "height": 23.8
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 17.64,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.17
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Name",
-                          "font": {
-                            "size": 17.64,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.17
+                      {
+                        "type": "text",
+                        "size": {
+                          "width": 264,
+                          "height": 142
+                        },
+                        "font": {
+                          "size": 19.55,
+                          "family": "Montserrat",
+                          "color": "#E6E6E6",
+                          "line_height": 1.5,
+                          "letter_spacing": -0.19
+                        },
+                        "alignment": {
+                          "horizontal": "center",
+                          "vertical": "top"
+                        },
+                        "runs": [
+                          {
+                            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt",
+                            "font": {
+                              "size": 19.55,
+                              "family": "Montserrat",
+                              "color": "#E6E6E6",
+                              "line_height": 1.5,
+                              "letter_spacing": -0.19
+                            }
                           }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "review_attribution",
-                      "max_length": 23,
-                      "min_length": 2
-                    }
-                  ],
-                  "name": "review_card"
+                        ],
+                        "decorative": false,
+                        "name": "metric_description",
+                        "max_length": 90,
+                        "min_length": 45
+                      }
+                    ],
+                    "name": "card_content_stack",
+                    "max_children": 2,
+                    "min_children": 2
+                  },
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "left_text_stack_part_1",
+      "description": "Ungrouped component element",
+      "variants": [
+        {
+          "id": "left_text_stack_part_1",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 62.9,
+            "y": 95.13
+          },
+          "elements": [
+            {
+              "type": "text",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 349.21,
+                "height": 168.09
+              },
+              "rotation": 0,
+              "font": {
+                "size": 64,
+                "family": "Montserrat Medium",
+                "color": "#FFFFFF",
+                "bold": true,
+                "line_height": 1.25,
+                "letter_spacing": -0.64
+              },
+              "alignment": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "runs": [
+                {
+                  "text": "12+ TOOLS,\nONE FIX",
+                  "font": {
+                    "size": 64,
+                    "family": "Montserrat Medium",
+                    "color": "#FFFFFF",
+                    "bold": true,
+                    "line_height": 1.25,
+                    "letter_spacing": -0.64
+                  }
                 }
               ],
-              "name": "card_grid",
-              "max_children": 3,
-              "min_children": 1
+              "decorative": false,
+              "name": "primary_heading",
+              "max_length": 17,
+              "min_length": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "left_text_stack_part_2",
+      "description": "Ungrouped component element",
+      "variants": [
+        {
+          "id": "left_text_stack_part_2",
+          "description": "Ungrouped component element",
+          "position": {
+            "x": 64.9,
+            "y": 350.22
+          },
+          "elements": [
+            {
+              "type": "text",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 324.3,
+                "height": 96
+              },
+              "rotation": 0,
+              "font": {
+                "size": 21.33,
+                "family": "Montserrat",
+                "color": "#FFFFFF",
+                "line_height": 1.5,
+                "letter_spacing": -0.21
+              },
+              "alignment": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "runs": [
+                {
+                  "text": "Rippling unifies payroll, benefits, device ,apps and compliance",
+                  "font": {
+                    "size": 21.33,
+                    "family": "Montserrat",
+                    "color": "#FFFFFF",
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.5,
+                    "letter_spacing": -0.21,
+                    "opacity": 1
+                  }
+                }
+              ],
+              "decorative": false,
+              "name": "primary_heading",
+              "max_length": 17,
+              "min_length": 9
             }
           ]
         }
@@ -5094,8 +4727,7 @@
                 "height": 536
               },
               "direction": "column",
-              "align_items": "flex-start",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 54,
               "children": [
                 {
@@ -5120,92 +4752,6 @@
                         "height": 22
                       },
                       "rotation": 0,
-                      "font": {
-                        "size": 21.33,
-                        "family": "Montserrat Medium",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.01,
-                        "letter_spacing": -0.21
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Payroll",
-                          "font": {
-                            "size": 21.33,
-                            "family": "Montserrat Medium",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.01,
-                            "letter_spacing": -0.21
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_heading",
-                      "max_length": 7,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "size": {
-                        "width": 277,
-                        "height": 105
-                      },
-                      "font": {
-                        "size": 17.78,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.18
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Run payroll across 50 states and 100 countries with automated tax calculation and filling.",
-                          "font": {
-                            "size": 17.78,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.18
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_heading",
-                      "max_length": 7,
-                      "min_length": 4
-                    }
-                  ],
-                  "name": "summary_item_top",
-                  "max_children": 2,
-                  "min_children": 2
-                },
-                {
-                  "type": "flex",
-                  "size": {
-                    "width": 280,
-                    "height": 160
-                  },
-                  "direction": "column",
-                  "align_items": "flex-start",
-                  "justify_content": "flex-start",
-                  "gap": 6,
-                  "children": [
-                    {
-                      "type": "text",
-                      "size": {
-                        "width": 99,
-                        "height": 22
-                      },
                       "font": {
                         "size": 21.33,
                         "family": "Montserrat Medium",
@@ -5845,7 +5391,13 @@
               "min_length": 8
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "top_title_stack_part_2",
+      "description": "Ungrouped component element",
+      "variants": [
         {
           "id": "top_title_stack_part_2",
           "description": "Ungrouped component element",
@@ -6044,7 +5596,13 @@
               "min_children": 2
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "surrounding_text_blocks_part_2",
+      "description": "Ungrouped component element",
+      "variants": [
         {
           "id": "surrounding_text_blocks_part_2",
           "description": "Ungrouped component element",
@@ -6076,7 +5634,7 @@
                   },
                   "size": {
                     "width": 229.52,
-                    "height": 26.09
+                    "height": 28
                   },
                   "rotation": 0,
                   "font": {
@@ -6088,7 +5646,7 @@
                     "letter_spacing": -0.19
                   },
                   "alignment": {
-                    "horizontal": "center",
+                    "horizontal": "left",
                     "vertical": "top"
                   },
                   "runs": [
@@ -6099,8 +5657,11 @@
                         "family": "Montserrat Semi-Bold",
                         "color": "#FFFFFF",
                         "bold": true,
+                        "italic": false,
+                        "underline": false,
                         "line_height": 1.4,
-                        "letter_spacing": -0.19
+                        "letter_spacing": -0.19,
+                        "opacity": 1
                       }
                     }
                   ],
@@ -6156,7 +5717,13 @@
               "min_children": 2
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "surrounding_text_blocks_part_3",
+      "description": "Ungrouped component element",
+      "variants": [
         {
           "id": "surrounding_text_blocks_part_3",
           "description": "Ungrouped component element",
@@ -6188,7 +5755,7 @@
                   },
                   "size": {
                     "width": 231.7,
-                    "height": 26.09
+                    "height": 28
                   },
                   "rotation": 0,
                   "font": {
@@ -6200,7 +5767,7 @@
                     "letter_spacing": -0.19
                   },
                   "alignment": {
-                    "horizontal": "center",
+                    "horizontal": "left",
                     "vertical": "top"
                   },
                   "runs": [
@@ -6211,8 +5778,11 @@
                         "family": "Montserrat Semi-Bold",
                         "color": "#FFFFFF",
                         "bold": true,
+                        "italic": false,
+                        "underline": false,
                         "line_height": 1.4,
-                        "letter_spacing": -0.19
+                        "letter_spacing": -0.19,
+                        "opacity": 1
                       }
                     }
                   ],
@@ -6268,7 +5838,13 @@
               "min_children": 2
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "surrounding_text_blocks_part_4",
+      "description": "Ungrouped component element",
+      "variants": [
         {
           "id": "surrounding_text_blocks_part_4",
           "description": "Ungrouped component element",
@@ -6312,7 +5888,7 @@
                     "letter_spacing": -0.19
                   },
                   "alignment": {
-                    "horizontal": "center",
+                    "horizontal": "left",
                     "vertical": "top"
                   },
                   "runs": [
@@ -6323,8 +5899,11 @@
                         "family": "Montserrat Semi-Bold",
                         "color": "#FFFFFF",
                         "bold": true,
+                        "italic": false,
+                        "underline": false,
                         "line_height": 1.4,
-                        "letter_spacing": -0.19
+                        "letter_spacing": -0.19,
+                        "opacity": 1
                       }
                     }
                   ],
@@ -6396,7 +5975,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flex_icon_title_desc",
               "position": {
                 "x": 0,
                 "y": 0
@@ -6405,12 +5985,11 @@
                 "width": 1152.71,
                 "height": 576
               },
-              "rotation": 0,
-              "columns": 3,
-              "rows": 1,
+              "direction": "row",
               "gap": 12,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -6452,6 +6031,7 @@
                       "data": "/static/icons/placeholder.svg",
                       "fit": "fill",
                       "clip_path": "path('M 0 0 L 108.22 0 L 108.22 106.88 L 0 106.88 L 0 0 Z')",
+                      "color": "#FFFFFF",
                       "decorative": false,
                       "name": "badge_icon",
                       "is_icon": true
@@ -6538,10 +6118,7 @@
                   ],
                   "name": "grid component_individual_group_title_image_summary"
                 }
-              ],
-              "name": "grid_item_box",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         },
@@ -6554,7 +6131,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flx",
               "position": {
                 "x": -2.27,
                 "y": 0
@@ -6563,12 +6141,11 @@
                 "width": 1251.55,
                 "height": 596.53
               },
-              "rotation": 0,
-              "columns": 2,
-              "rows": 1,
-              "gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 2,
               "children": [
                 {
                   "type": "group",
@@ -6681,10 +6258,7 @@
                   ],
                   "name": "grid_items"
                 }
-              ],
-              "name": "grid_card_heading_image_description",
-              "max_children": 2,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -6752,106 +6326,9 @@
               },
               "direction": "column",
               "wrap": false,
-              "align_items": "flex-start",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 37.39,
               "children": [
-                {
-                  "type": "container",
-                  "size": {
-                    "width": 300,
-                    "height": 185.08
-                  },
-                  "padding": {
-                    "top": 0,
-                    "right": 0,
-                    "bottom": 0,
-                    "left": 0
-                  },
-                  "child": {
-                    "type": "flex",
-                    "direction": "column",
-                    "wrap": false,
-                    "align_items": "flex-start",
-                    "justify_content": "flex-start",
-                    "gap": 12,
-                    "children": [
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 300,
-                          "height": 27.73
-                        },
-                        "font": {
-                          "size": 21.33,
-                          "family": "Montserrat Semi-Bold",
-                          "color": "#FFFFFF",
-                          "bold": true,
-                          "line_height": 1.4,
-                          "letter_spacing": -0.21
-                        },
-                        "alignment": {
-                          "horizontal": "left",
-                          "vertical": "top"
-                        },
-                        "runs": [
-                          {
-                            "text": "Heading",
-                            "font": {
-                              "size": 21.33,
-                              "family": "Montserrat Semi-Bold",
-                              "color": "#FFFFFF",
-                              "bold": true,
-                              "line_height": 1.4,
-                              "letter_spacing": -0.21
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "section_heading",
-                        "max_length": 23,
-                        "min_length": 4
-                      },
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 270.39,
-                          "height": 145.41
-                        },
-                        "font": {
-                          "size": 19.73,
-                          "family": "Montserrat",
-                          "color": "#E6E6E6",
-                          "line_height": 1.5,
-                          "letter_spacing": -0.2
-                        },
-                        "alignment": {
-                          "horizontal": "left",
-                          "vertical": "top"
-                        },
-                        "runs": [
-                          {
-                            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore",
-                            "font": {
-                              "size": 19.73,
-                              "family": "Montserrat",
-                              "color": "#E6E6E6",
-                              "line_height": 1.5,
-                              "letter_spacing": -0.2
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "section_body",
-                        "max_length": 102,
-                        "min_length": 55
-                      }
-                    ],
-                    "name": "callout_content",
-                    "max_children": 2,
-                    "min_children": 2
-                  }
-                },
                 {
                   "type": "container",
                   "size": {
@@ -6954,7 +6431,136 @@
               "min_children": 1
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "lower_left_chart",
+      "description": "Wide trend chart occupies the lower-left content area beneath the header, with subtle gridlines and orange series styling.",
+      "variants": [
+        {
+          "id": "lower_left_chart",
+          "description": "Wide trend chart occupies the lower-left content area beneath the header, with subtle gridlines and orange series styling.",
+          "position": {
+            "x": 84,
+            "y": 294
+          },
+          "elements": [
+            {
+              "type": "chart",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 645,
+                "height": 329
+              },
+              "chart_type": "line",
+              "colors": [
+                "#FF6B2A"
+              ],
+              "x_axis": true,
+              "y_axis": true,
+              "axis_color": "#D9D9D9",
+              "categories": [
+                "Jan 2021",
+                "Jul 2021",
+                "Jan 2022",
+                "Jul 2022",
+                "Jan 2023",
+                "Jul 2023",
+                "Jan 2024",
+                "Jul 2024",
+                "Jan 2025"
+              ],
+              "series": [
+                {
+                  "name": "Series 1",
+                  "values": [
+                    8,
+                    13,
+                    18,
+                    19,
+                    20,
+                    26,
+                    33,
+                    35,
+                    36
+                  ]
+                }
+              ],
+              "legend": false,
+              "x_axis_grid": false,
+              "y_axis_grid": true,
+              "grid_color": "#262626",
+              "source": "static/image24-02344c48b17e.png",
+              "decorative": false,
+              "name": "trend_line_chart"
+            }
+          ]
         },
+        {
+          "id": "wide_chart_area",
+          "description": "Large lower chart region spanning most of the slide width with category labels and horizontal value gridlines.",
+          "position": {
+            "x": 87.35602723787974,
+            "y": 355.21986260688305
+          },
+          "elements": [
+            {
+              "type": "chart",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 1100,
+                "height": 286
+              },
+              "chart_type": "bar",
+              "colors": [
+                "#E94213"
+              ],
+              "x_axis": true,
+              "y_axis": true,
+              "axis_color": "#FFFFFF",
+              "categories": [
+                "Sales",
+                "Finance",
+                "Marketing",
+                "HR",
+                "Operation",
+                "L&D"
+              ],
+              "series": [
+                {
+                  "name": "Values",
+                  "values": [
+                    50,
+                    40,
+                    45,
+                    30,
+                    40,
+                    25
+                  ]
+                }
+              ],
+              "legend": false,
+              "x_axis_grid": false,
+              "y_axis_grid": true,
+              "grid_color": "#333333",
+              "decorative": false,
+              "name": "primary_bar_chart"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "right_stacked_card",
+      "description": "A translucent right-side panel contains two vertically stacked text sections separated by a subtle horizontal divider.",
+      "variants": [
         {
           "id": "right_stacked_card",
           "description": "A translucent right-side panel contains two vertically stacked text sections separated by a subtle horizontal divider.",
@@ -7171,74 +6777,6 @@
               "name": "lower_card_body",
               "max_length": 82,
               "min_length": 55
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lower_left_chart",
-      "description": "Wide trend chart occupies the lower-left content area beneath the header, with subtle gridlines and orange series styling.",
-      "variants": [
-        {
-          "id": "lower_left_chart",
-          "description": "Wide trend chart occupies the lower-left content area beneath the header, with subtle gridlines and orange series styling.",
-          "position": {
-            "x": 84,
-            "y": 294
-          },
-          "elements": [
-            {
-              "type": "chart",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 645,
-                "height": 329
-              },
-              "chart_type": "line",
-              "colors": [
-                "#FF6B2A"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#D9D9D9",
-              "categories": [
-                "Jan 2021",
-                "Jul 2021",
-                "Jan 2022",
-                "Jul 2022",
-                "Jan 2023",
-                "Jul 2023",
-                "Jan 2024",
-                "Jul 2024",
-                "Jan 2025"
-              ],
-              "series": [
-                {
-                  "name": "Series 1",
-                  "values": [
-                    8,
-                    13,
-                    18,
-                    19,
-                    20,
-                    26,
-                    33,
-                    35,
-                    36
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#262626",
-              "source": "static/image24-02344c48b17e.png",
-              "decorative": false,
-              "name": "trend_line_chart"
             }
           ]
         }
@@ -8056,67 +7594,6 @@
       ]
     },
     {
-      "id": "wide_chart_area",
-      "description": "Large lower chart region spanning most of the slide width with category labels and horizontal value gridlines.",
-      "variants": [
-        {
-          "id": "wide_chart_area",
-          "description": "Large lower chart region spanning most of the slide width with category labels and horizontal value gridlines.",
-          "position": {
-            "x": 87.35602723787974,
-            "y": 355.21986260688305
-          },
-          "elements": [
-            {
-              "type": "chart",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 1100,
-                "height": 286
-              },
-              "chart_type": "bar",
-              "colors": [
-                "#E94213"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#FFFFFF",
-              "categories": [
-                "Sales",
-                "Finance",
-                "Marketing",
-                "HR",
-                "Operation",
-                "L&D"
-              ],
-              "series": [
-                {
-                  "name": "Values",
-                  "values": [
-                    50,
-                    40,
-                    45,
-                    30,
-                    40,
-                    25
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#333333",
-              "decorative": false,
-              "name": "primary_bar_chart"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "top_center_title",
       "description": "Large centered title block placed in the upper third with generous width for a two-line heading.",
       "variants": [
@@ -8274,7 +7751,7 @@
           "id": "centered_title_block",
           "description": "Large two-line title area centered at the top with bold white uppercase typography and generous spacing.",
           "position": {
-            "x": 272.61,
+            "x": 72.61000000000001,
             "y": 70
           },
           "elements": [
@@ -8285,7 +7762,7 @@
                 "y": 0
               },
               "size": {
-                "width": 734.79,
+                "width": 1137.7899999999997,
                 "height": 141.73
               },
               "font": {
@@ -8382,8 +7859,7 @@
               },
               "direction": "column",
               "wrap": false,
-              "align_items": "stretch",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 37.96,
               "children": [
                 {
@@ -8501,238 +7977,6 @@
                     }
                   ],
                   "name": "media_text_row_group"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 490,
-                    "height": 166.69
-                  },
-                  "children": [
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 179.75,
-                        "height": 166.69
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": 0,
-                          "y": -1.62
-                        },
-                        "size": {
-                          "width": 179.75,
-                          "height": 269.28
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "fill",
-                        "clip_path": "path('M 47.6659 1.62 L 132.0841 1.62 C 158.4093 1.62 179.75 22.9604 179.75 49.285 L 179.75 120.645 C 179.75 146.9696 158.4093 168.31 132.0841 168.31 L 47.6659 168.31 C 35.024 168.31 22.9002 163.2882 13.9611 154.3492 C 5.0219 145.4102 0 133.2862 0 120.645 L 0 49.285 C 0 22.9604 21.3407 1.62 47.6659 1.62 Z')",
-                        "decorative": false,
-                        "name": "row_thumbnail_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 197.14,
-                        "y": -5.33
-                      },
-                      "size": {
-                        "width": 263.11,
-                        "height": 45.24
-                      },
-                      "font": {
-                        "size": 33.78,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.34
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 33.78,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.34
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "row_heading_text",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 197.14,
-                        "y": 57.27
-                      },
-                      "size": {
-                        "width": 292.22,
-                        "height": 112.8
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "row_body_text",
-                      "max_length": 76,
-                      "min_length": 55
-                    }
-                  ],
-                  "name": "media_text_row_group"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 490,
-                    "height": 166.69
-                  },
-                  "children": [
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 179.75,
-                        "height": 166.69
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": -35.11,
-                          "y": 0
-                        },
-                        "size": {
-                          "width": 249.96,
-                          "height": 166.69
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "fill",
-                        "clip_path": "path('M 82.7759 0 L 167.1941 0 C 193.5193 0 214.86 21.3404 214.86 47.665 L 214.86 119.025 C 214.86 145.3496 193.5193 166.69 167.1941 166.69 L 82.7759 166.69 C 70.134 166.69 58.0102 161.6682 49.0711 152.7292 C 40.1319 143.7902 35.11 131.6662 35.11 119.025 L 35.11 47.665 C 35.11 21.3404 56.4507 0 82.7759 0 Z')",
-                        "decorative": false,
-                        "name": "row_thumbnail_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 197.14,
-                        "y": -5.34
-                      },
-                      "size": {
-                        "width": 263.11,
-                        "height": 45.24
-                      },
-                      "font": {
-                        "size": 33.78,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.34
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 33.78,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.34
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "row_heading_text",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 197.14,
-                        "y": 57.27
-                      },
-                      "size": {
-                        "width": 292.22,
-                        "height": 112.8
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "row_body_text",
-                      "max_length": 76,
-                      "min_length": 55
-                    }
-                  ],
-                  "name": "media_text_row_group"
                 }
               ],
               "name": "media_text_row_list",
@@ -8756,7 +8000,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "fls_list",
               "position": {
                 "x": 0,
                 "y": 0
@@ -8765,13 +8010,11 @@
                 "width": 1136,
                 "height": 381.28
               },
-              "columns": 5,
-              "rows": 1,
-              "gap": 30,
-              "column_gap": 30,
-              "row_gap": 0,
-              "align_items": "flex-start",
-              "justify_items": "flex-start",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 4,
               "children": [
                 {
                   "type": "group",
@@ -8888,480 +8131,13 @@
                       "min_length": 40
                     }
                   ],
-                  "name": "column_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 203.13,
-                    "height": 381.28
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 99.1,
-                        "height": 26.09
-                      },
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "• Plan",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_label",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 40.96
-                      },
-                      "size": {
-                        "width": 198.19,
-                        "height": 212.63
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": -15.22,
-                          "y": 0
-                        },
-                        "size": {
-                          "width": 228.63,
-                          "height": 212.63
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "fill",
-                        "clip_path": "path('M 89.6947 0 L 138.9348 0 C 180.0663 0 213.41 33.3444 213.41 74.4761 L 213.41 138.1539 C 213.41 179.2862 180.0663 212.63 138.9348 212.63 L 89.6947 212.63 C 48.5637 212.63 15.22 179.2862 15.22 138.1539 L 15.22 74.4761 C 15.22 33.3444 48.5637 0 89.6947 0 Z')",
-                        "decorative": false,
-                        "name": "rounded_card_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 265.15
-                      },
-                      "size": {
-                        "width": 203.13,
-                        "height": 128.63
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor\nsit amet,\nconsectetur\nadipiscing elit, sed\ndo eiusmod tempor",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_body",
-                      "max_length": 72,
-                      "min_length": 40
-                    }
-                  ],
-                  "name": "column_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 203.13,
-                    "height": 381.28
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 99.1,
-                        "height": 26.09
-                      },
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "• Plan",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_label",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 40.96
-                      },
-                      "size": {
-                        "width": 198.19,
-                        "height": 212.63
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": -56.53,
-                          "y": 0
-                        },
-                        "size": {
-                          "width": 311.25,
-                          "height": 212.63
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "fill",
-                        "clip_path": "path('M 131.0047 0 L 180.2448 0 C 221.3763 0 254.72 33.3444 254.72 74.4761 L 254.72 138.1539 C 254.72 179.2862 221.3763 212.63 180.2448 212.63 L 131.0047 212.63 C 89.8737 212.63 56.53 179.2862 56.53 138.1539 L 56.53 74.4761 C 56.53 33.3444 89.8737 0 131.0047 0 Z')",
-                        "decorative": false,
-                        "name": "rounded_card_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 265.15
-                      },
-                      "size": {
-                        "width": 203.13,
-                        "height": 142.26
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor\nsit amet,\nconsectetur\nadipiscing elit, sed\ndo eiusmod tempor",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_body",
-                      "max_length": 72,
-                      "min_length": 40
-                    }
-                  ],
-                  "name": "column_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 203.13,
-                    "height": 381.28
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 99.1,
-                        "height": 26.09
-                      },
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "• Plan",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_label",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 40.96
-                      },
-                      "size": {
-                        "width": 198.19,
-                        "height": 212.63
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": 0,
-                          "y": -42.28
-                        },
-                        "size": {
-                          "width": 198.19,
-                          "height": 297.19
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "cover",
-                        "clip_path": "path('M 74.4747 42.28 L 123.7148 42.28 C 164.8463 42.28 198.19 75.6244 198.19 116.7561 L 198.19 180.4339 C 198.19 221.5662 164.8463 254.91 123.7148 254.91 L 74.4747 254.91 C 33.3437 254.91 0 221.5662 0 180.4339 L 0 116.7561 C 0 75.6244 33.3437 42.28 74.4747 42.28 Z')",
-                        "decorative": false,
-                        "name": "rounded_card_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 265.15
-                      },
-                      "size": {
-                        "width": 203.13,
-                        "height": 139.99
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor\nsit amet,\nconsectetur\nadipiscing elit, sed\ndo eiusmod tempor",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_body",
-                      "max_length": 72,
-                      "min_length": 40
-                    }
-                  ],
-                  "name": "column_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 203.13,
-                    "height": 381.28
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 99.1,
-                        "height": 26.09
-                      },
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "• Plan",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_label",
-                      "max_length": 12,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "container",
-                      "position": {
-                        "x": 0,
-                        "y": 40.96
-                      },
-                      "size": {
-                        "width": 198.19,
-                        "height": 212.63
-                      },
-                      "child": {
-                        "type": "image",
-                        "position": {
-                          "x": -79.39,
-                          "y": 0
-                        },
-                        "size": {
-                          "width": 356.98,
-                          "height": 212.63
-                        },
-                        "data": "/static/images/replaceable_template_image.png",
-                        "fit": "cover",
-                        "clip_path": "path('M 153.8647 0 L 203.1048 0 C 244.2363 0 277.58 33.3444 277.58 74.4761 L 277.58 138.1539 C 277.58 179.2862 244.2363 212.63 203.1048 212.63 L 153.8647 212.63 C 112.7337 212.63 79.39 179.2862 79.39 138.1539 L 79.39 74.4761 C 79.39 33.3444 112.7337 0 153.8647 0 Z')",
-                        "decorative": false,
-                        "name": "rounded_card_image",
-                        "is_icon": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 265.15
-                      },
-                      "size": {
-                        "width": 203.13,
-                        "height": 141.12
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.56,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.2
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor\nsit amet,\nconsectetur\nadipiscing elit, sed\ndo eiusmod tempor",
-                          "font": {
-                            "size": 19.56,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.2
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "item_body",
-                      "max_length": 72,
-                      "min_length": 40
-                    }
-                  ],
-                  "name": "column_card"
+                  "name": "column_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "column_card_grid",
-              "max_children": 5,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -9751,556 +8527,6 @@
       ]
     },
     {
-      "id": "three_card_row",
-      "description": "Three matching rounded information cards are evenly distributed in one horizontal row with consistent internal text hierarchy.",
-      "variants": [
-        {
-          "id": "three_card_row",
-          "description": "Three matching rounded information cards are evenly distributed in one horizontal row with consistent internal text hierarchy.",
-          "position": {
-            "x": 102.94,
-            "y": 233.79
-          },
-          "elements": [
-            {
-              "type": "grid",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 1074.12,
-                "height": 414.21
-              },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 42.86,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
-              "children": [
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 329.52,
-                    "height": 414.21
-                  },
-                  "children": [
-                    {
-                      "type": "image",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 329.52,
-                        "height": 414.21
-                      },
-                      "data": "static/freeform_4-76dbf710432f.svg",
-                      "fit": "fill",
-                      "decorative": true,
-                      "name": "card_background_panel",
-                      "is_icon": false
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 50.77,
-                        "y": 44.41
-                      },
-                      "size": {
-                        "width": 230.04,
-                        "height": 31.96
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 23.53,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.23
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 23.53,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.23
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "card_heading_text",
-                      "max_length": 17,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 50.77,
-                        "y": 78.7
-                      },
-                      "size": {
-                        "width": 255.54,
-                        "height": 62.59
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 47.06,
-                        "family": "Montserrat Medium",
-                        "color": "#FD7536",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.46
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "$1 / Month",
-                          "font": {
-                            "size": 47.06,
-                            "family": "Montserrat Medium",
-                            "color": "#FD7536",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.46
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "card_large_value",
-                      "max_length": 9,
-                      "min_length": 5
-                    },
-                    {
-                      "type": "text-list",
-                      "position": {
-                        "x": 46,
-                        "y": 155.32
-                      },
-                      "size": {
-                        "width": 230.45,
-                        "height": 208.66
-                      },
-                      "font": {
-                        "size": 16.68,
-                        "family": "Montserrat",
-                        "color": "#D9D9D9",
-                        "line_height": 1.35,
-                        "letter_spacing": -0.16
-                      },
-                      "marker": "bullet",
-                      "items": [
-                        [
-                          {
-                            "text": "Lorem ipsum dolor sit amet, consectetur",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Ncididunt ut labore et dolore",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Adipiscing elit, sed do eiusmod tempor",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Ncididunt ut labore et dolore",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ]
-                      ],
-                      "decorative": false,
-                      "name": "card_feature_list",
-                      "max_items": 4,
-                      "min_items": 1,
-                      "max_item_length": 40,
-                      "min_item_length": 28
-                    }
-                  ],
-                  "name": "information_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 329.52,
-                    "height": 414.21
-                  },
-                  "children": [
-                    {
-                      "type": "image",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 329.52,
-                        "height": 414.21
-                      },
-                      "data": "static/freeform_10-76dbf710432f.svg",
-                      "fit": "fill",
-                      "decorative": true,
-                      "name": "card_background_panel",
-                      "is_icon": false
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 50.77,
-                        "y": 44.41
-                      },
-                      "size": {
-                        "width": 243.68,
-                        "height": 31.96
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 23.53,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.23
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 23.53,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.23
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "card_heading_text",
-                      "max_length": 17,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 50.77,
-                        "y": 78.7
-                      },
-                      "size": {
-                        "width": 246.45,
-                        "height": 62.59
-                      },
-                      "font": {
-                        "size": 47.06,
-                        "family": "Montserrat Medium",
-                        "color": "#FD7536",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.46
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "$1 / Month",
-                          "font": {
-                            "size": 47.06,
-                            "family": "Montserrat Medium",
-                            "color": "#FD7536",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.46
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "card_large_value",
-                      "max_length": 9,
-                      "min_length": 5
-                    },
-                    {
-                      "type": "text-list",
-                      "position": {
-                        "x": 46,
-                        "y": 155.32
-                      },
-                      "size": {
-                        "width": 230.45,
-                        "height": 212.66
-                      },
-                      "font": {
-                        "size": 16.68,
-                        "family": "Montserrat",
-                        "color": "#D9D9D9",
-                        "line_height": 1.35,
-                        "letter_spacing": -0.16
-                      },
-                      "marker": "bullet",
-                      "items": [
-                        [
-                          {
-                            "text": "Lorem ipsum dolor sit amet, consectetur",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Ncididunt ut labore et dolore",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Adipiscing elit, sed do eiusmod tempor",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "text": "Ncididunt ut labore et dolore",
-                            "font": {
-                              "size": 16.68,
-                              "family": "Montserrat",
-                              "color": "#D9D9D9",
-                              "line_height": 1.35,
-                              "letter_spacing": -0.16
-                            }
-                          }
-                        ]
-                      ],
-                      "decorative": false,
-                      "name": "card_feature_list",
-                      "max_items": 4,
-                      "min_items": 1,
-                      "max_item_length": 40,
-                      "min_item_length": 28
-                    }
-                  ],
-                  "name": "information_card"
-                }
-              ],
-              "name": "card_grid",
-              "max_children": 3,
-              "min_children": 1
-            }
-          ]
-        },
-        {
-          "id": "lower_card_grid",
-          "description": "Three equal rounded cards arranged in a horizontal grid, each containing a prominent metric and centered supporting copy.",
-          "position": {
-            "x": 72,
-            "y": 356.16
-          },
-          "elements": [
-            {
-              "type": "grid",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "size": {
-                "width": 1136,
-                "height": 253.65
-              },
-              "columns": 3,
-              "rows": 1,
-              "gap": 45.17,
-              "column_gap": 45.17,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
-              "children": [
-                {
-                  "type": "container",
-                  "size": {
-                    "width": 348.55,
-                    "height": 253.65
-                  },
-                  "alignment": {
-                    "horizontal": "center",
-                    "vertical": "top"
-                  },
-                  "fill": {
-                    "color": "#191919",
-                    "opacity": 0.88
-                  },
-                  "border_radius": {
-                    "tl": 15,
-                    "tr": 15,
-                    "bl": 15,
-                    "br": 15
-                  },
-                  "padding": {
-                    "top": 24,
-                    "right": 42,
-                    "bottom": 18,
-                    "left": 42
-                  },
-                  "child": {
-                    "type": "flex",
-                    "size": {
-                      "width": 264.55,
-                      "height": 211.65
-                    },
-                    "direction": "column",
-                    "wrap": false,
-                    "align_items": "center",
-                    "justify_content": "flex-start",
-                    "gap": 15,
-                    "column_gap": 0,
-                    "row_gap": 15,
-                    "children": [
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 130,
-                          "height": 67
-                        },
-                        "font": {
-                          "size": 49.78,
-                          "family": "Montserrat",
-                          "color": "#FD7536",
-                          "line_height": 1.4,
-                          "letter_spacing": -0.5
-                        },
-                        "alignment": {
-                          "horizontal": "center",
-                          "vertical": "top"
-                        },
-                        "runs": [
-                          {
-                            "text": "00%",
-                            "font": {
-                              "size": 49.78,
-                              "family": "Montserrat",
-                              "color": "#FD7536",
-                              "line_height": 1.4,
-                              "letter_spacing": -0.5
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "metric_value",
-                        "max_length": 3,
-                        "min_length": 2
-                      },
-                      {
-                        "type": "text",
-                        "size": {
-                          "width": 264,
-                          "height": 142
-                        },
-                        "font": {
-                          "size": 19.55,
-                          "family": "Montserrat",
-                          "color": "#E6E6E6",
-                          "line_height": 1.5,
-                          "letter_spacing": -0.19
-                        },
-                        "alignment": {
-                          "horizontal": "center",
-                          "vertical": "top"
-                        },
-                        "runs": [
-                          {
-                            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt",
-                            "font": {
-                              "size": 19.55,
-                              "family": "Montserrat",
-                              "color": "#E6E6E6",
-                              "line_height": 1.5,
-                              "letter_spacing": -0.19
-                            }
-                          }
-                        ],
-                        "decorative": false,
-                        "name": "metric_description",
-                        "max_length": 90,
-                        "min_length": 45
-                      }
-                    ],
-                    "name": "card_content_stack",
-                    "max_children": 2,
-                    "min_children": 2
-                  }
-                }
-              ],
-              "name": "metric_card_grid",
-              "max_children": 3,
-              "min_children": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "right_section_stack",
       "description": "Four vertically stacked text sections in the right column, with consistent internal spacing and divider rules.",
       "variants": [
@@ -10319,8 +8545,7 @@
                 "height": 580.04
               },
               "direction": "column",
-              "align_items": "stretch",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 29.34,
               "children": [
                 {
@@ -10363,114 +8588,6 @@
                             "bold": true,
                             "line_height": 1.4,
                             "letter_spacing": -0.22
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "section_heading",
-                      "max_length": 36,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 40.55
-                      },
-                      "size": {
-                        "width": 523.01,
-                        "height": 84.13
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "section_body",
-                      "max_length": 103,
-                      "min_length": 55
-                    },
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 129.99
-                        },
-                        {
-                          "x": 523.01,
-                          "y": 130.99
-                        }
-                      ],
-                      "closed": false,
-                      "stroke": {
-                        "color": "#FFFFFF",
-                        "opacity": 0.24,
-                        "width": 1.33
-                      }
-                    }
-                  ],
-                  "name": "section_item"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 523.01,
-                    "height": 132
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 357.1,
-                        "height": 30.71
-                      },
-                      "font": {
-                        "size": 23.11,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.23
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 23.11,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.23
                           }
                         }
                       ],
@@ -11096,6 +9213,65 @@
       ]
     },
     {
+      "id": "upper_title_block",
+      "description": "Large centered title area positioned in the upper-left half, using bold white uppercase display typography.",
+      "variants": [
+        {
+          "id": "upper_title_block",
+          "description": "Large centered title area positioned in the upper-left half, using bold white uppercase display typography.",
+          "position": {
+            "x": 72,
+            "y": 69.32999999999993
+          },
+          "elements": [
+            {
+              "type": "text",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "width": 926.5048131680721,
+                "height": 160
+              },
+              "font": {
+                "size": 64,
+                "family": "Montserrat Medium",
+                "color": "#FFFFFF",
+                "bold": true,
+                "line_height": 1.25,
+                "letter_spacing": -0.64
+              },
+              "alignment": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "runs": [
+                {
+                  "text": "HEADING\nMETRICS",
+                  "font": {
+                    "size": 64,
+                    "family": "Montserrat Medium",
+                    "color": "#FFFFFF",
+                    "bold": true,
+                    "italic": false,
+                    "underline": false,
+                    "line_height": 1.25,
+                    "letter_spacing": -0.64,
+                    "opacity": 1
+                  }
+                }
+              ],
+              "decorative": false,
+              "name": "main_title",
+              "max_length": 52,
+              "min_length": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "bottom_metric_row",
       "description": "Three repeated metric callouts arranged horizontally with slim vertical dividers, percentage values, headings, and short descriptions.",
       "variants": [
@@ -11271,304 +9447,6 @@
                     }
                   ],
                   "name": "metric_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 300,
-                    "height": 196
-                  },
-                  "children": [
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 7.83
-                        },
-                        {
-                          "x": 1,
-                          "y": 169.56
-                        }
-                      ],
-                      "closed": false,
-                      "stroke": {
-                        "color": "#FFFFFF",
-                        "width": 1.33
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.06,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 364.73,
-                        "height": 62.59
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 47.06,
-                        "family": "Montserrat Medium",
-                        "color": "#FD7536",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.46
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "00%",
-                          "font": {
-                            "size": 47.06,
-                            "family": "Montserrat Medium",
-                            "color": "#FD7536",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.46
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_value",
-                      "max_length": 14,
-                      "min_length": 2
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.06,
-                        "y": 77.42
-                      },
-                      "size": {
-                        "width": 286.94,
-                        "height": 29.02
-                      },
-                      "font": {
-                        "size": 23.11,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.3,
-                        "letter_spacing": -0.23
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 23.11,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.3,
-                            "letter_spacing": -0.23
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_heading",
-                      "max_length": 7,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.06,
-                        "y": 115.97
-                      },
-                      "size": {
-                        "width": 362.55,
-                        "height": 78
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing eli",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_description",
-                      "max_length": 70,
-                      "min_length": 27
-                    }
-                  ],
-                  "name": "metric_card"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 300,
-                    "height": 196
-                  },
-                  "children": [
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 7.83
-                        },
-                        {
-                          "x": 1,
-                          "y": 169.56
-                        }
-                      ],
-                      "closed": false,
-                      "stroke": {
-                        "color": "#FFFFFF",
-                        "width": 1.33
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.05,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 365.87,
-                        "height": 62.59
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 47.06,
-                        "family": "Montserrat Medium",
-                        "color": "#FD7536",
-                        "bold": true,
-                        "line_height": 1.4,
-                        "letter_spacing": -0.46
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "00%",
-                          "font": {
-                            "size": 47.06,
-                            "family": "Montserrat Medium",
-                            "color": "#FD7536",
-                            "bold": true,
-                            "line_height": 1.4,
-                            "letter_spacing": -0.46
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_value",
-                      "max_length": 14,
-                      "min_length": 2
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.05,
-                        "y": 77.42
-                      },
-                      "size": {
-                        "width": 286.95,
-                        "height": 29.02
-                      },
-                      "font": {
-                        "size": 23.11,
-                        "family": "Montserrat Semi-Bold",
-                        "color": "#FFFFFF",
-                        "bold": true,
-                        "line_height": 1.3,
-                        "letter_spacing": -0.23
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Heading",
-                          "font": {
-                            "size": 23.11,
-                            "family": "Montserrat Semi-Bold",
-                            "color": "#FFFFFF",
-                            "bold": true,
-                            "line_height": 1.3,
-                            "letter_spacing": -0.23
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_heading",
-                      "max_length": 7,
-                      "min_length": 4
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 13.05,
-                        "y": 115.97
-                      },
-                      "size": {
-                        "width": 350.04,
-                        "height": 78
-                      },
-                      "rotation": 0,
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing eli",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_description",
-                      "max_length": 70,
-                      "min_length": 27
-                    }
-                  ],
-                  "name": "metric_card"
                 }
               ],
               "name": "metric_cards",
@@ -11709,304 +9587,6 @@
                         "opacity": 0.24,
                         "width": 1.33
                       }
-                    }
-                  ],
-                  "name": "metric_row_item"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 523.01,
-                    "height": 136
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 409.87,
-                        "height": 55.47
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_description",
-                      "max_length": 78,
-                      "min_length": 39
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 398.05,
-                        "y": 47.42
-                      },
-                      "size": {
-                        "width": 117.45,
-                        "height": 66.71
-                      },
-                      "font": {
-                        "size": 49.78,
-                        "family": "Montserrat",
-                        "color": "#FD7536",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.5
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "00%",
-                          "font": {
-                            "size": 49.78,
-                            "family": "Montserrat",
-                            "color": "#FD7536",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.5
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_value",
-                      "max_length": 3,
-                      "min_length": 2
-                    },
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 135.2
-                        },
-                        {
-                          "x": 523.01,
-                          "y": 136.2
-                        }
-                      ],
-                      "closed": false,
-                      "stroke": {
-                        "color": "#FFFFFF",
-                        "opacity": 0.24,
-                        "width": 1.33
-                      }
-                    }
-                  ],
-                  "name": "metric_row_item"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 523.01,
-                    "height": 136
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 0,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 409.87,
-                        "height": 55.47
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_description",
-                      "max_length": 78,
-                      "min_length": 39
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 398.05,
-                        "y": 47.42
-                      },
-                      "size": {
-                        "width": 117.45,
-                        "height": 66.71
-                      },
-                      "font": {
-                        "size": 49.78,
-                        "family": "Montserrat",
-                        "color": "#FD7536",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.5
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "00%",
-                          "font": {
-                            "size": 49.78,
-                            "family": "Montserrat",
-                            "color": "#FD7536",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.5
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_value",
-                      "max_length": 3,
-                      "min_length": 2
-                    },
-                    {
-                      "type": "vector",
-                      "shape": "polygon",
-                      "points": [
-                        {
-                          "x": 0,
-                          "y": 135.2
-                        },
-                        {
-                          "x": 523.01,
-                          "y": 136.2
-                        }
-                      ],
-                      "closed": false,
-                      "stroke": {
-                        "color": "#FFFFFF",
-                        "opacity": 0.24,
-                        "width": 1.33
-                      }
-                    }
-                  ],
-                  "name": "metric_row_item"
-                },
-                {
-                  "type": "group",
-                  "size": {
-                    "width": 523.01,
-                    "height": 136
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 7.51,
-                        "y": 0
-                      },
-                      "size": {
-                        "width": 409.87,
-                        "height": 55.47
-                      },
-                      "font": {
-                        "size": 19.55,
-                        "family": "Montserrat",
-                        "color": "#E6E6E6",
-                        "line_height": 1.5,
-                        "letter_spacing": -0.19
-                      },
-                      "alignment": {
-                        "horizontal": "left",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-                          "font": {
-                            "size": 19.55,
-                            "family": "Montserrat",
-                            "color": "#E6E6E6",
-                            "line_height": 1.5,
-                            "letter_spacing": -0.19
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_description",
-                      "max_length": 78,
-                      "min_length": 39
-                    },
-                    {
-                      "type": "text",
-                      "position": {
-                        "x": 405.56,
-                        "y": 47.42
-                      },
-                      "size": {
-                        "width": 117.45,
-                        "height": 66.71
-                      },
-                      "font": {
-                        "size": 49.78,
-                        "family": "Montserrat",
-                        "color": "#FD7536",
-                        "line_height": 1.4,
-                        "letter_spacing": -0.5
-                      },
-                      "alignment": {
-                        "horizontal": "center",
-                        "vertical": "top"
-                      },
-                      "runs": [
-                        {
-                          "text": "00%",
-                          "font": {
-                            "size": 49.78,
-                            "family": "Montserrat",
-                            "color": "#FD7536",
-                            "line_height": 1.4,
-                            "letter_spacing": -0.5
-                          }
-                        }
-                      ],
-                      "decorative": false,
-                      "name": "metric_value",
-                      "max_length": 3,
-                      "min_length": 2
                     }
                   ],
                   "name": "metric_row_item"
@@ -12952,160 +10532,111 @@
           },
           "elements": [
             {
-              "type": "vector",
-              "shape": "polygon",
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 543.5,
-                  "y": 0
-                },
-                {
-                  "x": 543.5,
-                  "y": 415.8
-                },
-                {
-                  "x": 0,
-                  "y": 415.8
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#171717",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "chart",
+              "type": "flex",
+              "name": "flx_chart",
               "position": {
-                "x": 52,
-                "y": 12
+                "x": 0,
+                "y": 0
               },
               "size": {
-                "width": 444,
-                "height": 340
+                "width": 1140.3,
+                "height": 415.8
               },
-              "chart_type": "bar",
-              "title": "Heading Bar Graph",
-              "title_color": "#FFFFFF",
-              "colors": [
-                "#983608",
-                "#C74D12",
-                "#E8732A",
-                "#FF9257"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#D9D9D9",
-              "categories": [
-                "Winter",
-                "Spring",
-                "Summer",
-                "Fall"
-              ],
-              "series": [
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 2,
+              "children": [
                 {
-                  "name": "Values",
-                  "values": [
-                    60,
-                    45,
-                    78,
-                    30
+                  "type": "group",
+                  "name": "flx_chart",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "size": {
+                    "width": 543.5,
+                    "height": 415.8
+                  },
+                  "children": [
+                    {
+                      "type": "vector",
+                      "shape": "polygon",
+                      "points": [
+                        {
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "x": 543.5,
+                          "y": 0
+                        },
+                        {
+                          "x": 543.5,
+                          "y": 415.8
+                        },
+                        {
+                          "x": 0,
+                          "y": 415.8
+                        }
+                      ],
+                      "closed": true,
+                      "fill": {
+                        "color": "#171717",
+                        "opacity": 1
+                      }
+                    },
+                    {
+                      "type": "chart",
+                      "position": {
+                        "x": 52,
+                        "y": 12
+                      },
+                      "size": {
+                        "width": 444,
+                        "height": 340
+                      },
+                      "chart_type": "bar",
+                      "title": "Heading Bar Graph",
+                      "title_color": "#FFFFFF",
+                      "colors": [
+                        "#983608",
+                        "#C74D12",
+                        "#E8732A",
+                        "#FF9257"
+                      ],
+                      "x_axis": true,
+                      "y_axis": true,
+                      "axis_color": "#D9D9D9",
+                      "categories": [
+                        "Winter",
+                        "Spring",
+                        "Summer",
+                        "Fall"
+                      ],
+                      "series": [
+                        {
+                          "name": "Values",
+                          "values": [
+                            60,
+                            45,
+                            78,
+                            30
+                          ]
+                        }
+                      ],
+                      "legend": false,
+                      "x_axis_grid": false,
+                      "y_axis_grid": true,
+                      "grid_color": "#343434",
+                      "decorative": false,
+                      "name": "bar_chart_visual"
+                    }
                   ]
                 }
               ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#343434",
-              "decorative": false,
-              "name": "bar_chart_visual"
-            }
-          ]
-        },
-        {
-          "id": "right_chart_card",
-          "description": "Right dark rectangular card mirroring the left, with a replaceable bar chart centered inside the panel.",
-          "position": {
-            "x": 664.9,
-            "y": 246.8
-          },
-          "elements": [
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 542.6,
-                  "y": 0
-                },
-                {
-                  "x": 542.6,
-                  "y": 415.8
-                },
-                {
-                  "x": 0,
-                  "y": 415.8
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#171717",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "chart",
-              "position": {
-                "x": 52,
-                "y": 12
-              },
-              "size": {
-                "width": 444,
-                "height": 340
-              },
-              "chart_type": "bar",
-              "title": "Heading Bar Graph",
-              "title_color": "#FFFFFF",
-              "colors": [
-                "#983608",
-                "#C74D12",
-                "#E8732A",
-                "#FF9257"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#D9D9D9",
-              "categories": [
-                "Winter",
-                "Spring",
-                "Summer",
-                "Fall"
-              ],
-              "series": [
-                {
-                  "name": "Values",
-                  "values": [
-                    60,
-                    45,
-                    78,
-                    30
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#343434",
-              "decorative": false,
-              "name": "bar_chart_visual"
+              "rotation": 0
             }
           ]
         },
@@ -14235,7 +11766,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "items_desc_writer",
               "position": {
                 "x": 0,
                 "y": 0
@@ -14244,12 +11776,11 @@
                 "width": 1136,
                 "height": 266.51
               },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 34.54,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -14404,12 +11935,13 @@
                       "min_length": 6
                     }
                   ],
-                  "name": "card_panel"
+                  "name": "card_panel",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "three_panel_grid",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -14595,8 +12127,7 @@
                 "height": 536
               },
               "direction": "column",
-              "align_items": "flex-start",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 54,
               "children": [
                 {
@@ -16058,7 +13589,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flex_icon_title_desc",
               "position": {
                 "x": 0,
                 "y": 0
@@ -16067,12 +13599,11 @@
                 "width": 1152.71,
                 "height": 576
               },
-              "rotation": 0,
-              "columns": 3,
-              "rows": 1,
+              "direction": "row",
               "gap": 12,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -16201,10 +13732,7 @@
                   ],
                   "name": "grid component_individual_group_title_image_summary"
                 }
-              ],
-              "name": "grid_item_box",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -16344,8 +13872,7 @@
               },
               "direction": "column",
               "wrap": false,
-              "align_items": "flex-start",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 37.39,
               "children": [
                 {
@@ -16504,7 +14031,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flx",
               "position": {
                 "x": -2.27,
                 "y": 0
@@ -16513,12 +14041,11 @@
                 "width": 1251.55,
                 "height": 596.53
               },
-              "rotation": 0,
-              "columns": 2,
-              "rows": 1,
-              "gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 2,
               "children": [
                 {
                   "type": "group",
@@ -16631,10 +14158,7 @@
                   ],
                   "name": "grid_items"
                 }
-              ],
-              "name": "grid_card_heading_image_description",
-              "max_children": 2,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -18035,7 +15559,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flxing",
               "position": {
                 "x": 0,
                 "y": 0
@@ -18044,10 +15569,11 @@
                 "width": 1136,
                 "height": 253.65
               },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 45.17,
-              "row_gap": 0,
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -18240,12 +15766,13 @@
                       "min_length": 2
                     }
                   ],
-                  "name": "review_card"
+                  "name": "review_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "card_grid",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -18569,8 +16096,7 @@
               },
               "direction": "column",
               "wrap": false,
-              "align_items": "stretch",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 37.96,
               "children": [
                 {
@@ -18826,7 +16352,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "fls_list",
               "position": {
                 "x": 0,
                 "y": 0
@@ -18835,13 +16362,11 @@
                 "width": 1136,
                 "height": 381.28
               },
-              "columns": 5,
-              "rows": 1,
-              "gap": 30,
-              "column_gap": 30,
-              "row_gap": 0,
-              "align_items": "flex-start",
-              "justify_items": "flex-start",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 4,
               "children": [
                 {
                   "type": "group",
@@ -18958,12 +16483,13 @@
                       "min_length": 40
                     }
                   ],
-                  "name": "column_card"
+                  "name": "column_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "column_card_grid",
-              "max_children": 5,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -19500,7 +17026,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flx_card_elements",
               "position": {
                 "x": 0,
                 "y": 0
@@ -19509,12 +17036,11 @@
                 "width": 1074.12,
                 "height": 414.21
               },
-              "columns": 3,
-              "rows": 1,
-              "column_gap": 42.86,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "group",
@@ -19697,12 +17223,13 @@
                       "min_item_length": 28
                     }
                   ],
-                  "name": "information_card"
+                  "name": "information_card",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  }
                 }
-              ],
-              "name": "card_grid",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -19875,8 +17402,7 @@
                 "height": 580.04
               },
               "direction": "column",
-              "align_items": "stretch",
-              "justify_content": "flex-start",
+              "justify_content": "center",
               "gap": 29.34,
               "children": [
                 {
@@ -22100,7 +19626,8 @@
           },
           "elements": [
             {
-              "type": "grid",
+              "type": "flex",
+              "name": "flx_card_with_ev",
               "position": {
                 "x": 0,
                 "y": 0
@@ -22109,13 +19636,11 @@
                 "width": 1136,
                 "height": 253.65
               },
-              "columns": 3,
-              "rows": 1,
-              "gap": 45.17,
-              "column_gap": 45.17,
-              "row_gap": 0,
-              "align_items": "stretch",
-              "justify_items": "stretch",
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 3,
               "children": [
                 {
                   "type": "container",
@@ -22229,12 +19754,13 @@
                     "name": "card_content_stack",
                     "max_children": 2,
                     "min_children": 2
+                  },
+                  "position": {
+                    "x": 0,
+                    "y": 0
                   }
                 }
-              ],
-              "name": "metric_card_grid",
-              "max_children": 3,
-              "min_children": 1
+              ]
             }
           ]
         }
@@ -23385,160 +20911,111 @@
           },
           "elements": [
             {
-              "type": "vector",
-              "shape": "polygon",
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 543.5,
-                  "y": 0
-                },
-                {
-                  "x": 543.5,
-                  "y": 415.8
-                },
-                {
-                  "x": 0,
-                  "y": 415.8
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#171717",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "chart",
+              "type": "flex",
+              "name": "flx_chart",
               "position": {
-                "x": 52,
-                "y": 12
+                "x": 0,
+                "y": 0
               },
               "size": {
-                "width": 444,
-                "height": 340
+                "width": 1140.3,
+                "height": 415.8
               },
-              "chart_type": "bar",
-              "title": "Heading Bar Graph",
-              "title_color": "#FFFFFF",
-              "colors": [
-                "#983608",
-                "#C74D12",
-                "#E8732A",
-                "#FF9257"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#D9D9D9",
-              "categories": [
-                "Winter",
-                "Spring",
-                "Summer",
-                "Fall"
-              ],
-              "series": [
+              "direction": "row",
+              "gap": 12,
+              "justify_content": "center",
+              "min_children": 1,
+              "max_children": 2,
+              "children": [
                 {
-                  "name": "Values",
-                  "values": [
-                    60,
-                    45,
-                    78,
-                    30
+                  "type": "group",
+                  "name": "flx_chart",
+                  "position": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "size": {
+                    "width": 543.5,
+                    "height": 415.8
+                  },
+                  "children": [
+                    {
+                      "type": "vector",
+                      "shape": "polygon",
+                      "points": [
+                        {
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "x": 543.5,
+                          "y": 0
+                        },
+                        {
+                          "x": 543.5,
+                          "y": 415.8
+                        },
+                        {
+                          "x": 0,
+                          "y": 415.8
+                        }
+                      ],
+                      "closed": true,
+                      "fill": {
+                        "color": "#171717",
+                        "opacity": 1
+                      }
+                    },
+                    {
+                      "type": "chart",
+                      "position": {
+                        "x": 52,
+                        "y": 12
+                      },
+                      "size": {
+                        "width": 444,
+                        "height": 340
+                      },
+                      "chart_type": "bar",
+                      "title": "Heading Bar Graph",
+                      "title_color": "#FFFFFF",
+                      "colors": [
+                        "#983608",
+                        "#C74D12",
+                        "#E8732A",
+                        "#FF9257"
+                      ],
+                      "x_axis": true,
+                      "y_axis": true,
+                      "axis_color": "#D9D9D9",
+                      "categories": [
+                        "Winter",
+                        "Spring",
+                        "Summer",
+                        "Fall"
+                      ],
+                      "series": [
+                        {
+                          "name": "Values",
+                          "values": [
+                            60,
+                            45,
+                            78,
+                            30
+                          ]
+                        }
+                      ],
+                      "legend": false,
+                      "x_axis_grid": false,
+                      "y_axis_grid": true,
+                      "grid_color": "#343434",
+                      "decorative": false,
+                      "name": "bar_chart_visual"
+                    }
                   ]
                 }
               ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#343434",
-              "decorative": false,
-              "name": "bar_chart_visual"
-            }
-          ]
-        },
-        {
-          "id": "right_chart_card",
-          "description": "Right dark rectangular card mirroring the left, with a replaceable bar chart centered inside the panel.",
-          "position": {
-            "x": 664.9,
-            "y": 246.8
-          },
-          "elements": [
-            {
-              "type": "vector",
-              "shape": "polygon",
-              "points": [
-                {
-                  "x": 0,
-                  "y": 0
-                },
-                {
-                  "x": 542.6,
-                  "y": 0
-                },
-                {
-                  "x": 542.6,
-                  "y": 415.8
-                },
-                {
-                  "x": 0,
-                  "y": 415.8
-                }
-              ],
-              "closed": true,
-              "fill": {
-                "color": "#171717",
-                "opacity": 1
-              }
-            },
-            {
-              "type": "chart",
-              "position": {
-                "x": 52,
-                "y": 12
-              },
-              "size": {
-                "width": 444,
-                "height": 340
-              },
-              "chart_type": "bar",
-              "title": "Heading Bar Graph",
-              "title_color": "#FFFFFF",
-              "colors": [
-                "#983608",
-                "#C74D12",
-                "#E8732A",
-                "#FF9257"
-              ],
-              "x_axis": true,
-              "y_axis": true,
-              "axis_color": "#D9D9D9",
-              "categories": [
-                "Winter",
-                "Spring",
-                "Summer",
-                "Fall"
-              ],
-              "series": [
-                {
-                  "name": "Values",
-                  "values": [
-                    60,
-                    45,
-                    78,
-                    30
-                  ]
-                }
-              ],
-              "legend": false,
-              "x_axis_grid": false,
-              "y_axis_grid": true,
-              "grid_color": "#343434",
-              "decorative": false,
-              "name": "bar_chart_visual"
+              "rotation": 0
             }
           ]
         }

@@ -91,7 +91,7 @@ const CROP_PANEL_MARGIN = 10;
 const IMAGE_TOOLBAR_HEIGHT = 44;
 const IMAGE_TOOLBAR_TOP_OFFSET = 64;
 const CROP_PANEL_TOOLBAR_GAP = 8;
-const MIN_CROP_SCALE = 1;
+const MIN_CROP_SCALE = 0.1;
 const MAX_CROP_SCALE = 6;
 const CROP_HANDLE_SIZE = 12;
 const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
@@ -116,7 +116,7 @@ function normalizeCropDraft(draft: CropDraft): CropDraft {
 }
 
 function clampCropScale(value: number | null | undefined) {
-  return clampNumber(value ?? MIN_CROP_SCALE, MIN_CROP_SCALE, MAX_CROP_SCALE);
+  return clampNumber(value ?? 1, MIN_CROP_SCALE, MAX_CROP_SCALE);
 }
 
 function sameCropDraft(a: CropDraft, b: CropDraft) {
@@ -186,13 +186,13 @@ function cropImageFrameForDraft(
   draft: CropDraft,
 ): CropImageFrame {
   const baseSize = baseCoverImageSize(frame, naturalSize);
-  const width = Math.max(frame.width, baseSize.width * draft.scale);
-  const height = Math.max(frame.height, baseSize.height * draft.scale);
-  const overflowX = Math.max(0, width - frame.width);
-  const overflowY = Math.max(0, height - frame.height);
+  const width = baseSize.width * draft.scale;
+  const height = baseSize.height * draft.scale;
+  const horizontalSpace = frame.width - width;
+  const verticalSpace = frame.height - height;
   return {
-    left: frame.left - overflowX * (draft.x / 100),
-    top: frame.top - overflowY * (draft.y / 100),
+    left: frame.left + horizontalSpace * (draft.x / 100),
+    top: frame.top + verticalSpace * (draft.y / 100),
     width,
     height,
   };
@@ -202,12 +202,28 @@ function constrainCropImageFrame(
   cropFrame: CropFrame,
   imageFrame: CropImageFrame,
 ): CropImageFrame {
-  const minLeft = cropFrame.left + cropFrame.width - imageFrame.width;
-  const minTop = cropFrame.top + cropFrame.height - imageFrame.height;
+  const horizontalRange = cropFrame.width - imageFrame.width;
+  const verticalRange = cropFrame.height - imageFrame.height;
+  const minLeft =
+    horizontalRange >= 0
+      ? cropFrame.left
+      : cropFrame.left + horizontalRange;
+  const maxLeft =
+    horizontalRange >= 0
+      ? cropFrame.left + horizontalRange
+      : cropFrame.left;
+  const minTop =
+    verticalRange >= 0
+      ? cropFrame.top
+      : cropFrame.top + verticalRange;
+  const maxTop =
+    verticalRange >= 0
+      ? cropFrame.top + verticalRange
+      : cropFrame.top;
   return {
     ...imageFrame,
-    left: clampNumber(imageFrame.left, minLeft, cropFrame.left),
-    top: clampNumber(imageFrame.top, minTop, cropFrame.top),
+    left: clampNumber(imageFrame.left, minLeft, maxLeft),
+    top: clampNumber(imageFrame.top, minTop, maxTop),
   };
 }
 
@@ -218,9 +234,21 @@ function cropDraftFromImageFrame(
 ): CropDraft {
   const overflowX = Math.max(0, imageFrame.width - cropFrame.width);
   const overflowY = Math.max(0, imageFrame.height - cropFrame.height);
+  const availableX = Math.max(0, cropFrame.width - imageFrame.width);
+  const availableY = Math.max(0, cropFrame.height - imageFrame.height);
   return normalizeCropDraft({
-    x: overflowX <= 0 ? 50 : ((cropFrame.left - imageFrame.left) / overflowX) * 100,
-    y: overflowY <= 0 ? 50 : ((cropFrame.top - imageFrame.top) / overflowY) * 100,
+    x:
+      overflowX > 0
+        ? ((cropFrame.left - imageFrame.left) / overflowX) * 100
+        : availableX > 0
+          ? ((imageFrame.left - cropFrame.left) / availableX) * 100
+          : 50,
+    y:
+      overflowY > 0
+        ? ((cropFrame.top - imageFrame.top) / overflowY) * 100
+        : availableY > 0
+          ? ((imageFrame.top - cropFrame.top) / availableY) * 100
+          : 50,
     scale,
   });
 }
@@ -258,12 +286,14 @@ export function ImageToolbar({
   index,
   scale,
   onChange,
+  onCropModeChange,
 }: {
   anchorBox?: FloatingToolbarBox | null;
   element: ImageSlideElement;
   index: number;
   scale: number;
   onChange: (index: number, element: ImageSlideElement) => void;
+  onCropModeChange?: (active: boolean) => void;
 }) {
   const [openPanel, setOpenPanel] = useState<ImagePanel>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
@@ -327,6 +357,14 @@ export function ImageToolbar({
   }, [cropScale, focusX, focusY, openPanel]);
 
   useEffect(() => {
+    const active = openPanel === "crop";
+    onCropModeChange?.(active);
+    return () => {
+      if (active) onCropModeChange?.(false);
+    };
+  }, [onCropModeChange, openPanel]);
+
+  useEffect(() => {
     if (!imageSource || typeof window === "undefined") {
       setImageNaturalSize(null);
       return;
@@ -379,7 +417,8 @@ export function ImageToolbar({
       fit: "cover",
       focus_x: draft.x,
       focus_y: draft.y,
-      crop_scale: draft.scale > MIN_CROP_SCALE + 0.01 ? draft.scale : null,
+      crop_scale:
+        Math.abs(draft.scale - 1) > 0.01 ? draft.scale : null,
     });
   };
 
@@ -496,6 +535,7 @@ export function ImageToolbar({
       if (!url) throw new Error("Upload did not return an image URL.");
       update({
         data: url,
+        name: file.name,
         focus_x: 50,
         focus_y: 50,
         crop_scale: null,

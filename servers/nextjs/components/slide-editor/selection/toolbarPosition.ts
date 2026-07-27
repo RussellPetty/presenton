@@ -28,6 +28,7 @@ export type TemplateV2ToolbarViewportBounds = {
 const STAGE_WIDTH = 1280;
 const STAGE_HEIGHT = 720;
 const COMPACT_SELECTION_TOOLBAR_WIDTH = 420;
+const MULTI_SELECTION_TOOLBAR_WIDTH = 300;
 const CONTAINER_SELECTION_TOOLBAR_WIDTH = 760;
 const INFOGRAPHIC_SELECTION_TOOLBAR_WIDTH = 470;
 const TOOLBAR_HEIGHT = 40;
@@ -47,7 +48,8 @@ export function getTemplateV2SelectionToolbarAnchorBox({
   selection: TemplateV2ToolbarSelection;
   tableTarget?: TemplateV2TableSelectionToolbarTarget | null;
 }) {
-  return selection?.kind === "component"
+  return selection?.kind === "component" ||
+    selection?.kind === "multi-component"
     ? selectedBox
     : layoutTarget?.box ?? chartTarget?.box ?? tableTarget?.box ?? null;
 }
@@ -71,6 +73,7 @@ export function hasTemplateV2SelectionToolbar({
     isEditMode &&
       anchorBox &&
       (selection?.kind === "component" ||
+        selection?.kind === "multi-component" ||
         layoutTarget ||
         chartTarget ||
         tableTarget),
@@ -81,18 +84,23 @@ export function getTemplateV2SelectionToolbarPosition({
   anchorBox,
   layoutTarget,
   root,
+  selection,
 }: {
   anchorBox: TemplateV2ToolbarBox | null;
   chartTarget?: TemplateV2ChartSelectionToolbarTarget | null;
   layoutTarget: TemplateV2SelectionToolbarTarget | null;
   root: HTMLElement | null;
+  selection?: TemplateV2ToolbarSelection;
   tableTarget?: TemplateV2TableSelectionToolbarTarget | null;
 }) {
   if (!anchorBox) return null;
   return viewportToolbarPosition({
     root,
     anchorBox,
-    toolbarWidth: toolbarWidthForTarget(layoutTarget),
+    toolbarWidth:
+      selection?.kind === "multi-component"
+        ? MULTI_SELECTION_TOOLBAR_WIDTH
+        : toolbarWidthForTarget(layoutTarget),
   });
 }
 

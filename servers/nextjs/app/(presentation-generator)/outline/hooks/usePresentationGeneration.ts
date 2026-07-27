@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
 import { clearPresentationData } from "@/store/slices/presentationGeneration";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
-import { LoadingState, TABS } from "../types/index";
+import { LoadingState } from "../types/index";
 
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
@@ -12,6 +12,7 @@ import {
   limitOutlines,
   MAX_NUMBER_OF_SLIDES,
 } from "@/utils/presentationLimits";
+import { store } from "@/store/store";
 
 const DEFAULT_LOADING_STATE: LoadingState = {
   message: "",
@@ -22,9 +23,7 @@ const DEFAULT_LOADING_STATE: LoadingState = {
 
 export const usePresentationGeneration = (
   presentationId: string | null,
-  outlines: { content: string }[] | null,
-  selectedTemplateId: string | null,
-  setActiveTab: (tab: string) => void
+  selectedTemplateId: string | null
 ) => {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -33,33 +32,36 @@ export const usePresentationGeneration = (
     DEFAULT_LOADING_STATE
   );
 
-  const validateInputs = useCallback(() => {
-    if (!outlines || outlines.length === 0) {
-      notify.warning(
-        "Outlines not ready",
-        "Please wait for your outlines to finish generating before continuing."
-      );
-      return false;
-    }
+  const validateInputs = useCallback(
+    (currentOutlines: { content: string }[] | null) => {
+      if (!currentOutlines || currentOutlines.length === 0) {
+        notify.warning(
+          "Outlines not ready",
+          "Please wait for your outlines to finish generating before continuing."
+        );
+        return false;
+      }
 
-    if (!selectedTemplateId) {
-      notify.warning(
-        "Template not selected",
-        "Choose a template before generating your presentation."
-      );
-      return false;
-    }
+      if (!selectedTemplateId) {
+        notify.warning(
+          "Template not selected",
+          "Choose a template before generating your presentation."
+        );
+        return false;
+      }
 
-    if (outlines.length > MAX_NUMBER_OF_SLIDES) {
-      notify.warning(
-        "Slide limit reached",
-        `Use ${MAX_NUMBER_OF_SLIDES} or fewer outline slides before generating.`
-      );
-      return false;
-    }
+      if (currentOutlines.length > MAX_NUMBER_OF_SLIDES) {
+        notify.warning(
+          "Slide limit reached",
+          `Use ${MAX_NUMBER_OF_SLIDES} or fewer outline slides before generating.`
+        );
+        return false;
+      }
 
-    return true;
-  }, [outlines, selectedTemplateId]);
+      return true;
+    },
+    [selectedTemplateId]
+  );
 
   const clearTheme = () => {
     const element = document.getElementById("presentation-page");
@@ -83,8 +85,9 @@ export const usePresentationGeneration = (
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!validateInputs()) return;
-    const preparedOutlines = limitOutlines(outlines);
+    const latestOutlines = store.getState().presentationGeneration.outlines;
+    if (!validateInputs(latestOutlines)) return;
+    const preparedOutlines = limitOutlines(latestOutlines);
 
     trackEvent(MixpanelEvent.Outline_Presentation_Generation_Started, {
       pathname,
@@ -101,14 +104,6 @@ export const usePresentationGeneration = (
     });
 
     try {
-
-      setLoadingState({
-        message: "Generating presentation data...",
-        isLoading: true,
-        showProgress: true,
-        duration: 30,
-      });
-
       const response = await PresentationGenerationApi.presentationPrepare({
         presentation_id: presentationId,
         outlines: preparedOutlines,
@@ -127,8 +122,6 @@ export const usePresentationGeneration = (
           `/presentation?id=${presentationId}&stream=true&type=standard`
         );
       }
-
-
     } catch (error: any) {
       console.error("Error In Presentation Generation(prepare).", error);
       trackEvent(MixpanelEvent.TemplateV2_Prepare_Failed, {
@@ -150,12 +143,10 @@ export const usePresentationGeneration = (
   }, [
     validateInputs,
     presentationId,
-    outlines,
     dispatch,
     router,
     selectedTemplateId,
     pathname,
-    setActiveTab,
   ]);
 
   return { loadingState, handleSubmit };

@@ -64,6 +64,7 @@ import {
 import Chat from "./Chat";
 import TemplateService from "../../services/api/template";
 import { TemplateV2HtmlSlidePreview } from "../../components/TemplateV2HtmlSlidePreview";
+import { isTemplateFreePresentation } from "../../_shared/blank-slide";
 
 type PresentationActionsProps = React.ComponentProps<typeof Chat> & {
   editingDisabled?: boolean;
@@ -85,7 +86,7 @@ type ActionItem = {
   icon: LucideIcon;
 };
 
-type PaletteItem = {
+export type PaletteItem = {
   id?: string;
   label: string;
   icon: LucideIcon;
@@ -93,7 +94,7 @@ type PaletteItem = {
 
 type UnknownRecord = Record<string, unknown>;
 
-type TemplateBlock = {
+export type TemplateBlock = {
   key: string;
   title: string;
   description: string;
@@ -177,7 +178,7 @@ const insertActions: ActionItem[] = [
   { id: "elements", label: "Elements", icon: Shapes },
 ];
 
-const textItems = [
+export const textItems = [
   { id: "title-block", label: "Title Block", icon: AlignCenter },
   { id: "subtitle", label: "Subtitle", icon: AlignCenter },
   { id: "bullet-list", label: "Bullet List", icon: List },
@@ -187,7 +188,7 @@ const textItems = [
   { id: "body-text", label: "Body Text", icon: Columns2 },
 ] satisfies PaletteItem[];
 
-const chartTypeItems = [
+export const chartTypeItems = [
   { id: "bar", label: "Bar Chart", icon: BarChart3 },
   { id: "horizontal_bar", label: "Horizontal Bar", icon: BarChart3 },
   { id: "stacked_bar", label: "Stacked Bar", icon: BarChart3 },
@@ -205,22 +206,22 @@ const chartTypeItems = [
   { id: "polar_area", label: "Polar Area", icon: PieChart },
 ] satisfies PaletteItem[];
 
-const infographicItems = [
+export const infographicItems = [
   { id: "progress_bar", label: "Progress Bar", icon: ChartNoAxesGantt },
   { id: "gauge", label: "Gauge Chart", icon: Gauge },
 ] satisfies PaletteItem[];
 
-const tableTypeItems = [
+export const tableTypeItems = [
   { id: "simple-table", label: "Simple Table", icon: Table2 },
 ] satisfies PaletteItem[];
 
-const imageItems = [
+export const imageItems = [
   { id: "image", label: "Image", icon: Image },
   { id: "image-text", label: "Image + Text", icon: Columns2 },
   { id: "image-grid", label: "Image Grid", icon: Grid3X3 },
 ] satisfies PaletteItem[];
 
-const elementItems = [
+export const elementItems = [
   { id: "vector-rectangle", label: "Rectangle", icon: RectangleHorizontal },
   { id: "vector-circle", label: "Circle", icon: Circle },
   { id: "vector-ellipse", label: "Ellipse", icon: Circle },
@@ -337,7 +338,7 @@ const PaletteGrid = ({
   </div>
 );
 
-const InsertPanel = ({
+export const InsertPanel = ({
   disabled = false,
   title,
   groups,
@@ -853,7 +854,7 @@ function BlockGroupCard({
   );
 }
 
-const BlocksPanel = ({
+export const BlocksPanel = ({
   disabled = false,
   presentationId,
   presentationData,
@@ -1072,11 +1073,15 @@ function BlocksIcon() {
 
 function PrimaryActionButton({
   active,
+  disabled = false,
+  disabledReason,
   icon,
   label,
   onClick,
 }: {
   active: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
@@ -1084,7 +1089,13 @@ function PrimaryActionButton({
   return (
     <button
       type="button"
-      className="flex flex-col items-center justify-center"
+      disabled={disabled}
+      title={disabled ? disabledReason : undefined}
+      aria-label={disabled && disabledReason ? `${label}: ${disabledReason}` : label}
+      className={cn(
+        "flex flex-col items-center justify-center",
+        disabled && "cursor-not-allowed opacity-40",
+      )}
       onClick={onClick}
     >
       <p
@@ -1105,9 +1116,11 @@ function PrimaryActionButton({
 
 function ActionsSidebar({
   activeAction,
+  blocksUnavailable = false,
   onActionSelect,
 }: {
   activeAction: ActionId;
+  blocksUnavailable?: boolean;
   onActionSelect: (action: ActionId) => void;
 }) {
   return (
@@ -1127,6 +1140,8 @@ function ActionsSidebar({
         <div className="h-px w-[30px] bg-[#EDEEEF]" />
         <PrimaryActionButton
           active={activeAction === "blocks"}
+          disabled={blocksUnavailable}
+          disabledReason="Blocks require a presentation template"
           icon={<BlocksIcon />}
           label="Blocks"
           onClick={() => onActionSelect("blocks")}
@@ -1153,6 +1168,7 @@ function ActionsSidebar({
 
 function ActionsPanel({
   activeAction,
+  blocksUnavailable = false,
   chatProps,
   editingDisabled = false,
   onBlockSelect,
@@ -1165,6 +1181,7 @@ function ActionsPanel({
   presentationId,
 }: {
   activeAction: ActionId;
+  blocksUnavailable?: boolean;
   chatProps: Omit<PresentationActionsProps, "editingDisabled" | "presentationData">;
   editingDisabled?: boolean;
   onBlockSelect: (block: TemplateBlock) => void;
@@ -1186,7 +1203,7 @@ function ActionsPanel({
         />
       </div>
 
-      {activeAction === "blocks" && (
+      {!blocksUnavailable && activeAction === "blocks" && (
         <BlocksPanel
           disabled={editingDisabled}
           presentationId={presentationId}
@@ -1265,6 +1282,7 @@ function templateV2TargetKey(
 
 const PresentationActions = (props: PresentationActionsProps) => {
   const { editingDisabled = false, presentationData, ...chatProps } = props;
+  const blocksUnavailable = isTemplateFreePresentation(presentationData);
   const [{ activeAction }, dispatchUiState] = useReducer(
     presentationActionsUiReducer,
     initialPresentationActionsUiState,
@@ -1298,6 +1316,12 @@ const PresentationActions = (props: PresentationActionsProps) => {
     chatProps.currentSlide === hiddenSlideReference
       ? undefined
       : chatProps.currentSlide;
+
+  useEffect(() => {
+    if (blocksUnavailable && activeAction === "blocks") {
+      dispatchUiState({ type: "selectAction", activeAction: "ai" });
+    }
+  }, [activeAction, blocksUnavailable]);
 
   useEffect(() => {
     setHiddenSlideReference(null);
@@ -1454,6 +1478,8 @@ const PresentationActions = (props: PresentationActionsProps) => {
   };
 
   const handleBlockSelect = (block: TemplateBlock) => {
+    if (blocksUnavailable) return;
+
     if (
       isRecord(block.raw) &&
       hasUsableComponentSize(block.raw) &&
@@ -1496,6 +1522,10 @@ const PresentationActions = (props: PresentationActionsProps) => {
   };
 
   const handleActionSelect = (activeAction: ActionId) => {
+    if (blocksUnavailable && activeAction === "blocks") {
+      return;
+    }
+
     trackEvent(MixpanelEvent.Editor_Side_Panel_Tab_Selected, {
       presentation_id: props.presentationId,
       tab: activeAction,
@@ -1511,10 +1541,12 @@ const PresentationActions = (props: PresentationActionsProps) => {
     >
       <ActionsSidebar
         activeAction={activeAction}
+        blocksUnavailable={blocksUnavailable}
         onActionSelect={handleActionSelect}
       />
       <ActionsPanel
         activeAction={activeAction}
+        blocksUnavailable={blocksUnavailable}
         chatProps={{
           ...chatProps,
           currentSlide: chatSlide,
