@@ -106,10 +106,37 @@ logger = logging.getLogger(__name__)
 PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
 ASYNC_TASK_TYPE_PRESENTATION_GENERATE = "presentation.generate"
 CUSTOM_TEMPLATE_PREFIX = "custom-"
+BLANK_PRESENTATION_LAYOUT_GROUP = "blank"
+BLANK_PRESENTATION_LAYOUT_ID = "__blank_slide__"
+BLANK_PRESENTATION_SLIDE_UI: dict[str, Any] = {
+    "id": BLANK_PRESENTATION_LAYOUT_ID,
+    "description": "Empty slide.",
+    "background": "#FFFFFF",
+    "components": [],
+    "elements": [
+        {
+            "type": "vector",
+            "shape": "polygon",
+            "points": [
+                {"x": 0, "y": 0},
+                {"x": 1280, "y": 0},
+                {"x": 1280, "y": 720},
+                {"x": 0, "y": 720},
+            ],
+            "closed": True,
+            "fill": {"color": "#FFFFFF"},
+            "decorative": True,
+        }
+    ],
+}
 
 
 class PresentationPrepareResponse(BaseModel):
     presentation_id: uuid.UUID
+
+
+def _blank_presentation_slide_ui() -> dict[str, Any]:
+    return copy.deepcopy(BLANK_PRESENTATION_SLIDE_UI)
 
 
 def _presentation_task_progress_data(
@@ -1426,6 +1453,53 @@ async def create_presentation(
     )
 
     return presentation
+
+
+@PRESENTATION_ROUTER.post(
+    "/create/blank",
+    response_model=PresentationWithSlides,
+    status_code=201,
+)
+async def create_blank_presentation(
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    presentation_id = uuid.uuid4()
+    presentation = PresentationModel(
+        id=presentation_id,
+        version=PresentationVersion.V2_STANDARD,
+        content="",
+        n_slides=1,
+        language="English",
+        title="Untitled Presentation",
+        layout=None,
+        fonts=None,
+        include_title_slide=False,
+    )
+    slide = SlideModel(
+        presentation=presentation_id,
+        layout_group=BLANK_PRESENTATION_LAYOUT_GROUP,
+        layout=BLANK_PRESENTATION_LAYOUT_ID,
+        index=0,
+        content={},
+        speaker_note="",
+        ui=_blank_presentation_slide_ui(),
+    )
+
+    sql_session.add(presentation)
+    sql_session.add(slide)
+    try:
+        await sql_session.commit()
+    except Exception:
+        await sql_session.rollback()
+        raise
+
+    await sql_session.refresh(presentation)
+    await sql_session.refresh(slide)
+
+    return PresentationWithSlides(
+        **_presentation_response_data(presentation),
+        slides=[slide],
+    )
 
 
 @PRESENTATION_ROUTER.post("/prepare", response_model=PresentationPrepareResponse)

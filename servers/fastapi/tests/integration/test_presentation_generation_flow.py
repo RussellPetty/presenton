@@ -297,6 +297,101 @@ def test_create_presentation_stores_current_version(fake_async_session):
     assert fake_async_session.commit_count == 1
 
 
+def test_create_blank_presentation_is_template_free_and_editable():
+    class BlankPresentationSession(FakeAsyncSession):
+        async def refresh(self, obj):
+            now = datetime.now()
+            if isinstance(obj, PresentationModel):
+                obj.created_at = obj.created_at or now
+                obj.updated_at = obj.updated_at or now
+
+    session = BlankPresentationSession()
+
+    response = _run(
+        presentation_endpoint.create_blank_presentation(sql_session=session)
+    )
+
+    assert session.commit_count == 1
+    assert len(session.added) == 2
+
+    presentation = next(
+        item for item in session.added if isinstance(item, PresentationModel)
+    )
+    slide = next(item for item in session.added if isinstance(item, SlideModel))
+
+    assert presentation.version == PresentationVersion.V2_STANDARD
+    assert presentation.content == ""
+    assert presentation.title == "Untitled Presentation"
+    assert presentation.n_slides == 1
+    assert presentation.layout is None
+    assert presentation.fonts is None
+    assert presentation.include_title_slide is False
+
+    assert slide.presentation == presentation.id
+    assert slide.index == 0
+    assert (
+        slide.layout_group
+        == presentation_endpoint.BLANK_PRESENTATION_LAYOUT_GROUP
+    )
+    assert slide.layout == presentation_endpoint.BLANK_PRESENTATION_LAYOUT_ID
+    assert slide.content == {}
+    assert slide.ui == presentation_endpoint._blank_presentation_slide_ui()
+
+    assert response.id == presentation.id
+    assert response.version == PresentationVersion.V2_STANDARD
+    assert response.n_slides == 1
+    assert len(response.slides) == 1
+    assert response.slides[0].id == slide.id
+
+
+def test_blank_presentation_slide_ui_returns_an_independent_copy():
+    first = presentation_endpoint._blank_presentation_slide_ui()
+    second = presentation_endpoint._blank_presentation_slide_ui()
+
+    first["elements"][0]["fill"]["color"] = "#000000"
+
+    assert second["elements"][0]["fill"]["color"] == "#FFFFFF"
+
+
+def test_create_blank_presentation_rolls_back_failed_transaction():
+    class FailingCommitSession(FakeAsyncSession):
+        def __init__(self):
+            super().__init__()
+            self.rollback_count = 0
+
+        async def commit(self):
+            self.commit_count += 1
+            raise RuntimeError("database unavailable")
+
+        async def rollback(self):
+            self.rollback_count += 1
+
+    session = FailingCommitSession()
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        _run(
+            presentation_endpoint.create_blank_presentation(
+                sql_session=session
+            )
+        )
+
+    assert session.commit_count == 1
+    assert session.rollback_count == 1
+    assert len(session.added) == 2
+
+
+def test_blank_presentation_route_is_additive():
+    routes = {
+        (route.path, method)
+        for route in presentation_endpoint.PRESENTATION_ROUTER.routes
+        for method in getattr(route, "methods", set())
+    }
+
+    assert ("/presentation/create/blank", "POST") in routes
+    assert ("/presentation/create", "POST") in routes
+    assert ("/presentation/prepare", "POST") in routes
+
+
 def test_check_api_request_accepts_custom_prefixed_template_id():
     template_id = "general-template"
     template = TemplateV2(
