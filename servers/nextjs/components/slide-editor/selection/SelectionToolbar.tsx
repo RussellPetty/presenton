@@ -45,6 +45,7 @@ type TemplateV2SelectionToolbarProps = {
   onChartChange: (element: ChartSlideElement) => void;
   onChartEdit: () => void;
   onEditorChange: (element: SlideElement) => void;
+  onImageCropModeChange: (active: boolean) => void;
   onDeleteSelection: () => void;
   onDuplicateSelection: () => void;
   onLayoutChange: (changes: Record<string, unknown>) => void;
@@ -74,6 +75,7 @@ export function TemplateV2SelectionToolbar({
   onChartChange,
   onChartEdit,
   onEditorChange,
+  onImageCropModeChange,
   onDeleteSelection,
   onDuplicateSelection,
   onLayoutChange,
@@ -108,6 +110,7 @@ export function TemplateV2SelectionToolbar({
         selectedTableCell={null}
         templateFonts={templateFonts}
         onChange={(_index, element) => onEditorChange(element)}
+        onImageCropModeChange={onImageCropModeChange}
         onEditImage={() => undefined}
       />
     );
