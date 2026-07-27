@@ -35,9 +35,9 @@ function ConfigurationLoadingScreen() {
           src="/figma-assets/configuration-status-icon.svg"
           width={14}
         />
-        <p className="whitespace-nowrap font-manrope text-[14px] font-medium leading-normal tracking-[0.3px] text-[#6172F3]">
+        {/* <p className="whitespace-nowrap font-manrope text-[14px] font-medium leading-normal tracking-[0.3px] text-[#6172F3]">
           Checking &amp; configuring application assets.
-        </p>
+        </p> */}
       </div>
     </main>
   );
