@@ -31,7 +31,7 @@ export function TemplateThumbnailPreview({
       <div
         className={cn(
           "relative z-10 flex w-full items-center justify-center rounded-[12px] border border-[#EDEEEF] bg-white/80",
-          "h-full"
+          selectionPage ? "h-full" : "aspect-video"
         )}
       >
         <div className="h-10 w-16 rounded-md border border-dashed border-[#C9CDD8] bg-[#F7F8FB]" />
@@ -43,14 +43,14 @@ export function TemplateThumbnailPreview({
     <div
       className={cn(
         "relative z-10 flex w-full items-center justify-center",
-        "h-full"
+        selectionPage ? "h-full" : "aspect-video"
       )}
     >
       <div
         aria-label={`${templateName} thumbnail`}
         className={cn(
-          "h-full w-full rounded-[12px] border border-[#EDEEEF] bg-white bg-center bg-no-repeat",
-          selectionPage ? "bg-contain" : "bg-cover shadow-sm"
+          "h-full w-full rounded-[12px] border border-[#EDEEEF] bg-white bg-contain bg-center bg-no-repeat",
+          !selectionPage && "shadow-sm"
         )}
         role="img"
         style={{ backgroundImage: `url(${JSON.stringify(resolvedThumbnail)})` }}

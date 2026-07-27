@@ -41,35 +41,42 @@ const CreateCustomTemplate = ({
         >
             <div
               className={cn(
-                "relative flex items-center justify-center",
-                selectionPage ? "h-[249px] bg-[#F8FBFB]" : "h-[215px]"
+                "relative bg-[#F8FBFB] p-5",
+                selectionPage && "h-[249px]"
               )}
             >
                 <img src="/card_bg.svg" alt="" className="absolute left-0 top-0 z-[1] h-full w-full object-cover" />
                 <div
                   className={cn(
-                    "relative z-[4] flex items-center justify-center rounded-full bg-[#7A5AF8]",
-                    selectionPage ? "h-12 w-12" : "h-[36px] w-[36px]"
+                    "relative z-[4] flex w-full items-center justify-center",
+                    selectionPage ? "h-full" : "aspect-video"
                   )}
-                    style={{
-                        background: "linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), #FFF"
-                    }}
                 >
                     <div
                       className={cn(
-                        "flex items-center justify-center rounded-full bg-white",
-                        selectionPage ? "h-9 w-9" : "h-[26px] w-[26px]"
+                        "flex items-center justify-center rounded-full bg-[#7A5AF8]",
+                        selectionPage ? "h-12 w-12" : "h-[36px] w-[36px]"
                       )}
+                      style={{
+                          background: "linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), #FFF"
+                      }}
                     >
-                        <Plus
-                          strokeWidth={selectionPage ? 3 : 2}
+                        <div
                           className={cn(
-                            "text-[#A2A0A1]",
-                            selectionPage
-                              ? "h-[22.395px] w-[22.395px]"
-                              : "h-4 w-4"
+                            "flex items-center justify-center rounded-full bg-white",
+                            selectionPage ? "h-9 w-9" : "h-[26px] w-[26px]"
                           )}
-                        />
+                        >
+                            <Plus
+                              strokeWidth={selectionPage ? 3 : 2}
+                              className={cn(
+                                "text-[#A2A0A1]",
+                                selectionPage
+                                  ? "h-[22.395px] w-[22.395px]"
+                                  : "h-4 w-4"
+                              )}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

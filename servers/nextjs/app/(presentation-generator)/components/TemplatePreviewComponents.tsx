@@ -13,8 +13,8 @@ export function TemplatePreviewStage({
   return (
     <div
       className={cn(
-        "relative overflow-hidden",
-        selectionPage ? "h-[249px] px-[34px] py-5" : "h-[230px] p-5"
+        "relative overflow-hidden bg-[#F8FBFB]",
+        selectionPage ? "h-[249px] px-[34px] py-5" : "p-5"
       )}
     >
       <img
@@ -79,4 +79,3 @@ export const ScaledSlidePreview = memo(function ScaledSlidePreview({
         </div>
     );
 });
-
