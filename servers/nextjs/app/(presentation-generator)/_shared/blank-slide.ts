@@ -1,4 +1,5 @@
 export const BLANK_SLIDE_LAYOUT_ID = "__blank_slide__";
+export const BLANK_SLIDE_LAYOUT_GROUP = "blank";
 
 export const BLANK_TEMPLATE_V2_LAYOUT = {
   id: BLANK_SLIDE_LAYOUT_ID,
@@ -132,5 +133,28 @@ export function isBlankPresentationSlide(slide: {
   return (
     slide.layout === BLANK_SLIDE_LAYOUT_ID ||
     slide.layout.endsWith(`:${BLANK_SLIDE_LAYOUT_ID}`)
+  );
+}
+
+export function isTemplateFreePresentation(presentation: unknown) {
+  if (
+    !presentation ||
+    typeof presentation !== "object" ||
+    Array.isArray(presentation)
+  ) {
+    return false;
+  }
+
+  const slides = (presentation as { slides?: unknown }).slides;
+  if (!Array.isArray(slides) || slides.length === 0) return false;
+
+  const firstSlide = slides[0];
+  if (!firstSlide || typeof firstSlide !== "object" || Array.isArray(firstSlide)) {
+    return false;
+  }
+
+  return (
+    (firstSlide as { layout_group?: unknown }).layout_group ===
+    BLANK_SLIDE_LAYOUT_GROUP
   );
 }

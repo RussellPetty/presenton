@@ -36,6 +36,7 @@ import {
   BLANK_SLIDE_LAYOUT_ID,
   createBlankPresentationSlide,
   getSlideTemplateId,
+  isTemplateFreePresentation,
   isTemplateV2Slide as isTemplateV2PresentationSlide,
 } from "../../_shared/blank-slide";
 import NewSlide from "./NewSlide";
@@ -80,6 +81,11 @@ const SlideActionBar = ({
   });
   const hasPresentation = useSelector(
     (state: RootState) => Boolean(state.presentationGeneration.presentationData)
+  );
+  const isTemplateFree = useSelector((state: RootState) =>
+    isTemplateFreePresentation(
+      state.presentationGeneration.presentationData
+    )
   );
 
   const hasReachedSlideLimit = slideCount >= MAX_NUMBER_OF_SLIDES;
@@ -250,6 +256,8 @@ const SlideActionBar = ({
   };
 
   const openTemplatePicker = () => {
+    if (isTemplateFree) return;
+
     if (hasReachedSlideLimit) {
       notifySlideLimitReached();
       return;
@@ -266,7 +274,10 @@ const SlideActionBar = ({
   };
 
   const newSlideModal =
-    showNewSlideSelection && templateId && typeof document !== "undefined"
+    showNewSlideSelection &&
+    !isTemplateFree &&
+    templateId &&
+    typeof document !== "undefined"
       ? createPortal(
         <div
           className="fixed inset-0 z-[1000] overflow-y-auto bg-black/50 px-4 py-16"
@@ -317,20 +328,24 @@ const SlideActionBar = ({
             <Plus className="h-4 w-4" strokeWidth={2.4} />
           </button>
 
-          <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
+          {!isTemplateFree && (
+            <>
+              <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
 
-          <button
-            type="button"
-            onClick={openTemplatePicker}
-            disabled={hasReachedSlideLimit}
-            className={cn(
-              "flex h-8 shrink-0 items-center gap-2 rounded-[6px] px-2 text-sm font-normal leading-none text-[#111324] transition-colors hover:bg-[#F7F6F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141e5]",
-              hasReachedSlideLimit && "cursor-not-allowed opacity-50"
-            )}
-          >
-            <span>Use Template</span>
-            <Plus className="h-4 w-4" strokeWidth={2.4} />
-          </button>
+              <button
+                type="button"
+                onClick={openTemplatePicker}
+                disabled={hasReachedSlideLimit}
+                className={cn(
+                  "flex h-8 shrink-0 items-center gap-2 rounded-[6px] px-2 text-sm font-normal leading-none text-[#111324] transition-colors hover:bg-[#F7F6F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141e5]",
+                  hasReachedSlideLimit && "cursor-not-allowed opacity-50"
+                )}
+              >
+                <span>Use Template</span>
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+            </>
+          )}
 
           <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
           {speakerNote &&

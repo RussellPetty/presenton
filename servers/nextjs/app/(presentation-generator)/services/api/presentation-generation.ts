@@ -9,6 +9,16 @@ import {
 import type { PresentationVersion } from "./dashboard";
 import type { Slide } from "../../types/slide";
 
+export type BlankPresentationResponse = {
+  id: string;
+  version: PresentationVersion;
+  title: string | null;
+  n_slides: number;
+  language: string;
+  fonts?: Record<string, string> | null;
+  slides: Array<Record<string, unknown>>;
+};
+
 export class PresentationGenerationApi {
   static async uploadDoc(documents: File[]) {
     const formData = new FormData();
@@ -116,6 +126,32 @@ export class PresentationGenerationApi {
       return await ApiResponseHandler.handleResponse(response, "Failed to create presentation");
     } catch (error) {
       console.error("error in presentation creation", error);
+      throw error;
+    }
+  }
+
+  static async createBlankPresentation(): Promise<BlankPresentationResponse> {
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/v1/ppt/presentation/create/blank`),
+        {
+          method: "POST",
+          headers: getHeader(),
+          cache: "no-cache",
+        }
+      );
+      const presentation = (await ApiResponseHandler.handleResponse(
+        response,
+        "Failed to create blank presentation"
+      )) as BlankPresentationResponse;
+
+      if (!presentation || typeof presentation.id !== "string") {
+        throw new Error("Blank presentation response did not include an id");
+      }
+
+      return presentation;
+    } catch (error) {
+      console.error("error in blank presentation creation", error);
       throw error;
     }
   }
