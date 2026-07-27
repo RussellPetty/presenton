@@ -146,6 +146,7 @@ Presenton gives you complete control over your AI presentation workflow. Choose 
 - Rich Media Support — Icons, charts, and custom graphics for professional presentations
 - Runs Locally — All processing happens on your device, no cloud dependencies
 - API Deployment — Host as your own API service for your team
+- Multi-User Workspaces — Give each user a private workspace and manage accounts from a built-in admin panel
 - Fully Open-Source — Apache 2.0 licensed, inspect, modify, and contribute
 - Docker Ready — One-command deployment with GPU support for local models
 - Electron Desktop App — Run Presenton as a native desktop application on Windows, macOS, and Linux (no browser required)
@@ -371,53 +372,69 @@ The parallel image generation option applies everywhere images are generated: in
 
 - **DISABLE_ANONYMOUS_TRACKING**=[true/false]: Set to **true** to disable anonymous telemetry.
 
-#### Authentication (web login)
+#### Multi-user authentication
 
-Presenton supports multiple isolated user accounts. The first account is the primary
-administrator, and administrators can create and manage additional users from
-**Admin → Users**. When upgrading from the single-user release, the existing account
-becomes the primary administrator and all existing presentations, templates, tasks,
-and other user-owned records remain attached to that same account.
+Presenton supports multiple accounts with a private workspace for each user. The
+first account becomes the primary administrator and can create, reset, or remove
+other accounts from **Admin → Users**.
 
-For the full architecture, migration flow, authorization matrix, export behavior,
-security boundaries, test evidence, and rollout checklist, see
-[Multi-user authentication implementation](docs/multi-user-auth-implementation.md).
+Existing single-user installations are upgraded automatically: the current account
+becomes the primary administrator, while its presentations, templates, tasks, and
+other owned data stay attached to the same account.
 
-Accounts are stored in the database. A hashed recovery copy of the primary admin
-credentials and the session signing secret are retained in
-`app_data/userConfig.json`; provider-setting updates preserve these fields.
+##### Set up the primary administrator
 
-- **AUTH_USERNAME** / **AUTH_PASSWORD** — Preseed the primary admin on first boot. New passwords must contain at least 8 characters. Existing six- or seven-character passwords from older releases can still sign in.
-- **AUTH_OVERRIDE_FROM_ENV**=[true/false] — With **AUTH_PASSWORD** set, update the existing primary admin in place from the environment on startup. The user ID and owned data are preserved; API keys and existing browser sessions are invalidated. Remove this flag after a one-off rotation.
-- **RESET_AUTH**=[true/false] — Recover the existing primary admin in place. This requires **AUTH_PASSWORD** (and optionally **AUTH_USERNAME**), preserves the account and its data, and invalidates API keys and browser sessions. Remove this flag after the recovery boot.
-
-**Examples**
+On a new installation, open Presenton and follow the account setup screen. For an
+unattended Docker deployment, you can create the primary administrator on first boot
+with environment variables:
 
 ```bash
-docker run -it --name presenton -p 5001:80 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
+docker run -it --name presenton \
+  -p 5001:80 \
+  -e AUTH_USERNAME=admin \
+  -e AUTH_PASSWORD=change-this-password \
+  -v "./app_data:/app_data" \
+  ghcr.io/presenton/presenton:latest
 ```
+
+Usernames must contain at least 3 characters, and new passwords must contain at least
+8 characters. Older six- or seven-character passwords remain valid after an upgrade.
+
+##### Authentication environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| **AUTH_USERNAME** | Username used to create the primary administrator on first boot. It can also change the username during a rotation or recovery. |
+| **AUTH_PASSWORD** | Password used for first-time setup, rotation, or recovery. Required when using either flag below. |
+| **AUTH_OVERRIDE_FROM_ENV**=[true/false] | Replace the primary administrator's credentials from the environment on the next startup. Use this for a deployment-managed credential rotation. |
+| **RESET_AUTH**=[true/false] | Recover access to the existing primary administrator without replacing the account or its data. |
+
+To rotate credentials from the environment:
 
 ```bash
-docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme123 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
+docker stop presenton
+docker rm presenton
+docker run -it --name presenton \
+  -p 5001:80 \
+  -e AUTH_USERNAME=admin \
+  -e AUTH_PASSWORD=new-secure-password \
+  -e AUTH_OVERRIDE_FROM_ENV=true \
+  -v "./app_data:/app_data" \
+  ghcr.io/presenton/presenton:latest
 ```
 
-```bash
-docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme123 -v "${PWD}\app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
+For account recovery, use the same command with `RESET_AUTH=true` instead of
+`AUTH_OVERRIDE_FROM_ENV=true`. Both operations preserve the administrator's user ID
+and owned data, and invalidate existing browser sessions and API keys. Remove the
+one-time flag after the successful startup.
 
-```bash
-docker stop presenton && docker rm presenton && docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=newcred456 -e AUTH_OVERRIDE_FROM_ENV=true -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
+> [!IMPORTANT]
+> Do not remove authentication fields from `app_data/userConfig.json` to reset
+> access. Presenton stores a hashed recovery copy of the primary administrator
+> credentials and the session-signing secret there. Use the recovery variables above
+> to preserve the database account and its ownership links.
 
-```bash
-docker stop presenton && docker rm presenton && docker run -it --name presenton -p 5001:80 -e RESET_AUTH=true -e AUTH_USERNAME=admin -e AUTH_PASSWORD=recovered123 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
-
-Do not delete authentication fields from `userConfig.json` to reset access. Use the
-recovery environment variables above so the database account and its ownership links
-are preserved.
-
-Sign out from the app: **Settings → Other → Sign out**.
+To sign out, open **Settings → Other → Sign out**.
 
 #### MCP authentication
 
