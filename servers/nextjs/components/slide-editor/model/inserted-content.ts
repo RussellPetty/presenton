@@ -17,23 +17,40 @@ import {
 } from "@/components/slide-editor/model/core";
 import { rawFontToSource } from "@/components/slide-editor/text/template-v2-text";
 
+const COMPONENT_DESCRIPTION_MIN_LENGTH = 10;
+const COMPONENT_DESCRIPTION_MAX_LENGTH = 300;
+const COMPONENT_ID_MAX_LENGTH = 80;
+
 export function appendInsertedContent(
   sourceUi: RawUi,
   elements: UnknownRecord[],
   insertedComponents: UnknownRecord[],
   label?: string,
+  preserveComponentData = false,
 ) {
   const components = [...readArray(sourceUi.components)];
   const start = components.length;
   elements.forEach((element, offset) => {
-    components.push(insertedElementToComponent(element, label, start + offset));
+    components.push(
+      withUniqueComponentId(
+        insertedElementToComponent(element, label, start + offset),
+        components,
+      ),
+    );
   });
   insertedComponents.forEach((component, offset) => {
+    const insertedComponent = preserveComponentData
+      ? component
+      : insertedComponentToRaw(
+          component,
+          label,
+          start + elements.length + offset,
+        );
     components.push(
-      insertedComponentToRaw(
-        component,
-        label,
-        start + elements.length + offset,
+      withUniqueComponentId(
+        insertedComponent,
+        components,
+        preserveComponentData,
       ),
     );
   });
@@ -56,8 +73,9 @@ export function insertedComponentToRaw(
     id: `${normalizeId(
       readString(component.id) ?? label ?? "inserted-component",
     )}_${index + 1}`,
-    description:
-      readString(component.description) ?? label ?? "Inserted component",
+    description: insertedComponentDescription(
+      readString(component.description) ?? label,
+    ),
     position: { x: box.x, y: box.y },
     elements,
   };
@@ -72,7 +90,7 @@ export function insertedElementToComponent(
   const rawElement = rawElementFromInsertedElement(element);
   return {
     id: `${normalizeId(label ?? readString(element.type) ?? "inserted")}_${index + 1}`,
-    description: label ?? "Inserted element",
+    description: insertedComponentDescription(label),
     position: { x: box.x, y: box.y },
     elements: [
       isVectorType(readString(rawElement.type))
@@ -91,24 +109,89 @@ export function rawElementFromInsertedElement(
 ): RawElement {
   const type = readString(element.type);
   const rawElement = normalizeInsertedElementGeometry(element);
-  const normalizedElement = {
+  const normalizedElement = stripUndefined({
     ...rawElement,
-    font: rawFontToSource(rawElement.font),
+    ...(rawElement.font == null
+      ? {}
+      : { font: rawFontToSource(rawElement.font) }),
     border_radius: normalizeInsertedBorderRadius(
       rawElement.border_radius ?? rawElement.borderRadius,
     ),
     line_height: rawElement.line_height ?? rawElement.lineHeight,
-  };
+  });
   const textNormalizedElement = normalizeInsertedTextCollections(
     normalizedElement,
     hasTemplateV2Metadata(element),
   );
 
   if (type === "chart") {
-    return editorChartToRawChart(textNormalizedElement, textNormalizedElement);
+    const rawChart = editorChartToRawChart(
+      textNormalizedElement,
+      textNormalizedElement,
+    ) as RawElement;
+    const { color, data, ...schemaChart } = rawChart;
+    void data;
+    const colors = readArray(schemaChart.colors);
+    const fallbackColor = readString(color);
+    return stripUndefined({
+      ...schemaChart,
+      colors:
+        colors.length > 0
+          ? colors
+          : fallbackColor
+            ? [fallbackColor]
+            : undefined,
+    });
   }
 
   return textNormalizedElement;
+}
+
+function insertedComponentDescription(value: string | null | undefined) {
+  const fallback = "Inserted component";
+  const candidate = value?.trim() || fallback;
+  const description =
+    candidate.length >= COMPONENT_DESCRIPTION_MIN_LENGTH
+      ? candidate
+      : `Inserted ${candidate}`;
+  return description.slice(0, COMPONENT_DESCRIPTION_MAX_LENGTH);
+}
+
+function withUniqueComponentId(
+  component: UnknownRecord,
+  siblings: unknown[],
+  preserveExistingId = false,
+) {
+  const currentId = readString(component.id);
+  const baseId = (
+    preserveExistingId && currentId
+      ? currentId
+      : normalizeId(currentId ?? "inserted-component")
+  ).slice(0, COMPONENT_ID_MAX_LENGTH);
+  const existingIds = new Set(
+    siblings
+      .map((sibling) => (isRecord(sibling) ? readString(sibling.id) : null))
+      .filter((id): id is string => Boolean(id)),
+  );
+  if (!existingIds.has(baseId) && component.id === baseId) {
+    return component;
+  }
+  if (!existingIds.has(baseId)) {
+    return { ...component, id: baseId };
+  }
+
+  let copyIndex = 2;
+  let nextId = componentIdWithSuffix(baseId, copyIndex);
+  while (existingIds.has(nextId)) {
+    copyIndex += 1;
+    nextId = componentIdWithSuffix(baseId, copyIndex);
+  }
+  return { ...component, id: nextId };
+}
+
+function componentIdWithSuffix(baseId: string, copyIndex: number) {
+  const suffix = `_${copyIndex}`;
+  return `${baseId.slice(0, COMPONENT_ID_MAX_LENGTH - suffix.length)}${suffix}`;
 }
 
 export function sourceElementBox(element: UnknownRecord): Box {

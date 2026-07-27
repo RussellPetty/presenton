@@ -86,7 +86,7 @@ type ActionItem = {
   icon: LucideIcon;
 };
 
-type PaletteItem = {
+export type PaletteItem = {
   id?: string;
   label: string;
   icon: LucideIcon;
@@ -94,7 +94,7 @@ type PaletteItem = {
 
 type UnknownRecord = Record<string, unknown>;
 
-type TemplateBlock = {
+export type TemplateBlock = {
   key: string;
   title: string;
   description: string;
@@ -178,7 +178,7 @@ const insertActions: ActionItem[] = [
   { id: "elements", label: "Elements", icon: Shapes },
 ];
 
-const textItems = [
+export const textItems = [
   { id: "title-block", label: "Title Block", icon: AlignCenter },
   { id: "subtitle", label: "Subtitle", icon: AlignCenter },
   { id: "bullet-list", label: "Bullet List", icon: List },
@@ -188,7 +188,7 @@ const textItems = [
   { id: "body-text", label: "Body Text", icon: Columns2 },
 ] satisfies PaletteItem[];
 
-const chartTypeItems = [
+export const chartTypeItems = [
   { id: "bar", label: "Bar Chart", icon: BarChart3 },
   { id: "horizontal_bar", label: "Horizontal Bar", icon: BarChart3 },
   { id: "stacked_bar", label: "Stacked Bar", icon: BarChart3 },
@@ -206,22 +206,22 @@ const chartTypeItems = [
   { id: "polar_area", label: "Polar Area", icon: PieChart },
 ] satisfies PaletteItem[];
 
-const infographicItems = [
+export const infographicItems = [
   { id: "progress_bar", label: "Progress Bar", icon: ChartNoAxesGantt },
   { id: "gauge", label: "Gauge Chart", icon: Gauge },
 ] satisfies PaletteItem[];
 
-const tableTypeItems = [
+export const tableTypeItems = [
   { id: "simple-table", label: "Simple Table", icon: Table2 },
 ] satisfies PaletteItem[];
 
-const imageItems = [
+export const imageItems = [
   { id: "image", label: "Image", icon: Image },
   { id: "image-text", label: "Image + Text", icon: Columns2 },
   { id: "image-grid", label: "Image Grid", icon: Grid3X3 },
 ] satisfies PaletteItem[];
 
-const elementItems = [
+export const elementItems = [
   { id: "vector-rectangle", label: "Rectangle", icon: RectangleHorizontal },
   { id: "vector-circle", label: "Circle", icon: Circle },
   { id: "vector-ellipse", label: "Ellipse", icon: Circle },
@@ -338,7 +338,7 @@ const PaletteGrid = ({
   </div>
 );
 
-const InsertPanel = ({
+export const InsertPanel = ({
   disabled = false,
   title,
   groups,
@@ -854,7 +854,7 @@ function BlockGroupCard({
   );
 }
 
-const BlocksPanel = ({
+export const BlocksPanel = ({
   disabled = false,
   presentationId,
   presentationData,

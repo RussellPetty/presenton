@@ -6,6 +6,7 @@ import {
   EllipsisVertical,
   MoveLeft,
   MoveRight,
+  Plus,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -19,6 +20,7 @@ type EditorActionBarProps = {
   canMoveLeft: boolean;
   canMoveRight: boolean;
   isReconstructing: boolean;
+  onAddBlank: () => void;
   onCopy: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -32,6 +34,7 @@ export function EditorActionBar({
   canMoveLeft,
   canMoveRight,
   isReconstructing,
+  onAddBlank,
   onCopy,
   onDelete,
   onDuplicate,
@@ -40,7 +43,7 @@ export function EditorActionBar({
   onReconstruct,
 }: EditorActionBarProps) {
   return (
-    <div className="mx-auto flex h-[45px] w-[326px] shrink-0 items-center gap-[12px] rounded-[10px] border border-[#EDEEEF] bg-white p-[6px]">
+    <div className="mx-auto flex h-[45px] w-fit shrink-0 items-center gap-[12px] rounded-[10px] border border-[#EDEEEF] bg-white p-[6px]">
       <button
         className="flex h-[33px] w-[133px] shrink-0 items-center justify-center gap-[8px] whitespace-nowrap rounded-[48px] px-[10px] py-[8px] text-[14px] font-medium text-[#101323] transition-colors hover:bg-[#F7F6F9] disabled:pointer-events-none disabled:opacity-60"
         disabled={isReconstructing}
@@ -54,6 +57,16 @@ export function EditorActionBar({
             isReconstructing && "animate-spin text-[#7A5AF8]",
           )}
         />
+      </button>
+      <div className="h-[20px] w-0 shrink-0 border-l border-[#EDEEEF]" />
+      <button
+        className="flex h-[33px] shrink-0 items-center justify-center gap-[7px] whitespace-nowrap rounded-[48px] px-[10px] py-[8px] text-[14px] font-medium text-[#101323] transition-colors hover:bg-[#F7F6F9]"
+        onClick={onAddBlank}
+        title="Add blank slide"
+        type="button"
+      >
+        <span>Blank</span>
+        <Plus className="h-4 w-4 shrink-0" />
       </button>
       <div className="h-[20px] w-0 shrink-0 border-l border-[#EDEEEF]" />
       <button
