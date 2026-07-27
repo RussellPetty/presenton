@@ -64,7 +64,7 @@ const primaryButtonClass =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-5 text-xs font-semibold text-white transition hover:bg-[#6D46E6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-[#E1E1E5] bg-white px-4 text-sm text-[#101323] outline-none transition placeholder:text-[#98A2B3] focus:border-[#7A5AF8] focus:ring-2 focus:ring-[#7A5AF8]/15";
+  "h-11 w-full rounded-lg border border-[#E1E1E5] bg-white px-4 text-sm text-[#101323] outline-none transition placeholder:text-[#98A2B3] focus:border-[#7A5AF8] focus:ring-2 focus:ring-[#7A5AF8]/15";
 
 export default function AdminPanel({ embedded = false }: AdminPanelProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -248,18 +248,26 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
       }
     >
       <div className={embedded ? "max-w-5xl" : "mx-auto max-w-5xl"}>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A5AF8]">
-          Instance administration
-        </p>
-        <h1 className="mt-2 font-unbounded text-[24px] font-normal tracking-[-0.03em] text-[#101323]">
-          Admin
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667085]">
-          Manage login accounts and admin-owned API/MCP access keys. User
-          workspaces remain private.
-        </p>
+        {!embedded ? (
+          <h1 className="font-unbounded text-[28px] font-normal tracking-[-0.84px] text-black">
+            Admin
+          </h1>
+        ) : null}
 
-        <Tabs defaultValue="users" className="mt-7">
+        <div
+          className={`rounded-[12px] bg-[#F9F8F8] p-7 ${
+            embedded ? "" : "mt-7"
+          }`}
+        >
+          <h2 className="text-sm font-semibold text-[#191919]">
+            Manage access
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#6B7280]">
+            Create login accounts and manage admin-owned API/MCP access keys.
+            User workspaces remain private.
+          </p>
+
+          <Tabs defaultValue="users" className="mt-6">
           <TabsList className="h-11 rounded-full border border-[#EDEEEF] bg-[#F9FAFB] p-1">
             <TabsTrigger
               value="users"
@@ -276,7 +284,7 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
           </TabsList>
 
           <TabsContent value="users" className="mt-6 space-y-5">
-            <section className="rounded-[20px] border border-[#EDEEEF] bg-white p-6">
+            <section className="rounded-[12px] border border-[#EDEEEF] bg-white p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F3FF]">
                   <UserPlus className="h-4 w-4 text-[#5146E5]" />
@@ -322,7 +330,7 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
               </form>
             </section>
 
-            <section className="overflow-hidden rounded-[20px] border border-[#EDEEEF] bg-white">
+            <section className="overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-white">
               <div className="flex items-center justify-between border-b border-[#EDEEEF] px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F3FF]">
@@ -387,7 +395,7 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
           </TabsContent>
 
           <TabsContent value="keys" className="mt-6">
-            <section className="overflow-hidden rounded-[20px] border border-[#EDEEEF] bg-white">
+            <section className="overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-white">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EDEEEF] px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F3FF]">
@@ -468,7 +476,8 @@ export default function AdminPanel({ embedded = false }: AdminPanelProps) {
               </div>
             </section>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
 
       <Dialog

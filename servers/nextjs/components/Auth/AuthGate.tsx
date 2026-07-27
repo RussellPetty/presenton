@@ -289,39 +289,39 @@ export default function AuthGate() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6">
-      <section className="relative z-10 w-full max-w-xl rounded-2xl border border-[#E1E1E5] bg-white p-7 shadow-xl sm:p-10">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6 font-syne">
+      <section className="relative z-10 w-full max-w-lg rounded-[20px] border border-[#EDEEEF] bg-[#F9F8F8] p-7 sm:p-10">
+        <div className="mb-7">
           <div className="flex items-center gap-4">
-            <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[4px] bg-[#F4F3FF] p-3">
+            <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[4px] bg-[#F4F3FF] p-3">
               <Image
                 src="/logo-with-bg.png"
                 alt=""
-                width={40}
-                height={40}
-                className="h-10 w-10 object-contain"
+                width={161}
+                height={166}
+                className="h-10 w-auto object-contain"
               />
             </div>
             <div>
               <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7A5AF8]">
                 Secure instance
               </p>
-              <h1 className="mt-1 font-syne text-2xl font-semibold leading-tight text-black sm:text-[26px]">
+              <h1 className="mt-1 font-unbounded text-xl font-normal leading-tight tracking-[-0.03em] text-black sm:text-[22px]">
                 {isSetupMode ? "Create your admin login" : "Sign in to continue"}
               </h1>
             </div>
           </div>
         </div>
 
-        <p className="font-syne text-base text-[#000000CC] sm:text-lg">
+        <p className="max-w-md text-sm leading-relaxed text-[#6B7280]">
           {isSetupMode
             ? "One-time setup for this deployment. You will use the same username and password on future visits."
             : "This deployment is protected. Enter your credentials to open the app."}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-7 space-y-5">
           <div className="space-y-2">
-            <label htmlFor="username" className="block font-syne text-sm font-medium text-black">
+            <label htmlFor="username" className="block text-sm font-medium text-[#374151]">
               Username
             </label>
             <input
@@ -331,20 +331,20 @@ export default function AuthGate() {
               onChange={(event) =>
                 setUsername(event.target.value.replace(/\s/g, ""))
               }
-              placeholder="your-admin-user"
+              placeholder="Username"
               minLength={3}
               maxLength={128}
               pattern="\S+"
               title="Username cannot contain spaces"
               required
               spellCheck={false}
-              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
+              className="h-12 w-full rounded-lg border border-[#E1E1E5] bg-white px-4 text-sm text-[#191919] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#7A5AF8] focus:ring-2 focus:ring-[#7A5AF8]/15"
               disabled={isSubmitting}
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block font-syne text-sm font-medium text-black">
+            <label htmlFor="password" className="block text-sm font-medium text-[#374151]">
               Password
             </label>
             <input
@@ -353,18 +353,20 @@ export default function AuthGate() {
               autoComplete={isSetupMode ? "new-password" : "current-password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="At least 6 characters"
+              placeholder={
+                isSetupMode ? "At least 8 characters" : "Enter your password"
+              }
               minLength={isSetupMode ? 8 : 6}
               maxLength={128}
               required
-              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
+              className="h-12 w-full rounded-lg border border-[#E1E1E5] bg-white px-4 text-sm text-[#191919] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#7A5AF8] focus:ring-2 focus:ring-[#7A5AF8]/15"
               disabled={isSubmitting}
             />
           </div>
 
           {isSetupMode ? (
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="block font-syne text-sm font-medium text-black">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#374151]">
                 Confirm password
               </label>
               <input
@@ -377,15 +379,15 @@ export default function AuthGate() {
                 minLength={8}
                 maxLength={128}
                 required
-                className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#a49cfc] focus:ring-2 focus:ring-[#5146E5]/20"
+                className="h-12 w-full rounded-lg border border-[#E1E1E5] bg-white px-4 text-sm text-[#191919] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#7A5AF8] focus:ring-2 focus:ring-[#7A5AF8]/15"
                 disabled={isSubmitting}
               />
             </div>
           ) : null}
 
           {!isSetupMode && status.configured ? (
-            <p className="font-syne text-sm text-[#494A4D]">
-              Setup is complete for this instance. Use the username and password you configured.
+            <p className="rounded-lg border border-[#EDEEEF] bg-white px-4 py-3 text-xs leading-relaxed text-[#6B7280]">
+              Use the username and password provided by your administrator.
             </p>
           ) : null}
 
