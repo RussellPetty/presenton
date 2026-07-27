@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import { TemplateV2KonvaSlide } from "@/components/slide-editor/surface/TemplateV2KonvaSlide";
 import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
@@ -21,6 +21,7 @@ type ResponsiveSlideFrameProps = {
   historyCommand: HistoryCommand | null;
   isGenerating: boolean;
   layout: TemplateV2Layout;
+  promptOverlay?: ReactNode;
   onHistoryAvailabilityChange: (availability: HistoryAvailability) => void;
   onLayoutChange: (layout: TemplateV2Layout) => void;
 };
@@ -32,6 +33,7 @@ export function ResponsiveSlideFrame({
   historyCommand,
   isGenerating,
   layout,
+  promptOverlay,
   onHistoryAvailabilityChange,
   onLayoutChange,
 }: ResponsiveSlideFrameProps) {
@@ -72,6 +74,7 @@ export function ResponsiveSlideFrame({
         }}
       >
         <div
+          className="relative"
           style={{
             width: EDITOR_STAGE_WIDTH,
             height: EDITOR_STAGE_HEIGHT,
@@ -92,6 +95,7 @@ export function ResponsiveSlideFrame({
             onHistoryAvailabilityChange={onHistoryAvailabilityChange}
             onLayoutChange={onLayoutChange}
           />
+          {promptOverlay}
         </div>
         {isGenerating ? (
           <div className="absolute inset-0 z-20 flex items-end justify-center rounded-[8.944px] bg-white pb-[28px]">

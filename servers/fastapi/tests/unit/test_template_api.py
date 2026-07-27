@@ -10,6 +10,7 @@ from fastapi import BackgroundTasks, HTTPException
 from api.v1.ppt.endpoints.template import (
     CreateTemplateLayoutsRequest,
     CreateTemplateRequest,
+    GenerateTemplateLayoutRequest,
     GenerateTemplateBlocksRequest,
     InitTemplateRequest,
     PatchTemplateSlideLayoutRequest,
@@ -19,6 +20,7 @@ from api.v1.ppt.endpoints.template import (
     create_template_slide_layouts,
     create_template,
     delete_template,
+    generate_template_layout_from_prompt,
     generate_template_blocks,
     get_template,
     init_template,
@@ -179,6 +181,30 @@ def _template_layouts_with_icon_types():
         },
     ]
     return {"layouts": [layout]}
+
+
+def _prompt_generated_layout():
+    return {
+        "id": "title_metrics_dashboard",
+        "description": "Title area above a flexible dashboard of editable metrics.",
+        "components": [
+            {
+                "id": "main_content",
+                "description": "Primary editable title and metric content region.",
+                "position": {"x": 80, "y": 72},
+                "elements": [
+                    {
+                        "type": "text",
+                        "decorative": False,
+                        "name": "title",
+                        "runs": [{"text": "Quarterly performance"}],
+                        "max_length": 80,
+                        "min_length": 1,
+                    }
+                ],
+            }
+        ],
+    }
 
 
 class _RowsResult:
@@ -940,6 +966,97 @@ def test_generate_template_blocks_requires_layouts(fake_async_session):
         asyncio.run(
             generate_template_blocks(
                 GenerateTemplateBlocksRequest(template_id=template_id),
+                sql_session=fake_async_session,
+            )
+        )
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail == "Template layouts are unavailable"
+    assert fake_async_session.commit_count == 0
+
+
+def test_generate_template_layout_request_normalizes_values():
+    request = GenerateTemplateLayoutRequest(
+        template_id="  template-one  ",
+        prompt="  Create a title and metrics dashboard.  ",
+    )
+
+    assert request.template_id == "template-one"
+    assert request.prompt == "Create a title and metrics dashboard."
+
+
+def test_generate_template_layout_from_prompt_returns_draft(
+    fake_async_session,
+):
+    template_id = str(uuid.uuid4())
+    template = TemplateV2(
+        id=template_id,
+        name="Custom",
+        description="A clean editorial template.",
+        layouts=TEMPLATE_LAYOUTS,
+        merged_components=MERGED_COMPONENTS.model_dump(
+            mode="json", exclude_none=True
+        ),
+        assets={"fonts": {"Inter": "/app_data/fonts/inter.woff2"}},
+    )
+    fake_async_session._get_results[template_id] = template
+    generated_layout = SlideLayouts.model_validate(
+        {"layouts": [_prompt_generated_layout()]}
+    ).layouts[0]
+
+    with patch(
+        "api.v1.ppt.endpoints.template.generate_prompted_slide_layout",
+        new=Mock(return_value=generated_layout),
+    ) as generate_mock:
+        response = asyncio.run(
+            generate_template_layout_from_prompt(
+                request=GenerateTemplateLayoutRequest(
+                    template_id=template_id,
+                    prompt="Create a metrics dashboard.",
+                ),
+                sql_session=fake_async_session,
+            )
+        )
+
+    assert response.layout == generated_layout
+    assert response.response == (
+        "Created the title metrics dashboard template layout."
+    )
+    generate_mock.assert_called_once()
+    (
+        prompt_arg,
+        layouts_arg,
+        merged_components_arg,
+        name_arg,
+        description_arg,
+        fonts_arg,
+    ) = generate_mock.call_args.args
+    assert prompt_arg == "Create a metrics dashboard."
+    assert layouts_arg == GENERATED_LAYOUTS
+    assert merged_components_arg == MERGED_COMPONENTS
+    assert name_arg == "Custom"
+    assert description_arg == "A clean editorial template."
+    assert fonts_arg == {"Inter": "/app_data/fonts/inter.woff2"}
+    assert fake_async_session.commit_count == 0
+
+
+def test_generate_template_layout_from_prompt_requires_layouts(
+    fake_async_session,
+):
+    template_id = str(uuid.uuid4())
+    fake_async_session._get_results[template_id] = TemplateV2(
+        id=template_id,
+        name="Custom",
+        layouts=None,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(
+            generate_template_layout_from_prompt(
+                request=GenerateTemplateLayoutRequest(
+                    template_id=template_id,
+                    prompt="Create a metrics dashboard.",
+                ),
                 sql_session=fake_async_session,
             )
         )

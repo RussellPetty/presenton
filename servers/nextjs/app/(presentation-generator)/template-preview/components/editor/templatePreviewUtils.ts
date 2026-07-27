@@ -7,7 +7,15 @@ export type TemplateSavePayload = UnknownRecord & {
   layout_count: number;
   layouts: unknown;
 };
-export type PanelMode = "ai" | "schema";
+export type PanelMode =
+  | "blocks"
+  | "texts"
+  | "charts"
+  | "tables"
+  | "images"
+  | "elements"
+  | "schema"
+  | "layouts";
 export type Density = "" | "Low" | "Medium" | "High";
 export type LayoutPath = Array<string | number>;
 export type HistoryCommand = { action: "undo" | "redo"; token: number };
@@ -19,9 +27,11 @@ export type CreatedTemplateLayout = {
 };
 
 export type SchemaField = {
+  decorative: boolean;
+  elementType: string;
   id: string;
   label: string;
-  type: "text" | "text-list" | "image";
+  type: "text" | "text-list" | "image" | "element";
   path: LayoutPath;
   value: string;
   minChars?: number;
@@ -586,6 +596,30 @@ export function readLayoutId(layout: TemplateV2Layout, index: number) {
   return id || `slide-${index + 1}`;
 }
 
+export function readLayoutIdValue(layout: TemplateV2Layout, index: number) {
+  const layoutRecord = layout as UnknownRecord;
+  if (Object.prototype.hasOwnProperty.call(layoutRecord, "id")) {
+    return readString(layoutRecord.id);
+  }
+
+  return readLayoutId(layout, index);
+}
+
+export function readLayoutDescription(layout: TemplateV2Layout) {
+  return readString((layout as UnknownRecord).description);
+}
+
+export function updateLayoutMetadata(
+  layout: TemplateV2Layout,
+  field: "id" | "description",
+  value: string,
+) {
+  const nextLayout = cloneLayout(layout) as UnknownRecord;
+  nextLayout[field] = value;
+
+  return nextLayout as TemplateV2Layout;
+}
+
 function schemaLabelForElement(
   element: UnknownRecord,
   fallback: string,
@@ -624,17 +658,19 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
     if (!isRecord(element)) return;
 
     const type = readString(element.type);
-    const isEditableContent = element.decorative === false;
+    const decorative = element.decorative !== false;
     const label = schemaLabelForElement(
       element,
       `${type || "Field"} ${fields.length + 1}`,
       parentLabel,
     );
 
-    if (isEditableContent && type === "text") {
+    if (type === "text") {
       const value = textRunsToString(element.runs);
       if (value || label) {
         fields.push({
+          decorative,
+          elementType: type,
           id: path.join("."),
           label,
           type: "text",
@@ -646,10 +682,12 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
       }
     }
 
-    if (isEditableContent && type === "text-list") {
+    if (type === "text-list") {
       const value = textListItemsToString(element.items);
       if (value || label) {
         fields.push({
+          decorative,
+          elementType: type,
           id: path.join("."),
           label,
           type: "text-list",
@@ -661,17 +699,27 @@ export function collectSchemaFields(layout: TemplateV2Layout) {
       }
     }
 
-    if (
-      isEditableContent &&
-      type === "image" &&
-      element.is_icon !== true
-    ) {
+    if (type === "image") {
       fields.push({
+        decorative,
+        elementType: element.is_icon === true ? "icon" : type,
         id: path.join("."),
         label,
         type: "image",
         path,
         value: readString(element.data) || readString(element.prompt),
+      });
+    }
+
+    if (type && type !== "text" && type !== "text-list" && type !== "image") {
+      fields.push({
+        decorative,
+        elementType: type,
+        id: path.join("."),
+        label,
+        type: "element",
+        path,
+        value: "",
       });
     }
 
@@ -751,6 +799,8 @@ export function updateLayoutSchemaField(
   field: SchemaField,
   value: string,
 ) {
+  if (field.decorative) return layout;
+
   const nextLayout = cloneLayout(layout);
   const element = recordAtPath(nextLayout, field.path);
   if (!element) return layout;
@@ -759,8 +809,10 @@ export function updateLayoutSchemaField(
     updateTextRuns(element, value);
   } else if (field.type === "text-list") {
     updateTextListItems(element, value);
-  } else {
+  } else if (field.type === "image") {
     element.data = value;
+  } else {
+    return layout;
   }
 
   return nextLayout;
@@ -772,9 +824,17 @@ export function updateLayoutSchemaConstraint(
   constraint: "min" | "max",
   value: string,
 ) {
+  if (field.decorative) return layout;
+
   const nextLayout = cloneLayout(layout);
   const element = recordAtPath(nextLayout, field.path);
-  if (!element || field.type === "image") return layout;
+  if (
+    !element ||
+    field.type === "image" ||
+    field.type === "element"
+  ) {
+    return layout;
+  }
 
   const numericValue = value.trim() === "" ? null : Number.parseInt(value, 10);
   const key =
@@ -792,6 +852,19 @@ export function updateLayoutSchemaConstraint(
     element[key] = Math.max(0, numericValue);
   }
 
+  return nextLayout;
+}
+
+export function updateLayoutSchemaDecoration(
+  layout: TemplateV2Layout,
+  field: SchemaField,
+  decorative: boolean,
+) {
+  const nextLayout = cloneLayout(layout);
+  const element = recordAtPath(nextLayout, field.path);
+  if (!element) return layout;
+
+  element.decorative = decorative;
   return nextLayout;
 }
 

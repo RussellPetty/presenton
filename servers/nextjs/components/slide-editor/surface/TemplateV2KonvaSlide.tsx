@@ -1955,6 +1955,7 @@ function TemplateV2KonvaSlideComponent({
         elements as unknown as UnknownRecord[],
         insertedComponents as unknown as UnknownRecord[],
         detail.label,
+        detail.preserveComponentData,
       );
       const insertedCount = elements.length + insertedComponents.length;
       const nextSelection =

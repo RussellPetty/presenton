@@ -1,4 +1,5 @@
 import { getApiUrl } from "@/utils/api";
+import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
 import { ApiResponseHandler } from "./api-error-handler";
 import { getHeader } from "./header";
 
@@ -93,6 +94,16 @@ export interface UpdateTemplateLayoutsPayload {
 export interface CreateTemplateLayoutPayload {
     template_id: string;
     index: number;
+}
+
+export interface GenerateTemplateLayoutPayload {
+    template_id: string;
+    prompt: string;
+}
+
+export interface GenerateTemplateLayoutResponse {
+    layout: TemplateV2Layout;
+    response: string;
 }
 
 class TemplateService {
@@ -254,6 +265,28 @@ class TemplateService {
             );
         } catch (error) {
             console.error("Failed to create template layout", error);
+            throw error;
+        }
+    }
+
+    static async generateTemplateLayout(
+        payload: GenerateTemplateLayoutPayload,
+    ): Promise<GenerateTemplateLayoutResponse> {
+        try {
+            const response = await fetch(
+                getApiUrl("/api/v1/ppt/template/layouts/generate"),
+                {
+                    method: "POST",
+                    headers: getHeader(),
+                    body: JSON.stringify(payload),
+                },
+            );
+            return await ApiResponseHandler.handleResponse(
+                response,
+                "Failed to generate template layout",
+            );
+        } catch (error) {
+            console.error("Failed to generate template layout", error);
             throw error;
         }
     }

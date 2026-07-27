@@ -17,6 +17,7 @@ export type TemplateV2InsertComponent = {
 export type TemplateV2InsertElementsDetail = {
   elements?: SlideElement[];
   components?: TemplateV2InsertComponent[];
+  preserveComponentData?: boolean;
   label?: string;
   slideId?: string | number | null;
   slideIndex?: number | null;

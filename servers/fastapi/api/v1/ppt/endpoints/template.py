@@ -45,6 +45,7 @@ from templates.preview import (
 )
 from templates.v2.generation import (
     MAX_PARALLEL_SLIDE_LAYOUTS,
+    generate_prompted_slide_layout,
     generate_slide_layout,
     generate_template,
     merge_similar_components,
@@ -65,6 +66,7 @@ from utils.icon_weights import (
     extract_icon_type_from_settings,
 )
 from utils.datetime_utils import get_current_utc_datetime
+from utils.llm_client_error_handler import handle_llm_client_exceptions
 
 
 TEMPLATE_ROUTER = APIRouter(prefix="/template", tags=["Templates"])
@@ -138,6 +140,28 @@ class CreatedTemplateSlideLayout(BaseModel):
 
 class CreateTemplateLayoutsResponse(BaseModel):
     layouts: list[CreatedTemplateSlideLayout]
+
+
+class GenerateTemplateLayoutRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    template_id: str = Field(validation_alias=AliasChoices("template_id", "id"))
+    prompt: str = Field(min_length=1, max_length=8000)
+
+    @model_validator(mode="after")
+    def _normalize_prompt(self) -> "GenerateTemplateLayoutRequest":
+        self.template_id = self.template_id.strip()
+        self.prompt = self.prompt.strip()
+        if not self.template_id:
+            raise ValueError("Template ID cannot be empty")
+        if not self.prompt:
+            raise ValueError("Prompt cannot be empty")
+        return self
+
+
+class GenerateTemplateLayoutResponse(BaseModel):
+    layout: SlideLayout
+    response: str
 
 
 class PatchTemplateSlideLayoutItem(BaseModel):
@@ -1230,6 +1254,95 @@ async def create_template(
 
     background_tasks.add_task(_run_create_template_task, task.id, request)
     return task
+
+
+@TEMPLATE_ROUTER.post(
+    "/layouts/generate",
+    response_model=GenerateTemplateLayoutResponse,
+)
+async def generate_template_layout_from_prompt(
+    request: GenerateTemplateLayoutRequest = Body(...),
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    template = await sql_session.get(TemplateV2, request.template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    if template.layouts is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Template layouts are unavailable",
+        )
+
+    try:
+        template_layouts = _coerce_template_slide_layouts(template.layouts)
+    except ValidationError as exc:
+        LOGGER.exception(
+            "[template.layouts.generate] template has invalid layouts "
+            "template_id=%s",
+            request.template_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Template layouts are invalid",
+        ) from exc
+
+    merged_components: MergedComponents | None = None
+    if template.merged_components is not None:
+        try:
+            merged_components = MergedComponents.model_validate(
+                template.merged_components
+            )
+        except ValidationError:
+            LOGGER.warning(
+                "[template.layouts.generate] ignoring invalid merged components "
+                "template_id=%s",
+                request.template_id,
+                exc_info=True,
+            )
+
+    LOGGER.info(
+        "[template.layouts.generate] prompted layout generation start "
+        "template_id=%s reference_layouts=%d",
+        request.template_id,
+        len(template_layouts.layouts),
+    )
+    try:
+        layout = await _run_template_generation_thread(
+            generate_prompted_slide_layout,
+            request.prompt,
+            template_layouts,
+            merged_components,
+            template.name,
+            template.description,
+            _get_template_fonts(template),
+        )
+    except Exception as exc:
+        LOGGER.exception(
+            "[template.layouts.generate] prompted layout generation failed "
+            "template_id=%s",
+            request.template_id,
+        )
+        raise handle_llm_client_exceptions(exc) from exc
+
+    generated_layout = (
+        layout
+        if isinstance(layout, SlideLayout)
+        else SlideLayout.model_validate(layout)
+    )
+    LOGGER.info(
+        "[template.layouts.generate] prompted layout generation complete "
+        "template_id=%s layout_id=%s components=%d",
+        request.template_id,
+        generated_layout.id,
+        len(generated_layout.components),
+    )
+    return GenerateTemplateLayoutResponse(
+        layout=generated_layout,
+        response=(
+            f"Created the {generated_layout.id.replace('_', ' ')} "
+            "template layout."
+        ),
+    )
 
 
 @TEMPLATE_ROUTER.post(

@@ -39,6 +39,7 @@ function fittedTextHeight(
 }
 
 function makeTextElement({
+  name,
   text,
   x,
   y,
@@ -51,6 +52,7 @@ function makeTextElement({
   lineHeight = 1.1,
   horizontal = "left",
 }: {
+  name: string;
   text: string;
   x: number;
   y: number;
@@ -63,6 +65,8 @@ function makeTextElement({
   lineHeight?: number;
   horizontal?: "left" | "center" | "right";
 }): SlideElement {
+  const maxLength = Math.max(1, text.trim().length);
+
   return {
     type: "text",
     position: { x, y },
@@ -77,6 +81,10 @@ function makeTextElement({
       italic,
       line_height: lineHeight,
     },
+    decorative: false,
+    name,
+    max_length: maxLength,
+    min_length: Math.ceil(maxLength / 2),
   };
 }
 
@@ -157,7 +165,12 @@ function makeBulletListElement(marker: Marker): SlideElement {
     marker,
     items,
     decorative: false,
-    name: "Project task list",
+    name:
+      marker === "bullet"
+        ? "bullet_list"
+        : marker === "number"
+          ? "numbered_list"
+          : "list_item",
     max_items: 6,
     min_items: 3,
     max_item_length: 60,
@@ -170,6 +183,7 @@ export function createTextInsertElements(kind?: string): SlideElement[] {
     case "title-block":
       return [
         makeTextElement({
+          name: "slide_title",
           text: "Add a clear slide title",
           x: 109,
           y: 109,
@@ -182,6 +196,7 @@ export function createTextInsertElements(kind?: string): SlideElement[] {
     case "subtitle":
       return [
         makeTextElement({
+          name: "slide_subtitle",
           text: "Add a concise supporting subtitle",
           x: 122,
           y: 154,
@@ -201,6 +216,7 @@ export function createTextInsertElements(kind?: string): SlideElement[] {
     case "quote":
       return [
         makeTextElement({
+          name: "quote",
           text: '"Add a memorable quote or customer insight here."',
           x: 122,
           y: 147,
@@ -215,6 +231,7 @@ export function createTextInsertElements(kind?: string): SlideElement[] {
     case "body-text":
       return [
         makeTextElement({
+          name: "body_text",
           text: "Add body text here. Use this space for a short paragraph or supporting detail.",
           x: 122,
           y: 154,
@@ -322,6 +339,11 @@ function chartExample(chartType: ChartType) {
 }
 
 function makeChartElement(chartType: ChartType): SlideElement {
+  const schema = {
+    decorative: false,
+    name: `${chartType}_chart`,
+  };
+
   if (chartType === "bar") {
     const categories = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const values = [70, 120, 45, 145, 105, 105, 45];
@@ -353,6 +375,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
       series: [{ name: "Visits", values }],
       colors,
       data: chartData(categories, values, colors),
+      ...schema,
     };
   }
 
@@ -386,6 +409,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
       series: [{ name: "Revenue", values }],
       colors,
       data: chartData(categories, values, colors),
+      ...schema,
     };
   }
 
@@ -419,6 +443,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
       series: [{ name: "Active Users", values }],
       colors,
       data: chartData(categories, values, colors),
+      ...schema,
     };
   }
 
@@ -441,6 +466,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
       series: [{ name: "Revenue Share", values }],
       colors,
       data: chartData(categories, values, colors),
+      ...schema,
     };
   }
 
@@ -470,6 +496,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
       ],
       colors,
       data: chartData(categories, values, colors),
+      ...schema,
     };
   }
 
@@ -492,6 +519,7 @@ function makeChartElement(chartType: ChartType): SlideElement {
     series: [{ name: seriesName, values }],
     colors,
     data: chartData(categories, values, colors),
+    ...schema,
   };
 }
 
@@ -526,6 +554,8 @@ function makeInfographicElement(infographicType: InfographicType): SlideElement 
         value: 68,
       },
       colors: ["E5E7EB", "2563EB"],
+      decorative: false,
+      name: "progress_bar",
     };
   }
 
@@ -540,6 +570,8 @@ function makeInfographicElement(infographicType: InfographicType): SlideElement 
       value: 76,
     },
     colors: ["E5E7EB", "2563EB"],
+    decorative: false,
+    name: "gauge_chart",
   };
 }
 
@@ -567,7 +599,6 @@ function makeSimpleTableElement(): SlideElement {
     type: "table",
     position: { x: 122, y: 128 },
     size: { width: 819, height: 186 },
-    font: baseFont,
     columns: [
       makeTableCell({ text: "Metric", font: headerFont, color: headerFill }),
       makeTableCell({ text: "Current", font: headerFont, color: headerFill }),
@@ -589,6 +620,8 @@ function makeSimpleTableElement(): SlideElement {
     max_columns: 6,
     min_rows: 2,
     max_rows: 8,
+    decorative: false,
+    name: "simple_table",
   };
 }
 
@@ -601,7 +634,7 @@ function makeImageElement({
   y,
   width,
   height,
-  name = "Image",
+  name = "image",
 }: {
   x: number;
   y: number;
@@ -615,7 +648,9 @@ function makeImageElement({
     size: { width, height },
     data: DEFAULT_IMAGE_PLACEHOLDER_SRC,
     fit: "cover",
+    decorative: false,
     name,
+    is_icon: false,
     border_radius: IMAGE_RADIUS,
   };
 }
@@ -643,6 +678,7 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
             elements: [
               makeImageElement({ x: 0, y: 0, width: 486, height: 371 }),
               makeTextElement({
+                name: "image_heading",
                 text: "Add a heading",
                 x: 525,
                 y: 15,
@@ -652,6 +688,7 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
                 bold: true,
               }),
               makeTextElement({
+                name: "image_supporting_text",
                 text: "Add supporting text that explains why this visual matters.",
                 x: 525,
                 y: 108,
@@ -678,28 +715,28 @@ export function createImageInsertContent(kind?: string): EditorInsertContent {
                 y: 0,
                 width: 346,
                 height: 211,
-                name: "Image 1",
+                name: "image_1",
               }),
               makeImageElement({
                 x: 371,
                 y: 0,
                 width: 346,
                 height: 211,
-                name: "Image 2",
+                name: "image_2",
               }),
               makeImageElement({
                 x: 0,
                 y: 243,
                 width: 346,
                 height: 211,
-                name: "Image 3",
+                name: "image_3",
               }),
               makeImageElement({
                 x: 371,
                 y: 243,
                 width: 346,
                 height: 211,
-                name: "Image 4",
+                name: "image_4",
               }),
             ],
           },

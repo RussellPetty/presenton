@@ -4,6 +4,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
 import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
+import {
+  createChartInsertElements,
+  createElementInsertElements,
+  createImageInsertContent,
+  createInfographicInsertElements,
+  createTableInsertElements,
+  createTextInsertElements,
+  type EditorInsertContent,
+} from "@/components/slide-editor/insert/insert-elements";
+import {
+  TEMPLATE_V2_INSERT_ELEMENTS_EVENT,
+  type TemplateV2InsertComponent,
+  type TemplateV2InsertElementsDetail,
+} from "@/components/slide-editor/events/events";
+import {
+  EDITOR_STAGE_HEIGHT,
+  EDITOR_STAGE_WIDTH,
+  type SlideElement,
+} from "@/components/slide-editor/types";
 import { COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT } from "@/components/slide-editor/text/TiptapInlineTextEditor";
 import { normalizeBackendAssetUrls } from "@/utils/api";
 import TemplateService from "../../services/api/template";
@@ -11,14 +30,18 @@ import { useTemplateDetails } from "../../hooks/useTemplateDetails";
 import {
   useFontLoader as loadFontAssets,
 } from "../../hooks/useFontLoad";
+import type {
+  PaletteItem,
+  TemplateBlock,
+} from "../../presentation/components/PresentationActions";
 import { DeleteTemplateDialog } from "./editor/DeleteTemplateDialog";
 import { EditorActionBar } from "./editor/EditorActionBar";
+import { LayoutsPanel } from "./editor/LayoutsPanel";
 import { ResponsiveSlideFrame } from "./editor/ResponsiveSlideFrame";
 import { TemplateEditorHeader } from "./editor/TemplateEditorHeader";
 import {
-  AiPanel,
   SchemaPanel,
-  TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED,
+  TemplateInsertPanel,
   ToolRail,
 } from "./editor/TemplatePreviewSidePanels";
 import {
@@ -36,7 +59,9 @@ import {
   mergeDensityPreviewCanvasEdits,
   readLayoutId,
   updateLayoutSchemaConstraint,
+  updateLayoutSchemaDecoration,
   updateLayoutSchemaField,
+  updateLayoutMetadata,
   type Density,
   type HistoryAvailability,
   type HistoryCommand,
@@ -46,17 +71,71 @@ import {
 } from "./editor/templatePreviewUtils";
 import {
   ANALYTICS_EVENTS,
-  bucketTextLength,
-  countWords,
   getPresentationErrorProperties,
-  getUserSendTimeProperties,
   track,
   useAnalyticsPageView,
 } from "./editor/templatePreviewAnalytics";
+import { TemplateV2PromptOverlay } from "../../_shared/TemplateV2PromptOverlay";
 
 type GroupLayoutPreviewProps = {
   useKonvaTemplateV2Preview?: boolean;
 };
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function recordArray(record: UnknownRecord, key: string) {
+  const value = record[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function nextBlankLayoutId(layouts: TemplateV2Layout[]) {
+  const existingIds = new Set(
+    layouts.map((layout, index) => readLayoutId(layout, index)),
+  );
+  let suffix = layouts.length + 1;
+  let candidate = `blank-slide-${suffix}`;
+
+  while (existingIds.has(candidate)) {
+    suffix += 1;
+    candidate = `blank-slide-${suffix}`;
+  }
+
+  return candidate;
+}
+
+function blankLayoutWithFullSlideRectangle(layoutId: string): TemplateV2Layout {
+  return {
+    id: layoutId,
+    description: "Blank slide layout.",
+    components: [
+      {
+        id: `${layoutId}-rectangle`,
+        description: "Full-slide rectangle",
+        position: { x: 0, y: 0 },
+        size: {
+          width: EDITOR_STAGE_WIDTH,
+          height: EDITOR_STAGE_HEIGHT,
+        },
+        elements: [
+          {
+            type: "vector",
+            shape: "polygon",
+            points: [
+              { x: 0, y: 0 },
+              { x: EDITOR_STAGE_WIDTH, y: 0 },
+              { x: EDITOR_STAGE_WIDTH, y: EDITOR_STAGE_HEIGHT },
+              { x: 0, y: EDITOR_STAGE_HEIGHT },
+            ],
+            closed: true,
+            fill: { color: "#FFFFFF" },
+          },
+        ],
+      },
+    ],
+  };
+}
 
 const GroupLayoutPreview = ({
   useKonvaTemplateV2Preview = true,
@@ -75,7 +154,6 @@ const GroupLayoutPreview = ({
   const [activeLayoutIndex, setActiveLayoutIndex] = useState(0);
   const [activePanel, setActivePanel] = useState<PanelMode>("schema");
   const [density, setDensity] = useState<Density>("");
-  const [prompt, setPrompt] = useState("");
   const [openFieldId, setOpenFieldId] = useState("");
   const [templateNameDraft, setTemplateNameDraft] = useState("Template");
   const [savedTemplateName, setSavedTemplateName] = useState("Template");
@@ -90,6 +168,8 @@ const GroupLayoutPreview = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isReconstructing, setIsReconstructing] = useState(false);
+  const [promptLayoutId, setPromptLayoutId] = useState<string | null>(null);
+  const [isPromptGenerating, setIsPromptGenerating] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
   const loadOutcomeTrackedRef = useRef(false);
@@ -153,6 +233,8 @@ const GroupLayoutPreview = ({
     setHistoryAvailability({ canUndo: false, canRedo: false });
     setHistoryCommand(null);
     setHasUnsavedChanges(false);
+    setPromptLayoutId(null);
+    setIsPromptGenerating(false);
     setIsDeleteDialogOpen(false);
     setIsDeletingTemplate(false);
   }, [layouts, templateId]);
@@ -189,11 +271,14 @@ const GroupLayoutPreview = ({
       setOpenFieldId("");
       return;
     }
-    setOpenFieldId((current) =>
-      current && schemaFields.some((field) => field.id === current)
-        ? current
-        : schemaFields[0].id,
-    );
+    setOpenFieldId((current) => {
+      const currentField = schemaFields.find((field) => field.id === current);
+      if (currentField) return current;
+
+      return (
+        schemaFields.find((field) => !field.decorative) ?? schemaFields[0]
+      ).id;
+    });
   }, [schemaFields]);
 
   useEffect(() => {
@@ -201,18 +286,29 @@ const GroupLayoutPreview = ({
     setHistoryAvailability({ canUndo: false, canRedo: false });
   }, [activeLayoutIndex]);
 
-  const copyActiveLayoutId = useCallback(async () => {
+  const copyLayoutId = useCallback(async (layoutIndex: number) => {
+    const layout = editableLayouts[layoutIndex];
+    if (!layout) return;
+
+    const layoutToken = templateId
+      ? `${templateId}:${readLayoutId(layout, layoutIndex)}`
+      : readLayoutId(layout, layoutIndex);
+
     try {
-      await navigator.clipboard.writeText(activeLayoutToken);
+      await navigator.clipboard.writeText(layoutToken);
       track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_ID_COPIED, {
         template_id: templateId,
-        layout_index: activeLayoutIndex,
+        layout_index: layoutIndex,
       });
       notify.success("Copied", "Template layout ID copied.");
     } catch {
-      notify.error("Copy failed", activeLayoutToken);
+      notify.error("Copy failed", layoutToken);
     }
-  }, [activeLayoutIndex, activeLayoutToken, templateId]);
+  }, [editableLayouts, templateId]);
+
+  const copyActiveLayoutId = useCallback(async () => {
+    await copyLayoutId(activeLayoutIndex);
+  }, [activeLayoutIndex, copyLayoutId]);
 
   const copyTemplateId = useCallback(async () => {
     try {
@@ -221,8 +317,11 @@ const GroupLayoutPreview = ({
         template_id: templateId,
       });
       notify.success("Copied", "Template ID copied.");
-    } catch {
-      notify.error("Copy failed", activeLayoutToken);
+    } catch (copyError) {
+      notify.error(
+        "Copy failed",
+        copyError instanceof Error ? copyError.message : templateId,
+      );
     }
   }, [templateId]);
 
@@ -288,9 +387,89 @@ const GroupLayoutPreview = ({
     [activeLayout, density, updateActiveLayout],
   );
 
-  const handleDensityChange = useCallback((nextDensity: Density) => {
+  const applyContentDensity = useCallback((nextDensity: Density) => {
+    if (!nextDensity || !canEditTemplate || !activeLayout) return;
+    const hasEditableContent = schemaFields.some(
+      (field) =>
+        !field.decorative &&
+        (field.type === "text" ||
+          field.type === "text-list" ||
+          field.type === "image"),
+    );
+    if (!hasEditableContent) {
+      notify.warning(
+        "No editable content",
+        "Mark a schema field as non-decorative before testing content density.",
+      );
+      return;
+    }
+
     setDensity(nextDensity);
-  }, []);
+    track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_SCHEMA_CHANGED, {
+      template_id: templateId,
+      layout_index: activeLayoutIndex,
+      change_type: "content_density",
+      density: nextDensity.toLowerCase(),
+    });
+  }, [
+    activeLayout,
+    activeLayoutIndex,
+    canEditTemplate,
+    schemaFields,
+    templateId,
+  ]);
+
+  const resetContentDensity = useCallback(() => {
+    if (!density) return;
+    setDensity("");
+    track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_SCHEMA_CHANGED, {
+      template_id: templateId,
+      layout_index: activeLayoutIndex,
+      change_type: "content_density_reset",
+    });
+  }, [activeLayoutIndex, density, templateId]);
+
+  const handleLayoutMetadataChange = useCallback(
+    (
+      layoutIndex: number,
+      field: "id" | "description",
+      value: string,
+    ) => {
+      if (!canEditTemplate) return;
+      updateEditableLayouts((currentLayouts) =>
+        currentLayouts.map((layout, index) =>
+          index === layoutIndex
+            ? updateLayoutMetadata(layout, field, value)
+            : layout,
+        ),
+      );
+      setHasUnsavedChanges(true);
+    },
+    [canEditTemplate, updateEditableLayouts],
+  );
+
+  const selectLayout = useCallback(
+    (nextIndex: number) => {
+      if (nextIndex < 0 || nextIndex >= editableLayouts.length) return;
+      if (nextIndex === activeLayoutIndex) return;
+
+      resetContentDensity();
+      setPromptLayoutId(null);
+      track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_SELECTED, {
+        template_id: templateId,
+        layout_index: nextIndex,
+        previous_layout_index: activeLayoutIndex,
+        layout_count: editableLayouts.length,
+      });
+      setActiveLayoutIndex(nextIndex);
+    },
+    [
+      activeLayoutIndex,
+      editableLayouts.length,
+      resetContentDensity,
+      templateId,
+    ],
+  );
 
   const handleSchemaFieldChange = useCallback(
     (field: SchemaField, value: string) => {
@@ -328,17 +507,36 @@ const GroupLayoutPreview = ({
     [activeLayout, activeLayoutIndex, templateId, updateActiveLayout],
   );
 
+  const handleSchemaDecorationChange = useCallback(
+    (field: SchemaField, decorative: boolean) => {
+      if (!activeLayout) return;
+      updateActiveLayout(
+        updateLayoutSchemaDecoration(activeLayout, field, decorative),
+      );
+      track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_SCHEMA_CHANGED, {
+        template_id: templateId,
+        layout_index: activeLayoutIndex,
+        change_type: "decorative",
+        decorative,
+        field_id: field.id,
+      });
+    },
+    [activeLayout, activeLayoutIndex, templateId, updateActiveLayout],
+  );
+
   const runHistoryCommand = useCallback((action: "undo" | "redo") => {
+    resetContentDensity();
     setHistoryCommand({ action, token: Date.now() });
     track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_HISTORY_ACTION, {
       template_id: templateId,
       layout_index: activeLayoutIndex,
       action,
     });
-  }, [activeLayoutIndex, templateId]);
+  }, [activeLayoutIndex, resetContentDensity, templateId]);
 
   const duplicateActiveLayout = useCallback(() => {
     if (!canEditTemplate || !activeLayout) return;
+    resetContentDensity();
     const duplicated = cloneLayout(activeLayout) as UnknownRecord;
     const nextId = `${activeLayoutId}-copy`;
     duplicated.id = nextId;
@@ -365,15 +563,144 @@ const GroupLayoutPreview = ({
     activeLayoutIndex,
     canEditTemplate,
     editableLayouts.length,
+    resetContentDensity,
     templateId,
     updateEditableLayouts,
   ]);
+
+  const createBlankLayout = useCallback(() => {
+    if (!canEditTemplate) return;
+    resetContentDensity();
+
+    const blankLayout = blankLayoutWithFullSlideRectangle(
+      nextBlankLayoutId(editableLayoutsRef.current),
+    );
+    const nextIndex =
+      editableLayoutsRef.current.length === 0
+        ? 0
+        : Math.min(
+            activeLayoutIndex + 1,
+            editableLayoutsRef.current.length,
+          );
+
+    updateEditableLayouts((currentLayouts) => {
+      const nextLayouts = [...currentLayouts];
+      nextLayouts.splice(nextIndex, 0, blankLayout);
+      return nextLayouts;
+    });
+    setActiveLayoutIndex(nextIndex);
+    setPromptLayoutId(
+      typeof blankLayout.id === "string" ? blankLayout.id : null,
+    );
+    setHasUnsavedChanges(true);
+  }, [
+    activeLayoutIndex,
+    canEditTemplate,
+    resetContentDensity,
+    updateEditableLayouts,
+  ]);
+
+  const generatePromptedLayout = useCallback(
+    async (prompt: string) => {
+      if (
+        !canEditTemplate ||
+        !templateId ||
+        !promptLayoutId ||
+        isPromptGenerating
+      ) {
+        return false;
+      }
+
+      const targetIndex = editableLayoutsRef.current.findIndex(
+        (layout, index) => readLayoutId(layout, index) === promptLayoutId,
+      );
+      if (targetIndex < 0) {
+        notify.error(
+          "Slide unavailable",
+          "The blank slide is no longer available. Add a new one and try again.",
+        );
+        setPromptLayoutId(null);
+        return false;
+      }
+
+      setIsPromptGenerating(true);
+      const startedAt = Date.now();
+      try {
+        const response = await TemplateService.generateTemplateLayout({
+          template_id: templateId,
+          prompt,
+        });
+        if (!isRecord(response.layout)) {
+          throw new Error("No generated layout was returned.");
+        }
+        const generatedLayout = normalizeBackendAssetUrls(response.layout);
+
+        updateEditableLayouts((currentLayouts) =>
+          currentLayouts.map((currentLayout, index) => {
+            if (readLayoutId(currentLayout, index) !== promptLayoutId) {
+              return currentLayout;
+            }
+
+            const generatedId = readLayoutId(generatedLayout, targetIndex);
+            const idIsAlreadyUsed = currentLayouts.some(
+              (candidate, candidateIndex) =>
+                readLayoutId(candidate, candidateIndex) === generatedId &&
+                readLayoutId(candidate, candidateIndex) !== promptLayoutId,
+            );
+
+            return {
+              ...generatedLayout,
+              id: idIsAlreadyUsed ? promptLayoutId : generatedId,
+            };
+          }),
+        );
+        setPromptLayoutId(null);
+        setHasUnsavedChanges(true);
+        notify.success(
+          "Slide created",
+          `Slide ${targetIndex + 1} was generated. Save to keep it.`,
+        );
+        track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_RECONSTRUCTED, {
+          template_id: templateId,
+          layout_index: targetIndex,
+          duration_ms: Date.now() - startedAt,
+          source: "blank_slide_prompt",
+        });
+        return true;
+      } catch (generationError) {
+        notify.error(
+          "Failed to create slide",
+          generationError instanceof Error
+            ? generationError.message
+            : "Something went wrong while creating this slide.",
+        );
+        track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_RECONSTRUCT_FAILED, {
+          template_id: templateId,
+          layout_index: targetIndex,
+          duration_ms: Date.now() - startedAt,
+          source: "blank_slide_prompt",
+          ...getPresentationErrorProperties(generationError),
+        });
+        return false;
+      } finally {
+        setIsPromptGenerating(false);
+      }
+    },
+    [
+      canEditTemplate,
+      isPromptGenerating,
+      promptLayoutId,
+      templateId,
+      updateEditableLayouts,
+    ],
+  );
 
   const moveActiveLayout = useCallback(
     (direction: -1 | 1) => {
       const nextIndex = activeLayoutIndex + direction;
       if (!canEditTemplate) return;
       if (nextIndex < 0 || nextIndex >= editableLayouts.length) return;
+      resetContentDensity();
       updateEditableLayouts((currentLayouts) => {
         const nextLayouts = [...currentLayouts];
         const [layout] = nextLayouts.splice(activeLayoutIndex, 1);
@@ -394,6 +721,7 @@ const GroupLayoutPreview = ({
       activeLayoutIndex,
       canEditTemplate,
       editableLayouts.length,
+      resetContentDensity,
       templateId,
       updateEditableLayouts,
     ],
@@ -409,6 +737,8 @@ const GroupLayoutPreview = ({
       return;
     }
 
+    resetContentDensity();
+    setPromptLayoutId(null);
     updateEditableLayouts((currentLayouts) =>
       currentLayouts.filter((_, index) => index !== activeLayoutIndex),
     );
@@ -426,6 +756,7 @@ const GroupLayoutPreview = ({
     activeLayoutIndex,
     canEditTemplate,
     editableLayouts.length,
+    resetContentDensity,
     templateId,
     updateEditableLayouts,
   ]);
@@ -435,6 +766,7 @@ const GroupLayoutPreview = ({
       return;
     }
 
+    resetContentDensity();
     setIsReconstructing(true);
     const startedAt = Date.now();
     track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_RECONSTRUCT_REQUESTED, {
@@ -484,32 +816,181 @@ const GroupLayoutPreview = ({
     activeLayoutIndex,
     canEditTemplate,
     isReconstructing,
+    resetContentDensity,
     templateId,
     updateActiveLayout,
   ]);
 
-  const submitAiPrompt = useCallback(() => {
-    if (!canEditTemplate) return;
-    const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt) return;
-    setPrompt("");
-    track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_USER_PROMPT_SENT, {
-      page_path: "/template-preview",
-      action: "ai_prompt",
-      template_id: templateId,
-      layout_index: activeLayoutIndex,
-      prompt_length_bucket: bucketTextLength(trimmedPrompt),
-      prompt_word_count: countWords(trimmedPrompt),
-      ...getUserSendTimeProperties(),
-    });
-    track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_AI_PROMPT_CAPTURED, {
-      template_id: templateId,
-      layout_index: activeLayoutIndex,
-      prompt_length_bucket: bucketTextLength(trimmedPrompt),
-      prompt_word_count: countWords(trimmedPrompt),
-    });
-    notify.success("Prompt captured", "Use Re-Construct when you are ready.");
-  }, [activeLayoutIndex, canEditTemplate, prompt, templateId]);
+  const insertEditorContent = useCallback(
+    (
+      content: EditorInsertContent,
+      label: string,
+      preserveComponentData = false,
+    ) => {
+      if (!canEditTemplate || !activeLayout || typeof window === "undefined") {
+        if (!activeLayout) {
+          notify.warning(
+            "Create a layout first",
+            "Add a blank layout before inserting content.",
+          );
+        }
+        return false;
+      }
+      if (
+        (content.elements?.length ?? 0) === 0 &&
+        (content.components?.length ?? 0) === 0
+      ) {
+        return false;
+      }
+
+      const detail: TemplateV2InsertElementsDetail = {
+        ...content,
+        label,
+        preserveComponentData,
+        slideId: activeLayoutId,
+        slideIndex: activeLayoutIndex,
+      };
+      window.dispatchEvent(
+        new CustomEvent(TEMPLATE_V2_INSERT_ELEMENTS_EVENT, { detail }),
+      );
+
+      if (!detail.handled) {
+        notify.warning(
+          "Insert unavailable",
+          "Select the active layout and try again.",
+        );
+        return false;
+      }
+
+      return true;
+    },
+    [
+      activeLayout,
+      activeLayoutId,
+      activeLayoutIndex,
+      canEditTemplate,
+    ],
+  );
+
+  const insertEditorElements = useCallback(
+    (elements: SlideElement[], label: string) =>
+      insertEditorContent({ elements }, label),
+    [insertEditorContent],
+  );
+
+  const handleTextItemSelect = useCallback(
+    (item: PaletteItem) => {
+      if (!insertEditorElements(createTextInsertElements(item.id), item.label)) {
+        return;
+      }
+      track(ANALYTICS_EVENTS.EDITOR_PALETTE_ITEM_INSERTED, {
+        template_id: templateId,
+        category: "texts",
+        item_id: item.id,
+        layout_index: activeLayoutIndex,
+      });
+    },
+    [activeLayoutIndex, insertEditorElements, templateId],
+  );
+
+  const handleChartItemSelect = useCallback(
+    (item: PaletteItem) => {
+      const chartElements = createChartInsertElements(item.id);
+      const category = chartElements.length > 0 ? "charts" : "infographics";
+      const elements =
+        chartElements.length > 0
+          ? chartElements
+          : createInfographicInsertElements(item.id);
+      if (!insertEditorElements(elements, item.label)) return;
+
+      track(ANALYTICS_EVENTS.EDITOR_PALETTE_ITEM_INSERTED, {
+        template_id: templateId,
+        category,
+        item_id: item.id,
+        layout_index: activeLayoutIndex,
+      });
+    },
+    [activeLayoutIndex, insertEditorElements, templateId],
+  );
+
+  const handleTableItemSelect = useCallback(
+    (item: PaletteItem) => {
+      if (
+        !insertEditorElements(createTableInsertElements(item.id), item.label)
+      ) {
+        return;
+      }
+      track(ANALYTICS_EVENTS.EDITOR_PALETTE_ITEM_INSERTED, {
+        template_id: templateId,
+        category: "tables",
+        item_id: item.id,
+        layout_index: activeLayoutIndex,
+      });
+    },
+    [activeLayoutIndex, insertEditorElements, templateId],
+  );
+
+  const handleImageItemSelect = useCallback(
+    (item: PaletteItem) => {
+      if (!insertEditorContent(createImageInsertContent(item.id), item.label)) {
+        return;
+      }
+      track(ANALYTICS_EVENTS.EDITOR_PALETTE_ITEM_INSERTED, {
+        template_id: templateId,
+        category: "images",
+        item_id: item.id,
+        layout_index: activeLayoutIndex,
+      });
+    },
+    [activeLayoutIndex, insertEditorContent, templateId],
+  );
+
+  const handleElementItemSelect = useCallback(
+    (item: PaletteItem) => {
+      if (
+        !insertEditorElements(createElementInsertElements(item.id), item.label)
+      ) {
+        return;
+      }
+      track(ANALYTICS_EVENTS.EDITOR_PALETTE_ITEM_INSERTED, {
+        template_id: templateId,
+        category: "elements",
+        item_id: item.id,
+        layout_index: activeLayoutIndex,
+      });
+    },
+    [activeLayoutIndex, insertEditorElements, templateId],
+  );
+
+  const handleBlockSelect = useCallback(
+    (block: TemplateBlock) => {
+      if (
+        !isRecord(block.raw) ||
+        recordArray(block.raw, "elements").length === 0
+      ) {
+        notify.warning(
+          "Component unavailable",
+          "This merged component cannot be inserted yet.",
+        );
+        return;
+      }
+
+      const inserted = insertEditorContent(
+        { components: [block.raw as TemplateV2InsertComponent] },
+        block.title,
+        true,
+      );
+      if (inserted) {
+        track(ANALYTICS_EVENTS.EDITOR_TEMPLATE_BLOCK_INSERTED, {
+          template_id: templateId,
+          block_index: block.index,
+          layout_index: activeLayoutIndex,
+          element_count: recordArray(block.raw, "elements").length,
+        });
+      }
+    },
+    [activeLayoutIndex, insertEditorContent, templateId],
+  );
 
   const saveTemplate = useCallback(async () => {
     let layoutsToSave = editableLayoutsRef.current;
@@ -697,8 +1178,17 @@ const GroupLayoutPreview = ({
           {editableLayouts.length === 0 ||
             !activeLayout ||
             !activePreviewLayout ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-[#696969]">
-              No layouts available for this template.
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-sm text-[#696969]">
+              <p>No layouts available for this template.</p>
+              {canEditTemplate ? (
+                <button
+                  className="rounded-[8px] border border-[#D9D6FE] bg-white px-4 py-2 text-[13px] font-medium text-[#7A5AF8] transition-colors hover:bg-[#F8F6FF]"
+                  onClick={createBlankLayout}
+                  type="button"
+                >
+                  Create blank layout
+                </button>
+              ) : null}
             </div>
           ) : (
             <>
@@ -712,6 +1202,17 @@ const GroupLayoutPreview = ({
                   layout={activePreviewLayout}
                   onHistoryAvailabilityChange={setHistoryAvailability}
                   onLayoutChange={handlePreviewLayoutChange}
+                  promptOverlay={
+                    promptLayoutId === activeLayoutId ? (
+                      <TemplateV2PromptOverlay
+                        isSubmitting={isPromptGenerating}
+                        layout={activeLayout}
+                        slideIndex={activeLayoutIndex}
+                        onDismiss={() => setPromptLayoutId(null)}
+                        onSubmitPrompt={generatePromptedLayout}
+                      />
+                    ) : null
+                  }
                 />
               </div>
 
@@ -721,6 +1222,7 @@ const GroupLayoutPreview = ({
                   canMoveLeft={activeLayoutIndex > 0}
                   canMoveRight={activeLayoutIndex < editableLayouts.length - 1}
                   isReconstructing={isReconstructing}
+                  onAddBlank={createBlankLayout}
                   onCopy={copyActiveLayoutId}
                   onDelete={deleteActiveLayout}
                   onDuplicate={duplicateActiveLayout}
@@ -735,15 +1237,7 @@ const GroupLayoutPreview = ({
                 fonts={fonts}
                 layouts={previewLayouts}
                 templateId={templateId}
-                onSelect={(nextIndex) => {
-                  track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_LAYOUT_SELECTED, {
-                    template_id: templateId,
-                    layout_index: nextIndex,
-                    previous_layout_index: activeLayoutIndex,
-                    layout_count: editableLayouts.length,
-                  });
-                  setActiveLayoutIndex(nextIndex);
-                }}
+                onSelect={selectLayout}
               />
             </>
           )}
@@ -754,6 +1248,9 @@ const GroupLayoutPreview = ({
             <ToolRail
               activePanel={activePanel}
               onPanelChange={(nextPanel) => {
+                if (nextPanel !== "schema") {
+                  resetContentDensity();
+                }
                 track(ANALYTICS_EVENTS.TEMPLATE_PREVIEW_PANEL_SELECTED, {
                   template_id: templateId,
                   panel: nextPanel,
@@ -762,22 +1259,43 @@ const GroupLayoutPreview = ({
                 setActivePanel(nextPanel);
               }}
             />
-            {activePanel === "schema" ||
-              !TEMPLATE_PREVIEW_AI_ASSISTANT_ENABLED ? (
+            {activePanel === "layouts" ? (
+              <LayoutsPanel
+                activeLayoutIndex={activeLayoutIndex}
+                layouts={editableLayouts}
+                onCopyLayoutId={copyLayoutId}
+                onLayoutIdChange={(layoutIndex, value) =>
+                  handleLayoutMetadataChange(layoutIndex, "id", value)
+                }
+                onLayoutDescriptionChange={(layoutIndex, value) =>
+                  handleLayoutMetadataChange(layoutIndex, "description", value)
+                }
+                onSelectLayout={selectLayout}
+              />
+            ) : activePanel === "schema" ? (
               <SchemaPanel
+                canResetDensity={density !== ""}
                 density={density}
                 fields={schemaFields}
                 openFieldId={openFieldId}
                 onConstraintChange={handleSchemaConstraintChange}
-                onDensityChange={handleDensityChange}
+                onDecorativeChange={handleSchemaDecorationChange}
+                onDensityChange={applyContentDensity}
+                onDensityReset={resetContentDensity}
                 onFieldChange={handleSchemaFieldChange}
                 onOpenFieldChange={setOpenFieldId}
               />
             ) : (
-              <AiPanel
-                prompt={prompt}
-                onPromptChange={setPrompt}
-                onSubmit={submitAiPrompt}
+              <TemplateInsertPanel
+                activePanel={activePanel}
+                onBlockSelect={handleBlockSelect}
+                onChartItemSelect={handleChartItemSelect}
+                onElementItemSelect={handleElementItemSelect}
+                onImageItemSelect={handleImageItemSelect}
+                onTableItemSelect={handleTableItemSelect}
+                onTextItemSelect={handleTextItemSelect}
+                template={template}
+                templateId={templateId}
               />
             )}
           </>
