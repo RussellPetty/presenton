@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 
 import {
   DashboardApi,
@@ -8,12 +14,16 @@ import {
 } from "@/app/(presentation-generator)/services/api/dashboard";
 import { PresentationGrid } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/PresentationGrid";
 import { LegacyPresentationsTable } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/LegacyPresentationsTable";
+import { PresentationGenerationApi } from "@/app/(presentation-generator)/services/api/presentation-generation";
 import Link from "next/link";
 import Image from "next/image";
+import { Loader2, Plus } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import { notify } from "@/components/ui/sonner";
+import { sanitizeAnalyticsError } from "@/utils/analytics";
 import {
   IMAGE_PROVIDERS,
   LLM_PROVIDERS,
@@ -289,13 +299,17 @@ function DashboardHeader() {
 
 const DashboardPage: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [presentations, setPresentations] = useState<PresentationResponse[]>([]);
   const [legacyPresentations, setLegacyPresentations] = useState<
     PresentationResponse[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingBlankPresentation, setIsCreatingBlankPresentation] =
+    useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deckViewMode, setDeckViewMode] = useState<"grid" | "list">("grid");
+  const blankPresentationRequestInFlight = useRef(false);
 
   const sortedPresentations = useMemo(
     () => sortPresentationsNewestFirst(presentations),
@@ -339,6 +353,43 @@ const DashboardPage: React.FC = () => {
     void fetchPresentations();
   }, [fetchPresentations]);
 
+  const createBlankPresentation = useCallback(async () => {
+    if (blankPresentationRequestInFlight.current) return;
+
+    blankPresentationRequestInFlight.current = true;
+    setIsCreatingBlankPresentation(true);
+    trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, {
+      pathname,
+      source: "dashboard_blank_presentation_card",
+    });
+
+    try {
+      const presentation =
+        await PresentationGenerationApi.createBlankPresentation();
+      trackEvent(MixpanelEvent.Dashboard_Blank_Presentation_Created, {
+        pathname,
+        presentation_id: presentation.id,
+        slide_count: presentation.n_slides,
+      });
+      router.push(
+        `/presentation?id=${encodeURIComponent(presentation.id)}&type=standard`
+      );
+    } catch (creationError) {
+      const message =
+        creationError instanceof Error
+          ? creationError.message
+          : "Something went wrong while creating the presentation.";
+      trackEvent(MixpanelEvent.Dashboard_Blank_Presentation_Create_Failed, {
+        pathname,
+        error_message: sanitizeAnalyticsError(creationError),
+      });
+      notify.error("Could not create blank presentation", message);
+    } finally {
+      blankPresentationRequestInFlight.current = false;
+      setIsCreatingBlankPresentation(false);
+    }
+  }, [pathname, router]);
+
   const removePresentation = (presentationId: string) => {
     setPresentations((prev) => prev.filter((p) => p.id !== presentationId));
     setLegacyPresentations((prev) =>
@@ -360,28 +411,55 @@ const DashboardPage: React.FC = () => {
         <h2 className="w-full font-syne text-[16px] font-medium leading-[normal] text-[#191919]">
           Actions
         </h2>
-        <Link
-          href="/upload"
-          onClick={() =>
-            trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, {
-              pathname,
-              source: "dashboard_actions_card",
-            })
-          }
-          className="group/action relative z-50 mt-[18px] block w-[304.5px] max-w-full cursor-pointer overflow-visible rounded-[10.8px] bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4"
-          aria-label="Create presentation"
-        >
-          <FloatingActionCards />
+        <div className="mt-[18px] flex flex-wrap items-start gap-4">
+          <Link
+            href="/upload"
+            onClick={() =>
+              trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, {
+                pathname,
+                source: "dashboard_actions_card",
+              })
+            }
+            className="group/action relative z-50 block w-[304.5px] max-w-full cursor-pointer overflow-visible rounded-[10.8px] bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4"
+            aria-label="Create presentation"
+          >
+            <FloatingActionCards />
 
-          <img
-            src="/create_presentation_bg.png"
-            alt="Background of the create presentation card"
-            className="relative z-10 h-[89.983px] w-[304.5px] max-w-full rounded-[10.8px] bg-white object-cover"
-          />
-          <span className="absolute inset-0 z-20 flex items-center justify-center text-center font-syne text-sm font-medium text-[#191919]">
-            Create Presentation
-          </span>
-        </Link>
+            <img
+              src="/create_presentation_bg.png"
+              alt="Background of the create presentation card"
+              className="relative z-10 h-[89.983px] w-[304.5px] max-w-full rounded-[10.8px] bg-white object-cover"
+            />
+            <span className="absolute inset-0 z-20 flex items-center justify-center text-center font-syne text-sm font-medium text-[#191919]">
+              Create Presentation
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => void createBlankPresentation()}
+            disabled={isCreatingBlankPresentation}
+            aria-busy={isCreatingBlankPresentation}
+            className="group relative z-50 flex h-[89.983px] w-[304.5px] max-w-full items-center overflow-hidden rounded-[10.8px] border border-[#EDEEEF] bg-[linear-gradient(135deg,#FAFAFF_0%,#F3F0FF_100%)] px-5 text-left outline-none transition hover:border-[#CFC7FF] hover:shadow-[0_8px_22px_rgba(81,70,229,0.12)] focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label="Create blank presentation"
+          >
+            <span className="font-syne text-sm font-medium text-[#191919]">
+              {isCreatingBlankPresentation
+                ? "Creating blank presentation"
+                : "Blank Presentation"}
+            </span>
+            <span
+              className="ml-auto flex aspect-video w-[112px] items-center justify-center rounded-[6px] border border-[#DDD9F8] bg-white shadow-[0_6px_14px_rgba(16,24,40,0.12)] transition-transform group-hover:-translate-y-0.5"
+              aria-hidden="true"
+            >
+              {isCreatingBlankPresentation ? (
+                <Loader2 className="h-5 w-5 animate-spin text-[#7A5AF8]" />
+              ) : (
+                <Plus className="h-5 w-5 text-[#7A5AF8]" />
+              )}
+            </span>
+          </button>
+        </div>
       </section>
       <section className="relative z-10 mt-[46px] pl-3 pr-3 sm:pl-6 sm:pr-[9px]">
         <div className="mb-[14px] flex items-center justify-between gap-4">

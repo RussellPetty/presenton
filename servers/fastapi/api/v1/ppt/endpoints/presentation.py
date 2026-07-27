@@ -89,12 +89,9 @@ from utils.process_slides import (
 from utils.icon_weights import DEFAULT_ICON_TYPE, extract_icon_type_from_settings
 from utils.llm_utils import message_content_to_text
 from utils.sse import safe_sse_stream
-from utils.simple_auth import (
-    SESSION_COOKIE_NAME,
-    create_session_token,
-    get_session_token_from_request,
-)
+from api.v1.auth.config import SESSION_COOKIE_NAME
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
+from api.v1.auth.context import get_current_owner_id
 from models.presentation_layout import PresentationLayoutModel, SlideLayoutModel
 from templates.v2.schema import get_template_schema
 from templates.default_templates import resolve_default_template_id
@@ -106,10 +103,37 @@ logger = logging.getLogger(__name__)
 PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
 ASYNC_TASK_TYPE_PRESENTATION_GENERATE = "presentation.generate"
 CUSTOM_TEMPLATE_PREFIX = "custom-"
+BLANK_PRESENTATION_LAYOUT_GROUP = "blank"
+BLANK_PRESENTATION_LAYOUT_ID = "__blank_slide__"
+BLANK_PRESENTATION_SLIDE_UI: dict[str, Any] = {
+    "id": BLANK_PRESENTATION_LAYOUT_ID,
+    "description": "Empty slide.",
+    "background": "#FFFFFF",
+    "components": [],
+    "elements": [
+        {
+            "type": "vector",
+            "shape": "polygon",
+            "points": [
+                {"x": 0, "y": 0},
+                {"x": 1280, "y": 0},
+                {"x": 1280, "y": 720},
+                {"x": 0, "y": 720},
+            ],
+            "closed": True,
+            "fill": {"color": "#FFFFFF"},
+            "decorative": True,
+        }
+    ],
+}
 
 
 class PresentationPrepareResponse(BaseModel):
     presentation_id: uuid.UUID
+
+
+def _blank_presentation_slide_ui() -> dict[str, Any]:
+    return copy.deepcopy(BLANK_PRESENTATION_SLIDE_UI)
 
 
 def _presentation_task_progress_data(
@@ -492,6 +516,7 @@ def _apply_template_content_to_element(
     *,
     direct_value: bool = False,
     preferred_content_keys: list[str] | None = None,
+    name_occurrences: dict[str, int] | None = None,
 ) -> Any:
     if not isinstance(element, dict):
         return element
@@ -502,6 +527,12 @@ def _apply_template_content_to_element(
     has_value = False
     value = None
     if name:
+        if preferred_content_keys is None and name_occurrences is not None:
+            preferred_content_keys = _template_repeated_content_keys_for_name(
+                name,
+                content_values,
+                name_occurrences,
+            )
         has_value, value = _template_content_value(
             content_values,
             name,
@@ -531,6 +562,11 @@ def _apply_template_content_to_element(
 
     nested_content = value if isinstance(value, dict) else content_values
     nested_direct_value = direct_value and not has_value
+    nested_name_occurrences = (
+        {}
+        if has_value and isinstance(value, dict)
+        else name_occurrences
+    )
 
     if element_type == "container":
         updated = copy.deepcopy(element)
@@ -538,6 +574,7 @@ def _apply_template_content_to_element(
             element.get("child"),
             nested_content,
             direct_value=nested_direct_value,
+            name_occurrences=nested_name_occurrences,
         )
         return updated
 
@@ -551,6 +588,7 @@ def _apply_template_content_to_element(
             value,
             nested_content,
             direct_value=nested_direct_value,
+            name_occurrences=nested_name_occurrences,
         )
         return updated
 
@@ -598,6 +636,7 @@ def _apply_template_content_to_children(
     content: Any,
     *,
     direct_value: bool = False,
+    name_occurrences: dict[str, int] | None = None,
 ) -> list[Any]:
     if isinstance(value, list) and children:
         return [
@@ -613,6 +652,7 @@ def _apply_template_content_to_children(
         children,
         content,
         direct_value=direct_value,
+        name_occurrences=name_occurrences,
     )
 
 
@@ -621,39 +661,27 @@ def _apply_template_content_to_element_list(
     content: Any,
     *,
     direct_value: bool = False,
+    name_occurrences: dict[str, int] | None = None,
 ) -> list[Any]:
-    content_values = content if isinstance(content, dict) else {}
-    name_occurrences: dict[str, int] = {}
+    scoped_name_occurrences = name_occurrences if name_occurrences is not None else {}
     hydrated_elements: list[Any] = []
     for element in elements:
-        preferred_keys = _template_repeated_sibling_content_keys(
-            element,
-            content_values,
-            name_occurrences,
-        )
         hydrated_elements.append(
             _apply_template_content_to_element(
                 element,
                 content,
                 direct_value=direct_value,
-                preferred_content_keys=preferred_keys,
+                name_occurrences=scoped_name_occurrences,
             )
         )
     return hydrated_elements
 
 
-def _template_repeated_sibling_content_keys(
-    element: Any,
+def _template_repeated_content_keys_for_name(
+    name: str,
     content: dict[str, Any],
     name_occurrences: dict[str, int],
 ) -> list[str] | None:
-    if not isinstance(element, dict):
-        return None
-
-    name = element.get("name")
-    if not isinstance(name, str) or not name:
-        return None
-
     occurrence_index = name_occurrences.get(name, 0)
     name_occurrences[name] = occurrence_index + 1
     if occurrence_index == 0:
@@ -1212,19 +1240,15 @@ def _build_export_cookie_header(request: Request) -> Optional[str]:
     if cookie_header:
         return cookie_header
 
-    session_token = get_session_token_from_request(request)
+    internal_session_token = getattr(
+        request.state, "internal_session_token", None
+    )
+    if isinstance(internal_session_token, str) and internal_session_token:
+        return f"{SESSION_COOKIE_NAME}={internal_session_token}"
+
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
     if session_token:
         return f"{SESSION_COOKIE_NAME}={session_token}"
-
-    username = getattr(request.state, "auth_username", None)
-    if isinstance(username, str) and username.strip():
-        try:
-            session_token = create_session_token(username.strip())
-            return f"{SESSION_COOKIE_NAME}={session_token}"
-        except Exception:
-            logger.exception(
-                "[presentation.generate] failed to create export session token"
-            )
 
     return None
 
@@ -1422,6 +1446,53 @@ async def create_presentation(
     )
 
     return presentation
+
+
+@PRESENTATION_ROUTER.post(
+    "/create/blank",
+    response_model=PresentationWithSlides,
+    status_code=201,
+)
+async def create_blank_presentation(
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    presentation_id = uuid.uuid4()
+    presentation = PresentationModel(
+        id=presentation_id,
+        version=PresentationVersion.V2_STANDARD,
+        content="",
+        n_slides=1,
+        language="English",
+        title="Untitled Presentation",
+        layout=None,
+        fonts=None,
+        include_title_slide=False,
+    )
+    slide = SlideModel(
+        presentation=presentation_id,
+        layout_group=BLANK_PRESENTATION_LAYOUT_GROUP,
+        layout=BLANK_PRESENTATION_LAYOUT_ID,
+        index=0,
+        content={},
+        speaker_note="",
+        ui=_blank_presentation_slide_ui(),
+    )
+
+    sql_session.add(presentation)
+    sql_session.add(slide)
+    try:
+        await sql_session.commit()
+    except Exception:
+        await sql_session.rollback()
+        raise
+
+    await sql_session.refresh(presentation)
+    await sql_session.refresh(slide)
+
+    return PresentationWithSlides(
+        **_presentation_response_data(presentation),
+        slides=[slide],
+    )
 
 
 @PRESENTATION_ROUTER.post("/prepare", response_model=PresentationPrepareResponse)
@@ -1723,7 +1794,10 @@ async def stream_presentation(
 
         # Moved this here to make sure new slides are generated before deleting the old ones
         await sql_session.execute(
-            delete(SlideModel).where(SlideModel.presentation == id)
+            delete(SlideModel).where(
+                SlideModel.presentation == id,
+                SlideModel.owner_id == get_current_owner_id(),
+            )
         )
         await sql_session.commit()
 
@@ -1801,7 +1875,10 @@ async def update_presentation(
             slide.id = uuid.UUID(slide.id)
 
         await sql_session.execute(
-            delete(SlideModel).where(SlideModel.presentation == presentation.id)
+            delete(SlideModel).where(
+                SlideModel.presentation == presentation.id,
+                SlideModel.owner_id == get_current_owner_id(),
+            )
         )
         sql_session.add_all(slides)
 
@@ -2514,7 +2591,10 @@ async def edit_presentation_with_new_content(
             slides_to_delete.append(each_slide.id)
 
     await sql_session.execute(
-        delete(SlideModel).where(SlideModel.id.in_(slides_to_delete))
+        delete(SlideModel).where(
+            SlideModel.id.in_(slides_to_delete),
+            SlideModel.owner_id == get_current_owner_id(),
+        )
     )
 
     sql_session.add_all(new_slides)

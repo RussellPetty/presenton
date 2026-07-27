@@ -117,7 +117,8 @@ def test_electron_export_preserves_valid_pinned_chromium(monkeypatch, tmp_path):
     assert env["PUPPETEER_EXECUTABLE_PATH"] == str(chromium)
 
 
-def test_export_output_path_accepts_file_path_key(tmp_path):
+def test_export_output_path_accepts_file_path_key(monkeypatch, tmp_path):
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
     output_path = tmp_path / "preview.png"
     output_path.write_bytes(b"png")
 
@@ -126,7 +127,8 @@ def test_export_output_path_accepts_file_path_key(tmp_path):
     )
 
 
-def test_render_html_to_image_sends_html_task_payload(tmp_path):
+def test_render_html_to_image_sends_html_task_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
     output_path = tmp_path / "preview.png"
     output_path.write_bytes(b"png")
     service = ExportTaskService(timeout_seconds=10)
@@ -151,7 +153,8 @@ def test_render_html_to_image_sends_html_task_payload(tmp_path):
     assert "HTML-to-image" in captured["response_error_detail"]
 
 
-def test_render_json_to_image_sends_json_task_payload(tmp_path):
+def test_render_json_to_image_sends_json_task_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
     output_path = tmp_path / "preview.png"
     output_path.write_bytes(b"png")
     service = ExportTaskService(timeout_seconds=10)
@@ -193,6 +196,8 @@ def test_render_json_to_image_embeds_protected_local_assets(monkeypatch, tmp_pat
     output_path = tmp_path / "preview.png"
     output_path.write_bytes(b"png")
     monkeypatch.setenv("APP_DATA_DIRECTORY", str(app_data))
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
+    monkeypatch.setenv("DISABLE_AUTH", "true")
 
     service = ExportTaskService(timeout_seconds=10)
     captured = {}
@@ -225,7 +230,8 @@ def test_render_json_to_image_embeds_protected_local_assets(monkeypatch, tmp_pat
     assert data[0]["children"][0]["data"] == local_url
 
 
-def test_render_htmls_to_images_sends_batch_task_payload(tmp_path):
+def test_render_htmls_to_images_sends_batch_task_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("TEMP_DIRECTORY", str(tmp_path))
     output_paths = [tmp_path / "preview-1.png", tmp_path / "preview-2.png"]
     for output_path in output_paths:
         output_path.write_bytes(b"png")

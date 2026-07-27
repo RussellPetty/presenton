@@ -7,6 +7,7 @@ import type { ComponentActionsMenuActions } from "@/components/slide-editor/sele
 import { BulletsToolbar } from "@/components/slide-editor/text/BulletsToolbar";
 import { ChartToolbar } from "@/components/slide-editor/charts/ChartToolbar";
 import { DesignVariablesToolbar } from "@/components/slide-editor/toolbar/DesignVariablesToolbar";
+import { IconToolbar } from "@/components/slide-editor/images/IconToolbar";
 import { ImageToolbar } from "@/components/slide-editor/images/ImageToolbar";
 import { ShapeToolbar } from "@/components/slide-editor/shapes/ShapeToolbar";
 import { TableToolbar } from "@/components/slide-editor/tables/TableToolbar";
@@ -28,6 +29,8 @@ type ElementToolbarProps = {
   templateFonts?: TemplateFontOption[];
   textSelectionRange?: TextSelectionRange | null;
   onChange: (index: number, element: SlideElement, path?: string) => void;
+  onImageCropModeChange?: (active: boolean) => void;
+  onEditIcon: (index: number, path?: string) => void;
   onEditImage: (index: number, path?: string) => void;
   onEditText?: (index: number, path?: string) => void;
 };
@@ -83,15 +86,38 @@ const TOOLBAR_RENDERERS: Partial<
         onChange={(index, element) => onChange(index, element, path)}
       />
     ) : null,
-  image: ({ anchorBox, element, index, onChange, path, scale }) =>
+  image: ({
+    anchorBox,
+    componentActions,
+    element,
+    index,
+    onChange,
+    onEditIcon,
+    onImageCropModeChange,
+    path,
+    scale,
+  }) =>
     element.type === "image" ? (
-      <ImageToolbar
-        element={element}
-        index={index}
-        anchorBox={anchorBox}
-        scale={scale}
-        onChange={(index, element) => onChange(index, element, path)}
-      />
+      element.is_icon === true ? (
+        <IconToolbar
+          element={element}
+          index={index}
+          anchorBox={anchorBox}
+          scale={scale}
+          componentActions={componentActions}
+          onChange={(index, element) => onChange(index, element, path)}
+          onEditIcon={() => onEditIcon(index, path)}
+        />
+      ) : (
+        <ImageToolbar
+          element={element}
+          index={index}
+          anchorBox={anchorBox}
+          scale={scale}
+          onCropModeChange={onImageCropModeChange}
+          onChange={(index, element) => onChange(index, element, path)}
+        />
+      )
     ) : null,
   vector: ({ anchorBox, componentActions, element, index, onChange, path, scale }) =>
     element.type === "vector" ? (

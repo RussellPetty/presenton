@@ -146,6 +146,7 @@ Presenton gives you complete control over your AI presentation workflow. Choose 
 - Rich Media Support — Icons, charts, and custom graphics for professional presentations
 - Runs Locally — All processing happens on your device, no cloud dependencies
 - API Deployment — Host as your own API service for your team
+- Multi-User Workspaces — Give each user a private workspace and manage accounts from a built-in admin panel
 - Fully Open-Source — Apache 2.0 licensed, inspect, modify, and contribute
 - Docker Ready — One-command deployment with GPU support for local models
 - Electron Desktop App — Run Presenton as a native desktop application on Windows, macOS, and Linux (no browser required)
@@ -371,79 +372,104 @@ The parallel image generation option applies everywhere images are generated: in
 
 - **DISABLE_ANONYMOUS_TRACKING**=[true/false]: Set to **true** to disable anonymous telemetry.
 
-#### Authentication (web login)
+#### Multi-user authentication
 
-Presenton uses a **single admin account** per instance. Credentials live in `app_data` (hashed; see `userConfig.json`). Pass these with `-e` or via `.env` for compose:
+Presenton supports multiple accounts with a private workspace for each user. The
+first account becomes the primary administrator and can create, reset, or remove
+other accounts from **Admin → Users**.
 
-- **AUTH_USERNAME** / **AUTH_PASSWORD** — Preseed the admin login on first boot (password at least 6 characters). Ignored if a user already exists unless **AUTH_OVERRIDE_FROM_ENV** is set.
-- **AUTH_OVERRIDE_FROM_ENV**=[true/false] — If **true**, replace stored credentials from the env vars on every FastAPI startup and rotate the session signing secret (invalidates existing sessions). Remove after a one-off rotation.
-- **RESET_AUTH**=[true/false] — If **true**, clear stored credentials on startup. Use for a **single** boot to recover access, then unset.
+Existing single-user installations are upgraded automatically: the current account
+becomes the primary administrator, while its presentations, templates, tasks, and
+other owned data stay attached to the same account.
 
-**Examples**
+##### Set up the primary administrator
 
-```bash
-docker run -it --name presenton -p 5001:80 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
-
-```bash
-docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme123 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
+On a new installation, open Presenton and follow the account setup screen. For an
+unattended Docker deployment, you can create the primary administrator on first boot
+with environment variables:
 
 ```bash
-docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme123 -v "${PWD}\app_data:/app_data" ghcr.io/presenton/presenton:latest
+docker run -it --name presenton \
+  -p 5001:80 \
+  -e AUTH_USERNAME=admin \
+  -e AUTH_PASSWORD=change-this-password \
+  -v "./app_data:/app_data" \
+  ghcr.io/presenton/presenton:latest
 ```
+
+Usernames must contain at least 3 characters, and new passwords must contain at least
+8 characters. Older six- or seven-character passwords remain valid after an upgrade.
+
+##### Authentication environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| **AUTH_USERNAME** | Username used to create the primary administrator on first boot. It can also change the username during a rotation or recovery. |
+| **AUTH_PASSWORD** | Password used for first-time setup, rotation, or recovery. Required when using either flag below. |
+| **AUTH_OVERRIDE_FROM_ENV**=[true/false] | Replace the primary administrator's credentials from the environment on the next startup. Use this for a deployment-managed credential rotation. |
+| **RESET_AUTH**=[true/false] | Recover access to the existing primary administrator without replacing the account or its data. |
+
+To rotate credentials from the environment:
 
 ```bash
-docker stop presenton && docker rm presenton && docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=newcred456 -e AUTH_OVERRIDE_FROM_ENV=true -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
+docker stop presenton
+docker rm presenton
+docker run -it --name presenton \
+  -p 5001:80 \
+  -e AUTH_USERNAME=admin \
+  -e AUTH_PASSWORD=new-secure-password \
+  -e AUTH_OVERRIDE_FROM_ENV=true \
+  -v "./app_data:/app_data" \
+  ghcr.io/presenton/presenton:latest
 ```
 
-```bash
-docker stop presenton && docker rm presenton && docker run -it --name presenton -p 5001:80 -e RESET_AUTH=true -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
+For account recovery, use the same command with `RESET_AUTH=true` instead of
+`AUTH_OVERRIDE_FROM_ENV=true`. Both operations preserve the administrator's user ID
+and owned data, and invalidate existing browser sessions and API keys. Remove the
+one-time flag after the successful startup.
 
-```bash
-docker stop presenton && docker rm presenton && docker run -it --name presenton -p 5001:80 -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme123 -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
-```
+> [!IMPORTANT]
+> Do not remove authentication fields from `app_data/userConfig.json` to reset
+> access. Presenton stores a hashed recovery copy of the primary administrator
+> credentials and the session-signing secret there. Use the recovery variables above
+> to preserve the database account and its ownership links.
 
-**Manual reset:** stop the container, edit `./app_data/userConfig.json`, delete `AUTH_USERNAME`, `AUTH_PASSWORD_HASH`, and `AUTH_SECRET_KEY`, save, and start again.
-
-Sign out from the app: **Settings → Other → Sign out**.
+To sign out, open **Settings → Other → Sign out**.
 
 #### MCP authentication
 
-When auth is configured (`AUTH_USERNAME` / `AUTH_PASSWORD`), the MCP endpoint at `/mcp` now requires authentication as well.
+When auth is enabled, the MCP endpoint at `/mcp` requires an admin-generated
+Presenton access key. Browser JWT cookies are not accepted as MCP credentials.
 
-1. Log in once to get a bearer token:
+1. The Presenton administrator opens **Admin → API keys**, chooses
+   **Generate key**, and securely gives that key to the MCP user. The MCP user
+   does not need a Presenton account or an admin browser login.
 
-```bash
-curl -s -X POST http://localhost:5001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"changeme123"}'
-```
-
-The response includes:
-
-- `access_token` (session token)
-- `token_type` (`bearer`)
-
-2. Configure your MCP client to send that token on every request:
+2. Configure the MCP client to send the generated `sk-presenton-...` key on
+   every request:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "presenton": {
       "url": "http://localhost:5001/mcp",
+      "type": "http",
       "headers": {
-        "Authorization": "Bearer <access_token>"
+        "Authorization": "Bearer sk-presenton-REPLACE_WITH_YOUR_KEY"
       }
     }
-  }
+  },
+  "inputs": []
 }
 ```
 
 Notes:
 
-- If you rotate credentials with `AUTH_OVERRIDE_FROM_ENV=true`, previously issued session tokens are invalidated.
+- This example uses VS Code's `.vscode/mcp.json` format. Use the equivalent
+  static-header configuration for other MCP clients.
+- Access keys authenticate API/MCP requests only; they cannot sign in to the
+  Presenton browser UI.
+- Revoking the key from the admin panel takes effect immediately.
 - MCP is not available in the Electron desktop app (`PRESENTON_ELECTRON=true`). Electron runs with `DISABLE_AUTH=true` by default, and the MCP server is disabled there to avoid auth conflicts.
 
 > Note: LLM and image variables above are forwarded from **`docker-compose.yml`** when set in `.env`.
@@ -514,8 +540,8 @@ Same variables as compose; use `-e` instead of `.env` when running `docker run` 
 </p>
 
 <p>
-<strong>Authentication (HTTP Basic):</strong><br>
-All <code>/api/v1/</code> routes except <code>/api/v1/auth/*</code> require authentication. Send your Presenton admin username and password (same as the web UI, or <strong>AUTH_USERNAME</strong> / <strong>AUTH_PASSWORD</strong> when preseeding Docker). With <code>curl</code>, put them right after <code>-u</code> as <code>-u USERNAME:PASSWORD</code> — that is HTTP Basic auth and sets <code>Authorization: Basic …</code> for you. Replace the sample <code>username:password</code> below with your real credentials.
+<strong>Authentication (API key):</strong><br>
+All <code>/api/v1/</code> routes except the public authentication endpoints require authentication. An administrator creates an access key under <strong>Admin → API keys</strong>. Send that <code>sk-presenton-...</code> key as <code>Authorization: Bearer YOUR_KEY</code>. API keys act as their owning user and cannot call browser-session-only administrator endpoints.
 </p>
 
 **Request Body**
@@ -646,10 +672,11 @@ Options: <code>pptx</code>, <code>pdf</code>
   "edit_path": "string"
 }</code></pre>
 
-**Example (curl + HTTP Basic auth with <code>-u</code>)**
+**Example (curl + API key)**
 
-<pre><code class="language-bash">curl -u username:password \
+<pre><code class="language-bash">curl \
   -X POST http://localhost:5001/api/v1/ppt/presentation/generate \
+  -H "Authorization: Bearer sk-presenton-YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
    "content": "Introduction to Machine Learning",

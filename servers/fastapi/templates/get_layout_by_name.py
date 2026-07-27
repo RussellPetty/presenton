@@ -7,11 +7,11 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from api.v1.auth.internal import authenticated_internal_request_headers
 from services.export_task_service import EXPORT_TASK_SERVICE
 from templates.custom_layout_from_db import load_custom_presentation_layout
 from templates.presentation_layout import PresentationLayoutModel
 from utils.icon_weights import extract_icon_type_from_settings
-from utils.internal_http import internal_request_headers
 
 LOGGER = logging.getLogger(__name__)
 
@@ -87,10 +87,9 @@ async def _fetch_template_fallback_payload(
         fallback_url,
     )
     try:
+        headers = await authenticated_internal_request_headers()
         async with aiohttp.ClientSession() as session:
-            async with session.get(
-                fallback_url, headers=internal_request_headers()
-            ) as response:
+            async with session.get(fallback_url, headers=headers) as response:
                 if response.status == 200:
                     payload = await response.json()
                     LOGGER.info(

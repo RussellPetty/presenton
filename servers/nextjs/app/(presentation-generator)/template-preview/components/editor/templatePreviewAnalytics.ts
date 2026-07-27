@@ -36,6 +36,8 @@ export const ANALYTICS_EVENTS = {
   TEMPLATE_PREVIEW_AI_PROMPT_CAPTURED:
     "Template Preview AI Prompt Captured",
   TEMPLATE_PREVIEW_USER_PROMPT_SENT: "Template Preview User Prompt Sent",
+  EDITOR_PALETTE_ITEM_INSERTED: "Editor Palette Item Inserted",
+  EDITOR_TEMPLATE_BLOCK_INSERTED: "Editor Template Block Inserted",
 } as const;
 
 export function track(

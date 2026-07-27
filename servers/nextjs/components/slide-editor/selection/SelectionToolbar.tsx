@@ -24,6 +24,7 @@ import type {
 import type { TemplateFontOption } from "@/components/slide-editor/text/google-fonts";
 import { ElementToolbar } from "@/components/slide-editor/toolbar/ElementToolbar";
 import type { SlideElement } from "@/components/slide-editor/types";
+import { TemplateV2MultiSelectionToolbar } from "@/components/slide-editor/selection/MultiSelectionToolbar";
 
 type TemplateV2SelectionToolbarProps = {
   anchorBox: TemplateV2ToolbarBox | null;
@@ -45,10 +46,13 @@ type TemplateV2SelectionToolbarProps = {
   onChartChange: (element: ChartSlideElement) => void;
   onChartEdit: () => void;
   onEditorChange: (element: SlideElement) => void;
+  onImageCropModeChange: (active: boolean) => void;
+  onIconEdit: () => void;
   onDeleteSelection: () => void;
   onDuplicateSelection: () => void;
   onLayoutChange: (changes: Record<string, unknown>) => void;
   onLayerAction: (action: ComponentLayerAction) => void;
+  onGroupSelection: () => void;
   onTableChange: (element: TableSlideElement) => void;
   onUngroupComponent: () => void;
   onUngroupLayoutTarget: () => void;
@@ -74,15 +78,28 @@ export function TemplateV2SelectionToolbar({
   onChartChange,
   onChartEdit,
   onEditorChange,
+  onImageCropModeChange,
+  onIconEdit,
   onDeleteSelection,
   onDuplicateSelection,
   onLayoutChange,
   onLayerAction,
+  onGroupSelection,
   onTableChange,
   onUngroupComponent,
   onUngroupLayoutTarget,
 }: TemplateV2SelectionToolbarProps) {
   if (!isEditMode || !anchorBox) return null;
+  if (selection?.kind === "multi-component") {
+    return (
+      <TemplateV2MultiSelectionToolbar
+        count={selection.componentIndexes.length}
+        position={position}
+        onGroup={onGroupSelection}
+      />
+    );
+  }
+
   const componentActions =
     selection?.kind === "component"
       ? {
@@ -108,6 +125,8 @@ export function TemplateV2SelectionToolbar({
         selectedTableCell={null}
         templateFonts={templateFonts}
         onChange={(_index, element) => onEditorChange(element)}
+        onImageCropModeChange={onImageCropModeChange}
+        onEditIcon={onIconEdit}
         onEditImage={() => undefined}
       />
     );

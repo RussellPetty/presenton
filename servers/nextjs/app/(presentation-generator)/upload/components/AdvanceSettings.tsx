@@ -6,16 +6,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Pencil, SlidersHorizontal, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PresentationConfig, ToneType, VerbosityType } from '../type';
+import { cn } from '@/lib/utils';
 
 interface ConfigurationSelectsProps {
     config: PresentationConfig;
     onConfigChange: (key: keyof PresentationConfig, value: any) => void;
+    compact?: boolean;
 }
 
 const toggleClassName =
     'h-[22px] w-[36px] border-0 bg-[#D8D8DD] data-[state=checked]:bg-[#7A5AF8] ';
 
-const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) => {
+const AdvanceSettings = ({
+    config,
+    onConfigChange,
+    compact = false,
+}: ConfigurationSelectsProps) => {
     const [openAdvanced, setOpenAdvanced] = useState(false);
 
     const [advancedDraft, setAdvancedDraft] = useState({
@@ -78,17 +84,29 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
 
     return (
         <>
-            <div className="ml-auto">
+            <div className={cn(!compact && "ml-auto")}>
                 <ToolTip content="Advanced settings">
                     <button
                         aria-label="Advanced settings"
                         title="Advanced settings"
                         type="button"
                         onClick={handleOpenAdvanced}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E4E5E8] bg-white text-[#1C1C27] shadow-sm transition hover:bg-[#F7F7FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141E5]/25 min-[1800px]:h-11 min-[1800px]:w-11 min-[2200px]:h-12 min-[2200px]:w-12"
+                        className={cn(
+                            "flex items-center justify-center rounded-full border bg-white text-[#1C1C27] transition hover:bg-[#F7F7FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141E5]/25",
+                            compact
+                                ? "h-[34px] w-[42px] border-[#EDEEEF] shadow-none"
+                                : "h-10 w-10 border-[#E4E5E8] shadow-sm min-[1800px]:h-11 min-[1800px]:w-11 min-[2200px]:h-12 min-[2200px]:w-12"
+                        )}
                         data-testid="advanced-settings-button"
                     >
-                        <SlidersHorizontal className="h-3.5 w-3.5 min-[1800px]:h-4 min-[1800px]:w-4 min-[2200px]:h-5 min-[2200px]:w-5" aria-hidden="true" />
+                        <SlidersHorizontal
+                            className={cn(
+                                compact
+                                    ? "h-3.5 w-3.5"
+                                    : "h-3.5 w-3.5 min-[1800px]:h-4 min-[1800px]:w-4 min-[2200px]:h-5 min-[2200px]:w-5"
+                            )}
+                            aria-hidden="true"
+                        />
                     </button>
                 </ToolTip>
             </div>

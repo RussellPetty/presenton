@@ -4,6 +4,7 @@ import os
 import random
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 from datetime import datetime
 from functools import partial
 from typing import Annotated, Any, Optional
@@ -45,6 +46,7 @@ from templates.preview import (
 )
 from templates.v2.generation import (
     MAX_PARALLEL_SLIDE_LAYOUTS,
+    generate_prompted_slide_layout,
     generate_slide_layout,
     generate_template,
     merge_similar_components,
@@ -65,6 +67,7 @@ from utils.icon_weights import (
     extract_icon_type_from_settings,
 )
 from utils.datetime_utils import get_current_utc_datetime
+from utils.llm_client_error_handler import handle_llm_client_exceptions
 
 
 TEMPLATE_ROUTER = APIRouter(prefix="/template", tags=["Templates"])
@@ -138,6 +141,28 @@ class CreatedTemplateSlideLayout(BaseModel):
 
 class CreateTemplateLayoutsResponse(BaseModel):
     layouts: list[CreatedTemplateSlideLayout]
+
+
+class GenerateTemplateLayoutRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    template_id: str = Field(validation_alias=AliasChoices("template_id", "id"))
+    prompt: str = Field(min_length=1, max_length=8000)
+
+    @model_validator(mode="after")
+    def _normalize_prompt(self) -> "GenerateTemplateLayoutRequest":
+        self.template_id = self.template_id.strip()
+        self.prompt = self.prompt.strip()
+        if not self.template_id:
+            raise ValueError("Template ID cannot be empty")
+        if not self.prompt:
+            raise ValueError("Prompt cannot be empty")
+        return self
+
+
+class GenerateTemplateLayoutResponse(BaseModel):
+    layout: SlideLayout
+    response: str
 
 
 class PatchTemplateSlideLayoutItem(BaseModel):
@@ -501,8 +526,10 @@ async def _generate_slide_layouts_with_task_progress(
     layouts_by_index: dict[int, SlideLayout] = {}
 
     async def generate_one(index: int, executor: ThreadPoolExecutor):
+        context = copy_context()
         generated_layout = await loop.run_in_executor(
             executor,
+            context.run,
             partial(
                 generate_slide_layout,
                 raw_layouts.layouts[index],
@@ -570,11 +597,12 @@ async def _generate_slide_layouts_with_task_progress(
 
 async def _run_template_generation_thread(func: Any, *args: Any) -> Any:
     loop = asyncio.get_running_loop()
+    context = copy_context()
     with ThreadPoolExecutor(
         max_workers=1,
         thread_name_prefix="template-generation",
     ) as executor:
-        return await loop.run_in_executor(executor, partial(func, *args))
+        return await loop.run_in_executor(executor, context.run, partial(func, *args))
 
 
 def _coerce_generated_slide_layouts(generated_layouts: Any) -> SlideLayouts:
@@ -827,12 +855,15 @@ def _generate_indexed_slide_layouts(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                generate_slide_layout,
-                raw_layouts.layouts[index],
-                index,
-                slide_image_urls[index],
-                fonts,
-                max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                copy_context().run,
+                partial(
+                    generate_slide_layout,
+                    raw_layouts.layouts[index],
+                    index,
+                    slide_image_urls[index],
+                    fonts,
+                    max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                ),
             ): index
             for index in indices
         }
@@ -1233,6 +1264,95 @@ async def create_template(
 
 
 @TEMPLATE_ROUTER.post(
+    "/layouts/generate",
+    response_model=GenerateTemplateLayoutResponse,
+)
+async def generate_template_layout_from_prompt(
+    request: GenerateTemplateLayoutRequest = Body(...),
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    template = await sql_session.get(TemplateV2, request.template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    if template.layouts is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Template layouts are unavailable",
+        )
+
+    try:
+        template_layouts = _coerce_template_slide_layouts(template.layouts)
+    except ValidationError as exc:
+        LOGGER.exception(
+            "[template.layouts.generate] template has invalid layouts "
+            "template_id=%s",
+            request.template_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Template layouts are invalid",
+        ) from exc
+
+    merged_components: MergedComponents | None = None
+    if template.merged_components is not None:
+        try:
+            merged_components = MergedComponents.model_validate(
+                template.merged_components
+            )
+        except ValidationError:
+            LOGGER.warning(
+                "[template.layouts.generate] ignoring invalid merged components "
+                "template_id=%s",
+                request.template_id,
+                exc_info=True,
+            )
+
+    LOGGER.info(
+        "[template.layouts.generate] prompted layout generation start "
+        "template_id=%s reference_layouts=%d",
+        request.template_id,
+        len(template_layouts.layouts),
+    )
+    try:
+        layout = await _run_template_generation_thread(
+            generate_prompted_slide_layout,
+            request.prompt,
+            template_layouts,
+            merged_components,
+            template.name,
+            template.description,
+            _get_template_fonts(template),
+        )
+    except Exception as exc:
+        LOGGER.exception(
+            "[template.layouts.generate] prompted layout generation failed "
+            "template_id=%s",
+            request.template_id,
+        )
+        raise handle_llm_client_exceptions(exc) from exc
+
+    generated_layout = (
+        layout
+        if isinstance(layout, SlideLayout)
+        else SlideLayout.model_validate(layout)
+    )
+    LOGGER.info(
+        "[template.layouts.generate] prompted layout generation complete "
+        "template_id=%s layout_id=%s components=%d",
+        request.template_id,
+        generated_layout.id,
+        len(generated_layout.components),
+    )
+    return GenerateTemplateLayoutResponse(
+        layout=generated_layout,
+        response=(
+            f"Created the {generated_layout.id.replace('_', ' ')} "
+            "template layout."
+        ),
+    )
+
+
+@TEMPLATE_ROUTER.post(
     "/layouts/create",
     response_model=CreateTemplateLayoutsResponse,
 )
@@ -1243,6 +1363,7 @@ async def create_template_slide_layouts(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if not isinstance(template.raw_layouts, dict):
         raise HTTPException(
@@ -1326,6 +1447,7 @@ async def generate_template_blocks(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if template.layouts is None:
         raise HTTPException(
@@ -1378,6 +1500,7 @@ async def patch_template_slide_layout(
         template = await sql_session.get(TemplateV2, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
+        _require_private_template(template)
 
         try:
             updated_layouts, layout_indexes = _merge_template_layout_items(
@@ -1428,6 +1551,7 @@ async def update_template_metadata(
     template = await sql_session.get(TemplateV2, template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     has_updates = False
 
@@ -1554,6 +1678,13 @@ async def delete_template(
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
+    _require_private_template(template)
     await sql_session.delete(template)
     await sql_session.commit()
     return Response(status_code=204)
+def _require_private_template(template: TemplateV2) -> None:
+    if template.is_default:
+        raise HTTPException(
+            status_code=403,
+            detail="Built-in templates are read-only",
+        )

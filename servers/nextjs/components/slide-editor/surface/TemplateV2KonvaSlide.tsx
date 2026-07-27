@@ -23,6 +23,10 @@ import {
   canUngroupTemplateV2Component,
   ungroupTemplateV2ComponentInUi,
 } from "@/components/slide-editor/model/template-v2-ungroup";
+import {
+  groupTemplateV2ComponentsInUi,
+  isTemplateV2GroupShortcut,
+} from "@/components/slide-editor/model/template-v2-group";
 import { textRunsContent } from "@/components/slide-editor/text/text-runs";
 
 import {
@@ -333,6 +337,7 @@ function TemplateV2KonvaSlideComponent({
   const [chartEditorSelection, setChartEditorSelection] =
     useState<ElementSelection | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageCropActive, setImageCropActive] = useState(false);
   const [, setHistoryAvailability] = useState({
     canUndo: false,
     canRedo: false,
@@ -492,6 +497,9 @@ function TemplateV2KonvaSlideComponent({
   const selectedIsVectorElement =
     selection?.kind === "element" &&
     isVectorType(readString(selectedElement?.type));
+  const selectedIsImageElement =
+    selection?.kind === "element" &&
+    readString(selectedElement?.type) === "image";
   const selectedCanEditVectorPoints =
     selection?.kind === "element" &&
     canEditVectorPointsForSelection(uiDraft, selection);
@@ -500,7 +508,8 @@ function TemplateV2KonvaSlideComponent({
     selection?.kind === "element" &&
     selectedCanEditVectorPoints &&
     vectorEditingKey === keyForSelection(selection);
-  const shouldHideParentComponentBoundary = inlineEdit || selectedIsVectorElement;
+  const shouldHideParentComponentBoundary =
+    inlineEdit || selectedIsVectorElement || imageCropActive;
   const transformerParentComponentKey = shouldHideParentComponentBoundary
     ? null
     : selectedParentComponentKey;
@@ -575,6 +584,7 @@ function TemplateV2KonvaSlideComponent({
     chartTarget: chartToolbarTarget,
     layoutTarget: layoutToolbarTarget,
     root: rootElement,
+    selection,
     tableTarget: tableToolbarTarget,
   });
   const selectionToolbarBounds =
@@ -1585,6 +1595,66 @@ function TemplateV2KonvaSlideComponent({
     [editorAnalyticsProps, editorToolbarTarget, updateElement],
   );
 
+  const groupSelectedComponents = useCallback(() => {
+    const currentSelection = selectionRef.current;
+    if (currentSelection?.kind !== "multi-component") return false;
+    const result = groupTemplateV2ComponentsInUi(
+      currentUiRef.current,
+      currentSelection.componentIndexes,
+      { componentBox },
+    );
+    if (!result) return false;
+
+    commitUi(result.ui as RawUi);
+    selectionRef.current = result.selection;
+    setSelection(result.selection);
+    activateSurface(result.selection);
+    clearInlineEdit();
+    clearTableCellSelection();
+    setVectorEditSelection(null);
+    setIconEditorSelection(null);
+    setChartEditorSelection(null);
+    return true;
+  }, [
+    activateSurface,
+    clearInlineEdit,
+    clearTableCellSelection,
+    commitUi,
+  ]);
+
+  useEffect(() => {
+    if (!isRenderActive || !isEditMode || typeof document === "undefined") {
+      return;
+    }
+
+    const handleGroupShortcut = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        !isSurfaceActive() ||
+        isEditableTarget(event.target) ||
+        !isTemplateV2GroupShortcut(event)
+      ) {
+        return;
+      }
+      if (selectionRef.current?.kind !== "multi-component") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      groupSelectedComponents();
+    };
+
+    document.addEventListener("keydown", handleGroupShortcut, true);
+    return () =>
+      document.removeEventListener("keydown", handleGroupShortcut, true);
+  }, [
+    groupSelectedComponents,
+    isEditMode,
+    isRenderActive,
+    isSurfaceActive,
+  ]);
+
   const ungroupComponentAtIndex = useCallback((componentIndex: number) => {
     if (componentIndex < 0) return;
     const component = asRecord(
@@ -1840,7 +1910,10 @@ function TemplateV2KonvaSlideComponent({
         updateElement(target, (element) => ({
           ...element,
           data: imageUrl,
-          name: element.name ?? file.name,
+          name: file.name,
+          focus_x: 50,
+          focus_y: 50,
+          crop_scale: null,
         }));
         trackEvent(MixpanelEvent.Editor_Image_Replaced, {
           ...editorAnalyticsProps({
@@ -1876,9 +1949,6 @@ function TemplateV2KonvaSlideComponent({
       const element = getElementAtSelection(currentUiRef.current, elementSelection);
       const type = readString(element?.type);
       if (type === "image") {
-        if (element && isRawIconElement(element)) {
-          openIconEditor(elementSelection);
-        }
         return;
       }
       if (type === "chart") {
@@ -1908,7 +1978,6 @@ function TemplateV2KonvaSlideComponent({
       clearTableCellEditing,
       clearTableCellSelection,
       openChartEditor,
-      openIconEditor,
       openInlineEditor,
     ],
   );
@@ -1955,6 +2024,7 @@ function TemplateV2KonvaSlideComponent({
         elements as unknown as UnknownRecord[],
         insertedComponents as unknown as UnknownRecord[],
         detail.label,
+        detail.preserveComponentData,
       );
       const insertedCount = elements.length + insertedComponents.length;
       const nextSelection =
@@ -2168,11 +2238,13 @@ function TemplateV2KonvaSlideComponent({
               selectionKind={selection?.kind ?? null}
               horizontalResizeOnly={horizontalResizeOnly}
               fullElementTransform={
-                selectedIsVectorElement && selectedCanEditVectorPoints
+                selectedIsImageElement ||
+                (selectedIsVectorElement && selectedCanEditVectorPoints)
               }
               suppressSelectedOutline={Boolean(
                 selectedTableCell ||
                   inlineEdit ||
+                  imageCropActive ||
                   readString(selectedElement?.type) === "chart" ||
                   selectedIsVectorPointEditing,
               )}
@@ -2207,8 +2279,15 @@ function TemplateV2KonvaSlideComponent({
         onDeleteSelection={deleteSelection}
         onDuplicateSelection={duplicateSelection}
         onEditorChange={applyEditorToolbarTargetElementChange}
+        onImageCropModeChange={setImageCropActive}
+        onIconEdit={() => {
+          if (editorToolbarTarget) {
+            openIconEditor(editorToolbarTarget.selection);
+          }
+        }}
         onLayoutChange={applyLayoutElementChange}
         onLayerAction={reorderSelectedComponentLayer}
+        onGroupSelection={groupSelectedComponents}
         onTableChange={applyTableToolbarElementChange}
         onUngroupComponent={ungroupSelectedComponent}
         onUngroupLayoutTarget={ungroupLayoutTargetComponent}
@@ -2223,7 +2302,6 @@ function TemplateV2KonvaSlideComponent({
         !tableToolbarTarget &&
         !isTemplateV2LayoutElement(selectedElement) &&
         !isTemplateV2GroupElement(selectedElement) &&
-        !isRawIconElement(selectedElement) &&
         !(editingTableCell && readString(selectedElement.type) === "table") ? (
         <ElementToolbar
           element={toolbarElement}
@@ -2241,6 +2319,8 @@ function TemplateV2KonvaSlideComponent({
               : null
           }
           onChange={(_index, element) => applyToolbarElementChange(element)}
+          onImageCropModeChange={setImageCropActive}
+          onEditIcon={() => openIconEditor(selection)}
           onEditImage={() => openImageUpload(selection)}
           onEditText={() => openInlineEditor(selection)}
         />

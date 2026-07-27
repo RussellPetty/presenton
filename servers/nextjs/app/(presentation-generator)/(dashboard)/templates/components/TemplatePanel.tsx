@@ -97,7 +97,7 @@ const LayoutPreview = () => {
           {loading ? (
             <TemplateListLoadingState />
           ) : tab === "custom" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 items-center lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <CreateCustomTemplate />
               {processingTemplateTasks.map((task) => (
                 <ProcessingTemplateListCard key={task.id} task={task} />
@@ -114,7 +114,7 @@ const LayoutPreview = () => {
           ) : activeTemplates.length === 0 ? (
             <TemplateListEmptyState message="No built-in templates available." />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {activeTemplates.map((template) => (
                 <TemplateListCard
                   key={template.id}

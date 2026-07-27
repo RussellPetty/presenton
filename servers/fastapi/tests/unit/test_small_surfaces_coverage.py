@@ -603,12 +603,6 @@ def test_get_layout_by_name_returns_model():
 
     async def runner():
         with patch(
-            "utils.internal_http.get_configured_auth_username",
-            return_value="",
-        ), patch(
-            "utils.internal_http.create_session_token",
-            return_value="cookie",
-        ), patch(
             "templates.get_layout_by_name.aiohttp.ClientSession",
             return_value=_make_aio_layout_session(resp),
         ):
@@ -625,9 +619,6 @@ def test_get_layout_by_name_raises_on_http_failure():
 
     async def runner():
         with patch(
-            "utils.internal_http.get_configured_auth_username",
-            return_value="",
-        ), patch(
             "templates.get_layout_by_name.aiohttp.ClientSession",
             return_value=_make_aio_layout_session(resp),
         ):
@@ -637,7 +628,7 @@ def test_get_layout_by_name_raises_on_http_failure():
     asyncio.run(runner())
 
 
-def test_get_layout_by_name_attach_auth_cookie(monkeypatch):
+def test_get_layout_by_name_does_not_attach_obsolete_auth_cookie():
     resp = AsyncMock()
     resp.status = 200
     resp.json = AsyncMock(
@@ -649,14 +640,6 @@ def test_get_layout_by_name_attach_auth_cookie(monkeypatch):
     )
 
     captured: dict[str, str | None] = {}
-
-    monkeypatch.setattr(
-        "utils.internal_http.get_configured_auth_username", lambda: "user"
-    )
-    monkeypatch.setattr(
-        "utils.internal_http.create_session_token", lambda _u: "tok123"
-    )
-    monkeypatch.setattr("utils.internal_http.SESSION_COOKIE_NAME", "sess")
 
     def capture_session(*_a, **_k):
         sess = MagicMock()
@@ -674,13 +657,15 @@ def test_get_layout_by_name_attach_auth_cookie(monkeypatch):
         return sess
 
     async def runner():
-        with patch("templates.get_layout_by_name.aiohttp.ClientSession", side_effect=capture_session):
+        with patch(
+            "templates.get_layout_by_name.aiohttp.ClientSession",
+            side_effect=capture_session,
+        ):
             layout = await tpl_layout_fetcher.get_layout_by_name("deck")
             assert isinstance(layout, PresentationLayoutModel)
 
     asyncio.run(runner())
-    cookie = captured.get("Cookie", "")
-    assert "sess=tok123" in cookie
+    assert "Cookie" not in captured
 
 
 @pytest.mark.parametrize(

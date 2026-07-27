@@ -12,7 +12,9 @@ from fastmcp.server.dependencies import get_access_token, get_http_headers
 from fastmcp.server.providers.openapi import MCPType, RouteMap
 
 from utils.get_env import is_disable_auth_enabled, is_presenton_electron_desktop
-from utils.simple_auth import is_auth_configured, validate_session_token
+from models.sql.access_token import AccessToken as DatabaseAccessToken
+from models.sql.user import User
+from services.database import async_session_maker
 
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openai_spec.json")
 MCP_API_BASE_URL = "http://127.0.0.1:8000"
@@ -66,18 +68,24 @@ with OPENAPI_SPEC_PATH.open("r", encoding="utf-8") as f:
 
 
 class PresentonTokenVerifier(TokenVerifier):
-    """Validate Presenton session tokens for MCP HTTP auth."""
+    """Validate admin-owned Presenton API keys for MCP HTTP auth."""
 
     async def verify_token(self, token: str) -> AccessToken | None:
-        username = validate_session_token(token)
-        if not username:
+        if not token.startswith("sk-presenton-"):
             return None
+        async with async_session_maker() as session:
+            access_key = await session.get(DatabaseAccessToken, token)
+            if access_key is None:
+                return None
+            user = await session.get(User, access_key.user_id)
+            if user is None or not user.is_active or not user.is_superuser:
+                return None
 
         return AccessToken(
             token=token,
-            client_id=username,
+            client_id=str(user.id),
             scopes=[],
-            claims={"u": username},
+            claims={"u": user.username, "role": "admin"},
         )
 
 
@@ -87,8 +95,8 @@ def is_mcp_server_enabled() -> bool:
 
 
 def create_mcp_auth_provider() -> TokenVerifier | None:
-    """Enable MCP bearer auth only when app auth is configured."""
-    if is_disable_auth_enabled() or not is_auth_configured():
+    """Require admin API-key bearer auth whenever server auth is enabled."""
+    if is_disable_auth_enabled():
         return None
     return PresentonTokenVerifier()
 

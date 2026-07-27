@@ -26,7 +26,7 @@ function ConfigurationLoadingScreen() {
         </p>
       </div>
 
-      <div className="absolute left-1/2 top-[calc(50%+123.47px)] flex h-[42px] w-[352px] max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-1 rounded-md bg-[#F5F8FF] px-[14px]">
+      {/* <div className="absolute left-1/2 top-[calc(50%+123.47px)] flex h-[42px] w-[352px] max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-1 rounded-md bg-[#F5F8FF] px-[14px]">
         <Image
           alt=""
           aria-hidden="true"
@@ -36,9 +36,9 @@ function ConfigurationLoadingScreen() {
           width={14}
         />
         <p className="whitespace-nowrap font-manrope text-[14px] font-medium leading-normal tracking-[0.3px] text-[#6172F3]">
-          Checking &amp; configuration application assets.
+          Checking &amp; configuring application assets.
         </p>
-      </div>
+      </div> */}
     </main>
   );
 }
@@ -182,6 +182,28 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
         setIsLoading(false);
       }
     } else {
+      try {
+        const res = await fetch("/api/runtime-config", {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const runtime = await res.json();
+          const runtimeConfig = normalizeLLMConfig(
+            (runtime.config || {}) as LLMConfig
+          );
+          dispatch(setLLMConfig(runtimeConfig));
+          if (!runtime.configured) {
+            notify.error(
+              "Instance not configured",
+              "Ask the administrator to configure the AI providers in Settings."
+            );
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch runtime configuration:", error);
+      }
       if (route === '/') {
         router.push('/upload');
         setLoadingToFalseAfterNavigatingTo('/upload');

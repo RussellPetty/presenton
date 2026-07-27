@@ -1,49 +1,55 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import React, { memo, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import React, { memo } from "react";
+import { cn } from "@/lib/utils";
 
-
-
-const LOADING_PREVIEW_KEYS = ["loading-preview-a", "loading-preview-b"];
-
-function hashKey(value: string) {
-    let hash = 0;
-    for (let i = 0; i < value.length; i += 1) {
-        hash = (hash * 31 + value.charCodeAt(i)) | 0;
-    }
-    return Math.abs(hash).toString(36);
+export function TemplatePreviewStage({
+  children,
+  selectionPage = false,
+}: {
+  children: React.ReactNode;
+  selectionPage?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden bg-[#F8FBFB]",
+        selectionPage ? "h-[249px] px-[34px] py-5" : "p-5"
+      )}
+    >
+      <img
+        src="/card_bg.svg"
+        alt=""
+        className="absolute left-0 top-0 h-full w-full object-cover"
+      />
+      {children}
+    </div>
+  );
 }
 
-
-
-
-
-
-export function TemplatePreviewStage({ children }: { children: React.ReactNode }) {
+export const LayoutsBadge = memo(function LayoutsBadge({
+  count,
+  selectionPage = false,
+}: {
+  count: number;
+  selectionPage?: boolean;
+}) {
     return (
-        <div className="relative overflow-hidden px-5 pb-5 pt-5 h-[230px]">
-            <img
-                src="/card_bg.svg"
-                alt=""
-                className="absolute top-0 left-0 w-full h-full object-cover"
-            />
-            {children}
-        </div>
-    );
-}
-
-export const LayoutsBadge = memo(function LayoutsBadge({ count }: { count: number }) {
-    return (
-        <span className="text-xs font-syne absolute top-3.5 left-4 z-40 inline-flex items-center rounded-full bg-[#333333] px-3 py-1 font-semibold text-white">
-            Layouts-{count}
-        </span>
+      <span
+        className={cn(
+          "absolute z-40 inline-flex items-center rounded-full font-syne text-xs text-white",
+          selectionPage
+            ? "left-2 top-2 bg-[rgba(58,58,58,0.96)] px-2.5 py-1 font-medium"
+            : "left-4 top-3.5 bg-[#333333] px-3 py-1 font-semibold"
+        )}
+      >
+        Layouts-{count}
+      </span>
     );
 });
 
 export const ScaledSlidePreview = memo(function ScaledSlidePreview({
     children,
-    index,
     isOutline = false,
 }: {
     children: React.ReactNode;
@@ -73,6 +79,3 @@ export const ScaledSlidePreview = memo(function ScaledSlidePreview({
         </div>
     );
 });
-
-
-

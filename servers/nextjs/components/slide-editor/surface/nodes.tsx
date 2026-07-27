@@ -1947,7 +1947,7 @@ function RawImageElement({
   const fit = imageFit(element.fit);
   const focusX = clamp(readNumber(element.focus_x) ?? 50, 0, 100) / 100;
   const focusY = clamp(readNumber(element.focus_y) ?? 50, 0, 100) / 100;
-  const cropScale = clamp(readNumber(element.crop_scale) ?? 1, 1, 6);
+  const cropScale = clamp(readNumber(element.crop_scale) ?? 1, 0.1, 6);
   const flipH = readBoolean(element.flip_h) === true;
   const flipV = readBoolean(element.flip_v) === true;
   const clipPath = imageClipPath(element);
@@ -1968,7 +1968,23 @@ function RawImageElement({
     | undefined;
 
   if (fit === "cover") {
-    if (naturalRatio > boxRatio) {
+    if (cropScale < 1) {
+      if (naturalRatio > boxRatio) {
+        drawW = height * naturalRatio * cropScale;
+        drawH = height * cropScale;
+      } else {
+        drawW = width * cropScale;
+        drawH = (width / naturalRatio) * cropScale;
+      }
+      offsetX =
+        drawW <= width
+          ? (width - drawW) * focusX
+          : -(drawW - width) * focusX;
+      offsetY =
+        drawH <= height
+          ? (height - drawH) * focusY
+          : -(drawH - height) * focusY;
+    } else if (naturalRatio > boxRatio) {
       const baseCropWidth = loaded.height * boxRatio;
       const cropWidth = Math.min(loaded.width, baseCropWidth / cropScale);
       const cropHeight = Math.min(loaded.height, loaded.height / cropScale);
