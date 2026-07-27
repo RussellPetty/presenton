@@ -1949,9 +1949,6 @@ function TemplateV2KonvaSlideComponent({
       const element = getElementAtSelection(currentUiRef.current, elementSelection);
       const type = readString(element?.type);
       if (type === "image") {
-        if (element && isRawIconElement(element)) {
-          openIconEditor(elementSelection);
-        }
         return;
       }
       if (type === "chart") {
@@ -1981,7 +1978,6 @@ function TemplateV2KonvaSlideComponent({
       clearTableCellEditing,
       clearTableCellSelection,
       openChartEditor,
-      openIconEditor,
       openInlineEditor,
     ],
   );
@@ -2284,6 +2280,11 @@ function TemplateV2KonvaSlideComponent({
         onDuplicateSelection={duplicateSelection}
         onEditorChange={applyEditorToolbarTargetElementChange}
         onImageCropModeChange={setImageCropActive}
+        onIconEdit={() => {
+          if (editorToolbarTarget) {
+            openIconEditor(editorToolbarTarget.selection);
+          }
+        }}
         onLayoutChange={applyLayoutElementChange}
         onLayerAction={reorderSelectedComponentLayer}
         onGroupSelection={groupSelectedComponents}
@@ -2301,7 +2302,6 @@ function TemplateV2KonvaSlideComponent({
         !tableToolbarTarget &&
         !isTemplateV2LayoutElement(selectedElement) &&
         !isTemplateV2GroupElement(selectedElement) &&
-        !isRawIconElement(selectedElement) &&
         !(editingTableCell && readString(selectedElement.type) === "table") ? (
         <ElementToolbar
           element={toolbarElement}
@@ -2320,6 +2320,7 @@ function TemplateV2KonvaSlideComponent({
           }
           onChange={(_index, element) => applyToolbarElementChange(element)}
           onImageCropModeChange={setImageCropActive}
+          onEditIcon={() => openIconEditor(selection)}
           onEditImage={() => openImageUpload(selection)}
           onEditText={() => openInlineEditor(selection)}
         />
