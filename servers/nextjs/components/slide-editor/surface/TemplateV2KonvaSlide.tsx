@@ -23,6 +23,10 @@ import {
   canUngroupTemplateV2Component,
   ungroupTemplateV2ComponentInUi,
 } from "@/components/slide-editor/model/template-v2-ungroup";
+import {
+  groupTemplateV2ComponentsInUi,
+  isTemplateV2GroupShortcut,
+} from "@/components/slide-editor/model/template-v2-group";
 import { textRunsContent } from "@/components/slide-editor/text/text-runs";
 
 import {
@@ -580,6 +584,7 @@ function TemplateV2KonvaSlideComponent({
     chartTarget: chartToolbarTarget,
     layoutTarget: layoutToolbarTarget,
     root: rootElement,
+    selection,
     tableTarget: tableToolbarTarget,
   });
   const selectionToolbarBounds =
@@ -1590,6 +1595,66 @@ function TemplateV2KonvaSlideComponent({
     [editorAnalyticsProps, editorToolbarTarget, updateElement],
   );
 
+  const groupSelectedComponents = useCallback(() => {
+    const currentSelection = selectionRef.current;
+    if (currentSelection?.kind !== "multi-component") return false;
+    const result = groupTemplateV2ComponentsInUi(
+      currentUiRef.current,
+      currentSelection.componentIndexes,
+      { componentBox },
+    );
+    if (!result) return false;
+
+    commitUi(result.ui as RawUi);
+    selectionRef.current = result.selection;
+    setSelection(result.selection);
+    activateSurface(result.selection);
+    clearInlineEdit();
+    clearTableCellSelection();
+    setVectorEditSelection(null);
+    setIconEditorSelection(null);
+    setChartEditorSelection(null);
+    return true;
+  }, [
+    activateSurface,
+    clearInlineEdit,
+    clearTableCellSelection,
+    commitUi,
+  ]);
+
+  useEffect(() => {
+    if (!isRenderActive || !isEditMode || typeof document === "undefined") {
+      return;
+    }
+
+    const handleGroupShortcut = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        !isSurfaceActive() ||
+        isEditableTarget(event.target) ||
+        !isTemplateV2GroupShortcut(event)
+      ) {
+        return;
+      }
+      if (selectionRef.current?.kind !== "multi-component") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      groupSelectedComponents();
+    };
+
+    document.addEventListener("keydown", handleGroupShortcut, true);
+    return () =>
+      document.removeEventListener("keydown", handleGroupShortcut, true);
+  }, [
+    groupSelectedComponents,
+    isEditMode,
+    isRenderActive,
+    isSurfaceActive,
+  ]);
+
   const ungroupComponentAtIndex = useCallback((componentIndex: number) => {
     if (componentIndex < 0) return;
     const component = asRecord(
@@ -2221,6 +2286,7 @@ function TemplateV2KonvaSlideComponent({
         onImageCropModeChange={setImageCropActive}
         onLayoutChange={applyLayoutElementChange}
         onLayerAction={reorderSelectedComponentLayer}
+        onGroupSelection={groupSelectedComponents}
         onTableChange={applyTableToolbarElementChange}
         onUngroupComponent={ungroupSelectedComponent}
         onUngroupLayoutTarget={ungroupLayoutTargetComponent}
