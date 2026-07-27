@@ -13,7 +13,6 @@ services:
     volumes:
       - ./app_data:/app_data
       - ./servers/fastapi/templates:/app/servers/fastapi/templates:ro
-      - ./servers/fastapi/utils/internal_http.py:/app/servers/fastapi/utils/internal_http.py:ro
     environment:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - PRESENTON_HOST_HTTP_PORT=${PRESENTON_HOST_HTTP_PORT:-5001}

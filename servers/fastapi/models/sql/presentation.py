@@ -3,13 +3,14 @@ from enum import Enum
 from typing import List, Optional
 import uuid
 import copy
-from sqlalchemy import JSON, Column, DateTime, Enum as SAEnum, String
+from sqlalchemy import JSON, Column, DateTime, Enum as SAEnum, ForeignKey, String
 from sqlmodel import Boolean, Field, SQLModel
 
 from models.presentation_outline_model import PresentationOutlineModel
 from models.presentation_structure_model import PresentationStructureModel
 from models.presentation_layout import PresentationLayoutModel
 from utils.datetime_utils import get_current_utc_datetime
+from api.v1.auth.context import get_current_owner_id
 
 
 class PresentationVersion(str, Enum):
@@ -21,6 +22,15 @@ class PresentationModel(SQLModel, table=True):
     __tablename__ = "presentations"
 
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
+    owner_id: Optional[uuid.UUID] = Field(
+        default_factory=get_current_owner_id,
+        exclude=True,
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
     version: PresentationVersion = Field(
         sa_column=Column(
             SAEnum(
@@ -66,6 +76,7 @@ class PresentationModel(SQLModel, table=True):
     def get_new_presentation(self):
         return PresentationModel(
             id=uuid.uuid4(),
+            owner_id=self.owner_id,
             version=self.version,
             content=self.content,
             n_slides=self.n_slides,

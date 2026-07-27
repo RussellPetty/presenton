@@ -4,6 +4,7 @@ import os
 import random
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 from datetime import datetime
 from functools import partial
 from typing import Annotated, Any, Optional
@@ -525,8 +526,10 @@ async def _generate_slide_layouts_with_task_progress(
     layouts_by_index: dict[int, SlideLayout] = {}
 
     async def generate_one(index: int, executor: ThreadPoolExecutor):
+        context = copy_context()
         generated_layout = await loop.run_in_executor(
             executor,
+            context.run,
             partial(
                 generate_slide_layout,
                 raw_layouts.layouts[index],
@@ -594,11 +597,12 @@ async def _generate_slide_layouts_with_task_progress(
 
 async def _run_template_generation_thread(func: Any, *args: Any) -> Any:
     loop = asyncio.get_running_loop()
+    context = copy_context()
     with ThreadPoolExecutor(
         max_workers=1,
         thread_name_prefix="template-generation",
     ) as executor:
-        return await loop.run_in_executor(executor, partial(func, *args))
+        return await loop.run_in_executor(executor, context.run, partial(func, *args))
 
 
 def _coerce_generated_slide_layouts(generated_layouts: Any) -> SlideLayouts:
@@ -851,12 +855,15 @@ def _generate_indexed_slide_layouts(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                generate_slide_layout,
-                raw_layouts.layouts[index],
-                index,
-                slide_image_urls[index],
-                fonts,
-                max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                copy_context().run,
+                partial(
+                    generate_slide_layout,
+                    raw_layouts.layouts[index],
+                    index,
+                    slide_image_urls[index],
+                    fonts,
+                    max_tokens=SLIDE_LAYOUT_GENERATION_MAX_TOKENS,
+                ),
             ): index
             for index in indices
         }
@@ -1356,6 +1363,7 @@ async def create_template_slide_layouts(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if not isinstance(template.raw_layouts, dict):
         raise HTTPException(
@@ -1439,6 +1447,7 @@ async def generate_template_blocks(
     template = await sql_session.get(TemplateV2, request.template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     if template.layouts is None:
         raise HTTPException(
@@ -1491,6 +1500,7 @@ async def patch_template_slide_layout(
         template = await sql_session.get(TemplateV2, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
+        _require_private_template(template)
 
         try:
             updated_layouts, layout_indexes = _merge_template_layout_items(
@@ -1541,6 +1551,7 @@ async def update_template_metadata(
     template = await sql_session.get(TemplateV2, template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
+    _require_private_template(template)
 
     has_updates = False
 
@@ -1667,6 +1678,13 @@ async def delete_template(
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
+    _require_private_template(template)
     await sql_session.delete(template)
     await sql_session.commit()
     return Response(status_code=204)
+def _require_private_template(template: TemplateV2) -> None:
+    if template.is_default:
+        raise HTTPException(
+            status_code=403,
+            detail="Built-in templates are read-only",
+        )

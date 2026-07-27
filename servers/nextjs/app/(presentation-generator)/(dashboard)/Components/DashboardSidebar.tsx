@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Star, Brain, Settings, HelpCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -20,14 +20,7 @@ export const BelongingNavItems = [
 ]
 
 const DashboardSidebar = () => {
-
-
     const pathname = usePathname();
-    const activeTab = pathname.split("?")[0].split("/").pop();
-
-
-
-
 
     return (
         <aside
@@ -92,17 +85,15 @@ const DashboardSidebar = () => {
                 </nav>
             </div>
 
-            <div className=" pt-5 border-t border-[#E1E1E5]  font-syne "
-            >
-                <div className="mb-4">
-
-                    <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">Help</span></Link>
-                </div>
-
-
-
-
-
+            <div className="border-t border-[#E1E1E5] pt-5 font-syne">
+                <Link
+                    href="https://docs.presenton.ai/help"
+                    target="_blank"
+                    className="flex flex-col items-center gap-2 transition-colors"
+                >
+                    <HelpCircle className="h-4 w-4" />
+                    <span className="text-[11px] text-slate-800">Help</span>
+                </Link>
             </div>
 
         </aside>
@@ -110,4 +101,3 @@ const DashboardSidebar = () => {
 };
 
 export default DashboardSidebar;
-

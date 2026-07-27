@@ -14,6 +14,7 @@ from sqlmodel import select
 
 from models.sql.chat_history_message import ChatHistoryMessageModel
 from utils.datetime_utils import get_current_utc_datetime
+from api.v1.auth.context import get_current_owner_id
 
 
 def _compact_preview(content: str) -> str:
@@ -133,6 +134,7 @@ async def replace_messages(
         sa_delete(ChatHistoryMessageModel).where(
             resource_clause,
             ChatHistoryMessageModel.conversation_id == conversation_id,
+            ChatHistoryMessageModel.owner_id == get_current_owner_id(),
         )
     )
 
@@ -179,6 +181,7 @@ async def delete_conversation(
         sa_delete(ChatHistoryMessageModel).where(
             resource_clause,
             ChatHistoryMessageModel.conversation_id == conversation_id,
+            ChatHistoryMessageModel.owner_id == get_current_owner_id(),
         )
     )
     await session.flush()
