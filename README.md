@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://presenton.ai/download"><strong>Quickstart</strong></a> &middot;
+  <a href="https://presenton.ai/explore"><strong>Templates</strong></a> &middot;
   <a href="https://docs.presenton.ai/"><strong>Docs</strong></a> &middot;
   <a href="https://www.youtube.com/@presentonai"><strong>Youtube</strong></a> &middot;
   <a href="https://discord.gg/9ZsKKxudNE"><strong>Discord</strong></a>
@@ -62,6 +63,91 @@ Create presentations from a prompt, an uploaded document, or your own PowerPoint
 
 <p align="center">
   <img src="./readme_assets/images/chatgpt-2-1.png" alt="Create presentations with your existing ChatGPT subscription: secure and private, with instant access and no API keys" />
+</p>
+
+#
+
+### 🎨 Free AI Presentation Templates for PowerPoint
+
+Browse free AI presentation templates for pitch decks, business reports, executive updates, educational presentations, and more. Preview each editable slide layout, choose a design, and use Presenton to generate fully editable PowerPoint (`.pptx`) or PDF presentations from a prompt or document.
+
+<table border="1" cellpadding="16" cellspacing="0" width="100%">
+<tr>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/momentum">
+    <img src="./readme_assets/templates/Momentum.png" alt="Momentum AI presentation template with sales report, KPI, chart, and executive summary slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>Momentum Business Presentation Template</b> — sales reports, strategy decks, and data storytelling
+    <br />
+    <a href="https://presenton.ai/explore/momentum">Preview Momentum business template ↗</a>
+  </sub>
+</td>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/dynamic">
+    <img src="./readme_assets/templates/Dynamic.png" alt="Dynamic AI presentation template with high-contrast creative and visual storytelling slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>Dynamic Creative Presentation Template</b> — proposals, visual stories, and high-impact decks
+    <br />
+    <a href="https://presenton.ai/explore/dynamic">Preview Dynamic presentation template ↗</a>
+  </sub>
+</td>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/executive">
+    <img src="./readme_assets/templates/Executive.png" alt="Executive PowerPoint template with leadership, strategy, and decision-making slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>Executive PowerPoint Template</b> — leadership updates, strategic plans, and decision-ready reports
+    <br />
+    <a href="https://presenton.ai/explore/executive">Preview Executive PowerPoint template ↗</a>
+  </sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/general">
+    <img src="./readme_assets/templates/General.png" alt="General presentation template with flexible business and educational slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>General Presentation Template</b> — adaptable layouts for business, education, and everyday topics
+    <br />
+    <a href="https://presenton.ai/explore/general">Preview General presentation template ↗</a>
+  </sub>
+</td>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/modern">
+    <img src="./readme_assets/templates/Modern.png" alt="Modern pitch deck template with contemporary product, startup, and portfolio slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>Modern Pitch Deck Template</b> — contemporary slides for startups, products, and portfolios
+    <br />
+    <a href="https://presenton.ai/explore/modern">Preview Modern pitch deck template ↗</a>
+  </sub>
+</td>
+<td align="center" width="33%">
+  <a href="https://presenton.ai/explore/standard">
+    <img src="./readme_assets/templates/Standard.png" alt="Standard business presentation template with report, proposal, and company slide layouts" />
+  </a>
+  <br />
+  <sub>
+    <b>Standard Business Presentation Template</b> — professional reports, proposals, and company decks
+    <br />
+    <a href="https://presenton.ai/explore/standard">Preview Standard business template ↗</a>
+  </sub>
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <a href="https://presenton.ai/explore"><strong>Browse all free AI presentation templates →</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://presenton.ai/custom-template"><strong>Create an AI-ready PowerPoint template from your PPTX →</strong></a>
 </p>
 
 #
