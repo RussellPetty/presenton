@@ -865,6 +865,43 @@ def test_chat_template_image_content_stores_prompt():
     assert image["fit"] == "cover"
     assert image["prompt"] == "Analytics dashboard"
 
+    contained_image = {
+        "type": "image",
+        "decorative": False,
+        "name": "contained_image",
+        "data": "/old-contained-image.png",
+        "fit": "contain",
+        "is_icon": False,
+    }
+    PresentationChatMemoryLayer._set_template_element_value(
+        contained_image,
+        {
+            "image_prompt": "Product team planning",
+            "image_url": "/app_data/images/planning.png",
+        },
+    )
+
+    assert contained_image["data"] == "/app_data/images/planning.png"
+    assert contained_image["fit"] == "cover"
+
+    default_fit_image = {
+        "type": "image",
+        "decorative": False,
+        "name": "default_fit_image",
+        "data": "/old-default-image.png",
+        "is_icon": False,
+    }
+    PresentationChatMemoryLayer._set_template_element_value(
+        default_fit_image,
+        {
+            "image_prompt": "Customer success dashboard",
+            "image_url": "/app_data/images/customer-success.png",
+        },
+    )
+
+    assert default_fit_image["data"] == "/app_data/images/customer-success.png"
+    assert default_fit_image["fit"] == "cover"
+
     icon = {
         "type": "image",
         "decorative": False,
@@ -939,6 +976,14 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
                     {
                         "type": "image",
                         "decorative": False,
+                        "name": "contained_image",
+                        "data": "/static/images/replaceable_template_image.png",
+                        "fit": "contain",
+                        "is_icon": False,
+                    },
+                    {
+                        "type": "image",
+                        "decorative": False,
                         "name": "vector_image",
                         "data": "/static/images/replaceable_template_image.svg",
                         "fit": "fill",
@@ -965,6 +1010,9 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
                 "hero_image": {
                     "image_url": "/app_data/images/dashboard.png",
                 },
+                "contained_image": {
+                    "image_url": "/app_data/images/product.png",
+                },
                 "vector_image": {
                     "image_url": "/app_data/images/diagram.svg",
                 },
@@ -975,9 +1023,13 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
         },
     )
 
-    hero_image, vector_image, clipped_image = hydrated["components"][0]["elements"]
+    hero_image, contained_image, vector_image, clipped_image = hydrated["components"][
+        0
+    ]["elements"]
     assert hero_image["data"] == "/app_data/images/dashboard.png"
     assert hero_image["fit"] == "cover"
+    assert contained_image["data"] == "/app_data/images/product.png"
+    assert contained_image["fit"] == "cover"
     assert vector_image["data"] == "/app_data/images/diagram.svg"
     assert vector_image["fit"] == "fill"
     assert clipped_image["data"] == "/app_data/images/freeform.png"
