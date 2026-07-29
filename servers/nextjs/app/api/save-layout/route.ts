@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import { existsSync } from "fs";
+import { authStatusForRequest } from "@/lib/server-auth-role";
+import {
+  isSafeLayoutSegment,
+  resolveSafeLayoutFilePath,
+} from "@/lib/safe-layout-paths";
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await authStatusForRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+    }
+
     const { layout_name, components } = await request.json();
 
     if (!layout_name || !components || !Array.isArray(components)) {
@@ -17,16 +26,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Define the layouts directory path
-    const layoutsDir = join(process.cwd(), "app_data", "layouts", layout_name);
-
-    // Create the directory if it doesn't exist
-    if (!existsSync(layoutsDir)) {
-      await mkdir(layoutsDir, { recursive: true });
+    if (!isSafeLayoutSegment(layout_name)) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid layout_name. Use a simple identifier without path separators.",
+        },
+        { status: 400 }
+      );
     }
 
-    // Save each component as a separate file
+    // Save each component as a separate file under the layouts root only.
     const savedFiles = [];
+    let layoutsDir: string | undefined;
 
     for (const component of components) {
       const { slide_number, component_code, component_name } = component;
@@ -38,18 +50,34 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const fileName = `${component_name}.tsx`;
-      const filePath = join(layoutsDir, fileName);
+      let resolved;
+      try {
+        resolved = resolveSafeLayoutFilePath(layout_name, component_name);
+      } catch {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid component_name. Use a simple identifier without path separators.",
+          },
+          { status: 400 }
+        );
+      }
+
+      layoutsDir = resolved.layoutsDir;
+      if (!existsSync(layoutsDir)) {
+        await mkdir(layoutsDir, { recursive: true });
+      }
+
       const cleanComponentCode = component_code
         .replace(/```tsx/g, "")
         .replace(/```/g, "");
 
-      await writeFile(filePath, cleanComponentCode, "utf8");
+      await writeFile(resolved.filePath, cleanComponentCode, "utf8");
       savedFiles.push({
         slide_number,
         component_name,
-        file_path: filePath,
-        file_name: fileName,
+        file_path: resolved.filePath,
+        file_name: resolved.fileName,
       });
     }
 
