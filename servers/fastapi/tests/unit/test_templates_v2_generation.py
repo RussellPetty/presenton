@@ -324,11 +324,13 @@ def test_generate_slide_layout_replaces_content_image_urls(monkeypatch):
 
     elements = result.model_dump(mode="json")["components"][0]["elements"]
     assert elements[0]["data"] == CONTENT_IMAGE_PLACEHOLDER_URL
+    assert elements[0]["fit"] == "cover"
     assert elements[0]["prompt"] == "Team reviewing dashboard"
     assert elements[1]["data"] == CONTENT_ICON_PLACEHOLDER_URL
     assert elements[1]["prompt"] == "growth chart"
     assert elements[2]["data"] == "/app_data/images/logo.png"
     assert elements[3]["children"][0]["data"] == CONTENT_IMAGE_PLACEHOLDER_URL
+    assert elements[3]["children"][0]["fit"] == "cover"
 
 
 def test_generate_slide_layout_passes_max_tokens_when_provided(monkeypatch):

@@ -383,7 +383,7 @@ def _normalize_generated_image_fit(
     element: dict[str, Any],
     asset_url: str | None,
 ) -> None:
-    if element.get("is_icon") is True or element.get("fit") != "fill":
+    if element.get("is_icon") is True or element.get("fit") == "cover":
         return
     if _has_image_clip_path(element):
         return

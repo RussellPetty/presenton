@@ -34,6 +34,7 @@ from templates.v2.models.layouts import (
     SlideLayouts,
 )
 from templates.v2.models.elements import Image as SlideImageElement
+from templates.v2.models.elements import ImageFit
 from templates.v2.tools import PREVIEW_SLIDE_TOOL_NAME, PreviewSlideTool
 from utils.asset_directory_utils import resolve_image_path_to_filesystem
 from utils.llm_config import get_llm_config
@@ -984,6 +985,8 @@ def _replace_content_image_url_in_element(element: Any) -> None:
             if element.is_icon
             else CONTENT_IMAGE_PLACEHOLDER_URL
         )
+        if not element.is_icon and element.fit != ImageFit.COVER:
+            element.fit = ImageFit.COVER
 
     child = getattr(element, "child", None)
     if child is not None:
