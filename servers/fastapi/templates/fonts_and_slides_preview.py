@@ -140,8 +140,11 @@ class _PreviewLogger:
 
 PREVIEW_WIDTH = 1280
 PREVIEW_HEIGHT = 720
-TAILWIND_CDN_URL = "https://cdn.tailwindcss.com"
-DEFAULT_CHART_JS_URL = "https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"
+TAILWIND_BROWSER_SCRIPT_PATH = "/static/vendor/tailwindcss-browser-4.3.3.js"
+CHART_JS_SCRIPT_PATH = "/static/vendor/chart-4.5.1.umd.min.js"
+CHART_DATALABELS_SCRIPT_PATH = (
+    "/static/vendor/chartjs-plugin-datalabels-2.2.0.min.js"
+)
 MAX_TEMPLATE_PREVIEW_SLIDES = 50
 MAX_FONT_CHECK_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024
 FONT_CHECK_UPLOAD_SIZE_ERROR = "File size must be less than 100MB."
@@ -584,11 +587,11 @@ def _get_template_preview_session_dir(session_id: uuid.UUID) -> str:
 
 
 def _chart_js_url() -> str:
-    return (
-        os.getenv("NEXT_PUBLIC_CHART_JS_URL")
-        or os.getenv("CHART_JS_URL")
-        or DEFAULT_CHART_JS_URL
-    )
+    return absolute_fastapi_asset_url(CHART_JS_SCRIPT_PATH)
+
+
+def _chart_datalabels_url() -> str:
+    return absolute_fastapi_asset_url(CHART_DATALABELS_SCRIPT_PATH)
 
 
 def _build_slide_preview_html(
@@ -599,13 +602,17 @@ def _build_slide_preview_html(
     height: int = PREVIEW_HEIGHT,
 ) -> str:
     fastapi_base = absolute_fastapi_asset_url("/").rstrip("/") + "/"
+    tailwind_browser_url = absolute_fastapi_asset_url(
+        TAILWIND_BROWSER_SCRIPT_PATH
+    )
     return f"""<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
   <base href="{fastapi_base}" />
-  <script src="{html.escape(TAILWIND_CDN_URL, quote=True)}"></script>
+  <script src="{html.escape(tailwind_browser_url, quote=True)}"></script>
   <script src="{html.escape(_chart_js_url(), quote=True)}"></script>
+  <script src="{html.escape(_chart_datalabels_url(), quote=True)}"></script>
   {font_links}
   <style>
     html,

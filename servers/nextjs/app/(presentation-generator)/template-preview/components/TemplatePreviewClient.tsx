@@ -25,6 +25,7 @@ import {
 } from "@/components/slide-editor/types";
 import { COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT } from "@/components/slide-editor/text/TiptapInlineTextEditor";
 import { normalizeBackendAssetUrls } from "@/utils/api";
+import { ensureTailwindBrowserScript } from "@/lib/tailwind-browser";
 import TemplateService from "../../services/api/template";
 import { useTemplateDetails } from "../../hooks/useTemplateDetails";
 import {
@@ -208,15 +209,7 @@ const GroupLayoutPreview = ({
   }, [error, layouts.length, loading, template, templateId]);
 
   useEffect(() => {
-    const existingScript = document.querySelector(
-      'script[src*="tailwindcss.com"]',
-    );
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.tailwindcss.com";
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    ensureTailwindBrowserScript();
   }, []);
 
   useEffect(() => {
