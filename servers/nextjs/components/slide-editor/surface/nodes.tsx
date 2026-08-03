@@ -421,6 +421,9 @@ export function RawComponentNode({
   onComponentDragMove,
   onComponentDragEnd,
   onElementChange,
+  onElementDragStart,
+  onElementDragMove,
+  onElementDragComplete,
   fontRevision,
 }: {
   component: RawComponent;
@@ -454,6 +457,18 @@ export function RawComponentNode({
   onElementChange: (
     selection: ElementSelection,
     updater: (element: RawElement) => RawElement,
+  ) => void;
+  onElementDragStart: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragMove: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragComplete: (
+    selection: ElementSelection,
+    node: Konva.Node,
   ) => void;
   fontRevision: number;
 }) {
@@ -742,6 +757,9 @@ export function RawComponentNode({
           onOpenEditor={onOpenElementEditor}
           onElementChange={onElementChange}
           onElementDragEnd={handleSingleElementComponentDragEnd}
+          onElementDragStart={onElementDragStart}
+          onElementDragMove={onElementDragMove}
+          onElementDragComplete={onElementDragComplete}
           parentBox={box}
           textConstraintBox={{
             x: 0,
@@ -805,6 +823,9 @@ export const MemoizedRawComponentNode = memo(
       previous.onComponentDragMove !== next.onComponentDragMove ||
       previous.onComponentDragEnd !== next.onComponentDragEnd ||
       previous.onElementChange !== next.onElementChange ||
+      previous.onElementDragStart !== next.onElementDragStart ||
+      previous.onElementDragMove !== next.onElementDragMove ||
+      previous.onElementDragComplete !== next.onElementDragComplete ||
       previous.selectedTableCell !== next.selectedTableCell ||
       previous.selectedKey !== next.selectedKey ||
       previous.fontRevision !== next.fontRevision
@@ -838,6 +859,9 @@ function RawElementNode({
   onOpenEditor,
   onElementChange,
   onElementDragEnd,
+  onElementDragStart,
+  onElementDragMove,
+  onElementDragComplete,
   parentBox,
   textConstraintBox,
   renderBox,
@@ -873,6 +897,18 @@ function RawElementNode({
     updater: (element: RawElement) => RawElement,
   ) => void;
   onElementDragEnd?: (selection: ElementSelection, delta: Point) => boolean;
+  onElementDragStart?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragMove?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragComplete?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
   parentBox: Box;
   textConstraintBox?: Box | null;
   renderBox?: Box | null;
@@ -958,15 +994,19 @@ function RawElementNode({
       if (!vectorDraggable) return;
       event.cancelBubble = true;
       onSelect(selection);
+      const node = groupRef.current;
+      if (node) onElementDragStart?.(selection, node);
     },
-    [onSelect, selection, vectorDraggable],
+    [onElementDragStart, onSelect, selection, vectorDraggable],
   );
   const handleVectorDragMove = useCallback(
     (event: Konva.KonvaEventObject<DragEvent>) => {
       if (!vectorDraggable) return;
       event.cancelBubble = true;
+      const node = groupRef.current;
+      if (node) onElementDragMove?.(selection, node);
     },
-    [vectorDraggable],
+    [onElementDragMove, selection, vectorDraggable],
   );
   const handleVectorDragEnd = useCallback(
     (event: Konva.KonvaEventObject<DragEvent>) => {
@@ -974,6 +1014,7 @@ function RawElementNode({
       event.cancelBubble = true;
       const node = groupRef.current;
       if (!node) return;
+      onElementDragComplete?.(selection, node);
       const nextPosition = {
         x: node.x() - (centerOrigin ? box.width / 2 : 0),
         y: node.y() - (centerOrigin ? box.height / 2 : 0),
@@ -1006,6 +1047,7 @@ function RawElementNode({
       centerOrigin,
       layoutManaged,
       onElementChange,
+      onElementDragComplete,
       onElementDragEnd,
       selection,
       vectorDraggable,
@@ -1310,6 +1352,9 @@ function RawElementNode({
           onOpenEditor={onOpenEditor}
           onElementChange={onElementChange}
           onElementDragEnd={onElementDragEnd}
+          onElementDragStart={onElementDragStart}
+          onElementDragMove={onElementDragMove}
+          onElementDragComplete={onElementDragComplete}
           allowVectorResizeBeyondParent={false}
           allowVectorPointEditing={allowVectorPointEditing}
           allowDirectVectorSelection={allowDirectVectorSelection}
@@ -1350,6 +1395,9 @@ export const MemoizedRawElementNode = memo(RawElementNode, (previous, next) => {
     previous.onOpenEditor !== next.onOpenEditor ||
     previous.onElementChange !== next.onElementChange ||
     previous.onElementDragEnd !== next.onElementDragEnd ||
+    previous.onElementDragStart !== next.onElementDragStart ||
+    previous.onElementDragMove !== next.onElementDragMove ||
+    previous.onElementDragComplete !== next.onElementDragComplete ||
     !numberPathEqual(previous.elementPath, next.elementPath) ||
     !boxEqual(previous.parentBox, next.parentBox) ||
     !nullableBoxEqual(previous.textConstraintBox, next.textConstraintBox) ||

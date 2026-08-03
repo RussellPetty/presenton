@@ -13,7 +13,7 @@ import {
 import type Konva from "konva";
 import { useDispatch } from "react-redux";
 import { Loader2 } from "lucide-react";
-import { Layer, Rect, Stage } from "react-konva";
+import { Layer, Line, Rect, Stage } from "react-konva";
 import { notify } from "@/components/ui/sonner";
 import type { TemplateV2Layout } from "@/components/slide-editor/importing/template-v2-import";
 import {
@@ -102,6 +102,12 @@ import {
 import { TemplateV2SelectionTransformers } from "@/components/slide-editor/selection/SelectionTransformers";
 import { useFontLoadState } from "@/components/slide-editor/surface/fontLoading";
 import {
+  createAlignmentSnapTargets,
+  snapBoxToAlignmentGuides,
+  type AlignmentGuide,
+  type AlignmentSnapTargets,
+} from "@/components/slide-editor/surface/alignmentGuides";
+import {
   MemoizedRawComponentNode,
   MemoizedRawElementNode,
 } from "@/components/slide-editor/surface/nodes";
@@ -117,6 +123,7 @@ import {
   appendInsertedContent,
   asRecord,
   backgroundColor,
+  boxContainingBoxes,
   childArrayInfo,
   childrenBounds,
   cloneJson,
@@ -159,6 +166,7 @@ import {
   surfaceSelectionTarget,
   updateComponentInUi,
   updateElementInUi,
+  type Box,
   type ComponentSelection,
   type ElementSelection,
   type MultiComponentDragState,
@@ -265,6 +273,66 @@ type TemplateV2KonvaSlideProps = {
   onLayoutChange?: (layout: TemplateV2Layout) => void;
 };
 
+type ComponentAlignmentDragState = {
+  draggedComponentIndex: number;
+  draggedNodeStart: Point;
+  movingBoxStart: Box;
+  targets: AlignmentSnapTargets;
+};
+
+type ElementAlignmentDragState = {
+  draggedKey: string;
+  draggedNodeStart: Point;
+  movingBoxStart: Box;
+  targets: AlignmentSnapTargets;
+};
+
+const ALIGNMENT_GUIDE_COLOR = "#D946EF";
+const ALIGNMENT_GUIDE_SNAP_DISTANCE_PX = 5;
+
+function renderedNodeBox(node: Konva.Node, fallback: Box): Box {
+  const stage = node.getStage();
+  if (!stage) return fallback;
+  const rect = node.getClientRect({
+    relativeTo: stage,
+    skipShadow: true,
+    skipStroke: true,
+  });
+  const values = [rect.x, rect.y, rect.width, rect.height];
+  if (!values.every(Number.isFinite) || rect.width <= 0 || rect.height <= 0) {
+    return fallback;
+  }
+  return rect;
+}
+
+function pointsForAlignmentGuide(guide: AlignmentGuide) {
+  return guide.axis === "vertical"
+    ? [guide.coordinate, guide.start, guide.coordinate, guide.end]
+    : [guide.start, guide.coordinate, guide.end, guide.coordinate];
+}
+
+function syncAlignmentGuideNode(
+  node: Konva.Line | null,
+  guide: AlignmentGuide | undefined,
+) {
+  if (!node) return false;
+  if (!guide) {
+    if (!node.visible()) return false;
+    node.visible(false);
+    return true;
+  }
+
+  const points = pointsForAlignmentGuide(guide);
+  const currentPoints = node.points();
+  const pointsChanged =
+    currentPoints.length !== points.length ||
+    points.some((point, index) => Math.abs(point - currentPoints[index]) >= 0.01);
+  if (node.visible() && !pointsChanged) return false;
+  node.points(points);
+  node.visible(true);
+  return true;
+}
+
 function TemplateV2KonvaSlideComponent({
   layout,
   isEditMode,
@@ -280,6 +348,9 @@ function TemplateV2KonvaSlideComponent({
   onHistoryAvailabilityChange,
   onLayoutChange,
 }: TemplateV2KonvaSlideProps) {
+  const effectiveDisplayScale = Number.isFinite(displayScale)
+    ? Math.max(0.1, Math.abs(displayScale))
+    : 1;
   const dispatch = useDispatch();
   const surfaceId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -287,12 +358,38 @@ function TemplateV2KonvaSlideComponent({
   const nodeRefs = useRef(new Map<string, Konva.Node>());
   const backgroundLayerRef = useRef<Konva.Layer | null>(null);
   const contentLayerRef = useRef<Konva.Layer | null>(null);
+  const alignmentGuideLayerRef = useRef<Konva.Layer | null>(null);
+  const verticalAlignmentGuideRef = useRef<Konva.Line | null>(null);
+  const horizontalAlignmentGuideRef = useRef<Konva.Line | null>(null);
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageUploadRef = useRef<ElementSelection | null>(null);
   const undoStackRef = useRef<RawUi[]>([]);
   const redoStackRef = useRef<RawUi[]>([]);
   const handledHistoryCommandTokenRef = useRef<number | null>(null);
   const multiComponentDragRef = useRef<MultiComponentDragState | null>(null);
+  const componentAlignmentDragRef =
+    useRef<ComponentAlignmentDragState | null>(null);
+  const elementAlignmentDragRef =
+    useRef<ElementAlignmentDragState | null>(null);
+  const showAlignmentGuides = useCallback((guides: AlignmentGuide[]) => {
+    const vertical = guides.find((guide) => guide.axis === "vertical");
+    const horizontal = guides.find((guide) => guide.axis === "horizontal");
+    const verticalChanged = syncAlignmentGuideNode(
+      verticalAlignmentGuideRef.current,
+      vertical,
+    );
+    const horizontalChanged = syncAlignmentGuideNode(
+      horizontalAlignmentGuideRef.current,
+      horizontal,
+    );
+    if (verticalChanged || horizontalChanged) {
+      alignmentGuideLayerRef.current?.batchDraw();
+    }
+  }, []);
+  const clearAlignmentGuides = useCallback(
+    () => showAlignmentGuides([]),
+    [showAlignmentGuides],
+  );
   const [uiDraft, setUiDraft] = useState<RawUi>(() =>
     normalizeMarkdownTextInUi(cloneJson(layout as RawUi)),
   );
@@ -636,6 +733,7 @@ function TemplateV2KonvaSlideComponent({
     const refreshPixelRatio = () => {
       syncEditingScenePixelRatio(backgroundLayerRef.current, displayScale);
       syncEditingScenePixelRatio(contentLayerRef.current, displayScale);
+      syncEditingScenePixelRatio(alignmentGuideLayerRef.current, displayScale);
     };
     refreshPixelRatio();
     window.addEventListener("resize", refreshPixelRatio);
@@ -651,6 +749,10 @@ function TemplateV2KonvaSlideComponent({
     const next = normalizeMarkdownTextInUi(cloneJson(layout as RawUi));
     currentUiRef.current = next;
     setUiDraft(next);
+    componentAlignmentDragRef.current = null;
+    elementAlignmentDragRef.current = null;
+    multiComponentDragRef.current = null;
+    clearAlignmentGuides();
     setSelection(null);
     clearTableCellSelection();
     clearInlineEdit();
@@ -661,6 +763,7 @@ function TemplateV2KonvaSlideComponent({
     redoStackRef.current = [];
     publishHistoryAvailability();
   }, [
+    clearAlignmentGuides,
     clearInlineEdit,
     clearTableCellSelection,
     layout,
@@ -797,6 +900,9 @@ function TemplateV2KonvaSlideComponent({
   const clearEditorUiState = useCallback(
     (options?: { clearActiveSurface?: boolean }) => {
       multiComponentDragRef.current = null;
+      componentAlignmentDragRef.current = null;
+      elementAlignmentDragRef.current = null;
+      clearAlignmentGuides();
       selectionRef.current = null;
       setSelection(null);
       clearTableCellSelection();
@@ -810,6 +916,7 @@ function TemplateV2KonvaSlideComponent({
       }
     },
     [
+      clearAlignmentGuides,
       clearInlineEdit,
       clearSurface,
       clearTableCellEditing,
@@ -1025,18 +1132,231 @@ function TemplateV2KonvaSlideComponent({
     [commitUi],
   );
 
+  const componentAlignmentTargetBoxes = useCallback(
+    (
+      movingComponentIndexes: Set<number>,
+      movingRootElementIndex: number | null = null,
+    ) => {
+      const current = currentUiRef.current;
+      const currentComponents = readArray(current.components);
+      const componentTargets = currentComponents.flatMap((entry, index) => {
+        if (movingComponentIndexes.has(index)) return [];
+        const component = asRecord(entry);
+        if (!component) return [];
+        const fallback = componentBox(component);
+        const targetNode = nodeRefs.current.get(
+          keyForSelection({ kind: "component", componentIndex: index }),
+        );
+        return [targetNode ? renderedNodeBox(targetNode, fallback) : fallback];
+      });
+      const rootTargets = readArray(current.elements).flatMap((entry, index) => {
+        if (index === movingRootElementIndex) return [];
+        const element = asRecord(entry);
+        if (!element) return [];
+        const fallback = elementBox(element);
+        const targetNode = nodeRefs.current.get(
+          keyForSelection({
+            kind: "element",
+            componentIndex: ROOT_ELEMENTS_COMPONENT_INDEX,
+            elementPath: [index],
+          }),
+        );
+        return [targetNode ? renderedNodeBox(targetNode, fallback) : fallback];
+      });
+      return [...componentTargets, ...rootTargets];
+    },
+    [],
+  );
+
+  const snapDraggedComponentToGuides = useCallback(
+    (componentIndex: number, node: Konva.Node) => {
+      const dragState = componentAlignmentDragRef.current;
+      if (
+        !dragState ||
+        dragState.draggedComponentIndex !== componentIndex
+      ) {
+        return;
+      }
+      const position = node.position();
+      const rawDelta = {
+        x: position.x - dragState.draggedNodeStart.x,
+        y: position.y - dragState.draggedNodeStart.y,
+      };
+      const movingBox = {
+        ...dragState.movingBoxStart,
+        x: dragState.movingBoxStart.x + rawDelta.x,
+        y: dragState.movingBoxStart.y + rawDelta.y,
+      };
+      const snapped = snapBoxToAlignmentGuides({
+        movingBox,
+        stageBox: STAGE_BOX,
+        targets: dragState.targets,
+        threshold:
+          ALIGNMENT_GUIDE_SNAP_DISTANCE_PX /
+          effectiveDisplayScale,
+      });
+      const snappedDelta = {
+        x: snapped.position.x - dragState.movingBoxStart.x,
+        y: snapped.position.y - dragState.movingBoxStart.y,
+      };
+      node.position({
+        x: dragState.draggedNodeStart.x + snappedDelta.x,
+        y: dragState.draggedNodeStart.y + snappedDelta.y,
+      });
+      showAlignmentGuides(snapped.guides);
+    },
+    [effectiveDisplayScale, showAlignmentGuides],
+  );
+
+  const snapDraggedElementToGuides = useCallback(
+    (elementSelection: ElementSelection, node: Konva.Node) => {
+      const dragState = elementAlignmentDragRef.current;
+      if (
+        !dragState ||
+        dragState.draggedKey !== keyForSelection(elementSelection)
+      ) {
+        return;
+      }
+      const position = node.absolutePosition();
+      const rawDelta = {
+        x: position.x - dragState.draggedNodeStart.x,
+        y: position.y - dragState.draggedNodeStart.y,
+      };
+      const movingBox = {
+        ...dragState.movingBoxStart,
+        x: dragState.movingBoxStart.x + rawDelta.x,
+        y: dragState.movingBoxStart.y + rawDelta.y,
+      };
+      const snapped = snapBoxToAlignmentGuides({
+        movingBox,
+        stageBox: STAGE_BOX,
+        targets: dragState.targets,
+        threshold:
+          ALIGNMENT_GUIDE_SNAP_DISTANCE_PX /
+          effectiveDisplayScale,
+      });
+      node.absolutePosition({
+        x:
+          dragState.draggedNodeStart.x +
+          snapped.position.x -
+          dragState.movingBoxStart.x,
+        y:
+          dragState.draggedNodeStart.y +
+          snapped.position.y -
+          dragState.movingBoxStart.y,
+      });
+      showAlignmentGuides(snapped.guides);
+    },
+    [effectiveDisplayScale, showAlignmentGuides],
+  );
+
+  const handleElementAlignmentDragStart = useCallback(
+    (elementSelection: ElementSelection, node: Konva.Node) => {
+      const current = currentUiRef.current;
+      const fallback =
+        absoluteBoxForSelection(current, elementSelection) ??
+        ({
+          ...node.absolutePosition(),
+          width: Math.max(1, node.width()),
+          height: Math.max(1, node.height()),
+        } satisfies Box);
+      const draggedNodeStart = node.absolutePosition();
+      const isRootElement =
+        elementSelection.componentIndex === ROOT_ELEMENTS_COMPONENT_INDEX;
+      elementAlignmentDragRef.current = {
+        draggedKey: keyForSelection(elementSelection),
+        draggedNodeStart: {
+          x: draggedNodeStart.x,
+          y: draggedNodeStart.y,
+        },
+        movingBoxStart: renderedNodeBox(node, fallback),
+        targets: createAlignmentSnapTargets(
+          STAGE_BOX,
+          componentAlignmentTargetBoxes(
+            new Set<number>(
+              isRootElement ? [] : [elementSelection.componentIndex],
+            ),
+            isRootElement ? elementSelection.elementPath[0] ?? null : null,
+          ),
+        ),
+      };
+      componentAlignmentDragRef.current = null;
+      multiComponentDragRef.current = null;
+      clearAlignmentGuides();
+    },
+    [clearAlignmentGuides, componentAlignmentTargetBoxes],
+  );
+
+  const handleElementAlignmentDragMove = useCallback(
+    (elementSelection: ElementSelection, node: Konva.Node) => {
+      snapDraggedElementToGuides(elementSelection, node);
+    },
+    [snapDraggedElementToGuides],
+  );
+
+  const handleElementAlignmentDragComplete = useCallback(
+    (elementSelection: ElementSelection, node: Konva.Node) => {
+      snapDraggedElementToGuides(elementSelection, node);
+      elementAlignmentDragRef.current = null;
+      clearAlignmentGuides();
+    },
+    [clearAlignmentGuides, snapDraggedElementToGuides],
+  );
+
   const handleComponentDragStart = useCallback(
     (componentIndex: number, node: Konva.Node) => {
+      elementAlignmentDragRef.current = null;
       const selectedIndexes = selectedComponentIndexesRef.current;
-      if (
-        selectedIndexes.length < 2 ||
-        !selectedIndexes.includes(componentIndex)
-      ) {
+      const isMultiComponentDrag =
+        selectedIndexes.length >= 2 &&
+        selectedIndexes.includes(componentIndex);
+      const movingIndexes = isMultiComponentDrag
+        ? selectedIndexes
+        : [componentIndex];
+      const sourceComponents = readArray(currentUiRef.current.components);
+      const movingBoxes = movingIndexes.flatMap((movingIndex) => {
+        const component = asRecord(sourceComponents[movingIndex]);
+        if (!component) return [];
+        const fallback = componentBox(component);
+        const movingNode =
+          movingIndex === componentIndex
+            ? node
+            : nodeRefs.current.get(
+                keyForSelection({
+                  kind: "component",
+                  componentIndex: movingIndex,
+                }),
+              );
+        return [movingNode ? renderedNodeBox(movingNode, fallback) : fallback];
+      });
+      const draggedNodeStart = node.position();
+      componentAlignmentDragRef.current = {
+        draggedComponentIndex: componentIndex,
+        draggedNodeStart: {
+          x: draggedNodeStart.x,
+          y: draggedNodeStart.y,
+        },
+        movingBoxStart:
+          movingBoxes.length > 0
+            ? boxContainingBoxes(movingBoxes)
+            : {
+                x: draggedNodeStart.x,
+                y: draggedNodeStart.y,
+                width: 1,
+                height: 1,
+              },
+        targets: createAlignmentSnapTargets(
+          STAGE_BOX,
+          componentAlignmentTargetBoxes(new Set(movingIndexes)),
+        ),
+      };
+      clearAlignmentGuides();
+
+      if (!isMultiComponentDrag) {
         multiComponentDragRef.current = null;
         return;
       }
 
-      const sourceComponents = readArray(currentUiRef.current.components);
       const nodes = selectedIndexes.flatMap((selectedIndex) => {
         const selectedNode = nodeRefs.current.get(
           keyForSelection({ kind: "component", componentIndex: selectedIndex }),
@@ -1056,18 +1376,18 @@ function TemplateV2KonvaSlideComponent({
           },
         ];
       });
-      const draggedNodeStart = node.position();
       multiComponentDragRef.current = {
         draggedComponentIndex: componentIndex,
         draggedNodeStart: { x: draggedNodeStart.x, y: draggedNodeStart.y },
         nodes,
       };
     },
-    [],
+    [clearAlignmentGuides, componentAlignmentTargetBoxes],
   );
 
   const handleComponentDragMove = useCallback(
     (componentIndex: number, node: Konva.Node) => {
+      snapDraggedComponentToGuides(componentIndex, node);
       const dragState = multiComponentDragRef.current;
       if (!dragState || dragState.draggedComponentIndex !== componentIndex) {
         return;
@@ -1085,11 +1405,14 @@ function TemplateV2KonvaSlideComponent({
       });
       node.getLayer()?.batchDraw();
     },
-    [],
+    [snapDraggedComponentToGuides],
   );
 
   const handleComponentDragEnd = useCallback(
     (componentIndex: number, node: Konva.Node) => {
+      snapDraggedComponentToGuides(componentIndex, node);
+      componentAlignmentDragRef.current = null;
+      clearAlignmentGuides();
       const dragState = multiComponentDragRef.current;
       if (!dragState || dragState.draggedComponentIndex !== componentIndex) {
         updateComponent(componentIndex, (current) => {
@@ -1127,7 +1450,12 @@ function TemplateV2KonvaSlideComponent({
         ),
       );
     },
-    [commitUi, updateComponent],
+    [
+      clearAlignmentGuides,
+      commitUi,
+      snapDraggedComponentToGuides,
+      updateComponent,
+    ],
   );
 
   const updateElement = useCallback(
@@ -2197,6 +2525,9 @@ function TemplateV2KonvaSlideComponent({
               onTableCellEdit={editTableCell}
               onOpenEditor={handleElementDoubleClick}
               onElementChange={updateElement}
+              onElementDragStart={handleElementAlignmentDragStart}
+              onElementDragMove={handleElementAlignmentDragMove}
+              onElementDragComplete={handleElementAlignmentDragComplete}
               parentBox={STAGE_BOX}
               layoutManaged={false}
               fontRevision={fontLoadState.revision}
@@ -2226,6 +2557,9 @@ function TemplateV2KonvaSlideComponent({
               onComponentDragMove={handleComponentDragMove}
               onComponentDragEnd={handleComponentDragEnd}
               onElementChange={updateElement}
+              onElementDragStart={handleElementAlignmentDragStart}
+              onElementDragMove={handleElementAlignmentDragMove}
+              onElementDragComplete={handleElementAlignmentDragComplete}
               fontRevision={fontLoadState.revision}
             />
           ))}
@@ -2251,6 +2585,40 @@ function TemplateV2KonvaSlideComponent({
             />
           ) : null}
         </Layer>
+        {isEditMode ? (
+          <Layer ref={alignmentGuideLayerRef} listening={false}>
+            <Line
+              ref={verticalAlignmentGuideRef}
+              points={[0, 0, 0, 0]}
+              visible={false}
+              stroke={ALIGNMENT_GUIDE_COLOR}
+              strokeWidth={1.5 / effectiveDisplayScale}
+              dash={[
+                0.1 / effectiveDisplayScale,
+                5 / effectiveDisplayScale,
+              ]}
+              lineCap="round"
+              listening={false}
+              perfectDrawEnabled={false}
+              shadowForStrokeEnabled={false}
+            />
+            <Line
+              ref={horizontalAlignmentGuideRef}
+              points={[0, 0, 0, 0]}
+              visible={false}
+              stroke={ALIGNMENT_GUIDE_COLOR}
+              strokeWidth={1.5 / effectiveDisplayScale}
+              dash={[
+                0.1 / effectiveDisplayScale,
+                5 / effectiveDisplayScale,
+              ]}
+              lineCap="round"
+              listening={false}
+              perfectDrawEnabled={false}
+              shadowForStrokeEnabled={false}
+            />
+          </Layer>
+        ) : null}
         </Stage>
       ) : null}
       <TemplateV2SelectionToolbar
