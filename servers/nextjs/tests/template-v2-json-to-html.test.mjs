@@ -87,3 +87,38 @@ test("renders legacy text-decoration underline fields", async () => {
     /<span style="[^"]*text-decoration:underline;[^"]*">Legacy<\/span>/,
   );
 });
+
+test("renders charts with local Chart.js and datalabels scripts", async () => {
+  const { templateV2UiToHtml } = await importRenderer();
+
+  const html = templateV2UiToHtml({
+    elements: [
+      {
+        type: "chart",
+        chartType: "bar",
+        position: { x: 0, y: 0 },
+        size: { width: 640, height: 360 },
+        categories: ["One", "Two"],
+        series: [{ name: "Values", values: [10, 20] }],
+        dataLabels: "top",
+      },
+    ],
+  });
+
+  assert.ok(html);
+  assert.match(html, /<script src="\/vendor\/chart-4\.5\.1\.umd\.min\.js"><\/script>/);
+  assert.match(
+    html,
+    /<script src="\/vendor\/chartjs-plugin-datalabels-2\.2\.0\.min\.js"><\/script>/,
+  );
+  assert.match(html, /&quot;datalabels&quot;:\{/);
+  assert.match(html, /Chart\.register\(window\.ChartDataLabels\)/);
+  assert.doesNotMatch(html, /cdn\.jsdelivr\.net/);
+
+  const inlineScripts = Array.from(
+    html.matchAll(/<script>([\s\S]*?)<\/script>/g),
+    (match) => match[1],
+  );
+  assert.equal(inlineScripts.length, 1);
+  assert.doesNotThrow(() => new Function(inlineScripts[0]));
+});

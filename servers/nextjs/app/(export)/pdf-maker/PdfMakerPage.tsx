@@ -20,6 +20,7 @@ import {
   TemplateV2HtmlSlidePreview,
 } from "@/app/(presentation-generator)/components/TemplateV2HtmlSlidePreview";
 import { normalizeBackendAssetUrls } from "@/utils/api";
+import { ensureTailwindBrowserScript } from "@/lib/tailwind-browser";
 
 const PDF_PRINT_STYLE = `
   html,
@@ -116,15 +117,7 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
 
   useEffect(() => {
     if (presentationData?.slides?.[0]?.layout?.includes("custom")) {
-      const existingScript = document.querySelector(
-        'script[src*="tailwindcss.com"]'
-      );
-      if (!existingScript) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.tailwindcss.com";
-        script.async = true;
-        document.head.appendChild(script);
-      }
+      ensureTailwindBrowserScript();
     }
   }, [presentationData]);
   useEffect(() => {
