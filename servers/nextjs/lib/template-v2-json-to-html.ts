@@ -1,6 +1,7 @@
 import { resolveBackendAssetUrl } from "@/utils/api";
 import { markdownToPlainChartText } from "@/components/slide-editor/charts/chart-data";
 import { normalizeRawTextMarkdownElement } from "@/components/slide-editor/text/template-v2-text";
+import { normalizeMathLatex, renderMathHtml } from "@/lib/math";
 import {
   CHART_BROWSER_SCRIPT_URL,
   CHART_DATALABELS_SCRIPT_URL,
@@ -81,6 +82,7 @@ interface TemplateV2RenderPayload {
 
 const ELEMENT_TYPES = new Set([
   "text",
+  "math",
   "container",
   "image",
   "text-list",
@@ -430,6 +432,8 @@ function renderItem(item: JsonRecord, mode: RenderMode): string {
       return renderImage(item, mode);
     case "text":
       return renderText(item, mode);
+    case "math":
+      return renderMath(item, mode);
     case "text-list":
       return renderTextList(item, mode);
     case "table":
@@ -518,6 +522,29 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
     font,
     1.1
   )}${textOverflowStyle()}text-align:${textAlign(horizontal)};"><span style="display:block;width:100%">${runHtml}</span></div>`;
+}
+
+function renderMath(item: JsonRecord, mode: RenderMode): string {
+  const latex = normalizeMathLatex(item.latex);
+  if (!latex) return "";
+  const font = readRecord(item.font);
+  const alignment = readRecord(item.alignment);
+  const horizontal = readString(alignment.horizontal);
+  const vertical = readString(alignment.vertical);
+  const displayMode = readBoolean(item.display_mode ?? item.displayMode) ?? true;
+  const markup = renderMathHtml(latex, { displayMode });
+  const color = normalizeCssColor(readString(font.color) ?? "#111827");
+  const fontSize = readNumber(font.size) ?? 32;
+
+  return `<div data-presenton-math="true" data-screenshot="true" data-screenshot-include-children="true" aria-label="${escapeAttribute(
+    `Mathematical expression: ${latex}`
+  )}" style="${frameStyle(item, mode)}${transformStyle(
+    item
+  )}display:flex;align-items:${verticalAlign(vertical)};justify-content:${horizontalAlign(
+    horizontal
+  )};overflow:hidden;color:${escapeCssColor(color)};font-size:${cssNumber(
+    fontSize
+  )}px;"><div style="max-width:100%;max-height:100%;overflow:hidden;">${markup}</div></div>`;
 }
 
 function renderTextList(item: JsonRecord, mode: RenderMode): string {

@@ -78,6 +78,7 @@ _CONTENT_VALUE_KEYS_BY_ELEMENT_TYPE = {
     "image": {"data", "prompt"},
     "infographic": {"data"},
     "text": {"runs"},
+    "math": {"latex"},
     "text-list": {"items"},
 }
 
@@ -108,6 +109,7 @@ Convert the provided raw slide elements to components.
 - Use `table` element for table and `chart` element for chart.
 - Use `infographic` element for infographic or metric visuals like `progress_bar`, `gauge`, etc.
 - Use `text-list` element for list of text like bullet points, numbered list, unordered list, etc.
+- Use `math` for standalone mathematical expressions. Store valid LaTeX in `latex`; do not include `$` delimiters.
 - Use `container` for flexible alignment and layout.
 - Use `image` for images and icons.
 - Identify icon color from slide image.

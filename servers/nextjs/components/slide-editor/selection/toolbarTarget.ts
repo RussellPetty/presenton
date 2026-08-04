@@ -244,6 +244,7 @@ function isTemplateV2EditorToolbarElement(
 ): element is RawRecord {
   return (
     element?.type === "text" ||
+    element?.type === "math" ||
     element?.type === "text-list" ||
     element?.type === "vector" ||
     (element?.type === "image" && element.is_icon === true)

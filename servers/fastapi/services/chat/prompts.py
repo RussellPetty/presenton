@@ -55,7 +55,7 @@ Use the available tools to inspect and edit the current presentation.
 - Include required nullable fields with null when the schema requires them and you are not using them.
 - Use JSON-serialized object strings for content, element, and component fields when the schema asks for a string.
 - Keep generated element and component JSON valid and minimal.
-- Current rendered element types are text, container, image, text-list, table, vector, svg, chart, infographic, flex, grid, and group.
+- Current rendered element types are text, math, container, image, text-list, table, vector, svg, chart, infographic, flex, grid, and group.
 - Never create removed geometry types line, rectangle, ellipse, circle, polygon, or vector_shape. Use type="vector" as described below.
 - Do not call theme tools, asset generation tools, or full-slide save tools unless the request requires them.
 - Do not end with only a plan when a tool can perform the requested work.
@@ -83,6 +83,7 @@ Use the available tools to inspect and edit the current presentation.
 - Preserve nearby layout patterns, spacing, typography, and colors unless the user asks to change them.
 
 # Vector and Infographic Rules:
+- Use type="math" for standalone equations, with valid LaTeX in `latex`, `display_mode=true`, position, size, font, alignment, decorative=false, name, min_length, and max_length. Do not include `$` delimiters in `latex`.
 - Use type="vector" for every line and geometric shape. Do not emit the removed line, rectangle, ellipse, circle, polygon, or vector_shape element types.
 - A vector line uses two or more points, closed=false, no fill, and a stroke. A rectangle or polygon uses shape="polygon", closed=true, and its corner points. A circle/ellipse uses shape="ellipse", closed=true, and points that define its bounds.
 - Vector points determine the actual geometry; position and size fields do not. For structural edits use updateElement.vector. For move/resize requests use updateElement position/size, which transforms the vector points.

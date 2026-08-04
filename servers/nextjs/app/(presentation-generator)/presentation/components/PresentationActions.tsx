@@ -31,6 +31,7 @@ import {
   Type,
   ListMinus,
   Search,
+  Sigma,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -179,6 +180,11 @@ const insertActions: ActionItem[] = [
 ];
 
 export const textItems = [
+  { id: "equation", label: "Equation", icon: Sigma },
+  { id: "equation-quadratic", label: "Quadratic", icon: Sigma },
+  { id: "equation-summation", label: "Summation", icon: Sigma },
+  { id: "equation-integral", label: "Integral", icon: Sigma },
+  { id: "equation-matrix", label: "Matrix", icon: Sigma },
   { id: "title-block", label: "Title Block", icon: AlignCenter },
   { id: "subtitle", label: "Subtitle", icon: AlignCenter },
   { id: "bullet-list", label: "Bullet List", icon: List },
