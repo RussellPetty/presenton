@@ -68,6 +68,7 @@ BLANK_TEMPLATE_LAYOUT: dict[str, Any] = {
 }
 TEMPLATE_GENERATED_ELEMENT_TYPES = {
     "text",
+    "math",
     "image",
     "text-list",
     "table",
@@ -1391,6 +1392,25 @@ class PresentationChatMemoryLayer:
             if text is None:
                 raise ValueError("text is required for text elements.")
             _update_text_element(element, text)
+        elif content_update_requested and element_type == "math":
+            if text is None:
+                raise ValueError("text is required for math elements.")
+            normalized_latex = text.strip()
+            if (
+                normalized_latex.startswith("$$")
+                and normalized_latex.endswith("$$")
+                and len(normalized_latex) > 4
+            ):
+                normalized_latex = normalized_latex[2:-2].strip()
+            elif (
+                normalized_latex.startswith(r"\[")
+                and normalized_latex.endswith(r"\]")
+                and len(normalized_latex) > 4
+            ):
+                normalized_latex = normalized_latex[2:-2].strip()
+            if not normalized_latex:
+                raise ValueError("Math expressions cannot be empty.")
+            element["latex"] = normalized_latex[:4000]
         elif content_update_requested and element_type == "text-list":
             if items is None:
                 raise ValueError("items is required for text-list elements.")
@@ -2026,7 +2046,12 @@ class PresentationChatMemoryLayer:
                     for point in points
                 ]
 
-        if str(element.get("type") or "").lower() in {"text", "text-list", "table"}:
+        if str(element.get("type") or "").lower() in {
+            "text",
+            "math",
+            "text-list",
+            "table",
+        }:
             cls._scale_font_metrics_for_component_resize(element, font_scale)
 
         for key in ("children", "elements"):
@@ -3692,6 +3717,18 @@ class PresentationChatMemoryLayer:
                 return
             cls._set_template_runs_text(element, text)
             element["text"] = text
+            return
+
+        if element_type == "math":
+            latex = cls._template_text_value(value)
+            if latex is None or not latex.strip():
+                return
+            normalized = latex.strip()
+            if normalized.startswith("$$") and normalized.endswith("$$"):
+                normalized = normalized[2:-2].strip()
+            elif normalized.startswith(r"\[") and normalized.endswith(r"\]"):
+                normalized = normalized[2:-2].strip()
+            element["latex"] = normalized[:4000]
             return
 
         if element_type == "text-list" and isinstance(value, list):

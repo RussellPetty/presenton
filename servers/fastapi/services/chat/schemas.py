@@ -128,7 +128,7 @@ class GetAvailableBlocksInput(OpenAIStrictSchemaModel):
         max_length=80,
         description=(
             "Optional current element type filter: text, container, image, "
-            "text-list, table, vector, svg, chart, infographic, flex, grid, or "
+            "math, text-list, table, vector, svg, chart, infographic, flex, grid, or "
             "group. For title/header/subtitle blocks, use text with a "
             "title/header/subtitle query."
         ),

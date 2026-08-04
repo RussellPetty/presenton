@@ -6,6 +6,7 @@ from templates.v2.models.elements import (
     Container,
     Image,
     Infographic,
+    MathExpression,
     ProgressBarInfographicData,
     Table,
     Text,
@@ -14,6 +15,51 @@ from templates.v2.models.elements import (
     VectorShape,
 )
 from templates.v2.models.layouts import RawSlideLayout
+
+
+def test_math_expression_is_a_first_class_slide_element():
+    layout = RawSlideLayout.model_validate(
+        {
+            "id": "formula_slide",
+            "description": "Layout with an editable equation.",
+            "elements": [
+                {
+                    "type": "container",
+                    "child": {
+                        "type": "math",
+                        "decorative": False,
+                        "name": "formula",
+                        "latex": r"\frac{x_i^2}{\sum_{j=1}^n y_j}",
+                        "position": {"x": 20, "y": 40},
+                        "size": {"width": 640, "height": 120},
+                        "font": {"size": 42, "color": "#111827"},
+                        "alignment": {
+                            "horizontal": "center",
+                            "vertical": "middle",
+                        },
+                    },
+                }
+            ],
+        }
+    )
+
+    formula = layout.elements[0].child
+    assert isinstance(formula, MathExpression)
+    assert formula.latex == r"\frac{x_i^2}{\sum_{j=1}^n y_j}"
+    assert formula.display_mode is True
+    assert layout.model_dump(mode="json")["elements"][0]["child"]["type"] == "math"
+
+
+def test_math_expression_rejects_empty_or_oversized_latex():
+    base = {
+        "type": "math",
+        "decorative": False,
+        "name": "formula",
+    }
+    with pytest.raises(ValidationError, match="latex"):
+        MathExpression.model_validate({**base, "latex": ""})
+    with pytest.raises(ValidationError, match="latex"):
+        MathExpression.model_validate({**base, "latex": "x" * 4001})
 
 
 def test_chart_accepts_legacy_boolean_data_labels():

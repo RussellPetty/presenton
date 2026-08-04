@@ -11,6 +11,7 @@ from .models.layouts import RawSlideLayout
 
 CONTENT_TYPES = {
     "text",
+    "math",
     "image",
     "text-list",
     "table",
@@ -185,7 +186,7 @@ def _node_for_element(element: dict[str, Any]) -> tuple[str, dict[str, Any]] | N
 def _content_schema_for_element(element: dict[str, Any]) -> dict[str, Any]:
     element_type = element["type"]
 
-    if element_type == "text":
+    if element_type in {"text", "math"}:
         return _compact(
             {
                 "type": "string",
