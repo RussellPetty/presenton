@@ -2,6 +2,33 @@ from api.v1.ppt.endpoints import presentation as presentation_endpoint
 from services.chat.memory_layer import PresentationChatMemoryLayer
 
 
+def test_apply_template_content_to_ui_preserves_latex_syntax():
+    ui = {
+        "id": "math-layout",
+        "components": [
+            {
+                "id": "equation",
+                "elements": [
+                    {
+                        "type": "math",
+                        "decorative": False,
+                        "name": "formula",
+                        "latex": "E = mc^2",
+                    }
+                ],
+            }
+        ],
+    }
+
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        ui,
+        {"equation": {"formula": r"$$\sum_{i=1}^n x_i^2$$"}},
+    )
+
+    assert hydrated["components"][0]["elements"][0]["latex"] == r"\sum_{i=1}^n x_i^2"
+    assert ui["components"][0]["elements"][0]["latex"] == "E = mc^2"
+
+
 def _duplicate_named_groups_ui():
     def block_group():
         return {

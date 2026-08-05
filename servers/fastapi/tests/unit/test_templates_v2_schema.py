@@ -40,6 +40,14 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
                     "runs": [{"text": "A"}],
                 },
                 {
+                    "type": "math",
+                    "decorative": False,
+                    "name": "formula",
+                    "latex": r"E = mc^2",
+                    "min_length": 3,
+                    "max_length": 120,
+                },
+                {
                     "type": "image",
                     "decorative": False,
                     "name": "hero_image",
@@ -89,6 +97,7 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
         "type": "object",
         "properties": {
             "title": {"type": "string", "minLength": 4, "maxLength": 8},
+            "formula": {"type": "string", "minLength": 3, "maxLength": 120},
             "hero_image": {
                 "type": "object",
                 "properties": {"image_prompt": {"type": "string"}},
@@ -161,7 +170,7 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
                 "additionalProperties": False,
             },
         },
-        "required": ["title", "hero_image", "caption", "details"],
+        "required": ["title", "formula", "hero_image", "caption", "details"],
         "additionalProperties": False,
     }
 

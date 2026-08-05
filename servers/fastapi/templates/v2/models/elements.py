@@ -182,6 +182,25 @@ class Text(BaseModel):  # Konva Text
     min_length: int
 
 
+class MathExpression(BaseModel):
+    type: Literal["math"]
+    position: Optional[Position] = None
+    size: Optional[Size] = None
+    rotation: Optional[float] = None
+    opacity: Optional[float] = None
+    latex: str = Field(min_length=1, max_length=4000)
+    display_mode: bool = True
+    font: Optional[Font] = None
+    alignment: Optional[Alignment] = None
+    shadow: Optional[Shadow] = None
+
+    # Schema
+    decorative: bool
+    name: str
+    max_length: int = 4000
+    min_length: int = 1
+
+
 class Container(BaseModel):  # Konva Group
     type: Literal["container"]
     position: Optional[Position] = None
@@ -440,6 +459,7 @@ class Group(BaseModel):
 SlideElement: TypeAlias = Annotated[
     Union[
         Text,
+        MathExpression,
         Container,
         Image,
         TextList,
@@ -480,6 +500,7 @@ __all__ = [
     "GaugeInfographicData",
     "LayoutAlignment",
     "Marker",
+    "MathExpression",
     "Padding",
     "Position",
     "ProgressBarInfographicData",

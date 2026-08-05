@@ -513,7 +513,12 @@ export function scaleRawElementTextMetrics(element: RawElement, fontScale: numbe
     return element;
   }
   const type = readString(element.type);
-  if (type !== "text" && type !== "text-list" && type !== "table") {
+  if (
+    type !== "text" &&
+    type !== "math" &&
+    type !== "text-list" &&
+    type !== "table"
+  ) {
     return element;
   }
   return scaleRawTextMetrics(element, fontScale);

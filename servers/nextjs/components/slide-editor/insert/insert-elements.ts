@@ -22,6 +22,33 @@ const DEFAULT_IMAGE_PLACEHOLDER_SRC = "/placeholder.jpg";
 const TEXT_INSERT_HORIZONTAL_PADDING_PX = 8;
 const TEXT_INSERT_VERTICAL_PADDING_PX = 14;
 const IMAGE_RADIUS = { tl: 10, tr: 10, bl: 10, br: 10 };
+const MATH_INSERT_PRESETS: Record<
+  string,
+  { latex: string; name: string; fontSize?: number; height?: number }
+> = {
+  equation: { latex: String.raw`E = mc^2`, name: "equation" },
+  "equation-quadratic": {
+    latex: String.raw`x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`,
+    name: "quadratic_formula",
+    fontSize: 38,
+  },
+  "equation-summation": {
+    latex: String.raw`\sum_{i=1}^{n} i = \frac{n(n+1)}{2}`,
+    name: "summation_formula",
+    fontSize: 40,
+  },
+  "equation-integral": {
+    latex: String.raw`\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}`,
+    name: "integral_formula",
+    fontSize: 38,
+  },
+  "equation-matrix": {
+    latex: String.raw`A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}`,
+    name: "matrix_formula",
+    fontSize: 38,
+    height: 180,
+  },
+};
 
 export type EditorInsertContent = {
   elements?: SlideElement[];
@@ -85,6 +112,36 @@ function makeTextElement({
     name,
     max_length: maxLength,
     min_length: Math.ceil(maxLength / 2),
+  };
+}
+
+function makeMathElement({
+  latex,
+  name,
+  fontSize = 44,
+  height = 150,
+}: {
+  latex: string;
+  name: string;
+  fontSize?: number;
+  height?: number;
+}): SlideElement {
+  return {
+    type: "math",
+    position: { x: 210, y: 250 },
+    size: { width: 860, height },
+    alignment: { horizontal: "center", vertical: "middle" },
+    font: {
+      family: "KaTeX_Main",
+      size: fontSize,
+      color: "101323",
+    },
+    latex,
+    display_mode: true,
+    decorative: false,
+    name,
+    max_length: 4000,
+    min_length: 1,
   };
 }
 
@@ -179,6 +236,9 @@ function makeBulletListElement(marker: Marker): SlideElement {
 }
 
 export function createTextInsertElements(kind?: string): SlideElement[] {
+  const mathPreset = kind ? MATH_INSERT_PRESETS[kind] : undefined;
+  if (mathPreset) return [makeMathElement(mathPreset)];
+
   switch (kind) {
     case "title-block":
       return [

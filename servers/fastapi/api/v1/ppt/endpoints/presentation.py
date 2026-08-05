@@ -408,7 +408,14 @@ def _template_slide_ui(
     return None
 
 
-GENERATED_VALUE_ELEMENT_TYPES = {"text", "image", "text-list", "table", "chart"}
+GENERATED_VALUE_ELEMENT_TYPES = {
+    "text",
+    "math",
+    "image",
+    "text-list",
+    "table",
+    "chart",
+}
 GENERATED_TABLE_TEXT_FONT = {
     "family": "Sniglet",
     "size": 12,
@@ -695,6 +702,8 @@ def _apply_template_content_value(element: dict[str, Any], value: Any) -> dict[s
     element_type = element.get("type")
     if element_type == "text":
         return _apply_template_text_content(element, value)
+    if element_type == "math":
+        return _apply_template_math_content(element, value)
     if element_type == "image":
         return _apply_template_image_content(element, value)
     if element_type == "text-list":
@@ -704,6 +713,25 @@ def _apply_template_content_value(element: dict[str, Any], value: Any) -> dict[s
     if element_type == "chart":
         return _apply_template_chart_content(element, value)
     return copy.deepcopy(element)
+
+
+def _apply_template_math_content(
+    element: dict[str, Any],
+    value: Any,
+) -> dict[str, Any]:
+    latex = _read_template_text(value)
+    if latex is None or latex.strip() == "":
+        return copy.deepcopy(element)
+
+    normalized = latex.strip()
+    if normalized.startswith("$$") and normalized.endswith("$$") and len(normalized) > 4:
+        normalized = normalized[2:-2].strip()
+    elif normalized.startswith(r"\[") and normalized.endswith(r"\]") and len(normalized) > 4:
+        normalized = normalized[2:-2].strip()
+
+    updated = copy.deepcopy(element)
+    updated["latex"] = normalized[:4000]
+    return updated
 
 
 def _read_template_text(value: Any) -> Optional[str]:
