@@ -4,28 +4,50 @@ import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   AlignCenter,
   AreaChart,
+  ArrowDown,
+  ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
+  ArrowUpDown,
+  ArrowUpRight,
   BarChart3,
+  Bookmark,
   ChartNoAxesGantt,
   ChevronDown,
+  ChevronsRight,
   Circle,
+  Cloud,
   Columns2,
   Diamond,
+  Droplet,
+  Flag,
   Gauge,
   Grid3X3,
   GripVertical,
+  Heart,
   Hexagon,
+  Home,
   Image,
   LineChart,
   List,
   ListOrdered,
+  MessageSquare,
   Minus,
+  Moon,
+  Move,
+  Octagon,
   Pentagon,
   PieChart,
+  Play,
+  Plus,
   Quote,
   RectangleHorizontal,
   Rows3,
+  Shield,
   Shapes,
+  Star,
+  Sun,
   Table2,
   Triangle,
   Type,
@@ -40,12 +62,14 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import type { SlideElement } from "@/components/slide-editor/types";
 
 import {
+  ELEMENT_INSERT_GROUPS,
   createChartInsertElements,
   createElementInsertElements,
   createImageInsertContent,
   createInfographicInsertElements,
   createTableInsertElements,
   createTextInsertElements,
+  type ElementInsertKind,
   type EditorInsertContent,
 } from "@/components/slide-editor/insert/insert-elements";
 import {
@@ -227,17 +251,65 @@ export const imageItems = [
   { id: "image-grid", label: "Image Grid", icon: Grid3X3 },
 ] satisfies PaletteItem[];
 
-export const elementItems = [
-  { id: "vector-rectangle", label: "Rectangle", icon: RectangleHorizontal },
-  { id: "vector-circle", label: "Circle", icon: Circle },
-  { id: "vector-ellipse", label: "Ellipse", icon: Circle },
-  { id: "vector-triangle", label: "Triangle", icon: Triangle },
-  { id: "vector-diamond", label: "Diamond", icon: Diamond },
-  { id: "vector-pentagon", label: "Pentagon", icon: Pentagon },
-  { id: "vector-hexagon", label: "Hexagon", icon: Hexagon },
-  { id: "vector-arrow", label: "Arrow", icon: ArrowRight },
-  { id: "vector-line", label: "Line", icon: Minus },
-] satisfies PaletteItem[];
+const elementIconById: Record<ElementInsertKind, LucideIcon> = {
+  "vector-rectangle": RectangleHorizontal,
+  "vector-rounded-rectangle": RectangleHorizontal,
+  "vector-capsule": RectangleHorizontal,
+  "vector-circle": Circle,
+  "vector-ellipse": Circle,
+  "vector-triangle": Triangle,
+  "vector-right-triangle": Triangle,
+  "vector-diamond": Diamond,
+  "vector-parallelogram": Shapes,
+  "vector-trapezoid": Shapes,
+  "vector-pentagon": Pentagon,
+  "vector-hexagon": Hexagon,
+  "vector-octagon": Octagon,
+  "vector-teardrop": Droplet,
+  "vector-line": Minus,
+  "vector-line-arrow": ArrowRight,
+  "vector-line-arrow-left": ArrowLeft,
+  "vector-line-arrow-up": ArrowUp,
+  "vector-line-arrow-down": ArrowDown,
+  "vector-arrowhead-filled-right": ArrowRight,
+  "vector-arrowhead-filled-left": ArrowLeft,
+  "vector-arrowhead-filled-up": ArrowUp,
+  "vector-arrowhead-filled-down": ArrowDown,
+  "vector-arrow": ArrowRight,
+  "vector-arrow-left": ArrowLeft,
+  "vector-arrow-up": ArrowUp,
+  "vector-arrow-down": ArrowDown,
+  "vector-arrow-left-right": ArrowLeftRight,
+  "vector-arrow-up-down": ArrowUpDown,
+  "vector-chevron-right": ChevronsRight,
+  "vector-notched-arrow": ArrowRight,
+  "vector-bent-arrow": ArrowUpRight,
+  "vector-four-way-arrow": Move,
+  "vector-plus": Plus,
+  "vector-cross": X,
+  "vector-lightning": Zap,
+  "vector-home": Home,
+  "vector-speech-bubble": MessageSquare,
+  "vector-cloud": Cloud,
+  "vector-heart": Heart,
+  "vector-star": Star,
+  "vector-bookmark": Bookmark,
+  "vector-shield": Shield,
+  "vector-flag": Flag,
+  "vector-moon": Moon,
+  "vector-sun": Sun,
+  "vector-play": Play,
+};
+
+export const elementItemGroups = ELEMENT_INSERT_GROUPS.map((group) => ({
+  label: group.label,
+  items: group.items.map((item) => ({
+    ...item,
+    icon: elementIconById[item.id],
+  })),
+}));
+
+export const elementItems = elementItemGroups.flatMap((group) => group.items);
 
 const templateBlocksCache = new Map<string, TemplateBlockGroup[]>();
 const BLOCK_PREVIEW_WIDTH = 1280;
@@ -1256,7 +1328,7 @@ function ActionsPanel({
         <InsertPanel
           disabled={editingDisabled}
           title="Elements"
-          groups={[{ label: "Add", items: elementItems }]}
+          groups={elementItemGroups}
           onItemSelect={onElementItemSelect}
         />
       )}
