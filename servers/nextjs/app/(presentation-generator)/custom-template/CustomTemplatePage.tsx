@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -605,6 +606,7 @@ function AnalyzePanel({
   onFallbackFontChange,
   onLoadGoogleFontOptions,
   onContinue,
+  isAutoContinuing = false,
 }: {
   fontsData: FontData | null;
   uploadedFonts: UploadedFont[];
@@ -615,6 +617,7 @@ function AnalyzePanel({
   onFallbackFontChange: (fontName: string, option: GoogleFontOption) => void;
   onLoadGoogleFontOptions: () => void;
   onContinue: () => void;
+  isAutoContinuing?: boolean;
 }) {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [resolvingFont, setResolvingFont] = useState<FontItem | null>(null);
@@ -625,6 +628,32 @@ function AnalyzePanel({
   );
 
   const uploadedFontNames = new Set(uploadedFonts.map((font) => font.fontName));
+  const pendingMissingCount = missingFonts.filter(
+    (font) => !uploadedFontNames.has(font.name),
+  ).length;
+  const allFontsAvailable = Boolean(fontsData) && missingFonts.length === 0;
+  const allMissingFontsResolved =
+    missingFonts.length > 0 && pendingMissingCount === 0;
+  const fontAnalysisNotice = fontsData
+    ? allFontsAvailable
+      ? {
+        tone: "success",
+        title: "All fonts are available",
+        description: "Preparing the slide preview automatically.",
+      }
+      : allMissingFontsResolved
+        ? {
+          tone: "success",
+          title: "Missing fonts resolved",
+          description: "All required font files are attached. Continue to preview.",
+        }
+        : {
+          tone: "warning",
+          title: `${pendingMissingCount} font${pendingMissingCount === 1 ? "" : "s"} need attention`,
+          description:
+            "Upload exact font files or keep the selected fallback fonts before continuing.",
+        }
+    : null;
 
   const handleFontFile = (fontName: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -663,6 +692,46 @@ function AnalyzePanel({
         </div>
 
         <div className="relative -mt-px rounded-[28px] w-full  2xl:rounded-[32px] border border-[#EDEEF4] bg-white p-5 2xl:p-3 shadow-[0_0_16px_rgba(80,71,230,0.08)] transition-shadow duration-200 ">
+          {fontAnalysisNotice ? (
+            <div
+              className={`mb-5 flex items-start gap-3 rounded-[16px] border px-4 py-3 ${fontAnalysisNotice.tone === "success"
+                ? "border-[#BBF7D0] bg-[#F0FDF4]"
+                : "border-[#FDE68A] bg-[#FFFBEB]"
+                }`}
+            >
+              <span
+                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${fontAnalysisNotice.tone === "success"
+                  ? "bg-[#DCFCE7] text-[#16A34A]"
+                  : "bg-[#FEF3C7] text-[#D97706]"
+                  }`}
+              >
+                {fontAnalysisNotice.tone === "success" ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                )}
+              </span>
+              <div className="min-w-0">
+                <p
+                  className={`text-sm font-semibold ${fontAnalysisNotice.tone === "success"
+                    ? "text-[#166534]"
+                    : "text-[#92400E]"
+                    }`}
+                >
+                  {fontAnalysisNotice.title}
+                </p>
+                <p
+                  className={`mt-1 text-xs leading-[1.45] ${fontAnalysisNotice.tone === "success"
+                    ? "text-[#237A50]"
+                    : "text-[#9A5A08]"
+                    }`}
+                >
+                  {fontAnalysisNotice.description}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-3 pt-2 min-h-[140px] ">
             {fontChips.length > 0 ? (
               fontChips.map((font, index) => {
@@ -712,13 +781,13 @@ function AnalyzePanel({
           <div className="mt-6 flex justify-end px-1 pb-1">
             <GradientPillButton
               onClick={onContinue}
-              disabled={isUploading}
+              disabled={isUploading || isAutoContinuing}
               className="h-9 min-w-[120px] px-6 text-sm font-semibold"
             >
-              {isUploading ? (
+              {isUploading || isAutoContinuing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating...
+                  {isAutoContinuing ? "Preparing..." : "Creating..."}
                 </>
               ) : (
                 <>
@@ -1420,7 +1489,9 @@ const CustomTemplatePage = () => {
   const [selectedFallbackFonts, setSelectedFallbackFonts] = useState<
     Record<string, GoogleFontOption>
   >({});
+  const [isAutoPreviewQueued, setIsAutoPreviewQueued] = useState(false);
   const googleFontLoadStartedRef = useRef(false);
+  const autoPreviewStartedRef = useRef(false);
 
   const {
     selectedFile,
@@ -1450,12 +1521,17 @@ const CustomTemplatePage = () => {
     (state.step === "template-creation" || state.step === "completed") && slides.length > 0;
   const isFinalReview = state.step === "completed";
   const isGenerating = state.step === "template-creation";
+  const allCheckedFontsAvailable =
+    Boolean(state.fontsData) && (state.fontsData?.unavailable_fonts.length ?? 0) === 0;
   const generatedSlidesReady =
     isFinalReview && slides.some((slide) => slide.processed && !slide.error);
   const isTemplateModalOpen = templateModalMode !== null;
   const isCreateTemplateModal = templateModalMode === "create";
 
-  const missingFonts = state.fontsData?.unavailable_fonts ?? [];
+  const missingFonts = useMemo(
+    () => state.fontsData?.unavailable_fonts ?? [],
+    [state.fontsData],
+  );
   const uploadedFontNames = useMemo(
     () => new Set(uploadedFonts.map((font) => font.fontName)),
     [uploadedFonts],
@@ -1512,6 +1588,12 @@ const CustomTemplatePage = () => {
       dismissTemplateV2ModelWarning();
     };
   }, [llmConfig]);
+
+  useEffect(() => {
+    autoPreviewStartedRef.current = false;
+    setIsAutoPreviewQueued(false);
+    setSelectedFallbackFonts({});
+  }, [selectedFile]);
 
   useEffect(() => {
     ensureTailwindBrowserScript();
@@ -1599,7 +1681,22 @@ const CustomTemplatePage = () => {
 
   const handleCheckFonts = useCallback(async () => {
     if (!selectedFile) return;
-    await checkFonts(selectedFile);
+    const data = await checkFonts(selectedFile);
+    if (!data) return;
+
+    const unavailableFontCount = data.unavailable_fonts?.length ?? 0;
+    if (unavailableFontCount === 0) {
+      notify.success(
+        "All fonts available",
+        "Preparing the slide preview automatically.",
+      );
+      return;
+    }
+
+    notify.warning(
+      "Fonts need attention",
+      `${unavailableFontCount} font${unavailableFontCount === 1 ? "" : "s"} are unavailable. Upload exact font files or use the selected fallback fonts before continuing.`,
+    );
   }, [checkFonts, selectedFile]);
 
   const handleFontUploadAndPreview = useCallback(async () => {
@@ -1624,9 +1721,42 @@ const CustomTemplatePage = () => {
   }, [
     fontUploadAndPreview,
     hasPendingMissingFonts,
-    loadFontAssets,
     selectedGoogleFontReplacements,
     selectedFile,
+  ]);
+
+  useEffect(() => {
+    if (
+      !showAnalyze ||
+      state.isLoading ||
+      !allCheckedFontsAvailable ||
+      autoPreviewStartedRef.current
+    ) {
+      return;
+    }
+
+    autoPreviewStartedRef.current = true;
+    setIsAutoPreviewQueued(true);
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        await handleFontUploadAndPreview();
+        if (!cancelled) {
+          setIsAutoPreviewQueued(false);
+        }
+      })();
+    }, 900);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      setIsAutoPreviewQueued(false);
+    };
+  }, [
+    allCheckedFontsAvailable,
+    handleFontUploadAndPreview,
+    showAnalyze,
+    state.isLoading,
   ]);
 
   const handleCreateTemplate = useCallback(
@@ -1775,6 +1905,7 @@ const CustomTemplatePage = () => {
             onFallbackFontChange={handleFallbackFontChange}
             onLoadGoogleFontOptions={handleLoadGoogleFontOptions}
             onContinue={handleFontUploadAndPreview}
+            isAutoContinuing={isAutoPreviewQueued}
           />
         ) : null}
 
