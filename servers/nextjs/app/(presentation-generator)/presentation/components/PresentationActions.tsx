@@ -54,6 +54,8 @@ import {
   ListMinus,
   Search,
   Sigma,
+  X,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
