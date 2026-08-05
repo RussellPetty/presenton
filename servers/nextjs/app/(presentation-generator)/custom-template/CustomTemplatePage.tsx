@@ -1086,8 +1086,9 @@ function ThumbnailStrip({
     }
 
     const maxScrollLeft = node.scrollWidth - node.clientWidth;
-    setCanScrollLeft(node.scrollLeft > 1);
-    setCanScrollRight(node.scrollLeft < maxScrollLeft - 1);
+    const isOverflowing = maxScrollLeft > 1;
+    setCanScrollLeft(isOverflowing && node.scrollLeft > 1);
+    setCanScrollRight(isOverflowing && node.scrollLeft < maxScrollLeft - 1);
   }, []);
 
   useEffect(() => {
@@ -1112,6 +1113,13 @@ function ThumbnailStrip({
     };
   }, [count, updateScrollState]);
 
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollLeft = 0;
+    updateScrollState();
+  }, [count, updateScrollState]);
+
   const scrollThumbnails = useCallback(
     (direction: -1 | 1) => {
       const node = scrollRef.current;
@@ -1126,61 +1134,64 @@ function ThumbnailStrip({
 
   return (
     <div
-      className={`fixed ${bottomOffset} left-1/2 z-20 w-[calc(100vw-2rem)] max-w-[min(100%,1280px)] -translate-x-1/2 sm:w-[calc(100vw-4rem)]`}
+      className={`fixed ${bottomOffset} inset-x-0 z-20 flex justify-center px-4 sm:px-8`}
     >
-      <button
-        type="button"
-        onClick={() => scrollThumbnails(-1)}
-        aria-label="Scroll thumbnails left"
-        className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
-      <div
-        ref={scrollRef}
-        className="hide-scrollbar flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain rounded-[8px] px-1 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:gap-3 2xl:gap-4"
-      >
-        {Array.from({ length: count }, (_, index) => {
-          const slide = slides?.[index];
-          const url = urls?.[index] ?? slide?.screenshot_url;
-          const isReady = slide
-            ? Boolean(slide.processed && !slide.processing && slide.v2Layout)
-            : Boolean(url);
-          const isSelected = selectedIndex === index;
+      <div className="relative flex w-full max-w-[1280px] justify-center">
+        <button
+          type="button"
+          onClick={() => scrollThumbnails(-1)}
+          aria-label="Scroll thumbnails left"
+          className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+        <div
+          ref={scrollRef}
+          className="hide-scrollbar flex w-max max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain rounded-[8px] px-1 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:gap-3 2xl:gap-4"
+        >
+          {Array.from({ length: count }, (_, index) => {
+            const slide = slides?.[index];
+            const url = urls?.[index] ?? slide?.screenshot_url;
+            const isReady = slide
+              ? Boolean(slide.processed && !slide.processing && slide.v2Layout)
+              : Boolean(url);
+            const isSelected = selectedIndex === index;
 
-          return (
-            <button
-              key={`thumb-${index}`}
-              type="button"
-              onClick={() => onSelect(index)}
-              className={`relative aspect-video w-[76px] shrink-0 overflow-visible rounded-[5px] border bg-white p-0 transition sm:w-[86px] sm:rounded-[6px] 2xl:w-[96px] ${isSelected ? "border-[#D9D9E2] ring-1 ring-[#D9D9E2]" : "border-[#ECECF2]"
-                }`}
-            >
-              {isReady && url ? (
-                <img
-                  src={resolveBackendAssetUrl(url)}
-                  alt={`Slide ${index + 1}`}
-                  className="h-full w-full rounded-[5px] object-cover sm:rounded-[6px]"
-                  draggable={false}
-                />
-              ) : (
-                <div className="h-full w-full rounded-[5px] bg-white sm:rounded-[6px]" />
-              )}
-              <span className="absolute -bottom-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#E6E7ED] bg-white text-[9px] text-black shadow-sm sm:-bottom-2 sm:-left-2 sm:h-5 sm:w-5 sm:text-[10px]">
-                {index + 1}
-              </span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={`thumb-${index}`}
+                type="button"
+                data-slide-thumbnail-index={index}
+                onClick={() => onSelect(index)}
+                className={`relative aspect-video w-[76px] shrink-0 overflow-visible rounded-[5px] border bg-white p-0 transition sm:w-[86px] sm:rounded-[6px] 2xl:w-[96px] ${isSelected ? "border-[#D9D9E2] ring-1 ring-[#D9D9E2]" : "border-[#ECECF2]"
+                  }`}
+              >
+                {isReady && url ? (
+                  <img
+                    src={resolveBackendAssetUrl(url)}
+                    alt={`Slide ${index + 1}`}
+                    className="h-full w-full rounded-[5px] object-cover sm:rounded-[6px]"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-full w-full rounded-[5px] bg-white sm:rounded-[6px]" />
+                )}
+                <span className="absolute -bottom-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#E6E7ED] bg-white text-[9px] text-black shadow-sm sm:-bottom-2 sm:-left-2 sm:h-5 sm:w-5 sm:text-[10px]">
+                  {index + 1}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => scrollThumbnails(1)}
+          aria-label="Scroll thumbnails right"
+          className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => scrollThumbnails(1)}
-        aria-label="Scroll thumbnails right"
-        className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
     </div>
   );
 }
@@ -1592,6 +1603,7 @@ const CustomTemplatePage = () => {
   useEffect(() => {
     autoPreviewStartedRef.current = false;
     setIsAutoPreviewQueued(false);
+    setReviewSlideIndex(0);
     setSelectedFallbackFonts({});
   }, [selectedFile]);
 
@@ -1642,6 +1654,11 @@ const CustomTemplatePage = () => {
     if (!state.previewData?.fonts) return;
     loadFontAssets(normalizeBackendAssetUrls(state.previewData.fonts));
   }, [state.previewData?.fonts]);
+
+  useEffect(() => {
+    if (!state.previewData) return;
+    setReviewSlideIndex(0);
+  }, [state.previewData]);
 
   useEffect(() => {
     if (!showReview && !showPreview) return;
