@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 from datetime import datetime
 import uuid
 
@@ -20,3 +20,5 @@ class PresentationWithSlides(BaseModel):
     verbosity: Optional[str] = None
     slides: List[SlideModel]
     fonts: Optional[Any] = None
+    generation_mode: Literal["standard", "smart"] = "standard"
+    community_design_ids: Optional[List[int]] = None
