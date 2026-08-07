@@ -130,6 +130,7 @@ const SlideScale = ({
               isEditMode && isClickable && !presentMode && !fixedSize ? (
                 <SmartHtmlEditor
                   slide={slide}
+                  renderIndex={renderIndex}
                   fonts={fonts}
                   title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
                 />

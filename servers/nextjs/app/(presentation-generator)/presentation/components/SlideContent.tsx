@@ -17,6 +17,7 @@ interface SlideContentProps {
       promptOverlayKind?: "blank" | "layout";
     },
   ) => void;
+  onSlideActive?: (index: number) => void;
   isChatEditing?: boolean;
   showBlankPromptOverlay?: boolean;
   onBlankPromptOverlayDismiss?: () => void;
@@ -34,6 +35,7 @@ const SlideContent = ({
   selected = false,
   presentationId,
   onSlideAdded,
+  onSlideActive,
   isChatEditing = false,
   showBlankPromptOverlay = false,
   onBlankPromptOverlayDismiss,
@@ -62,7 +64,10 @@ const SlideContent = ({
         className={`group w-full font-syne ${isTemplateV2SlideContent ? "relative" : ""
           }`}
       >
-        <div className="relative max-xl:mb-6">
+        <div
+          className="relative max-xl:mb-6"
+          onPointerDownCapture={() => onSlideActive?.(index)}
+        >
           {isChatEditing && (
             <div
               className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center font-syne"
@@ -123,6 +128,7 @@ export default memo(
     previous.selected === next.selected &&
     previous.presentationId === next.presentationId &&
     previous.onSlideAdded === next.onSlideAdded &&
+    previous.onSlideActive === next.onSlideActive &&
     previous.isChatEditing === next.isChatEditing &&
     previous.showBlankPromptOverlay === next.showBlankPromptOverlay &&
     previous.showTemplatePromptOverlay === next.showTemplatePromptOverlay &&

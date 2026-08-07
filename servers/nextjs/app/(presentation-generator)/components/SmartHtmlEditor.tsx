@@ -74,6 +74,7 @@ const INLINE_TEXT_TAGS = new Set([
 
 export default function SmartHtmlEditor({
   slide,
+  renderIndex,
   fonts,
   title,
 }: {
@@ -82,6 +83,7 @@ export default function SmartHtmlEditor({
     index?: number;
     html_content?: string | null;
   };
+  renderIndex?: number;
   fonts?: unknown;
   title: string;
 }) {
@@ -105,9 +107,11 @@ export default function SmartHtmlEditor({
   const [hoverRect, setHoverRect] = useState<SelectionRect | null>(null);
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
 
-  const slideIndex = Number.isFinite(Number(slide.index))
-    ? Number(slide.index)
-    : 0;
+  const slideIndex = Number.isFinite(Number(renderIndex))
+    ? Number(renderIndex)
+    : Number.isFinite(Number(slide.index))
+      ? Number(slide.index)
+      : 0;
 
   const elementRect = useCallback((element: HTMLElement): SelectionRect | null => {
     const container = containerRef.current;

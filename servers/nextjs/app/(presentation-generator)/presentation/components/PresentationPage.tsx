@@ -727,6 +727,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
                             index={index}
                             selected={selectedSlide === index}
                             presentationId={presentation_id}
+                            onSlideActive={setSelectedSlide}
                             onSlideAdded={handleEditorSlideNavigation}
                             theme={presentationData?.theme}
                             fonts={presentationData?.fonts}
