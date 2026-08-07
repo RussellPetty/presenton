@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { V1ContentRender } from "../../(presentation-generator)/components/V1ContentRender";
+import SmartHtmlEditor from "./SmartHtmlEditor";
 import SmartHtmlSlide from "./SmartHtmlSlide";
 
 const BASE_WIDTH = 1280;
@@ -126,12 +127,20 @@ const SlideScale = ({
               />
             )}
             {typeof slide?.html_content === "string" && slide.html_content.trim() ? (
-              <SmartHtmlSlide
-                fixedSize
-                fonts={fonts}
-                html={slide.html_content}
-                title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
-              />
+              isEditMode && isClickable && !presentMode && !fixedSize ? (
+                <SmartHtmlEditor
+                  slide={slide}
+                  fonts={fonts}
+                  title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
+                />
+              ) : (
+                <SmartHtmlSlide
+                  fixedSize
+                  fonts={fonts}
+                  html={slide.html_content}
+                  title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
+                />
+              )
             ) : (
               <V1ContentRender
                 slide={slide}
