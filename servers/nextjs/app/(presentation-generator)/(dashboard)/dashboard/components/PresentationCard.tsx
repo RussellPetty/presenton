@@ -140,7 +140,7 @@ export const PresentationCard = ({
         <img src="/card_bg.svg" alt="" className="absolute top-0 left-0 w-full h-full object-cover" />
         <div className={isUnsupported
           ? `relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-[#EDEEEF] bg-white/90 ${viewMode === "list" ? "m-3 w-[170px] shrink-0" : "mx-5 mt-4"}`
-          : `border border-gray-300 rounded-lg overflow-hidden ${viewMode === "list" ? "m-3 w-[170px] shrink-0" : "scale-[0.75] mt-4"}`
+          : `relative aspect-video overflow-hidden bg-white ${viewMode === "list" ? "m-3 w-[170px] shrink-0 rounded-lg border border-[#EDEEEF]" : "w-full border-b border-[#EDEEEF]"}`
         }>
 
           {isUnsupported ? (
@@ -163,7 +163,7 @@ export const PresentationCard = ({
             />
           )}
         </div>
-       <p className="absolute top-1 z-40 right-2">{presentation.n_slides}</p>
+       <p className="absolute right-2 top-2 z-40 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-[#191919] shadow-sm backdrop-blur-sm">{presentation.n_slides}</p>
         <div className={`z-40 flex bg-white px-5 py-3 ${viewMode === "list" ? "min-w-0 flex-1 items-center border-l border-[#EDEEEF]" : "relative mt-auto w-full border-t border-[#EDEEEF]"}`}>
           <div className="flex items-center justify-between gap-7 w-full">
             <div className="flex flex-col items-start gap-1">
