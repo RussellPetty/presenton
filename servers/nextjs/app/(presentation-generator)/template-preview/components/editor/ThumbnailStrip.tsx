@@ -43,7 +43,12 @@ const SlideThumbnail = memo(function SlideThumbnail({
 
   return (
     <button
-      className="group relative shrink-0 rounded-[9.68px] p-1 text-left outline-none"
+      aria-current={active ? "true" : undefined}
+      aria-label={`Slide ${index + 1}: ${readLayoutId(layout, index)}`}
+      className={cn(
+        "group relative shrink-0 rounded-[11px] p-[5px] text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2",
+        active && "bg-[#EFEDFF]",
+      )}
       onClick={() => onSelect(index)}
       title={readLayoutId(layout, index)}
       type="button"
@@ -52,7 +57,7 @@ const SlideThumbnail = memo(function SlideThumbnail({
         className={cn(
           "absolute -left-2 bottom-[18px] z-10 flex h-[24.394px] w-[24.394px] items-center justify-center rounded-full border bg-white text-[12px] font-medium shadow-sm",
           active
-            ? "border-[#D9D6FE] text-[#191919]"
+            ? "border-[#7A5AF8] bg-[#7A5AF8] text-white shadow-[0_3px_8px_rgba(122,90,248,0.32)]"
             : "border-[#ECECEC] text-[#191919]",
         )}
       >
@@ -63,7 +68,7 @@ const SlideThumbnail = memo(function SlideThumbnail({
         className={cn(
           "block overflow-hidden rounded-[9.68px] border bg-white transition-all",
           active
-            ? "border-[#D9D6FE] shadow-[0_0_0_2px_rgba(217,214,254,0.38)]"
+            ? "border-[#7A5AF8] shadow-[0_0_0_2px_#D9D6FE,0_6px_14px_rgba(122,90,248,0.22)]"
             : "border-[#E7E7E7] group-hover:border-[#CFCFCF]",
         )}
         style={{
@@ -143,6 +148,42 @@ export function ThumbnailStrip({
     },
     [activeLayoutIndex, layouts.length, onSelect],
   );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+      ) {
+        return;
+      }
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          Boolean(
+            target.closest(
+              'input, textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"]',
+            ),
+          ))
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      selectByOffset(event.key === "ArrowLeft" ? -1 : 1);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectByOffset]);
+
   const selectThumbnail = useCallback(
     (index: number) => {
       if (ignoreClickRef.current) return;
@@ -177,6 +218,7 @@ export function ThumbnailStrip({
   return (
     <div className="relative overflow-hidden bg-[#FBFBFA] px-[52px] pb-[20px] pt-0">
       <button
+        aria-label="Previous slide"
         className="absolute left-[24px] top-[24%] z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#EDEEEF] bg-white text-[#101323] shadow-sm transition-colors hover:bg-[#F7F6F9] disabled:pointer-events-none disabled:opacity-35"
         disabled={activeLayoutIndex === 0}
         onClick={() => selectByOffset(-1)}
@@ -189,17 +231,8 @@ export function ThumbnailStrip({
       <div
         ref={scrollerRef}
         data-template-preview-thumbnail-scroll="true"
-        className="hide-scrollbar flex h-[76px] cursor-grab items-center gap-[12px] overflow-x-auto overflow-y-hidden pl-2 pr-[72px] active:cursor-grabbing [-webkit-overflow-scrolling:touch]"
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            selectByOffset(-1);
-          }
-          if (event.key === "ArrowRight") {
-            event.preventDefault();
-            selectByOffset(1);
-          }
-        }}
+        aria-label="Slide thumbnails. Use the left and right arrow keys to change slides."
+        className="hide-scrollbar flex h-[84px] cursor-grab items-center gap-[12px] overflow-x-auto overflow-y-hidden pl-2 pr-[72px] active:cursor-grabbing [-webkit-overflow-scrolling:touch]"
         onPointerDown={(event) => {
           if (event.pointerType === "mouse" && event.button !== 0) return;
           const target = event.target as HTMLElement;
@@ -257,6 +290,7 @@ export function ThumbnailStrip({
       </div>
 
       <button
+        aria-label="Next slide"
         className="absolute right-[24px] top-[24%] z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#EDEEEF] bg-white text-[#101323] shadow-sm transition-colors hover:bg-[#F7F6F9] disabled:pointer-events-none disabled:opacity-35"
         disabled={activeLayoutIndex >= layouts.length - 1}
         onClick={() => selectByOffset(1)}
