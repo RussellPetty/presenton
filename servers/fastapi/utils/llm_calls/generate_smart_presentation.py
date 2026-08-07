@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+import json
 from datetime import datetime
+from collections.abc import Awaitable, Callable
 from typing import Any, Optional, Sequence
 
 from fastapi import HTTPException
@@ -16,6 +18,7 @@ from utils.llm_utils import generate_structured_with_schema_retries
 
 DEFAULT_SMART_SLIDE_COUNT = 8
 MAX_SMART_SLIDE_COUNT = 20
+SmartSlideCallback = Callable[[int, dict[str, str]], Awaitable[None]]
 
 SMART_SYSTEM_PROMPT = """
 You are an expert presentation designer. Generate a complete, coherent deck as
@@ -173,6 +176,71 @@ def normalize_smart_deck(payload: dict[str, Any], n_slides: int) -> dict[str, An
     }
 
 
+class SmartSlideStreamParser:
+    """Extract complete slide objects from a streamed structured JSON response."""
+
+    def __init__(self) -> None:
+        self.buffer = ""
+        self.scan_position = 0
+        self.array_started = False
+        self.object_start: int | None = None
+        self.depth = 0
+        self.in_string = False
+        self.escaped = False
+
+    def feed(self, chunk: str) -> list[dict[str, Any]]:
+        self.buffer += chunk
+        slides: list[dict[str, Any]] = []
+
+        if not self.array_started:
+            match = re.search(r'"slides"\s*:\s*\[', self.buffer)
+            if match is None:
+                return slides
+            self.array_started = True
+            self.scan_position = match.end()
+
+        while self.scan_position < len(self.buffer):
+            character = self.buffer[self.scan_position]
+
+            if self.object_start is None:
+                if character == "{":
+                    self.object_start = self.scan_position
+                    self.depth = 1
+                    self.in_string = False
+                    self.escaped = False
+                elif character == "]":
+                    self.scan_position = len(self.buffer)
+                    break
+                self.scan_position += 1
+                continue
+
+            if self.in_string:
+                if self.escaped:
+                    self.escaped = False
+                elif character == "\\":
+                    self.escaped = True
+                elif character == '"':
+                    self.in_string = False
+            elif character == '"':
+                self.in_string = True
+            elif character == "{":
+                self.depth += 1
+            elif character == "}":
+                self.depth -= 1
+                if self.depth == 0:
+                    raw_slide = self.buffer[self.object_start : self.scan_position + 1]
+                    try:
+                        parsed = json.loads(raw_slide)
+                    except json.JSONDecodeError:
+                        parsed = None
+                    if isinstance(parsed, dict):
+                        slides.append(parsed)
+                    self.object_start = None
+            self.scan_position += 1
+
+        return slides
+
+
 async def generate_smart_presentation(
     *,
     content: str,
@@ -185,6 +253,7 @@ async def generate_smart_presentation(
     include_table_of_contents: bool,
     source_context: str = "",
     community_design_context: str = "",
+    on_slide: SmartSlideCallback | None = None,
 ) -> dict[str, Any]:
     schema = _response_schema(n_slides)
     messages = get_smart_messages(
@@ -201,6 +270,24 @@ async def generate_smart_presentation(
     )
     client = get_client(config=get_llm_config())
     model = get_model()
+    stream_parser = SmartSlideStreamParser()
+    streamed_slide_count = 0
+
+    async def handle_text_chunk(chunk: str) -> None:
+        nonlocal streamed_slide_count
+        if on_slide is None:
+            return
+        for slide in stream_parser.feed(chunk):
+            normalized = {
+                "title": str(
+                    slide.get("title") or f"Slide {streamed_slide_count + 1}"
+                ).strip(),
+                "html": normalize_smart_slide_html(slide.get("html")),
+                "speaker_note": str(slide.get("speaker_note") or "").strip(),
+            }
+            await on_slide(streamed_slide_count, normalized)
+            streamed_slide_count += 1
+
     try:
         payload = await generate_structured_with_schema_retries(
             client,
@@ -214,6 +301,7 @@ async def generate_smart_presentation(
             json_schema=schema,
             validate_schema=True,
             validate_schema_max_loop_count=4,
+            text_chunk_callback=handle_text_chunk if on_slide is not None else None,
         )
     except Exception as exc:
         raise handle_llm_client_exceptions(exc)

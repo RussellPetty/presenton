@@ -1666,6 +1666,19 @@ async def _stream_smart_presentation(
             )
         )
         if existing_slides:
+            for slide in existing_slides:
+                yield SSEResponse(
+                    event="response",
+                    data=json.dumps(
+                        {
+                            "type": "slide_html",
+                            "index": slide.index,
+                            "slide_id": str(slide.id),
+                            "html": slide.html_content,
+                            "slide": slide.model_dump(mode="json"),
+                        }
+                    ),
+                ).to_string()
             response = PresentationWithSlides(
                 **_presentation_response_data(presentation),
                 slides=existing_slides,
@@ -1711,6 +1724,14 @@ async def _stream_smart_presentation(
             source_context = source_context[:90_000]
 
         slide_count = resolve_smart_slide_count(presentation.n_slides)
+        presentation.n_slides = slide_count
+        presentation.fonts = reference_fonts or {
+            "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        }
+        yield SSEResponse(
+            event="response",
+            data=json.dumps({"type": "fonts", "fonts": presentation.fonts}),
+        ).to_string()
         yield SSEStatusResponse(
             status=(
                 "Applying community design reference"
@@ -1718,54 +1739,103 @@ async def _stream_smart_presentation(
                 else "Designing the complete presentation"
             )
         ).to_string()
-        deck = await generate_smart_presentation(
-            content=presentation.content,
-            n_slides=slide_count,
-            language=presentation.language,
-            tone=presentation.tone,
-            verbosity=presentation.verbosity,
-            instructions=presentation.instructions,
-            include_title_slide=presentation.include_title_slide,
-            include_table_of_contents=presentation.include_table_of_contents,
-            source_context=source_context,
-            community_design_context=community_context,
+        streamed_slides: dict[int, SlideModel] = {}
+        slide_events: asyncio.Queue[SlideModel] = asyncio.Queue()
+
+        async def emit_slide(index: int, slide: dict[str, str]) -> None:
+            if index < 0 or index >= slide_count:
+                return
+            streamed_slide = streamed_slides.get(index)
+            if streamed_slide is None:
+                streamed_slide = SlideModel(
+                    presentation=presentation_id,
+                    layout_group="smart-html",
+                    layout="smart-html",
+                    index=index,
+                    content={"title": slide["title"]},
+                    html_content=slide["html"],
+                    speaker_note=slide["speaker_note"],
+                )
+                streamed_slides[index] = streamed_slide
+            else:
+                streamed_slide.content = {"title": slide["title"]}
+                streamed_slide.html_content = slide["html"]
+                streamed_slide.speaker_note = slide["speaker_note"]
+            await slide_events.put(streamed_slide)
+
+        generation_task = asyncio.create_task(
+            generate_smart_presentation(
+                content=presentation.content,
+                n_slides=slide_count,
+                language=presentation.language,
+                tone=presentation.tone,
+                verbosity=presentation.verbosity,
+                instructions=presentation.instructions,
+                include_title_slide=presentation.include_title_slide,
+                include_table_of_contents=presentation.include_table_of_contents,
+                source_context=source_context,
+                community_design_context=community_context,
+                on_slide=emit_slide,
+            )
         )
 
+        try:
+            while not generation_task.done() or not slide_events.empty():
+                try:
+                    streamed_slide = await asyncio.wait_for(
+                        slide_events.get(), timeout=0.1
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                yield SSEResponse(
+                    event="response",
+                    data=json.dumps(
+                        {
+                            "type": "slide_html",
+                            "index": streamed_slide.index,
+                            "slide_id": str(streamed_slide.id),
+                            "html": streamed_slide.html_content,
+                            "slide": streamed_slide.model_dump(mode="json"),
+                        }
+                    ),
+                ).to_string()
+            deck = await generation_task
+        finally:
+            if not generation_task.done():
+                generation_task.cancel()
+                await asyncio.gather(generation_task, return_exceptions=True)
+
         presentation.title = deck["title"]
-        presentation.n_slides = slide_count
-        presentation.fonts = reference_fonts or {
-            "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        }
-
-        slides = [
-            SlideModel(
-                presentation=presentation_id,
-                layout_group="smart-html",
-                layout="smart-html",
-                index=index,
-                content={"title": slide["title"]},
-                html_content=slide["html"],
-                speaker_note=slide["speaker_note"],
-            )
-            for index, slide in enumerate(deck["slides"])
-        ]
-
-        yield SSEResponse(
-            event="response",
-            data=json.dumps({"type": "chunk", "chunk": '{ "slides": [ '}),
-        ).to_string()
-        for index, slide in enumerate(slides):
-            chunk = slide.model_dump_json()
-            if index:
-                chunk = "," + chunk
-            yield SSEResponse(
-                event="response",
-                data=json.dumps({"type": "chunk", "chunk": chunk}),
-            ).to_string()
-        yield SSEResponse(
-            event="response",
-            data=json.dumps({"type": "chunk", "chunk": " ] }"}),
-        ).to_string()
+        slides: list[SlideModel] = []
+        for index, slide in enumerate(deck["slides"]):
+            final_slide = streamed_slides.get(index)
+            if final_slide is None:
+                final_slide = SlideModel(
+                    presentation=presentation_id,
+                    layout_group="smart-html",
+                    layout="smart-html",
+                    index=index,
+                    content={"title": slide["title"]},
+                    html_content=slide["html"],
+                    speaker_note=slide["speaker_note"],
+                )
+                yield SSEResponse(
+                    event="response",
+                    data=json.dumps(
+                        {
+                            "type": "slide_html",
+                            "index": index,
+                            "slide_id": str(final_slide.id),
+                            "html": final_slide.html_content,
+                            "slide": final_slide.model_dump(mode="json"),
+                        }
+                    ),
+                ).to_string()
+            else:
+                final_slide.content = {"title": slide["title"]}
+                final_slide.html_content = slide["html"]
+                final_slide.speaker_note = slide["speaker_note"]
+            slides.append(final_slide)
 
         await sql_session.execute(
             delete(SlideModel).where(

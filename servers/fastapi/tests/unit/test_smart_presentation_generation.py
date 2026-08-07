@@ -8,10 +8,36 @@ from services.community_presentations import (
     normalize_community_ids,
 )
 from utils.llm_calls.generate_smart_presentation import (
+    SmartSlideStreamParser,
     normalize_smart_deck,
     normalize_smart_slide_html,
     resolve_smart_slide_count,
 )
+
+
+def test_smart_slide_stream_parser_emits_complete_slides_incrementally():
+    parser = SmartSlideStreamParser()
+
+    assert parser.feed('{"title":"Deck","slides":[{"title":"One",') == []
+    slides = parser.feed(
+        '"html":"<section>{content}</section>","speaker_note":"Note"},'
+        '{"title":"Two","html":"<section>Two</section>",'
+    )
+    assert [slide["title"] for slide in slides] == ["One"]
+
+    slides = parser.feed('"speaker_note":"Second"}]}')
+    assert [slide["title"] for slide in slides] == ["Two"]
+
+
+def test_smart_slide_stream_parser_handles_escaped_json_in_html():
+    parser = SmartSlideStreamParser()
+    slides = parser.feed(
+        '{"slides":[{"title":"Chart","html":"<section data-json=\\"{\\\\\\"value\\\\\\":1}\\">Chart</section>",'
+        '"speaker_note":""}]}'
+    )
+
+    assert len(slides) == 1
+    assert slides[0]["title"] == "Chart"
 
 
 def test_normalize_community_ids_preserves_order_and_deduplicates():
