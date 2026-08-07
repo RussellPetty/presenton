@@ -21,12 +21,47 @@ export interface CommunityPresentationListResponse {
   results: CommunityPresentation[];
 }
 
+export type CommunityPresentationOrderBy =
+  | "created_at"
+  | "views"
+  | "likes"
+  | "priority";
+
+export type CommunityPresentationSortOrder = "asc" | "desc";
+
+export interface CommunityPresentationListFilters {
+  created_at_gt?: string;
+  created_at_lt?: string;
+  views?: number;
+  views_gt?: number;
+  views_lt?: number;
+  likes?: number;
+  likes_gt?: number;
+  likes_lt?: number;
+  order_by?: CommunityPresentationOrderBy;
+  order?: CommunityPresentationSortOrder;
+}
+
 export class CommunityPresentationApi {
-  static async list(signal?: AbortSignal): Promise<CommunityPresentationListResponse> {
+  static async list(
+    signal?: AbortSignal,
+    filters: CommunityPresentationListFilters = {}
+  ): Promise<CommunityPresentationListResponse> {
+    const params = new URLSearchParams({
+      page: "1",
+      page_size: "8",
+      order_by: filters.order_by ?? "priority",
+      order: filters.order ?? "desc",
+    });
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.set(key, String(value));
+      }
+    });
+
     const response = await fetch(
-      getApiUrl(
-        "/api/v1/ppt/community/presentations?page=1&page_size=8&order_by=priority&order=desc"
-      ),
+      getApiUrl(`/api/v1/ppt/community/presentations?${params.toString()}`),
       {
         headers: getHeader(),
         cache: "no-cache",

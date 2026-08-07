@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Eye, Heart, Loader2, RefreshCw, Search } from "lucide-react";
 
 import SmartHtmlSlide from "../../components/SmartHtmlSlide";
 import {
   CommunityPresentationApi,
   type CommunityPresentation,
+  type CommunityPresentationListFilters,
 } from "../../services/api/community";
+import CommunityPresentationFilters from "./CommunityPresentationFilters";
 
 export default function CommunityReferencePicker({
   selectedId,
@@ -18,23 +20,29 @@ export default function CommunityReferencePicker({
 }) {
   const [items, setItems] = useState<CommunityPresentation[]>([]);
   const [query, setQuery] = useState("");
+  const [filters, setFilters] =
+    useState<CommunityPresentationListFilters>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const load = () => {
-    const controller = new AbortController();
+  const load = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(false);
-    CommunityPresentationApi.list(controller.signal)
+    CommunityPresentationApi.list(signal, filters)
       .then((response) => setItems(response.results ?? []))
       .catch((requestError) => {
         if ((requestError as Error)?.name !== "AbortError") setError(true);
       })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  };
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false);
+      });
+  }, [filters]);
 
-  useEffect(load, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -48,14 +56,17 @@ export default function CommunityReferencePicker({
 
   return (
     <section className="w-full font-manrope" data-testid="design-grid">
-      <div className="flex flex-col gap-3 px-0 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="inline-flex w-full items-center rounded-lg border border-[#EDEEEF] bg-white p-1 sm:w-[200px]">
-          <span className="flex-1 rounded-lg bg-[#F6F6F9] px-2 py-1 text-center text-xs font-medium leading-6 text-[#191919]">
+      <div className="flex flex-col gap-3 px-0 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="font-syne text-base font-semibold text-[#191919]">
             Community
-          </span>
+          </h2>
+          <p className="mt-1 text-xs text-[#808080]">
+            Choose an optional design reference for Smart mode.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto">
           <label className="flex h-10 w-full items-center gap-2.5 rounded-full border border-[#DBDBDB99] bg-white px-2.5 sm:w-[220px]">
             <Search className="h-4 w-4 shrink-0 text-[#808080]" strokeWidth={1.75} />
             <span className="sr-only">Search designs</span>
@@ -67,6 +78,11 @@ export default function CommunityReferencePicker({
               className="min-w-0 flex-1 bg-transparent font-syne text-base font-normal text-[#191919] outline-none placeholder:text-[#808080]"
             />
           </label>
+          <CommunityPresentationFilters
+            value={filters}
+            onChange={setFilters}
+            disabled={loading}
+          />
           {selectedId !== null && (
             <button
               type="button"
@@ -86,7 +102,7 @@ export default function CommunityReferencePicker({
       ) : error ? (
         <button
           type="button"
-          onClick={load}
+          onClick={() => load()}
           className="mx-auto mt-5 flex h-40 w-[calc(100%-3rem)] items-center justify-center gap-2 rounded-xl border border-dashed border-[#D9D9DE] text-xs text-[#7A5AF8]"
         >
           <RefreshCw className="h-4 w-4" /> Retry community designs
