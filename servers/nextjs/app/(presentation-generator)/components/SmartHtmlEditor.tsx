@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { MousePointer2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import IconsEditor from "@/components/slide-editor/images/IconsEditor";
 import { useTailwindRuntimeReady } from "@/components/runtime/TailwindCdnRuntime";
@@ -529,12 +529,7 @@ export default function SmartHtmlEditor({
                   boxShadow:
                     "0 0 0 1px rgba(255,255,255,0.9), 0 0 0 5px rgba(122,90,248,0.12)",
                 }}
-              >
-                <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-md border border-[#DDD6FE] bg-white/95 px-2 py-1 font-syne text-[11px] font-semibold text-[#5A3ECC] shadow-sm backdrop-blur-sm">
-                  <MousePointer2 className="h-3.5 w-3.5" />
-                  Select
-                </span>
-              </div>
+              />
             )}
             {selectionRect && (
               <div
