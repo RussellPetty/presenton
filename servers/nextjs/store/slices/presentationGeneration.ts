@@ -16,6 +16,8 @@ export interface PresentationData {
   slides: any;
   theme: Theme | null;
   version?: string;
+  generation_mode?: "standard" | "smart";
+  community_design_ids?: number[] | null;
   components?: any;
   fonts?: any;
   structure?: any;

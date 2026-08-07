@@ -90,10 +90,12 @@ const PresentationHeader = ({
   presentation_id,
   isPresentationSaving,
   currentSlide,
+  generationMode = "standard",
 }: {
   presentation_id: string;
   isPresentationSaving: boolean;
   currentSlide?: number;
+  generationMode?: "standard" | "smart";
 }) => {
   const [open, setOpen] = useState(false);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
@@ -308,7 +310,11 @@ const PresentationHeader = ({
       presentation_id,
       slide_count: presentationData?.slides?.length || 0,
     });
-    router.push(`/presentation?id=${presentation_id}&stream=true`);
+    router.push(
+      `/presentation?id=${presentation_id}&stream=true${
+        generationMode === "smart" ? "&type=smart" : ""
+      }`
+    );
   };
   const downloadLink = (path: string, fileName: string) => {
     const link = document.createElement("a");
@@ -467,6 +473,11 @@ const PresentationHeader = ({
           ) : (
             titleBlock
           )}
+          {generationMode === "smart" && (
+            <span className="hidden shrink-0 items-center rounded-full border border-[#DDD8FE] bg-[#F3F0FF] px-2.5 py-1 font-manrope text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6847F4] sm:inline-flex">
+              Smart
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -513,8 +524,9 @@ const PresentationHeader = ({
             <ToolTip content="Present">
               <button
                 onClick={() => {
-                  const to = `?id=${presentation_id}&mode=present&slide=${currentSlide || 0
-                    }`;
+                  const to = `?id=${presentation_id}&mode=present&slide=${
+                    currentSlide || 0
+                  }${generationMode === "smart" ? "&type=smart" : ""}`;
                   trackEvent(MixpanelEvent.Presentation_Mode_Entered, {
                     pathname,
                     presentation_id,

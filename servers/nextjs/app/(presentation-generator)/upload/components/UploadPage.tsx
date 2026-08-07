@@ -403,7 +403,7 @@ const UploadPage = () => {
     });
     const destination =
       generationMode === "smart"
-        ? `/presentation?id=${createResponse.id}&stream=true`
+        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
         : "/outline";
     trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
     router.push(destination);
@@ -459,7 +459,7 @@ const UploadPage = () => {
     });
     const destination =
       generationMode === "smart"
-        ? `/presentation?id=${createResponse.id}&stream=true`
+        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
         : "/outline";
     trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
     router.push(destination);
