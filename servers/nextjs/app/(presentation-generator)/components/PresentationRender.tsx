@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { V1ContentRender } from "../../(presentation-generator)/components/V1ContentRender";
+import SmartHtmlSlide from "./SmartHtmlSlide";
 
 const BASE_WIDTH = 1280;
 const BASE_HEIGHT = 720;
@@ -124,22 +125,31 @@ const SlideScale = ({
                 aria-hidden="true"
               />
             )}
-            <V1ContentRender
-              slide={slide}
-              presentationId={presentationId}
-              isEditMode={isEditMode}
-              theme={theme}
-              fonts={fonts}
-              presentationLayout={presentationLayout}
-              renderIndex={renderIndex}
-              displayScale={scale}
-              enableViewportCulling={enableViewportCulling}
-              isSelected={isSelected}
-              showBlankPromptOverlay={showBlankPromptOverlay}
-              onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
-              showTemplatePromptOverlay={showTemplatePromptOverlay}
-              onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
-            />
+            {typeof slide?.html_content === "string" && slide.html_content.trim() ? (
+              <SmartHtmlSlide
+                fixedSize
+                fonts={fonts}
+                html={slide.html_content}
+                title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
+              />
+            ) : (
+              <V1ContentRender
+                slide={slide}
+                presentationId={presentationId}
+                isEditMode={isEditMode}
+                theme={theme}
+                fonts={fonts}
+                presentationLayout={presentationLayout}
+                renderIndex={renderIndex}
+                displayScale={scale}
+                enableViewportCulling={enableViewportCulling}
+                isSelected={isSelected}
+                showBlankPromptOverlay={showBlankPromptOverlay}
+                onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
+                showTemplatePromptOverlay={showTemplatePromptOverlay}
+                onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
+              />
+            )}
           </div>
         </div>
       </div>
