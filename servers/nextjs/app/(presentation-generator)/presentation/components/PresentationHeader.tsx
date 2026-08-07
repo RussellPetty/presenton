@@ -13,6 +13,7 @@ import {
   Keyboard,
   X,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -33,7 +34,9 @@ import {
 import { usePresentationUndoRedo } from "../hooks/PresentationUndoRedo";
 import ToolTip from "@/components/ToolTip";
 import {
+  clearChatHtmlSelection,
   clearPresentationData,
+  setEnableHtmlSelector,
   updateTitle,
 } from "@/store/slices/presentationGeneration";
 import { clearHistory } from "@/store/slices/undoRedoSlice";
@@ -111,7 +114,7 @@ const PresentationHeader = ({
   const pathname = usePathname();
   const dispatch = useDispatch();
 
-  const { presentationData, isStreaming } = useSelector(
+  const { presentationData, isStreaming, enableHtmlSelector } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
   const { onUndo, onRedo, canUndo, canRedo } = usePresentationUndoRedo();
@@ -122,6 +125,22 @@ const PresentationHeader = ({
       titleInputRef.current?.select();
     }
   }, [isEditingTitle]);
+
+  useEffect(() => {
+    if (generationMode !== "smart") {
+      dispatch(setEnableHtmlSelector(false));
+      return;
+    }
+    const storedMode = window.localStorage.getItem("html-selector-mode");
+    dispatch(setEnableHtmlSelector(storedMode === "true"));
+  }, [dispatch, generationMode]);
+
+  const toggleHtmlSelector = () => {
+    const nextValue = !enableHtmlSelector;
+    dispatch(setEnableHtmlSelector(nextValue));
+    if (!nextValue) dispatch(clearChatHtmlSelection());
+    window.localStorage.setItem("html-selector-mode", String(nextValue));
+  };
 
   const beginTitleEdit = () => {
     if (isStreaming || !presentationData) return;
@@ -485,6 +504,39 @@ const PresentationHeader = ({
             <div className="flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             </div>
+          )}
+          {generationMode === "smart" && !isStreaming && (
+            <ToolTip content="Click a slide element to add it to AI chat">
+              <button
+                type="button"
+                data-testid="html-selector-btn"
+                onClick={toggleHtmlSelector}
+                aria-pressed={enableHtmlSelector}
+                className={cn(
+                  "hidden h-[38px] items-center gap-2.5 rounded-[80px] border px-3.5 font-syne text-xs font-semibold transition-colors xl:inline-flex",
+                  enableHtmlSelector
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border-[#EDECEC] bg-[#F6F6F9] text-[#101323] hover:bg-white"
+                )}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-[#5146E5]" />
+                <span className="whitespace-nowrap">Select Edit</span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                    enableHtmlSelector ? "bg-emerald-500" : "bg-slate-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+                      enableHtmlSelector ? "translate-x-4" : "translate-x-1"
+                    )}
+                  />
+                </span>
+              </button>
+            </ToolTip>
           )}
           <div className="flex items-center gap-2 bg-[#F6F6F9] px-3.5 h-[38px] border border-[#EDECEC] rounded-[80px]">
             <ToolTip content="Regenerate Presentation">
