@@ -127,13 +127,13 @@ const PresentationHeader = ({
   }, [isEditingTitle]);
 
   useEffect(() => {
-    if (generationMode !== "smart") {
+    if (generationMode !== "smart" || isStreaming) {
       dispatch(setEnableHtmlSelector(false));
       return;
     }
     const storedMode = window.localStorage.getItem("html-selector-mode");
-    dispatch(setEnableHtmlSelector(storedMode === "true"));
-  }, [dispatch, generationMode]);
+    dispatch(setEnableHtmlSelector(storedMode !== "false"));
+  }, [dispatch, generationMode, isStreaming]);
 
   const toggleHtmlSelector = () => {
     const nextValue = !enableHtmlSelector;
