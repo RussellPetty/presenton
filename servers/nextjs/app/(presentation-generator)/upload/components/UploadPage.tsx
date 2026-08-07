@@ -33,7 +33,10 @@ import {
   parseLimitedSlideCount,
 } from "@/utils/presentationLimits";
 import CommunityReferencePicker from "./CommunityReferencePicker";
-import type { CommunityPresentation } from "../../services/api/community";
+import {
+  CommunityPresentationApi,
+  type CommunityPresentation,
+} from "../../services/api/community";
 
 type GenerationMode = "smart" | "standard";
 
@@ -155,6 +158,37 @@ const UploadPage = () => {
     includeTitleSlide: false,
     webSearch: false,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPrompt = params.get("prompt")?.trim();
+    const requestedCommunityId = Number(params.get("communityId"));
+    let active = true;
+
+    if (params.get("mode") === "smart") {
+      setGenerationMode("smart");
+    }
+    if (requestedPrompt) {
+      setConfig((current) => ({ ...current, prompt: requestedPrompt }));
+    }
+    if (Number.isSafeInteger(requestedCommunityId) && requestedCommunityId > 0) {
+      CommunityPresentationApi.getById(requestedCommunityId)
+        .then((presentation) => {
+          if (active) setCommunityReference(presentation);
+        })
+        .catch((loadError) => {
+          if (!active) return;
+          notify.error(
+            "Could not select the community design",
+            loadError instanceof Error ? loadError.message : undefined
+          );
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (llmConfig?.WEB_GROUNDING !== undefined) {
