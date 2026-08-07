@@ -23,6 +23,16 @@ export interface PresentationData {
   structure?: any;
 }
 
+export interface ChatHtmlSelection {
+  slideId?: string | null;
+  slideIndex: number;
+  slideNumber: number;
+  html: string;
+  elementTag?: string | null;
+  selectedText?: string;
+  selectedAt: number;
+}
+
 interface PresentationGenerationState {
   presentation_id: string | null;
   isLoading: boolean;
@@ -32,6 +42,8 @@ interface PresentationGenerationState {
   presentationData: PresentationData | null;
   isSlidesRendered: boolean;
   isLayoutLoading: boolean;
+  enableHtmlSelector: boolean;
+  chatHtmlSelection: ChatHtmlSelection | null;
 }
 
 const initialState: PresentationGenerationState = {
@@ -43,6 +55,8 @@ const initialState: PresentationGenerationState = {
   isStreaming: null,
   error: null,
   presentationData: null,
+  enableHtmlSelector: false,
+  chatHtmlSelection: null,
 };
 
 const presentationGenerationSlice = createSlice({
@@ -61,6 +75,9 @@ const presentationGenerationSlice = createSlice({
     },
     // Presentation ID
     setPresentationId: (state, action: PayloadAction<string>) => {
+      if (state.presentation_id !== action.payload) {
+        state.chatHtmlSelection = null;
+      }
       state.presentation_id = action.payload;
       state.error = null;
     },
@@ -76,6 +93,7 @@ const presentationGenerationSlice = createSlice({
     // Clear presentation data
     clearPresentationData: (state) => {
       state.presentationData = null;
+      state.chatHtmlSelection = null;
     },
     clearOutlines: (state) => {
       state.outlines = [];
@@ -87,6 +105,20 @@ const presentationGenerationSlice = createSlice({
     // Set presentation data
     setPresentationData: (state, action: PayloadAction<PresentationData>) => {
       state.presentationData = action.payload;
+      state.chatHtmlSelection = null;
+    },
+    setEnableHtmlSelector: (state, action: PayloadAction<boolean>) => {
+      state.enableHtmlSelector = action.payload;
+      if (!action.payload) state.chatHtmlSelection = null;
+    },
+    setChatHtmlSelection: (
+      state,
+      action: PayloadAction<ChatHtmlSelection>
+    ) => {
+      state.chatHtmlSelection = action.payload;
+    },
+    clearChatHtmlSelection: (state) => {
+      state.chatHtmlSelection = null;
     },
     updateTitle: (state, action: PayloadAction<string>) => {
       if (state.presentationData) {
@@ -527,6 +559,9 @@ export const {
   clearOutlines,
   deleteSlideOutline,
   setPresentationData,
+  setEnableHtmlSelector,
+  setChatHtmlSelection,
+  clearChatHtmlSelection,
   updateTitle,
   setOutlines,
   // slides operations
