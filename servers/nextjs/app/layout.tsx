@@ -6,6 +6,7 @@ import "katex/dist/katex.min.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
+import TailwindCdnRuntime from "@/components/runtime/TailwindCdnRuntime";
 const inter = localFont({
   src: [
     {
@@ -100,6 +101,7 @@ export default function RootLayout({
 
           </MixpanelInitializer>
         </Providers>
+        <TailwindCdnRuntime />
         <Toaster position="top-center" />
       </body>
     </html>
