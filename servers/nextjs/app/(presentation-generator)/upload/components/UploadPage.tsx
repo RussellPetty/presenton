@@ -17,8 +17,6 @@ import { clearOutlines, setPresentationId } from "@/store/slices/presentationGen
 import { PromptInput } from "./PromptInput";
 import { LanguageType, PresentationConfig, ToneType, VerbosityType } from "../type";
 import SupportingDoc from "./SupportingDoc";
-import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
 import { notify } from "@/components/ui/sonner";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
@@ -485,7 +483,7 @@ const UploadPage = () => {
   };
 
   return (
-    <Wrapper className="pb-10 lg:max-w-[65%] xl:max-w-[60%] min-[1800px]:max-w-[1180px] min-[2200px]:max-w-[1520px]">
+    <Wrapper className="w-full pb-10">
       <OverlayLoader
         show={loadingState.isLoading}
         text={loadingState.message}
@@ -493,84 +491,69 @@ const UploadPage = () => {
         duration={loadingState.duration}
         extra_info={loadingState.extra_info}
       />
-      <div className="rounded-2xl " >
-        <div className="px-4 pb-2 min-[1800px]:px-5 min-[2200px]:px-6">
-          <div className="inline-flex rounded-full border border-[#DDD8EA] bg-white p-1 font-syne shadow-sm">
-            <button
-              type="button"
-              onClick={() => setGenerationMode("smart")}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition min-[1800px]:text-sm ${
-                generationMode === "smart"
-                  ? "bg-[#6C55D9] text-white"
-                  : "text-[#686171] hover:bg-[#F5F2FB]"
-              }`}
+      <div className="mx-auto mb-[75px] max-w-[760px] space-y-[18px] px-4 lg:max-w-[780px] xl:max-w-[900px] min-[1600px]:max-w-[1050px] min-[1920px]:max-w-[1280px]">
+        <div className="flex min-h-[34px] w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex items-center rounded-lg border border-[#EDEEEF] bg-white p-1 font-syne"
+              role="tablist"
+              aria-label="Generation mode"
             >
-              Smart · direct generation
-            </button>
-            <button
-              type="button"
-              onClick={() => setGenerationMode("standard")}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition min-[1800px]:text-sm ${
-                generationMode === "standard"
-                  ? "bg-[#6C55D9] text-white"
-                  : "text-[#686171] hover:bg-[#F5F2FB]"
-              }`}
-            >
-              Standard · review outline
-            </button>
+              {(["smart", "standard"] as GenerationMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={generationMode === mode}
+                  onClick={() => setGenerationMode(mode)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium capitalize leading-6 text-[#191919] transition-colors ${
+                    generationMode === mode ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <CurrentConfig webSearchEnabled={config.webSearch} />
           </div>
-        </div>
-        <div className="flex flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between min-[1800px]:gap-5 min-[1800px]:px-5 min-[2200px]:gap-6 min-[2200px]:px-6">
-          <CurrentConfig webSearchEnabled={config.webSearch} />
           <ConfigurationSelects
+            compact
             config={config}
             onConfigChange={handleConfigChange}
           />
         </div>
-        {generationMode === "smart" && (
-          <div className="px-4 pb-2 min-[1800px]:px-5 min-[2200px]:px-6">
-            <CommunityReferencePicker
-              selectedId={communityReference?.id ?? null}
-              onSelect={setCommunityReference}
+
+        <PromptInput
+          value={config.prompt}
+          variant={generationMode}
+          references={
+            generationMode === "smart" && communityReference
+              ? [{ id: String(communityReference.id), label: communityReference.title || "Community design" }]
+              : []
+          }
+          onRemoveReference={() => setCommunityReference(null)}
+          onChange={(value) => handleConfigChange("prompt", value)}
+          onSubmit={handleGeneratePresentation}
+          hasAttachments={files.length > 0}
+          footer={
+            <SupportingDoc
+              files={files}
+              onFilesChange={setFiles}
+              onSubmit={handleGeneratePresentation}
+              disabled={loadingState.isLoading}
             />
-          </div>
-        )}
+          }
+        />
+      </div>
 
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-
-          <div className="relative">
-            <PromptInput
-              value={config.prompt}
-              onChange={(value) => handleConfigChange("prompt", value)}
-
-            />
-          </div>
-        </div>
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-          <h3 className="mb-2 text-sm font-medium text-[#333333] min-[1800px]:text-base min-[2200px]:text-lg">Attachments (optional)</h3>
-          <SupportingDoc
-            files={[...files]}
-            onFilesChange={setFiles}
+      {generationMode === "smart" && (
+        <div className="px-4 sm:px-6">
+          <CommunityReferencePicker
+            selectedId={communityReference?.id ?? null}
+            onSelect={setCommunityReference}
           />
         </div>
-
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-          <Button
-            onClick={handleGeneratePresentation}
-            style={{
-              background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)"
-            }}
-            className="ml-auto mr-0 flex w-fit items-center justify-center rounded-[28px] px-4 py-5 font-syne text-xs font-semibold text-[#101323] min-[1800px]:px-5 min-[1800px]:py-5 min-[1800px]:text-sm min-[2200px]:px-6 min-[2200px]:py-6 min-[2200px]:text-base"
-          >
-            <span>
-              {generationMode === "smart"
-                ? "Generate presentation"
-                : "Continue to outline"}
-            </span>
-            <ChevronRight className="!h-5 !w-5 min-[1800px]:!h-6 min-[1800px]:!w-6" />
-          </Button>
-        </div>
-      </div>
+      )}
     </Wrapper>
   );
 };

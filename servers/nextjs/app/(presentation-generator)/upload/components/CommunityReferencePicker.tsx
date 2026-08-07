@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Eye, Heart, Loader2, RefreshCw, Search } from "lucide-react";
 
 import SmartHtmlSlide from "../../components/SmartHtmlSlide";
 import {
@@ -17,6 +17,7 @@ export default function CommunityReferencePicker({
   onSelect: (presentation: CommunityPresentation | null) => void;
 }) {
   const [items, setItems] = useState<CommunityPresentation[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -35,84 +36,135 @@ export default function CommunityReferencePicker({
 
   useEffect(load, []);
 
+  const visibleItems = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return items;
+    return items.filter((item) =>
+      [item.title, item.created_by, item.prompt]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
+    );
+  }, [items, query]);
+
   return (
-    <section className="rounded-xl border border-[#E7E4F4] bg-[#FAF9FF] p-3 min-[1800px]:p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#29243D]">
-            <Sparkles className="h-4 w-4 text-[#6C55D9]" />
-            Community design reference
-          </div>
-          <p className="mt-1 text-xs text-[#777184]">
-            Optional. Smart mode follows the selected deck&apos;s visual language.
-          </p>
+    <section className="w-full font-manrope" data-testid="design-grid">
+      <div className="flex flex-col gap-3 px-0 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="inline-flex w-full items-center rounded-lg border border-[#EDEEEF] bg-white p-1 sm:w-[200px]">
+          <span className="flex-1 rounded-lg bg-[#F6F6F9] px-2 py-1 text-center text-xs font-medium leading-6 text-[#191919]">
+            Community
+          </span>
         </div>
-        {selectedId !== null && (
-          <button
-            type="button"
-            onClick={() => onSelect(null)}
-            className="shrink-0 rounded-full border border-[#DCD7EE] bg-white px-3 py-1 text-xs text-[#5E5870] hover:bg-[#F3F0FB]"
-          >
-            Clear
-          </button>
-        )}
+
+        <div className="flex items-center gap-3">
+          <label className="flex h-10 w-full items-center gap-2.5 rounded-full border border-[#DBDBDB99] bg-white px-2.5 sm:w-[220px]">
+            <Search className="h-4 w-4 shrink-0 text-[#808080]" strokeWidth={1.75} />
+            <span className="sr-only">Search designs</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search ..."
+              className="min-w-0 flex-1 bg-transparent font-syne text-base font-normal text-[#191919] outline-none placeholder:text-[#808080]"
+            />
+          </label>
+          {selectedId !== null && (
+            <button
+              type="button"
+              onClick={() => onSelect(null)}
+              className="whitespace-nowrap text-xs font-medium text-[#7A5AF8] hover:text-[#6938EF]"
+            >
+              Clear selection
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex h-24 items-center justify-center text-[#6C55D9]">
+        <div className="flex h-52 items-center justify-center text-[#7A5AF8]">
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
         <button
           type="button"
           onClick={load}
-          className="flex h-24 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#DCD7EE] text-xs text-[#6C55D9]"
+          className="mx-auto mt-5 flex h-40 w-[calc(100%-3rem)] items-center justify-center gap-2 rounded-xl border border-dashed border-[#D9D9DE] text-xs text-[#7A5AF8]"
         >
-          <RefreshCw className="h-4 w-4" /> Retry community references
+          <RefreshCw className="h-4 w-4" /> Retry community designs
         </button>
+      ) : visibleItems.length === 0 ? (
+        <div className="mx-0 mt-5 rounded-xl border border-dashed border-[#D9D9DE] bg-[#FAFAFC] px-6 py-10 text-center sm:mx-6">
+          <Search className="mx-auto h-5 w-5 text-[#808080]" />
+          <h3 className="mt-3 text-sm font-semibold text-[#191919]">
+            No matching designs
+          </h3>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {items.map((item) => {
+        <div className="mt-5 grid grid-cols-1 gap-[18px] px-0 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+          {visibleItems.map((item) => {
             const selected = selectedId === item.id;
             const preview = item.slides?.find((slide) => slide.trim());
             return (
-              <button
+              <article
                 key={item.id}
-                type="button"
-                onClick={() => onSelect(selected ? null : item)}
-                className={`overflow-hidden rounded-lg border bg-white text-left transition ${
+                className={`min-w-0 overflow-hidden rounded-xl border bg-white transition ${
                   selected
-                    ? "border-[#6C55D9] ring-2 ring-[#6C55D9]/20"
-                    : "border-[#E5E2EC] hover:border-[#A99AE5]"
+                    ? "border-[#7A5AF8] ring-2 ring-[#7A5AF8]/15"
+                    : "border-[#EDEEEF] hover:border-[#D8D3FA]"
                 }`}
               >
-                <div className="relative aspect-video overflow-hidden bg-[#F0EEF5]">
+                <button
+                  type="button"
+                  onClick={() => onSelect(selected ? null : item)}
+                  className="group relative block aspect-[306/169] w-full overflow-hidden bg-[#F8FBFB]"
+                  aria-label={`Use ${item.title || "community design"}`}
+                >
                   {preview ? (
                     <SmartHtmlSlide html={preview} fonts={item.fonts} />
                   ) : (
-                    <span className="flex h-full items-center justify-center text-[10px] text-[#918B9A]">
-                      Preview unavailable
+                    <span className="flex h-full items-center justify-center text-xs text-[#999999]">
+                      No preview
                     </span>
                   )}
-                  {selected && (
-                    <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#6C55D9] text-white shadow">
-                      <Check className="h-4 w-4" />
+                  <span className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
+                </button>
+
+                <div className="border-t border-[#EDEEEF] px-2.5 pb-2.5">
+                  <div className="flex min-h-[54px] items-center gap-2.5 py-3.5">
+                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#191919]">
+                      {item.title?.trim() || "Untitled presentation"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(selected ? null : item)}
+                      className="flex h-[26px] items-center gap-1.5 rounded-full border border-[#EDEEEF] bg-white px-3 font-syne text-xs font-medium text-[#191919] hover:bg-[#F6F6F9]"
+                    >
+                      {selected && <Check className="h-3.5 w-3.5 text-[#7A5AF8]" />}
+                      {selected ? "Selected" : "Use"}
+                    </button>
+                  </div>
+                  <div className="flex min-h-[34px] items-center justify-between border-t border-[#EDEEEF] py-2.5 text-[10px] font-medium tracking-[0.4px] text-[#808080]">
+                    <span className="min-w-0 flex-1 truncate">
+                      by {item.created_by?.trim() || "Presenton"}
                     </span>
-                  )}
+                    <div className="ml-2 flex shrink-0 items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" /> {formatCount(item.views ?? 0)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Heart className="h-3.5 w-3.5" /> {formatCount(item.likes ?? 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-2">
-                  <p className="truncate text-xs font-semibold text-[#29243D]">
-                    {item.title?.trim() || "Untitled presentation"}
-                  </p>
-                  <p className="mt-0.5 truncate text-[10px] text-[#898391]">
-                    by {item.created_by?.trim() || "Presenton community"}
-                  </p>
-                </div>
-              </button>
+              </article>
             );
           })}
         </div>
       )}
     </section>
   );
+}
+
+function formatCount(value: number) {
+  return Intl.NumberFormat("en", { notation: "compact" }).format(value);
 }
