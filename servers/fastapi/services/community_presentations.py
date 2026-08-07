@@ -95,9 +95,27 @@ async def list_community_presentations(
     *,
     page: int = 1,
     page_size: int = 8,
+    created_at_gt: str | None = None,
+    created_at_lt: str | None = None,
+    views: int | None = None,
+    views_gt: int | None = None,
+    views_lt: int | None = None,
+    likes: int | None = None,
+    likes_gt: int | None = None,
+    likes_lt: int | None = None,
     order_by: str = "priority",
     order: str = "desc",
 ) -> dict[str, Any]:
+    filters = {
+        "created_at_gt": created_at_gt,
+        "created_at_lt": created_at_lt,
+        "views": views,
+        "views_gt": views_gt,
+        "views_lt": views_lt,
+        "likes": likes,
+        "likes_gt": likes_gt,
+        "likes_lt": likes_lt,
+    }
     payload = await _cloud_get(
         "",
         {
@@ -105,6 +123,7 @@ async def list_community_presentations(
             "page_size": page_size,
             "order_by": order_by,
             "order": order,
+            **{key: value for key, value in filters.items() if value is not None},
         },
     )
     if not isinstance(payload, dict):

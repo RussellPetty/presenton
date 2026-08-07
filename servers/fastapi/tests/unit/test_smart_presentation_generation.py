@@ -1,9 +1,12 @@
+import asyncio
+
 import pytest
 from fastapi import HTTPException
 
 from services.community_presentations import (
     CommunityPresentationReference,
     build_community_design_context,
+    list_community_presentations,
     merge_reference_fonts,
     normalize_community_ids,
 )
@@ -74,6 +77,39 @@ def test_community_context_is_style_only_and_round_robins_decks():
     assert merge_reference_fonts(references) == {
         "Inter": "inter.css",
         "Manrope": "manrope.css",
+    }
+
+
+def test_community_list_forwards_filters(monkeypatch):
+    captured_params = None
+
+    async def fake_cloud_get(path, params=None):
+        nonlocal captured_params
+        captured_params = params
+        return {"results": []}
+
+    monkeypatch.setattr(
+        "services.community_presentations._cloud_get", fake_cloud_get
+    )
+
+    asyncio.run(
+        list_community_presentations(
+            created_at_gt="2026-01-01T00:00:00.000Z",
+            views_gt=100,
+            likes_lt=50,
+            order_by="views",
+            order="desc",
+        )
+    )
+
+    assert captured_params == {
+        "page": 1,
+        "page_size": 8,
+        "order_by": "views",
+        "order": "desc",
+        "created_at_gt": "2026-01-01T00:00:00.000Z",
+        "views_gt": 100,
+        "likes_lt": 50,
     }
 
 
