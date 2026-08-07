@@ -226,6 +226,25 @@ const presentationGenerationSlice = createSlice({
           action.payload.slide;
       }
     },
+    updateSlideHtmlContent: (
+      state,
+      action: PayloadAction<{
+        slideIndex: number;
+        html: string;
+        slideId?: string | null;
+      }>
+    ) => {
+      const slides = state.presentationData?.slides;
+      if (!Array.isArray(slides)) return;
+
+      const slide =
+        (action.payload.slideId
+          ? slides.find((item: Slide) => item.id === action.payload.slideId)
+          : undefined) ??
+        slides.find((item: Slide) => item.index === action.payload.slideIndex) ??
+        slides[action.payload.slideIndex];
+      if (slide) slide.html_content = action.payload.html;
+    },
     updateSlideUi: (
       state,
       action: PayloadAction<{ index: number; ui: Record<string, unknown> | null }>
@@ -513,6 +532,7 @@ export const {
   // slides operations
   addSlide,
   updateSlide,
+  updateSlideHtmlContent,
   updateSlideUi,
   deletePresentationSlide,
   replaceSlidesWithBlankFallback,
