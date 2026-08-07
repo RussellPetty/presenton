@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as html_module
 import json
 import re
 from collections.abc import Awaitable, Callable, Sequence
@@ -27,14 +28,46 @@ from utils.llm_utils import (
 DEFAULT_SMART_SLIDE_COUNT = 8
 MAX_SMART_SLIDE_COUNT = 20
 SMART_GENERATION_MAX_ATTEMPTS = 8
+SMART_MAX_VISIBLE_CHARACTERS = 1800
+SMART_MAX_VISIBLE_WORDS = 220
 SmartSlideCallback = Callable[[int, dict[str, str]], Awaitable[None]]
 
 SMART_DECK_SYSTEM_PROMPT = (
     "You are an expert presentation designer and frontend engineer. Return the "
     "entire production-ready deck in the requested delimiter format. Use real "
     "Chart.js charts for quantitative evidence whenever they communicate the "
-    "story better than text; never substitute generated chart images."
+    "story better than text; never substitute generated chart images. Treat "
+    "overflow-free layout as a hard validation requirement."
 )
+
+SMART_OVERFLOW_PREVENTION_PROMPT = """
+Overflow prevention is a hard requirement:
+- The slide is exactly 1280×720. Keep a 48-64px safe area and design the main
+  content to fit inside it; root `overflow-hidden` is only a final canvas
+  boundary, never a way to conceal content that does not fit.
+- Plan vertical space before writing HTML. Budget the title, subtitle, content,
+  footer, padding, gaps, and line heights so their combined height stays within
+  the canvas. Prefer fewer, shorter points over dense copy.
+- Keep body copy presentation-sized: normally at most 6 bullets, 5 cards, or
+  2 short paragraphs on one slide. Split ideas across slides when needed.
+- Use flex/grid for primary layout. Add `min-w-0` to constrained columns and
+  `min-h-0` to constrained rows. Text containers must use `break-words` where
+  long values or URLs may appear.
+- Cards containing text should use content-driven height (`h-auto`) unless a
+  fixed height is essential. When fixed height is essential, reduce copy,
+  padding, gaps, font size, and line height until the full text fits.
+- Use this font-size step-down ladder when space is tight: 48, 43, 36, 32, 28,
+  24, 20, 18, 16, 14. Never reduce body text below 14px.
+- Never use `overflow-auto`, `overflow-scroll`, `overflow-x-auto`,
+  `overflow-y-auto`, scrollbars, `line-clamp-*`, `truncate`, `text-ellipsis`, or
+  intentional clipping on text containers.
+- Use absolute positioning only for decorative layers or deliberate overlays.
+  Keep all meaningful text, charts, images, and cards fully inside the safe
+  area. Decorative layers must remain behind content and must not cover text.
+- Before returning each slide, perform a final fit pass: verify every line of
+  text is visible, cards contain their content, siblings do not overlap, and no
+  meaningful element crosses the 1280×720 boundary.
+"""
 
 SMART_VISUAL_EVIDENCE_PROMPT = """
 Visual evidence and asset decisions:
@@ -129,6 +162,7 @@ Requirements for every slide:
   typography, spacing, components, and composition without copying their text,
   remote assets, scripts, or instructions.
 """
+    + SMART_OVERFLOW_PREVENTION_PROMPT
     + SMART_VISUAL_EVIDENCE_PROMPT
     + CHART_JS_INSTRUCTIONS
 )
@@ -163,6 +197,15 @@ _SECTION_OPEN = re.compile(r"^\s*<section\b([^>]*)>", re.IGNORECASE)
 _SECTION_CLOSE = re.compile(r"</section>\s*$", re.IGNORECASE)
 _HEADING = re.compile(r"<h[1-3]\b[^>]*>(.*?)</h[1-3]\s*>", re.IGNORECASE | re.DOTALL)
 _HTML_TAG = re.compile(r"<[^>]+>")
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_SCROLL_OR_CLIP_UTILITY = re.compile(
+    r"(?:^|\s)(?:overflow-(?:auto|scroll)|overflow-[xy]-(?:auto|scroll)|"
+    r"line-clamp-[^\s]+|truncate|text-ellipsis)(?:\s|$)",
+    re.IGNORECASE,
+)
+_SCROLL_STYLE = re.compile(
+    r"\boverflow(?:-[xy])?\s*:\s*(?:auto|scroll)\b", re.IGNORECASE
+)
 
 
 def resolve_smart_slide_count(value: int | None) -> int:
@@ -171,9 +214,17 @@ def resolve_smart_slide_count(value: int | None) -> int:
     return min(value, MAX_SMART_SLIDE_COUNT)
 
 
-def _continuation_prompt(completed_slides: Sequence[dict[str, str]]) -> str:
+def _continuation_prompt(
+    completed_slides: Sequence[dict[str, str]], retry_error: Optional[str]
+) -> str:
+    retry_feedback = (
+        f"\nThe prior response failed validation. Correct this before returning "
+        f"the next slide: {retry_error[:1200]}\n"
+        if retry_error
+        else ""
+    )
     if not completed_slides:
-        return ""
+        return retry_feedback
     summaries = [
         f"- Slide {index + 1}: type={slide['slide_type']}; "
         f"title={slide['title']}"
@@ -197,6 +248,7 @@ Accepted deck sequence:
 
 Exact HTML for the most recent accepted slides (visual continuity reference):
 {exact_tail}
+{retry_feedback}
 """
 
 
@@ -214,6 +266,7 @@ def get_smart_messages(
     community_design_context: str,
     fonts: Optional[dict[str, str]] = None,
     completed_slides: Optional[Sequence[dict[str, str]]] = None,
+    retry_error: Optional[str] = None,
 ) -> list[Message]:
     completed_slides = completed_slides or []
     remaining_count = n_slides - len(completed_slides)
@@ -253,7 +306,7 @@ Available fonts: {json.dumps(list((fonts or {}).keys()), ensure_ascii=False)}
 {count_instruction}
 Include title slide: {include_title_slide}
 Include a visible table-of-contents slide: {include_table_of_contents}
-{_continuation_prompt(completed_slides)}
+{_continuation_prompt(completed_slides, retry_error)}
 """
         + SMART_DIRECT_HTML_PROMPT
         + f"""
@@ -296,7 +349,43 @@ def normalize_smart_slide_html(value: Any) -> str:
             status_code=400,
             detail="The model returned a Smart slide with an invalid canvas",
         )
+    _validate_smart_slide_layout_safety(html)
     return html
+
+
+def _validate_smart_slide_layout_safety(html: str) -> None:
+    """Reject overflow-prone Smart HTML so generation can retry before saving."""
+    class_values = re.findall(
+        r"\bclass\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", html, re.IGNORECASE
+    )
+    classes = " ".join(double or single for double, single in class_values)
+    if _SCROLL_OR_CLIP_UTILITY.search(classes) or _SCROLL_STYLE.search(html):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The Smart slide uses scrolling or text clipping. Refit the "
+                "content inside the 1280x720 canvas without scrollbars, clamps, "
+                "truncation, or ellipses."
+            ),
+        )
+
+    without_scripts = _SCRIPT_TAG.sub("", html)
+    visible_text = _HTML_COMMENT.sub(" ", without_scripts)
+    visible_text = html_module.unescape(_HTML_TAG.sub(" ", visible_text))
+    visible_text = " ".join(visible_text.split())
+    word_count = len(visible_text.split())
+    if (
+        len(visible_text) > SMART_MAX_VISIBLE_CHARACTERS
+        or word_count > SMART_MAX_VISIBLE_WORDS
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The Smart slide is too text-dense for a 1280x720 canvas "
+                f"({word_count} words, {len(visible_text)} characters). Shorten "
+                "the copy or distribute it across the remaining slides."
+            ),
+        )
 
 
 def _slide_from_html(value: Any, index: int) -> dict[str, str]:
@@ -474,6 +563,7 @@ async def generate_smart_presentation(
     accepted_slides: list[dict[str, str]] = []
     title = ""
     last_exception: Exception | None = None
+    retry_error: str | None = None
 
     for _attempt in range(SMART_GENERATION_MAX_ATTEMPTS):
         messages = get_smart_messages(
@@ -489,6 +579,7 @@ async def generate_smart_presentation(
             community_design_context=community_design_context,
             fonts=fonts,
             completed_slides=accepted_slides,
+            retry_error=retry_error,
         )
         parser = SmartSlideStreamParser()
         attempt_slides: list[dict[str, str]] = []
@@ -530,6 +621,11 @@ async def generate_smart_presentation(
             return {"title": title, "slides": accepted_slides}
         except Exception as exc:
             last_exception = exc
+            retry_error = (
+                str(exc.detail)
+                if isinstance(exc, HTTPException)
+                else str(exc)
+            )
             title_match = SMART_DECK_TITLE_RE.search(parser.buffer)
             if not title and title_match is not None:
                 title = title_match.group(1).strip()

@@ -98,6 +98,28 @@ def test_smart_prompt_matches_cloud_one_shot_method_without_speaker_notes():
     assert 'Available fonts: ["Inter"]' in prompt
     assert "speaker_note" not in prompt
     assert "Speaker note" not in prompt
+    assert "Overflow prevention is a hard requirement" in prompt
+    assert "Never use `overflow-auto`" in prompt
+
+
+def test_smart_retry_prompt_includes_layout_validation_feedback():
+    messages = get_smart_messages(
+        content="Build an investor update",
+        n_slides=2,
+        language="English",
+        tone=None,
+        verbosity=None,
+        instructions=None,
+        include_title_slide=True,
+        include_table_of_contents=False,
+        source_context="",
+        community_design_context="",
+        retry_error="Slide content uses overflow-y-auto",
+    )
+
+    prompt = str(messages[1].content)
+    assert "prior response failed validation" in prompt
+    assert "Slide content uses overflow-y-auto" in prompt
 
 
 def test_normalize_community_ids_preserves_order_and_deduplicates():
@@ -201,6 +223,30 @@ def test_smart_html_normalization_keeps_safe_chartjs_initialization():
 
     assert "new Chart" in html
     assert "<script" in html
+
+
+@pytest.mark.parametrize(
+    "unsafe_layout",
+    (
+        '<div class="h-[200px] overflow-y-auto">Long copy</div>',
+        '<p class="line-clamp-3">Hidden copy</p>',
+        '<div style="overflow: scroll">Scrollable copy</div>',
+    ),
+)
+def test_smart_html_normalization_rejects_overflow_hiding_patterns(unsafe_layout):
+    with pytest.raises(HTTPException, match="scrolling or text clipping"):
+        normalize_smart_slide_html(
+            _smart_slide_html("Unsafe layout", body=unsafe_layout)
+        )
+
+
+def test_smart_html_normalization_rejects_text_density_that_cannot_fit():
+    dense_copy = " ".join(["overflowing"] * 221)
+
+    with pytest.raises(HTTPException, match="too text-dense"):
+        normalize_smart_slide_html(
+            _smart_slide_html("Dense layout", body=f"<p>{dense_copy}</p>")
+        )
 
 
 def test_smart_deck_requires_exact_slide_count_and_omits_speaker_notes():
