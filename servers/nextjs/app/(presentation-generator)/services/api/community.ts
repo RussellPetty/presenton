@@ -12,6 +12,16 @@ export interface CommunityPresentation {
   slides?: string[];
   fonts?: Record<string, string> | null;
   prompt?: string | null;
+  v2_presentation?: string | number | null;
+  community_reference_ids?: Array<string | number> | null;
+  setup?: CommunityPresentationSetup | null;
+}
+
+export interface CommunityPresentationSetup {
+  text_provider?: string | null;
+  text_model?: string | null;
+  image_provider?: string | null;
+  web_search_provider?: string | null;
 }
 
 export interface CommunityPresentationListResponse {
@@ -98,4 +108,18 @@ export function getCommunityPresentationAuthor(
   presentation: CommunityPresentation
 ) {
   return presentation.created_by?.trim() || "Presenton";
+}
+
+export function getCommunityReferenceIds(
+  presentation: CommunityPresentation | null
+) {
+  if (!presentation?.community_reference_ids) return [];
+
+  return Array.from(
+    new Set(
+      presentation.community_reference_ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isSafeInteger(id) && id > 0)
+    )
+  );
 }
