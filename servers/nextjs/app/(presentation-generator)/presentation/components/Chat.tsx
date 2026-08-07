@@ -433,6 +433,7 @@ type ChatDocumentAttachment = {
 
 type ChatProps = {
   presentationId: string;
+  presentationType?: "standard" | "smart";
   presentationData?: unknown;
   resourceId?: string;
   chatAdapter?: ChatApiAdapter;
@@ -472,6 +473,7 @@ export type ChatApiAdapter = {
   streamMessage: (
     payload: {
       resourceId: string;
+      presentationType?: "standard" | "smart";
       message: string;
       conversation_id?: string;
       attachments?: ChatAttachment[];
@@ -492,6 +494,7 @@ const presentationChatAdapter: ChatApiAdapter = {
     PresentationChatApi.streamMessage(
       {
         presentation_id: payload.resourceId,
+        presentation_type: payload.presentationType,
         message: payload.message,
         conversation_id: payload.conversation_id,
         attachments: payload.attachments,
@@ -649,8 +652,11 @@ async function readDecomposedFile(filePath: string) {
   return result?.content || "";
 }
 
-const conversationStorageKey = (scope: string, resourceId: string) =>
-  `presenton:chat:${scope}:conversationId:${resourceId}`;
+const conversationStorageKey = (
+  scope: string,
+  resourceId: string,
+  presentationType: "standard" | "smart",
+) => `presenton:chat:${scope}:${presentationType}:conversationId:${resourceId}`;
 
 const readStoredConversationId = (key: string) => {
   if (typeof window === "undefined") return null;
@@ -1159,6 +1165,7 @@ const readTraceSlideIndex = (trace: ChatStreamTrace) => {
 
 const Chat = ({
   presentationId,
+  presentationType = "standard",
   presentationData,
   resourceId,
   chatAdapter = presentationChatAdapter,
@@ -1301,7 +1308,8 @@ const Chat = ({
       try {
         const sKey = conversationStorageKey(
           conversationStorageScope,
-          activeResourceId
+          activeResourceId,
+          presentationType,
         );
         const storedId = readStoredConversationId(sKey);
         let conversations: ChatConversationSummary[] | null = null;
@@ -1404,7 +1412,12 @@ const Chat = ({
     return () => {
       cancelled = true;
     };
-  }, [activeResourceId, chatAdapter, conversationStorageScope]);
+  }, [
+    activeResourceId,
+    chatAdapter,
+    conversationStorageScope,
+    presentationType,
+  ]);
 
   useEffect(() => {
     const activePreview = activeEditPreviewRef.current;
@@ -1600,6 +1613,11 @@ const Chat = ({
         "UI context: the user is editing a rendered TemplateV2 presentation with the v2 assistant. Use getTemplateSummary, getAvailableLayouts, getAvailableBlocks, searchSlide, getSlideAtIndex, getContentSchemaFromLayoutId, addNewSlide, addNewSlideLayout, saveSlide, updateSlide, deleteSlide, addElement, updateElement, deleteElement, addComponent, createComponent, updateComponent, deleteComponent, getPresentationTheme, setPresentationTheme, readSourceDocuments, and generateAssets. For visible edits inside an existing slide, inspect with getSlideAtIndex and use the returned componentId/elementPath exactly. Use updateElement for element toolbar-style properties and updateComponent for component move, resize, duplicate, layer order, group, and ungroup actions. When adding or creating rendered elements/components, prefer reusable template blocks over primitives: for custom new slides, search getAvailableBlocks for a title/header text block first, then requested chart/table/content blocks, adapt their component JSON, and include the final requested content instead of placeholder blocks. Keep new rendered elements/components strictly inside the 1280x720 visible slide window."
       );
     }
+    if (presentationType === "smart" && variant === "presentation") {
+      contextLines.push(
+        "UI context: the user is editing a Smart HTML presentation. Read the authoritative target HTML with getSlideAtIndex, preserve its design and scripts, and save a complete validated HTML fragment with saveSlide.",
+      );
+    }
 
     if (typeof currentSlide === "number") {
       contextLines.push(
@@ -1705,7 +1723,11 @@ const Chat = ({
     setApplyingEditPreviewMessageId(null);
     if (activeResourceId) {
       removeStoredConversationId(
-        conversationStorageKey(conversationStorageScope, activeResourceId)
+        conversationStorageKey(
+          conversationStorageScope,
+          activeResourceId,
+          presentationType,
+        ),
       );
     }
     inputRef.current?.focus();
@@ -2209,6 +2231,7 @@ const Chat = ({
       const response = await chatAdapter.streamMessage(
         {
           resourceId: activeResourceId,
+          presentationType,
           message: buildBackendMessage(
             outboundMessage,
             imagesForMessage,
@@ -2345,7 +2368,11 @@ const Chat = ({
             : previous;
         if (next && activeResourceId) {
           storeConversationId(
-            conversationStorageKey(conversationStorageScope, activeResourceId),
+            conversationStorageKey(
+              conversationStorageScope,
+              activeResourceId,
+              presentationType,
+            ),
             next
           );
         }

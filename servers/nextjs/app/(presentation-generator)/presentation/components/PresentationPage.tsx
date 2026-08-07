@@ -815,6 +815,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
             <div className="min-h-0 flex-1">
               <PresentationActions
                 presentationId={presentation_id}
+                presentationType={isSmartPresentation ? "smart" : "standard"}
                 variant={isTemplateV2Presentation ? "template-v2" : "presentation"}
                 currentSlide={selectedSlide}
                 presentationData={presentationData}
