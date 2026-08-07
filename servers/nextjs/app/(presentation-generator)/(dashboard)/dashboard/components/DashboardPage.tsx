@@ -17,7 +17,7 @@ import { LegacyPresentationsTable } from "@/app/(presentation-generator)/(dashbo
 import { PresentationGenerationApi } from "@/app/(presentation-generator)/services/api/presentation-generation";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -75,6 +75,34 @@ const FloatingActionCards = () => (
       }}
     />
   </div>
+);
+
+const BlankPresentationGraphic = ({ loading }: { loading: boolean }) => (
+  <span
+    className="relative ml-auto block h-[90px] w-[90px] shrink-0"
+    aria-hidden="true"
+  >
+    {loading ? (
+      <span className="absolute inset-0 flex items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-[#7A5AF8]" />
+      </span>
+    ) : (
+      <span className="absolute left-1/2 top-1/2 h-[90px] w-[90px] -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 group-hover:-translate-y-[52%] group-hover:scale-105 min-[1920px]:scale-[1.1778] min-[1920px]:group-hover:scale-[1.22]">
+        <span className="absolute left-[22.312px] top-[20.46px] h-[52.514px] w-[48.892px] -rotate-[5.81deg] bg-[rgba(0,0,0,0.14)]" />
+        <span className="absolute left-[21.452px] top-[19.94px] h-[52.514px] w-[48.892px] -rotate-[5.81deg] bg-[#ECEEEE]" />
+        <span className="absolute left-[23.57px] top-[21.78px] h-[50.53px] w-[47.045px] bg-[rgba(0,0,0,0.14)]" />
+        <span className="absolute left-[22.79px] top-[21.2px] h-[50.53px] w-[47.045px] bg-[#FEFEFF]" />
+        <Image
+          src="/dashboard/blank-presentation-clip.svg"
+          alt=""
+          width={9}
+          height={15}
+          className="absolute left-[25.05px] top-[15.66px] h-[14.283px] w-[8.282px]"
+        />
+        <span className="absolute left-[25.31px] top-[21.2px] h-[0.387px] w-[0.968px] bg-[#FEFEFF]" />
+      </span>
+    )}
+  </span>
 );
 
 const GridViewIcon = () => (
@@ -443,21 +471,19 @@ const DashboardPage: React.FC = () => {
             className="group relative z-50 flex h-[89.983px] w-[304.5px] max-w-full items-center overflow-hidden rounded-[10.8px] border border-[#EDEEEF] bg-[linear-gradient(135deg,#FAFAFF_0%,#F3F0FF_100%)] px-5 text-left outline-none transition hover:border-[#CFC7FF] hover:shadow-[0_8px_22px_rgba(81,70,229,0.12)] focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-70"
             aria-label="Create blank presentation"
           >
-            <span className="font-syne text-sm font-medium text-[#191919]">
-              {isCreatingBlankPresentation
-                ? "Creating blank presentation"
-                : "Blank Presentation"}
+            <span className="flex min-w-0 flex-col pr-3">
+              <span className="font-syne text-sm font-medium text-[#191919]">
+                {isCreatingBlankPresentation
+                  ? "Creating presentation"
+                  : "Blank Presentation"}
+              </span>
+              <span className="mt-1 text-[11px] leading-[14px] text-[#777387]">
+                {isCreatingBlankPresentation
+                  ? "Preparing your canvas"
+                  : "Start from scratch"}
+              </span>
             </span>
-            <span
-              className="ml-auto flex aspect-video w-[112px] items-center justify-center rounded-[6px] border border-[#DDD9F8] bg-white shadow-[0_6px_14px_rgba(16,24,40,0.12)] transition-transform group-hover:-translate-y-0.5"
-              aria-hidden="true"
-            >
-              {isCreatingBlankPresentation ? (
-                <Loader2 className="h-5 w-5 animate-spin text-[#7A5AF8]" />
-              ) : (
-                <Plus className="h-5 w-5 text-[#7A5AF8]" />
-              )}
-            </span>
+            <BlankPresentationGraphic loading={isCreatingBlankPresentation} />
           </button>
         </div>
       </section>
