@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  CHART_BROWSER_SCRIPT_URL,
+  CHART_DATALABELS_SCRIPT_URL,
+} from "@/lib/chart-browser";
+
 const SLIDE_WIDTH = 1280;
 const SLIDE_HEIGHT = 720;
 
@@ -34,6 +39,13 @@ function previewDocument(html: string, fonts: unknown) {
       <meta name="viewport" content="width=1280, initial-scale=1">
       ${fontAssets(fonts)}
       <script src="https://cdn.tailwindcss.com"></script>
+      <script src="${CHART_BROWSER_SCRIPT_URL}"></script>
+      <script src="${CHART_DATALABELS_SCRIPT_URL}"></script>
+      <script>
+        if (window.Chart && window.ChartDataLabels) {
+          window.Chart.register(window.ChartDataLabels);
+        }
+      </script>
       <style>
         html,body{width:1280px;height:720px;min-width:1280px;min-height:720px;margin:0;overflow:hidden;background:#fff}
         *{box-sizing:border-box}
