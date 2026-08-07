@@ -1754,13 +1754,13 @@ async def _stream_smart_presentation(
                     index=index,
                     content={"title": slide["title"]},
                     html_content=slide["html"],
-                    speaker_note=slide["speaker_note"],
+                    speaker_note="",
                 )
                 streamed_slides[index] = streamed_slide
             else:
                 streamed_slide.content = {"title": slide["title"]}
                 streamed_slide.html_content = slide["html"]
-                streamed_slide.speaker_note = slide["speaker_note"]
+                streamed_slide.speaker_note = ""
             await slide_events.put(streamed_slide)
 
         generation_task = asyncio.create_task(
@@ -1775,6 +1775,7 @@ async def _stream_smart_presentation(
                 include_table_of_contents=presentation.include_table_of_contents,
                 source_context=source_context,
                 community_design_context=community_context,
+                fonts=presentation.fonts,
                 on_slide=emit_slide,
             )
         )
@@ -1817,7 +1818,7 @@ async def _stream_smart_presentation(
                     index=index,
                     content={"title": slide["title"]},
                     html_content=slide["html"],
-                    speaker_note=slide["speaker_note"],
+                    speaker_note="",
                 )
                 yield SSEResponse(
                     event="response",
@@ -1834,7 +1835,7 @@ async def _stream_smart_presentation(
             else:
                 final_slide.content = {"title": slide["title"]}
                 final_slide.html_content = slide["html"]
-                final_slide.speaker_note = slide["speaker_note"]
+                final_slide.speaker_note = ""
             slides.append(final_slide)
 
         await sql_session.execute(
