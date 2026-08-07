@@ -10,7 +10,6 @@ import {
   Eye,
   FileText,
   Heart,
-  Loader2,
   Plus,
   Search,
 } from "lucide-react";
@@ -25,18 +24,13 @@ import {
 } from "@/app/(presentation-generator)/services/api/community";
 import CommunityPresentationFilters from "@/app/(presentation-generator)/upload/components/CommunityPresentationFilters";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { notify } from "@/components/ui/sonner";
+import CommunityDesignPreviewDialog from "./CommunityDesignPreviewDialog";
 
 const PAGE_SIZE = 20;
 
@@ -269,14 +263,14 @@ export default function CommunityPage() {
         )}
       </main>
 
-      <CommunityPreviewDialog
+      <CommunityDesignPreviewDialog
         presentation={preview}
+        open={Boolean(preview)}
         loading={previewLoading}
         onOpenChange={(open) => {
           if (!open) setPreview(null);
         }}
         onUseDesign={useDesign}
-        onUsePrompt={usePrompt}
       />
     </div>
   );
@@ -378,91 +372,6 @@ function CommunityPresentationCard({
         </div>
       </div>
     </article>
-  );
-}
-
-function CommunityPreviewDialog({
-  presentation,
-  loading,
-  onOpenChange,
-  onUseDesign,
-  onUsePrompt,
-}: {
-  presentation: CommunityPresentation | null;
-  loading: boolean;
-  onOpenChange: (open: boolean) => void;
-  onUseDesign: (presentation: CommunityPresentation) => void;
-  onUsePrompt: (presentation: CommunityPresentation) => void;
-}) {
-  const title = presentation
-    ? getCommunityPresentationTitle(presentation)
-    : "Community presentation";
-  const author = presentation
-    ? getCommunityPresentationAuthor(presentation)
-    : "Presenton";
-
-  return (
-    <Dialog open={Boolean(presentation)} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(90vh,860px)] max-w-[1120px] flex-col gap-0 overflow-hidden rounded-2xl border-[#EDEEEF] bg-[#F8F8FB] p-0">
-        <div className="flex shrink-0 flex-col gap-4 border-b border-[#EDEEEF] bg-white px-6 py-5 pr-14 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <DialogTitle className="truncate font-syne text-xl font-semibold text-[#191919]">
-              {title}
-            </DialogTitle>
-            <DialogDescription className="mt-1 flex items-center gap-3 font-manrope text-xs text-[#808080]">
-              <span>by {author}</span>
-              {presentation && <span>{presentation.slides?.length ?? 0} slides</span>}
-              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#7A5AF8]" />}
-            </DialogDescription>
-          </div>
-          {presentation && (
-            <div className="flex shrink-0 items-center gap-2">
-              {presentation.prompt?.trim() && (
-                <button
-                  type="button"
-                  onClick={() => onUsePrompt(presentation)}
-                  className="inline-flex h-9 items-center gap-2 rounded-full border border-[#EDEEEF] bg-white px-4 font-syne text-xs font-medium text-[#191919] hover:bg-[#F6F6F9]"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Use prompt
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => onUseDesign(presentation)}
-                className="inline-flex h-9 items-center gap-2 rounded-full bg-[#7A5AF8] px-4 font-syne text-xs font-medium text-white hover:bg-[#6938EF]"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Use design
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">
-          {presentation?.slides?.length ? (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              {presentation.slides.map((slide, index) => (
-                <article key={index} className="overflow-hidden rounded-xl border border-[#E1E1E5] bg-white shadow-sm">
-                  <SmartHtmlSlide
-                    html={slide}
-                    fonts={presentation.fonts}
-                    title={`${title}, slide ${index + 1}`}
-                  />
-                  <p className="border-t border-[#EDEEEF] px-3 py-2 font-manrope text-[11px] text-[#808080]">
-                    Slide {index + 1}
-                  </p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-full min-h-56 items-center justify-center text-sm text-[#808080]">
-              {loading ? "Loading slides ..." : "No slides available for preview."}
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 
