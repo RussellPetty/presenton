@@ -492,11 +492,7 @@ const PresentationHeader = ({
           ) : (
             titleBlock
           )}
-          {generationMode === "smart" && (
-            <span className="hidden shrink-0 items-center rounded-full border border-[#DDD8FE] bg-[#F3F0FF] px-2.5 py-1 font-manrope text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6847F4] sm:inline-flex">
-              Smart
-            </span>
-          )}
+         
         </div>
 
         <div className="flex items-center gap-2.5">
