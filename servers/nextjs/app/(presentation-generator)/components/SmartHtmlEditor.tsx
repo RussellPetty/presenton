@@ -8,6 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { MousePointer2, Sparkles } from "lucide-react";
 
 import IconsEditor from "@/components/slide-editor/images/IconsEditor";
 import { useTailwindRuntimeReady } from "@/components/runtime/TailwindCdnRuntime";
@@ -518,17 +519,39 @@ export default function SmartHtmlEditor({
             {hoverRect && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none fixed z-[80] rounded-[6px] border border-dashed border-[#7A5AF8] bg-[#7A5AF8]/5"
-                style={hoverRect}
-              />
+                className="pointer-events-none fixed z-[80] rounded-[8px] border-2 border-dotted border-[#7A5AF8]"
+                style={{
+                  ...hoverRect,
+                  backgroundColor: "rgba(122, 90, 248, 0.07)",
+                  backgroundImage:
+                    "radial-gradient(rgba(122, 90, 248, 0.38) 1px, transparent 1px)",
+                  backgroundSize: "8px 8px",
+                  boxShadow:
+                    "0 0 0 1px rgba(255,255,255,0.9), 0 0 0 5px rgba(122,90,248,0.12)",
+                }}
+              >
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-md border border-[#DDD6FE] bg-white/95 px-2 py-1 font-syne text-[11px] font-semibold text-[#5A3ECC] shadow-sm backdrop-blur-sm">
+                  <MousePointer2 className="h-3.5 w-3.5" />
+                  Select
+                </span>
+              </div>
             )}
             {selectionRect && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none fixed z-[81] rounded-[6px] border-2 border-[#7A5AF8]"
-                style={selectionRect}
+                className="pointer-events-none fixed z-[81] rounded-[8px] border-2 border-dotted border-[#6941C6]"
+                style={{
+                  ...selectionRect,
+                  backgroundColor: "rgba(105, 65, 198, 0.08)",
+                  backgroundImage:
+                    "radial-gradient(rgba(105, 65, 198, 0.42) 1px, transparent 1px)",
+                  backgroundSize: "8px 8px",
+                  boxShadow:
+                    "0 0 0 1px rgba(255,255,255,0.95), 0 0 0 5px rgba(105,65,198,0.16)",
+                }}
               >
-                <span className="absolute -top-7 left-0 whitespace-nowrap rounded-md bg-[#6941C6] px-2 py-1 font-syne text-[11px] font-semibold text-white shadow-sm">
+                <span className="absolute -top-8 left-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-[#6941C6] px-2 py-1.5 font-syne text-[11px] font-semibold text-white shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5" />
                   Selected for AI
                 </span>
               </div>
