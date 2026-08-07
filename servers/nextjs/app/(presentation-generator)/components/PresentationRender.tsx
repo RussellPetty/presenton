@@ -22,6 +22,7 @@ const SlideScale = ({
   renderIndex,
   enableViewportCulling = false,
   isSelected = false,
+  showEditScan = false,
   showBlankPromptOverlay = false,
   onBlankPromptOverlayDismiss,
   showTemplatePromptOverlay = false,
@@ -40,6 +41,7 @@ const SlideScale = ({
   renderIndex?: number;
   enableViewportCulling?: boolean;
   isSelected?: boolean;
+  showEditScan?: boolean;
   showBlankPromptOverlay?: boolean;
   onBlankPromptOverlayDismiss?: () => void;
   showTemplatePromptOverlay?: boolean;
@@ -158,6 +160,12 @@ const SlideScale = ({
                 onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
                 showTemplatePromptOverlay={showTemplatePromptOverlay}
                 onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
+              />
+            )}
+            {showEditScan && (
+              <div
+                className="slide-edit-overlay pointer-events-none absolute inset-0 overflow-hidden"
+                aria-hidden="true"
               />
             )}
           </div>

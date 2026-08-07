@@ -65,12 +65,16 @@ const SlideContent = ({
           }`}
       >
         <div
-          className="relative max-xl:mb-6"
+          className={
+            isChatEditing
+              ? "chat-slide-glow relative rounded-[14px] max-xl:mb-6"
+              : "relative max-xl:mb-6"
+          }
           onPointerDownCapture={() => onSlideActive?.(index)}
         >
           {isChatEditing && (
             <div
-              className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center font-syne"
+              className="pointer-events-none absolute inset-x-0 bottom-4 z-[90] flex justify-center font-syne"
               aria-live="polite"
             >
               <span className="inline-flex items-center rounded-[50px] bg-[linear-gradient(179deg,#F2E1FB_0%,#FFFFFF_100%)] p-[10px] shadow-[0_4px_18px_rgba(40,35,68,0.12)]">
@@ -100,6 +104,7 @@ const SlideContent = ({
             renderIndex={index}
             enableViewportCulling
             isSelected={selected}
+            showEditScan={isChatEditing}
             showBlankPromptOverlay={showBlankPromptOverlay}
             onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
             showTemplatePromptOverlay={showTemplatePromptOverlay}
