@@ -293,9 +293,7 @@ export default function SmartHtmlEditor({
           -webkit-user-select: text;
         }
         .smart-html-editor [contenteditable="true"]:focus {
-          outline: 2px solid rgba(122, 90, 248, 0.72);
-          outline-offset: 2px;
-          border-radius: 2px;
+          outline: none;
         }
         .smart-html-editor [data-smart-editable-media="true"] {
           cursor: pointer;
