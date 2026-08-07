@@ -6,11 +6,17 @@ import {
   useRef,
   useState,
 } from "react";
-import { useDispatch } from "react-redux";
+import { createPortal } from "react-dom";
+import { useDispatch, useSelector } from "react-redux";
 
 import IconsEditor from "@/components/slide-editor/images/IconsEditor";
 import { useTailwindRuntimeReady } from "@/components/runtime/TailwindCdnRuntime";
-import { updateSlideHtmlContent } from "@/store/slices/presentationGeneration";
+import {
+  clearChatHtmlSelection,
+  setChatHtmlSelection,
+  updateSlideHtmlContent,
+} from "@/store/slices/presentationGeneration";
+import type { RootState } from "@/store/store";
 import ImageEditor from "./ImageEditor";
 import SmartHtmlSlide from "./SmartHtmlSlide";
 import { useSmartChartInjection } from "./useSmartChartInjection";
@@ -19,6 +25,13 @@ type ActiveMedia = {
   element: HTMLImageElement;
   kind: "icon" | "image";
   query: string;
+};
+
+type SelectionRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 };
 
 const EXCLUDED_TEXT_TAGS = new Set([
@@ -73,6 +86,9 @@ export default function SmartHtmlEditor({
   title: string;
 }) {
   const dispatch = useDispatch();
+  const { enableHtmlSelector, chatHtmlSelection } = useSelector(
+    (state: RootState) => state.presentationGeneration
+  );
   const tailwindReady = useTailwindRuntimeReady();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dirtyRef = useRef(false);
@@ -84,6 +100,79 @@ export default function SmartHtmlEditor({
         .slice(2)}`
   );
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
+  const hoveredElementRef = useRef<HTMLElement | null>(null);
+  const selectedElementRef = useRef<HTMLElement | null>(null);
+  const [hoverRect, setHoverRect] = useState<SelectionRect | null>(null);
+  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+
+  const slideIndex = Number.isFinite(Number(slide.index))
+    ? Number(slide.index)
+    : 0;
+
+  const elementRect = useCallback((element: HTMLElement): SelectionRect | null => {
+    const container = containerRef.current;
+    if (!container || !container.contains(element)) return null;
+    const elementBox = element.getBoundingClientRect();
+    const containerBox = container.getBoundingClientRect();
+    const left = Math.max(elementBox.left - 4, containerBox.left);
+    const top = Math.max(elementBox.top - 4, containerBox.top);
+    const right = Math.min(elementBox.right + 4, containerBox.right);
+    const bottom = Math.min(elementBox.bottom + 4, containerBox.bottom);
+    if (right <= left || bottom <= top) return null;
+    return { left, top, width: right - left, height: bottom - top };
+  }, []);
+
+  const normalizeSelectableElement = useCallback(
+    (target: HTMLElement): HTMLElement | null => {
+      const container = containerRef.current;
+      if (!container || !container.contains(target)) return null;
+      if (target.closest("script, style, noscript")) return null;
+
+      const explicitRoot = target.closest<HTMLElement>(
+        "[data-select-root], [data-card], .card"
+      );
+      let element =
+        explicitRoot && container.contains(explicitRoot) ? explicitRoot : target;
+      if (element.dataset.smartTextWrapper === "1" && element.parentElement) {
+        element = element.parentElement;
+      }
+      if (element === container || element.tagName === "SECTION") return null;
+
+      const elementBox = element.getBoundingClientRect();
+      const containerBox = container.getBoundingClientRect();
+      if (
+        elementBox.width >= containerBox.width * 0.98 &&
+        elementBox.height >= containerBox.height * 0.98
+      ) {
+        return null;
+      }
+      return element;
+    },
+    []
+  );
+
+  const cleanSelectedHtml = useCallback((element: HTMLElement) => {
+    const clone = element.cloneNode(true) as HTMLElement;
+    const unwrap = (node: Element) => {
+      const parent = node.parentNode;
+      if (!parent) return;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
+    };
+    clone
+      .querySelectorAll<HTMLElement>("[data-smart-text-wrapper='1']")
+      .forEach(unwrap);
+    [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))].forEach(
+      (node) => {
+        node.removeAttribute("data-editable-text");
+        node.removeAttribute("data-smart-text-wrapper");
+        node.removeAttribute("data-smart-editable-media");
+        node.removeAttribute("contenteditable");
+        node.removeAttribute("spellcheck");
+      }
+    );
+    return clone.outerHTML.trim();
+  }, []);
 
   const saveHtml = useCallback(() => {
     const container = containerRef.current;
@@ -229,6 +318,116 @@ export default function SmartHtmlEditor({
   }, [html, saveHtml, tailwindReady]);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !tailwindReady || !enableHtmlSelector) {
+      hoveredElementRef.current = null;
+      selectedElementRef.current = null;
+      setHoverRect(null);
+      setSelectionRect(null);
+      return;
+    }
+
+    const refreshRects = () => {
+      const hovered = hoveredElementRef.current;
+      const selected = selectedElementRef.current;
+      setHoverRect(hovered ? elementRect(hovered) : null);
+      setSelectionRect(selected ? elementRect(selected) : null);
+    };
+    const handleMouseOver = (event: MouseEvent) => {
+      const target =
+        event.target instanceof HTMLElement
+          ? normalizeSelectableElement(event.target)
+          : null;
+      hoveredElementRef.current = target;
+      setHoverRect(target ? elementRect(target) : null);
+    };
+    const handleMouseLeave = () => {
+      hoveredElementRef.current = null;
+      setHoverRect(null);
+    };
+    const handleClick = (event: MouseEvent) => {
+      if (!(event.target instanceof HTMLElement)) return;
+      const target = normalizeSelectableElement(event.target);
+      if (!target) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const selectionBelongsToSlide =
+        chatHtmlSelection?.slideIndex === slideIndex &&
+        (!chatHtmlSelection.slideId ||
+          !slide.id ||
+          chatHtmlSelection.slideId === slide.id);
+      if (selectionBelongsToSlide && selectedElementRef.current === target) {
+        selectedElementRef.current = null;
+        setSelectionRect(null);
+        dispatch(clearChatHtmlSelection());
+        return;
+      }
+
+      const selectedHtml = cleanSelectedHtml(target);
+      if (!selectedHtml) return;
+      selectedElementRef.current = target;
+      setSelectionRect(elementRect(target));
+      dispatch(
+        setChatHtmlSelection({
+          slideId: slide.id ?? null,
+          slideIndex,
+          slideNumber: slideIndex + 1,
+          html: selectedHtml,
+          elementTag: target.tagName.toLowerCase(),
+          selectedText:
+            target.textContent?.replace(/\s+/g, " ").trim().slice(0, 240) ??
+            "",
+          selectedAt: Date.now(),
+        })
+      );
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      selectedElementRef.current = null;
+      setSelectionRect(null);
+      dispatch(clearChatHtmlSelection());
+    };
+
+    container.addEventListener("mouseover", handleMouseOver, true);
+    container.addEventListener("mouseleave", handleMouseLeave, true);
+    container.addEventListener("click", handleClick, true);
+    window.addEventListener("scroll", refreshRects, true);
+    window.addEventListener("resize", refreshRects);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      container.removeEventListener("mouseover", handleMouseOver, true);
+      container.removeEventListener("mouseleave", handleMouseLeave, true);
+      container.removeEventListener("click", handleClick, true);
+      window.removeEventListener("scroll", refreshRects, true);
+      window.removeEventListener("resize", refreshRects);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    chatHtmlSelection,
+    cleanSelectedHtml,
+    dispatch,
+    elementRect,
+    enableHtmlSelector,
+    normalizeSelectableElement,
+    slide.id,
+    slideIndex,
+    tailwindReady,
+  ]);
+
+  useEffect(() => {
+    const selectionBelongsToSlide =
+      chatHtmlSelection?.slideIndex === slideIndex &&
+      (!chatHtmlSelection.slideId ||
+        !slide.id ||
+        chatHtmlSelection.slideId === slide.id);
+    if (selectionBelongsToSlide) return;
+    selectedElementRef.current = null;
+    setSelectionRect(null);
+  }, [chatHtmlSelection, slide.id, slideIndex]);
+
+  useEffect(() => {
     if (!tailwindReady || !fonts || typeof fonts !== "object" || Array.isArray(fonts)) {
       return;
     }
@@ -283,6 +482,7 @@ export default function SmartHtmlEditor({
       <div
         ref={containerRef}
         data-smart-slide-instance={instanceId}
+        data-smart-selecting={enableHtmlSelector ? "true" : undefined}
         className="smart-html-editor relative h-full w-full overflow-hidden bg-white"
         aria-label={title}
       />
@@ -302,7 +502,36 @@ export default function SmartHtmlEditor({
         .smart-html-editor [data-smart-editable-media="true"]:hover {
           opacity: 0.86;
         }
+        .smart-html-editor[data-smart-selecting="true"],
+        .smart-html-editor[data-smart-selecting="true"] * {
+          cursor: crosshair !important;
+        }
       `}</style>
+      {enableHtmlSelector &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            {hoverRect && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed z-[80] rounded-[6px] border border-dashed border-[#7A5AF8] bg-[#7A5AF8]/5"
+                style={hoverRect}
+              />
+            )}
+            {selectionRect && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed z-[81] rounded-[6px] border-2 border-[#7A5AF8]"
+                style={selectionRect}
+              >
+                <span className="absolute -top-7 left-0 whitespace-nowrap rounded-md bg-[#6941C6] px-2 py-1 font-syne text-[11px] font-semibold text-white shadow-sm">
+                  Selected for AI
+                </span>
+              </div>
+            )}
+          </>,
+          document.body
+        )}
       {activeMedia?.kind === "image" && (
         <ImageEditor
           initialImage={activeMedia.element.src}
