@@ -255,6 +255,53 @@ export const usePresentationStreaming = (
         }
 
         switch (data.type) {
+          case "fonts": {
+            if (data.fonts && typeof data.fonts === "object") {
+              const prev = store.getState().presentationGeneration.presentationData;
+              dispatch(
+                setPresentationData({
+                  ...(prev ?? {}),
+                  fonts: data.fonts,
+                  slides: prev?.slides ?? [],
+                } as PresentationData)
+              );
+            }
+            break;
+          }
+
+          case "slide_html": {
+            const slideIndex = Number(data.index);
+            const html = typeof data.html === "string" ? data.html : "";
+            if (!Number.isFinite(slideIndex) || !html) break;
+
+            const incomingSlide =
+              data.slide && typeof data.slide === "object"
+                ? data.slide
+                : {
+                    id: data.slide_id,
+                    index: slideIndex,
+                    layout: "smart-html",
+                    layout_group: "smart-html",
+                    content: { title: `Slide ${slideIndex + 1}` },
+                    html_content: html,
+                  };
+            const normalizedSlide = normalizeBackendAssetUrls(incomingSlide);
+            const prev = store.getState().presentationGeneration.presentationData;
+            const mergedSlides = mergeSingleSlidePreservingResolvedAssets(
+              prev?.slides,
+              normalizedSlide
+            );
+            dispatch(
+              setPresentationData({
+                ...(prev ?? {}),
+                slides: mergedSlides,
+              } as PresentationData)
+            );
+            previousSlidesLength.current = mergedSlides.length;
+            setLoading(false);
+            break;
+          }
+
           case "chunk":
             accumulatedChunks += data.chunk;
             const streamedSlide = parseStreamedSlideChunk(data.chunk);
