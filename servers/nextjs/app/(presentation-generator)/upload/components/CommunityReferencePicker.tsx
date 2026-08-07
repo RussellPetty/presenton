@@ -28,7 +28,7 @@ export default function CommunityReferencePicker({
   const load = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(false);
-    CommunityPresentationApi.list(signal, filters)
+    CommunityPresentationApi.list(1, 8, signal, filters)
       .then((response) => setItems(response.results ?? []))
       .catch((requestError) => {
         if ((requestError as Error)?.name !== "AbortError") setError(true);

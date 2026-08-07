@@ -44,12 +44,14 @@ export interface CommunityPresentationListFilters {
 
 export class CommunityPresentationApi {
   static async list(
+    page = 1,
+    pageSize = 8,
     signal?: AbortSignal,
     filters: CommunityPresentationListFilters = {}
   ): Promise<CommunityPresentationListResponse> {
     const params = new URLSearchParams({
-      page: "1",
-      page_size: "8",
+      page: String(page),
+      page_size: String(pageSize),
       order_by: filters.order_by ?? "priority",
       order: filters.order ?? "desc",
     });
@@ -84,4 +86,16 @@ export class CommunityPresentationApi {
       "Failed to load the community reference"
     );
   }
+}
+
+export function getCommunityPresentationTitle(
+  presentation: CommunityPresentation
+) {
+  return presentation.title?.trim() || "Untitled presentation";
+}
+
+export function getCommunityPresentationAuthor(
+  presentation: CommunityPresentation
+) {
+  return presentation.created_by?.trim() || "Presenton";
 }
