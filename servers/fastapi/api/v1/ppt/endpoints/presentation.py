@@ -7,7 +7,7 @@ import os
 import random
 import re
 import traceback
-from typing import Annotated, Any, List, Optional, Tuple
+from typing import Annotated, Any, List, Literal, Optional, Tuple
 import dirtyjson
 from fastapi import (
     APIRouter,
@@ -56,7 +56,12 @@ from utils.llm_calls.generate_presentation_outlines import (
     get_messages as get_outline_messages,
 )
 from models.sql.slide import SlideModel
-from models.sse_response import SSECompleteResponse, SSEErrorResponse, SSEResponse
+from models.sse_response import (
+    SSECompleteResponse,
+    SSEErrorResponse,
+    SSEResponse,
+    SSEStatusResponse,
+)
 
 from services.database import get_async_session
 from services.database import async_session_maker
@@ -91,10 +96,21 @@ from utils.llm_utils import message_content_to_text
 from utils.sse import safe_sse_stream
 from api.v1.auth.config import SESSION_COOKIE_NAME
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
+from utils.web_search import build_web_search_query, get_web_search_context
 from api.v1.auth.context import get_current_owner_id
 from models.presentation_layout import PresentationLayoutModel, SlideLayoutModel
 from templates.v2.schema import get_template_schema
 from templates.default_templates import resolve_default_template_id
+from services.community_presentations import (
+    build_community_design_context,
+    load_community_references,
+    merge_reference_fonts,
+    normalize_community_ids,
+)
+from utils.llm_calls.generate_smart_presentation import (
+    generate_smart_presentation,
+    resolve_smart_slide_count,
+)
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -1409,6 +1425,8 @@ async def create_presentation(
     include_table_of_contents: Annotated[bool, Body()] = False,
     include_title_slide: Annotated[bool, Body()] = True,
     web_search: Annotated[bool, Body()] = False,
+    generation_mode: Annotated[Literal["standard", "smart"], Body()] = "standard",
+    community_design_ids: Annotated[Optional[List[int]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
 
@@ -1429,6 +1447,20 @@ async def create_presentation(
             status_code=400,
             detail="Number of slides cannot be less than 3 if table of contents is included",
     )
+
+    normalized_community_ids = normalize_community_ids(community_design_ids)
+    if generation_mode != "smart" and normalized_community_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Community references are available only in Smart mode",
+        )
+    if generation_mode == "smart" and not (
+        content.strip() or file_paths or normalized_community_ids
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="A prompt, document, or community reference is required",
+        )
 
     presentation_id = uuid.uuid4()
     language_to_store = (language or "").strip()
@@ -1453,6 +1485,8 @@ async def create_presentation(
         include_table_of_contents=include_table_of_contents,
         include_title_slide=include_title_slide,
         web_search=web_search,
+        generation_mode=generation_mode,
+        community_design_ids=normalized_community_ids or None,
     )
 
     sql_session.add(presentation)
@@ -1617,6 +1651,155 @@ async def prepare_presentation(
     return PresentationPrepareResponse(presentation_id=presentation.id)
 
 
+async def _stream_smart_presentation(
+    presentation: PresentationModel,
+    sql_session: AsyncSession,
+) -> StreamingResponse:
+    presentation_id = presentation.id
+
+    async def inner():
+        existing_slides = list(
+            await sql_session.scalars(
+                select(SlideModel)
+                .where(SlideModel.presentation == presentation_id)
+                .order_by(SlideModel.index)
+            )
+        )
+        if existing_slides:
+            response = PresentationWithSlides(
+                **_presentation_response_data(presentation),
+                slides=existing_slides,
+            )
+            yield SSECompleteResponse(
+                key="presentation",
+                value=response.model_dump(mode="json"),
+            ).to_string()
+            return
+
+        yield SSEStatusResponse(status="Preparing Smart presentation").to_string()
+        references = await load_community_references(
+            presentation.community_design_ids
+        )
+        community_context = build_community_design_context(references)
+        reference_fonts = merge_reference_fonts(references)
+
+        source_parts: list[str] = []
+        if presentation.file_paths:
+            yield SSEStatusResponse(status="Reading source documents").to_string()
+            documents_loader = DocumentsLoader(
+                file_paths=presentation.file_paths,
+                presentation_language=presentation.language,
+            )
+            await documents_loader.load_documents(
+                TEMP_FILE_SERVICE.create_temp_dir()
+            )
+            source_parts.extend(document for document in documents_loader.documents if document)
+
+        if presentation.web_search:
+            yield SSEStatusResponse(status="Searching the web").to_string()
+            search_context = await get_web_search_context(
+                build_web_search_query(
+                    presentation.content,
+                    presentation.instructions,
+                )
+            )
+            if search_context:
+                source_parts.append(search_context)
+
+        source_context = "\n\n".join(source_parts)
+        if len(source_context) > 90_000:
+            source_context = source_context[:90_000]
+
+        slide_count = resolve_smart_slide_count(presentation.n_slides)
+        yield SSEStatusResponse(
+            status=(
+                "Applying community design reference"
+                if references
+                else "Designing the complete presentation"
+            )
+        ).to_string()
+        deck = await generate_smart_presentation(
+            content=presentation.content,
+            n_slides=slide_count,
+            language=presentation.language,
+            tone=presentation.tone,
+            verbosity=presentation.verbosity,
+            instructions=presentation.instructions,
+            include_title_slide=presentation.include_title_slide,
+            include_table_of_contents=presentation.include_table_of_contents,
+            source_context=source_context,
+            community_design_context=community_context,
+        )
+
+        presentation.title = deck["title"]
+        presentation.n_slides = slide_count
+        presentation.fonts = reference_fonts or {
+            "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        }
+
+        slides = [
+            SlideModel(
+                presentation=presentation_id,
+                layout_group="smart-html",
+                layout="smart-html",
+                index=index,
+                content={"title": slide["title"]},
+                html_content=slide["html"],
+                speaker_note=slide["speaker_note"],
+            )
+            for index, slide in enumerate(deck["slides"])
+        ]
+
+        yield SSEResponse(
+            event="response",
+            data=json.dumps({"type": "chunk", "chunk": '{ "slides": [ '}),
+        ).to_string()
+        for index, slide in enumerate(slides):
+            chunk = slide.model_dump_json()
+            if index:
+                chunk = "," + chunk
+            yield SSEResponse(
+                event="response",
+                data=json.dumps({"type": "chunk", "chunk": chunk}),
+            ).to_string()
+        yield SSEResponse(
+            event="response",
+            data=json.dumps({"type": "chunk", "chunk": " ] }"}),
+        ).to_string()
+
+        await sql_session.execute(
+            delete(SlideModel).where(
+                SlideModel.presentation == presentation_id,
+                SlideModel.owner_id == get_current_owner_id(),
+            )
+        )
+        sql_session.add(presentation)
+        sql_session.add_all(slides)
+        await sql_session.commit()
+
+        response = PresentationWithSlides(
+            **_presentation_response_data(presentation),
+            slides=slides,
+        )
+        yield SSECompleteResponse(
+            key="presentation",
+            value=response.model_dump(mode="json"),
+        ).to_string()
+
+    async def rollback_stream_session():
+        await sql_session.rollback()
+
+    return StreamingResponse(
+        safe_sse_stream(
+            inner(),
+            logger=logger,
+            error_detail="Failed to generate the Smart presentation. Please try again.",
+            on_error=rollback_stream_session,
+        ),
+        media_type="text/event-stream",
+    )
+
+
 @PRESENTATION_ROUTER.get("/stream/{id}", response_model=PresentationWithSlides)
 async def stream_presentation(
     id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
@@ -1624,6 +1807,8 @@ async def stream_presentation(
     presentation = await sql_session.get(PresentationModel, id)
     if not presentation:
         raise HTTPException(status_code=404, detail="Presentation not found")
+    if presentation.generation_mode == "smart":
+        return await _stream_smart_presentation(presentation, sql_session)
     if not presentation.structure:
         raise HTTPException(
             status_code=400,
