@@ -11,36 +11,93 @@ from services.community_presentations import (
     normalize_community_ids,
 )
 from utils.llm_calls.generate_smart_presentation import (
+    SMART_DECK_SYSTEM_PROMPT,
     SmartSlideStreamParser,
+    get_smart_messages,
     normalize_smart_deck,
     normalize_smart_slide_html,
+    parse_smart_presentation_html,
     resolve_smart_slide_count,
 )
 
 
-def test_smart_slide_stream_parser_emits_complete_slides_incrementally():
-    parser = SmartSlideStreamParser()
+def _smart_slide_html(title="Slide", slide_type="content", body="Content"):
+    return (
+        f'<section data-slide-type="{slide_type}" data-slide-title="{title}" '
+        'class="relative h-[720px] w-[1280px] overflow-hidden">'
+        f"{body}</section>"
+    )
 
-    assert parser.feed('{"title":"Deck","slides":[{"title":"One",') == []
+
+def test_smart_slide_stream_parser_emits_delimited_slides_incrementally():
+    parser = SmartSlideStreamParser()
+    second_slide = _smart_slide_html("Two")
+
+    assert parser.feed("<!-- PRESENTATION_TITLE: Deck --><!-- SLIDE_STA") == []
     slides = parser.feed(
-        '"html":"<section>{content}</section>","speaker_note":"Note"},'
-        '{"title":"Two","html":"<section>Two</section>",'
+        "RT -->"
+        + _smart_slide_html("One")
+        + "<!-- SLIDE_END --><!-- SLIDE_START -->"
+        + second_slide[:80]
     )
     assert [slide["title"] for slide in slides] == ["One"]
+    assert slides[0]["speaker_note"] == ""
 
-    slides = parser.feed('"speaker_note":"Second"}]}')
+    slides = parser.feed(second_slide[80:] + "<!-- SLIDE_END -->")
     assert [slide["title"] for slide in slides] == ["Two"]
 
 
-def test_smart_slide_stream_parser_handles_escaped_json_in_html():
-    parser = SmartSlideStreamParser()
-    slides = parser.feed(
-        '{"slides":[{"title":"Chart","html":"<section data-json=\\"{\\\\\\"value\\\\\\":1}\\">Chart</section>",'
-        '"speaker_note":""}]}'
+def test_smart_deck_parser_uses_cloud_delimiters_and_validates_count():
+    response = (
+        "<!-- PRESENTATION_TITLE: Deck -->"
+        "<!-- SLIDE_START -->"
+        + _smart_slide_html("Cover", "title")
+        + "<!-- SLIDE_END -->"
+        "<!-- SLIDE_START -->"
+        + _smart_slide_html("Agenda", "toc")
+        + "<!-- SLIDE_END -->"
     )
 
-    assert len(slides) == 1
-    assert slides[0]["title"] == "Chart"
+    title, slides = parse_smart_presentation_html(
+        response,
+        expected_slide_count=2,
+        include_title_slide=True,
+        include_table_of_contents=True,
+    )
+
+    assert title == "Deck"
+    assert [slide["title"] for slide in slides] == ["Cover", "Agenda"]
+    with pytest.raises(HTTPException):
+        parse_smart_presentation_html(
+            response,
+            expected_slide_count=3,
+            include_title_slide=True,
+            include_table_of_contents=True,
+        )
+
+
+def test_smart_prompt_matches_cloud_one_shot_method_without_speaker_notes():
+    messages = get_smart_messages(
+        content="Build an investor update",
+        n_slides=6,
+        language="English",
+        tone=None,
+        verbosity=None,
+        instructions=None,
+        include_title_slide=True,
+        include_table_of_contents=False,
+        source_context="Revenue grew.",
+        community_design_context="Use editorial spacing.",
+        fonts={"Inter": "inter.css"},
+    )
+    prompt = str(messages[1].content)
+
+    assert messages[0].content == SMART_DECK_SYSTEM_PROMPT
+    assert "<!-- SLIDE_START -->" in prompt
+    assert "Generate exactly 6 total slides" in prompt
+    assert 'Available fonts: ["Inter"]' in prompt
+    assert "speaker_note" not in prompt
+    assert "Speaker note" not in prompt
 
 
 def test_normalize_community_ids_preserves_order_and_deduplicates():
@@ -88,9 +145,7 @@ def test_community_list_forwards_filters(monkeypatch):
         captured_params = params
         return {"results": []}
 
-    monkeypatch.setattr(
-        "services.community_presentations._cloud_get", fake_cloud_get
-    )
+    monkeypatch.setattr("services.community_presentations._cloud_get", fake_cloud_get)
 
     asyncio.run(
         list_community_presentations(
@@ -116,7 +171,7 @@ def test_community_list_forwards_filters(monkeypatch):
 def test_smart_html_normalization_removes_executable_markup():
     html = normalize_smart_slide_html(
         """```html
-        <section class="h-[720px] w-[1280px]" onclick="steal()">
+        <section class="relative h-[720px] w-[1280px] overflow-hidden" onclick="steal()">
           <a href="javascript:steal()">Deck</a>
           <script>alert('no')</script>
         </section>
@@ -129,11 +184,30 @@ def test_smart_html_normalization_removes_executable_markup():
     assert "<script" not in html
 
 
-def test_smart_deck_requires_exact_slide_count_and_section_roots():
+def test_smart_html_normalization_keeps_safe_chartjs_initialization():
+    html = normalize_smart_slide_html(
+        _smart_slide_html(
+            "Metrics",
+            body=(
+                '<canvas id="chart-a1b2c3" width="600" height="300"></canvas>'
+                "<script>(() => { const canvas = "
+                "document.querySelector('#chart-a1b2c3'); "
+                "new Chart(canvas, {type: 'bar', data: {labels: ['A'], "
+                "datasets: [{data: [1]}]}, options: {responsive: false, "
+                "animation: false}}); })();</script>"
+            ),
+        )
+    )
+
+    assert "new Chart" in html
+    assert "<script" in html
+
+
+def test_smart_deck_requires_exact_slide_count_and_omits_speaker_notes():
     valid_slide = {
         "title": "One",
-        "html": '<section class="h-[720px] w-[1280px]">Content</section>',
-        "speaker_note": "Note",
+        "html": _smart_slide_html("One"),
+        "speaker_note": "This must be discarded",
     }
     deck = normalize_smart_deck(
         {"title": "Deck", "slides": [valid_slide, {**valid_slide, "title": "Two"}]},
@@ -141,6 +215,7 @@ def test_smart_deck_requires_exact_slide_count_and_section_roots():
     )
     assert deck["title"] == "Deck"
     assert len(deck["slides"]) == 2
+    assert all(slide["speaker_note"] == "" for slide in deck["slides"])
 
     with pytest.raises(HTTPException):
         normalize_smart_deck({"title": "Deck", "slides": [valid_slide]}, 2)
