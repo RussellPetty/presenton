@@ -65,9 +65,13 @@ import { LLM_PROVIDERS } from "@/utils/providerConstants";
 import type { LLMConfig } from "@/types/llm_config";
 import type { AppDispatch, RootState } from "@/store/store";
 import {
+  clearChatHtmlSelection,
   setPresentationData,
+  type ChatHtmlSelection,
   type PresentationData,
 } from "@/store/slices/presentationGeneration";
+
+const MAX_SELECTED_HTML_CONTEXT_CHARS = 3500;
 
 const suggestions: { id: string; icon: ReactNode; suggestion: string }[] = [
   {
@@ -1194,6 +1198,9 @@ const Chat = ({
     LLM_PROVIDERS[llmConfig.LLM || "openai"]?.label ||
     llmConfig.LLM ||
     "AI model";
+  const chatHtmlSelection = useSelector(
+    (state: RootState) => state.presentationGeneration.chatHtmlSelection,
+  );
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -1600,6 +1607,7 @@ const Chat = ({
     message: string,
     images = pastedImages,
     additionalContext?: string,
+    selectionContext: ChatHtmlSelection | null = chatHtmlSelection,
   ) => {
     const contextLines: string[] = [];
 
@@ -1616,6 +1624,30 @@ const Chat = ({
     if (presentationType === "smart" && variant === "presentation") {
       contextLines.push(
         "UI context: the user is editing a Smart HTML presentation. Read the authoritative target HTML with getSlideAtIndex, preserve its design and scripts, and save a complete validated HTML fragment with saveSlide.",
+      );
+    }
+    if (presentationType === "smart" && selectionContext) {
+      const selectedHtml =
+        selectionContext.html.length > MAX_SELECTED_HTML_CONTEXT_CHARS
+          ? `${selectionContext.html.slice(0, MAX_SELECTED_HTML_CONTEXT_CHARS)}\n<!-- selected HTML truncated -->`
+          : selectionContext.html;
+      contextLines.push(
+        `UI context: the user selected one HTML element from slide ${selectionContext.slideNumber} (zero-based index ${selectionContext.slideIndex}). Edit this selected element within the authoritative full slide HTML; preserve unrelated elements.`,
+      );
+      if (selectionContext.elementTag) {
+        contextLines.push(
+          `Selected element tag: ${selectionContext.elementTag}.`,
+        );
+      }
+      if (selectionContext.selectedText) {
+        contextLines.push(
+          `Selected element text: ${selectionContext.selectedText}`,
+        );
+      }
+      contextLines.push(
+        "<selected_html>",
+        selectedHtml,
+        "</selected_html>",
       );
     }
 
@@ -1721,6 +1753,7 @@ const Chat = ({
     setExpandedEditPreviewByMessage({});
     setSelectedEditVersionByMessage({});
     setApplyingEditPreviewMessageId(null);
+    dispatch(clearChatHtmlSelection());
     if (activeResourceId) {
       removeStoredConversationId(
         conversationStorageKey(
@@ -2159,6 +2192,8 @@ const Chat = ({
       }
     }
 
+    const selectionContext = chatHtmlSelection;
+
     const userMessage: ChatMessage = {
       id: createMessageId(),
       role: "user",
@@ -2196,6 +2231,7 @@ const Chat = ({
       [assistantMessageId]: false,
     }));
     setInput("");
+    if (selectionContext) dispatch(clearChatHtmlSelection());
     setErrorMessage(null);
     setHasChatMutationStarted(false);
     setIsSending(true);
@@ -2222,6 +2258,7 @@ const Chat = ({
       link_count: chatLinks.length,
       has_selected_slide: typeof currentSlide === "number",
       has_selected_template_target: Boolean(selectedTemplateV2Target),
+      has_selected_html_element: Boolean(selectionContext),
     });
     const streamAbortController = new AbortController();
     abortControllerRef.current = streamAbortController;
@@ -2236,6 +2273,7 @@ const Chat = ({
             outboundMessage,
             imagesForMessage,
             options.backendContext,
+            selectionContext,
           ),
           conversation_id: conversationId ?? undefined,
           attachments: buildChatDocumentAttachments(attachedDocuments),
@@ -2727,7 +2765,16 @@ const Chat = ({
       selectedTemplateV2Target.elementType ||
       selectedTemplateV2Target.componentId ||
       selectedTemplateV2Target.kind
-    : "";
+    : chatHtmlSelection
+      ? `Slide ${chatHtmlSelection.slideNumber}: ${
+          chatHtmlSelection.selectedText ||
+          chatHtmlSelection.elementTag ||
+          "Selected element"
+        }`
+      : "";
+  const clearChatTargetReference = chatHtmlSelection
+    ? () => dispatch(clearChatHtmlSelection())
+    : onClearChatTargetReference;
 
   if (usesEditorLayout) {
     const previewFonts = getPresentationFonts(presentationData);
@@ -3036,10 +3083,10 @@ const Chat = ({
                     title={chatTargetReference}
                   >
                     <span className="truncate">{chatTargetReference}</span>
-                    {onClearChatTargetReference && (
+                    {clearChatTargetReference && (
                       <button
                         type="button"
-                        onClick={onClearChatTargetReference}
+                        onClick={clearChatTargetReference}
                         className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8069C5] transition-colors hover:bg-[#E4DFFF] hover:text-[#5235A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]/40"
                         aria-label="Remove selected element from context"
                         title="Remove selected element from context"
@@ -3637,10 +3684,10 @@ const Chat = ({
                 title={chatTargetReference}
               >
                 <span className="truncate">{chatTargetReference}</span>
-                {onClearChatTargetReference && (
+                {clearChatTargetReference && (
                   <button
                     type="button"
-                    onClick={onClearChatTargetReference}
+                    onClick={clearChatTargetReference}
                     className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8069C5] transition-colors hover:bg-[#E4DFFF] hover:text-[#5235A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]/40"
                     aria-label="Remove selected element from context"
                     title="Remove selected element from context"
