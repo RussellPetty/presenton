@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import "@/app/(presentation-generator)/utils/prism-languages";
@@ -21,6 +21,7 @@ import {
 } from "@/app/(presentation-generator)/components/TemplateV2HtmlSlidePreview";
 import { normalizeBackendAssetUrls } from "@/utils/api";
 import { ensureTailwindBrowserScript } from "@/lib/tailwind-browser";
+import { useSmartChartInjection } from "@/app/(presentation-generator)/components/useSmartChartInjection";
 
 const PDF_PRINT_STYLE = `
   html,
@@ -98,6 +99,37 @@ type PresentationPageProps = {
   exportCookie?: string;
 };
 
+const SmartHtmlPdfSlide = ({
+  slide,
+  index,
+}: {
+  slide: { id?: string | null; index?: number; html_content?: string | null };
+  index: number;
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const html = slide.html_content?.trim() ?? "";
+  const instanceId = useMemo(
+    () => `pdf-smart-${slide.id ?? index}`,
+    [index, slide.id]
+  );
+
+  useSmartChartInjection({
+    html,
+    instanceId,
+    domRevision: `${slide.index ?? "none"}:${index}`,
+    containerRef,
+  });
+
+  return (
+    <div
+      ref={containerRef}
+      data-smart-slide-instance={instanceId}
+      className="h-[720px] w-[1280px] overflow-hidden bg-white"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
+
 const PresentationPage = ({ presentation_id, exportCookie }: PresentationPageProps) => {
   const pathname = usePathname();
   const [contentLoading, setContentLoading] = useState(true);
@@ -116,7 +148,13 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (presentationData?.slides?.[0]?.layout?.includes("custom")) {
+    if (
+      presentationData?.slides?.some(
+        (slide: any) =>
+          slide?.layout?.includes("custom") ||
+          (typeof slide?.html_content === "string" && slide.html_content.trim())
+      )
+    ) {
       ensureTailwindBrowserScript();
     }
   }, [presentationData]);
@@ -282,6 +320,9 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
                             fonts={presentationData?.fonts}
                             fixedSize
                           />
+                        ) : typeof slide?.html_content === "string" &&
+                          slide.html_content.trim() ? (
+                          <SmartHtmlPdfSlide slide={slide} index={index} />
                         ) : (
                           <SlideScale
                             slide={slide}
