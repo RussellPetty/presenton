@@ -17,8 +17,6 @@ import { clearOutlines, setPresentationId } from "@/store/slices/presentationGen
 import { PromptInput } from "./PromptInput";
 import { LanguageType, PresentationConfig, ToneType, VerbosityType } from "../type";
 import SupportingDoc from "./SupportingDoc";
-import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
 import { notify } from "@/components/ui/sonner";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
@@ -34,6 +32,13 @@ import {
   clampSlideCountValue,
   parseLimitedSlideCount,
 } from "@/utils/presentationLimits";
+import CommunityReferencePicker from "./CommunityReferencePicker";
+import {
+  CommunityPresentationApi,
+  type CommunityPresentation,
+} from "../../services/api/community";
+
+type GenerationMode = "smart" | "standard";
 
 const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
 const FILE_TYPE_WORD = new Set([".doc", ".docx", ".docm", ".odt", ".rtf"]);
@@ -139,6 +144,9 @@ const UploadPage = () => {
   const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
 
   const [files, setFiles] = useState<File[]>([]);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("smart");
+  const [communityReference, setCommunityReference] =
+    useState<CommunityPresentation | null>(null);
   const [config, setConfig] = useState<PresentationConfig>({
     slides: null,
     language: LanguageType.Auto,
@@ -150,6 +158,37 @@ const UploadPage = () => {
     includeTitleSlide: false,
     webSearch: false,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPrompt = params.get("prompt")?.trim();
+    const requestedCommunityId = Number(params.get("communityId"));
+    let active = true;
+
+    if (params.get("mode") === "smart") {
+      setGenerationMode("smart");
+    }
+    if (requestedPrompt) {
+      setConfig((current) => ({ ...current, prompt: requestedPrompt }));
+    }
+    if (Number.isSafeInteger(requestedCommunityId) && requestedCommunityId > 0) {
+      CommunityPresentationApi.getById(requestedCommunityId)
+        .then((presentation) => {
+          if (active) setCommunityReference(presentation);
+        })
+        .catch((loadError) => {
+          if (!active) return;
+          notify.error(
+            "Could not select the community design",
+            loadError instanceof Error ? loadError.message : undefined
+          );
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (llmConfig?.WEB_GROUNDING !== undefined) {
@@ -186,6 +225,8 @@ const UploadPage = () => {
       include_table_of_contents: !!config.includeTableOfContents,
       include_title_slide: !!config.includeTitleSlide,
       web_search: !!config.webSearch,
+      generation_mode: generationMode,
+      community_reference_id: communityReference?.id ?? null,
       has_prompt: Boolean(trimmedPrompt),
       prompt_char_count: trimmedPrompt.length,
       prompt_word_count: trimmedPrompt ? trimmedPrompt.split(/\s+/).filter(Boolean).length : 0,
@@ -265,9 +306,16 @@ const UploadPage = () => {
       return false;
     }
 
-    if (!config.prompt.trim() && files.length === 0) {
+    if (
+      !config.prompt.trim() &&
+      files.length === 0 &&
+      !(generationMode === "smart" && communityReference)
+    ) {
       trackUploadValidationFailure("prompt_or_document_missing");
-      notify.warning("Input required", "Provide a prompt or upload at least one document.");
+      notify.warning(
+        "Input required",
+        "Provide a prompt, upload a document, or select a community reference."
+      );
       return false;
     }
     return true;
@@ -281,7 +329,8 @@ const UploadPage = () => {
     trackEvent(MixpanelEvent.Upload_Generation_Started, getUploadSnapshotProps());
 
 
-    const isStockProviderReady = await ensureStockImageProviderReady();
+    const isStockProviderReady =
+      generationMode === "smart" || (await ensureStockImageProviderReady());
     if (!isStockProviderReady) {
       trackUploadValidationFailure("stock_image_provider_unreachable");
       return;
@@ -336,7 +385,10 @@ const UploadPage = () => {
 
     setLoadingState({
       isLoading: true,
-      message: "Generating presentation outline...",
+      message:
+        generationMode === "smart"
+          ? "Starting Smart presentation..."
+          : "Generating presentation outline...",
       showProgress: true,
       duration: 40,
       extra_info: "",
@@ -354,6 +406,11 @@ const UploadPage = () => {
       include_table_of_contents: !!config?.includeTableOfContents,
       include_title_slide: !!config?.includeTitleSlide,
       web_search: !!config?.webSearch,
+      generation_mode: generationMode,
+      community_design_ids:
+        generationMode === "smart" && communityReference
+          ? [communityReference.id]
+          : undefined,
     });
 
     dispatch(setPptGenUploadState({
@@ -367,17 +424,23 @@ const UploadPage = () => {
       uploaded_documents_count: documents.length,
       decompose_job_count: responses.length,
       extracted_document_count: documentPaths.length,
-      destination: "/outline",
+      destination:
+        generationMode === "smart" ? "/presentation" : "/outline",
     });
     trackEvent(MixpanelEvent.Upload_Outline_Generation_Requested, {
       ...getUploadSnapshotProps(),
       presentation_id: createResponse.id,
       uploaded_documents_count: documents.length,
       extracted_document_count: documentPaths.length,
-      destination: "/outline",
+      destination:
+        generationMode === "smart" ? "/presentation" : "/outline",
     });
-    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/outline" });
-    router.push("/outline");
+    const destination =
+      generationMode === "smart"
+        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
+        : "/outline";
+    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
+    router.push(destination);
   };
 
   /**
@@ -386,14 +449,17 @@ const UploadPage = () => {
   const handleDirectPresentationGeneration = async () => {
     setLoadingState({
       isLoading: true,
-      message: "Preparing outline generation...",
+      message:
+        generationMode === "smart"
+          ? "Starting Smart presentation..."
+          : "Preparing outline generation...",
       showProgress: true,
       duration: 30,
     });
 
     const selectedLanguage = config?.language ?? "";
 
-    // Start the outline job; template selection happens on the outline page.
+    // Standard mode continues to outline review; Smart mode streams the deck directly.
     const createResponse = await PresentationGenerationApi.createPresentation({
       content: config?.prompt ?? "",
 
@@ -406,6 +472,11 @@ const UploadPage = () => {
       include_table_of_contents: !!config?.includeTableOfContents,
       include_title_slide: !!config?.includeTitleSlide,
       web_search: !!config?.webSearch,
+      generation_mode: generationMode,
+      community_design_ids:
+        generationMode === "smart" && communityReference
+          ? [communityReference.id]
+          : undefined,
     });
 
     dispatch(setPptGenUploadState({
@@ -417,10 +488,15 @@ const UploadPage = () => {
     trackEvent(MixpanelEvent.Upload_Outline_Generation_Requested, {
       ...getUploadSnapshotProps(),
       presentation_id: createResponse.id,
-      destination: "/outline",
+      destination:
+        generationMode === "smart" ? "/presentation" : "/outline",
     });
-    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/outline" });
-    router.push("/outline");
+    const destination =
+      generationMode === "smart"
+        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
+        : "/outline";
+    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
+    router.push(destination);
   };
 
   /**
@@ -441,7 +517,7 @@ const UploadPage = () => {
   };
 
   return (
-    <Wrapper className="pb-10 lg:max-w-[65%] xl:max-w-[60%] min-[1800px]:max-w-[1180px] min-[2200px]:max-w-[1520px]">
+    <Wrapper className="w-full pb-10">
       <OverlayLoader
         show={loadingState.isLoading}
         text={loadingState.message}
@@ -449,46 +525,69 @@ const UploadPage = () => {
         duration={loadingState.duration}
         extra_info={loadingState.extra_info}
       />
-      <div className="rounded-2xl " >
-        <div className="flex flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between min-[1800px]:gap-5 min-[1800px]:px-5 min-[2200px]:gap-6 min-[2200px]:px-6">
-          <CurrentConfig webSearchEnabled={config.webSearch} />
+      <div className="mx-auto mb-[75px] max-w-[760px] space-y-[18px] px-4 lg:max-w-[780px] xl:max-w-[900px] min-[1600px]:max-w-[1050px] min-[1920px]:max-w-[1280px]">
+        <div className="flex min-h-[34px] w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex items-center rounded-lg border border-[#EDEEEF] bg-white p-1 font-syne"
+              role="tablist"
+              aria-label="Generation mode"
+            >
+              {(["smart", "standard"] as GenerationMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={generationMode === mode}
+                  onClick={() => setGenerationMode(mode)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium capitalize leading-6 text-[#191919] transition-colors ${
+                    generationMode === mode ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <CurrentConfig webSearchEnabled={config.webSearch} />
+          </div>
           <ConfigurationSelects
+            compact
             config={config}
             onConfigChange={handleConfigChange}
           />
         </div>
 
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-
-          <div className="relative">
-            <PromptInput
-              value={config.prompt}
-              onChange={(value) => handleConfigChange("prompt", value)}
-
+        <PromptInput
+          value={config.prompt}
+          variant={generationMode}
+          references={
+            generationMode === "smart" && communityReference
+              ? [{ id: String(communityReference.id), label: communityReference.title || "Community design" }]
+              : []
+          }
+          onRemoveReference={() => setCommunityReference(null)}
+          onChange={(value) => handleConfigChange("prompt", value)}
+          onSubmit={handleGeneratePresentation}
+          hasAttachments={files.length > 0}
+          footer={
+            <SupportingDoc
+              files={files}
+              onFilesChange={setFiles}
+              onSubmit={handleGeneratePresentation}
+              disabled={loadingState.isLoading}
             />
-          </div>
-        </div>
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-          <h3 className="mb-2 text-sm font-medium text-[#333333] min-[1800px]:text-base min-[2200px]:text-lg">Attachments (optional)</h3>
-          <SupportingDoc
-            files={[...files]}
-            onFilesChange={setFiles}
+          }
+        />
+      </div>
+
+      {generationMode === "smart" && (
+        <div className="px-4 sm:px-6">
+          <CommunityReferencePicker
+            selectedId={communityReference?.id ?? null}
+            onSelect={setCommunityReference}
           />
         </div>
-
-        <div className="p-4 min-[1800px]:p-5 min-[2200px]:p-6">
-          <Button
-            onClick={handleGeneratePresentation}
-            style={{
-              background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)"
-            }}
-            className="ml-auto mr-0 flex w-fit items-center justify-center rounded-[28px] px-4 py-5 font-syne text-xs font-semibold text-[#101323] min-[1800px]:px-5 min-[1800px]:py-5 min-[1800px]:text-sm min-[2200px]:px-6 min-[2200px]:py-6 min-[2200px]:text-base"
-          >
-            <span>Get Started</span>
-            <ChevronRight className="!h-5 !w-5 min-[1800px]:!h-6 min-[1800px]:!w-6" />
-          </Button>
-        </div>
-      </div>
+      )}
     </Wrapper>
   );
 };

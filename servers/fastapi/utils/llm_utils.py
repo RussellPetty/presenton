@@ -23,6 +23,7 @@ from utils.schema_utils import get_schema_validation_errors
 LOGGER = logging.getLogger(__name__)
 CLIENT_DISCONNECT_POLL_SECONDS = 0.1
 DisconnectChecker = Callable[[], Awaitable[bool]]
+TextChunkCallback = Callable[[str], Awaitable[None]]
 
 
 async def _raise_if_client_disconnected(
@@ -36,9 +37,10 @@ async def _generate_structured_content(
     client: Any,
     *,
     disconnect_checker: Optional[DisconnectChecker],
+    text_chunk_callback: Optional[TextChunkCallback] = None,
     **kwargs: Any,
 ) -> Optional[dict]:
-    if disconnect_checker is None:
+    if disconnect_checker is None and text_chunk_callback is None:
         response = await asyncio.to_thread(client.generate, **kwargs)
         return extract_structured_content(response.content)
 
@@ -55,9 +57,15 @@ async def _generate_structured_content(
             chunk = getattr(event, "chunk", None)
             if isinstance(chunk, str):
                 streamed_text.append(chunk)
+                if text_chunk_callback is not None:
+                    await text_chunk_callback(chunk)
 
     content = extract_structured_content(completion_content)
     if content is not None:
+        if text_chunk_callback is not None and not streamed_text:
+            serialized = serialize_structured_content(completion_content)
+            if serialized:
+                await text_chunk_callback(serialized)
         return content
     return extract_structured_content("".join(streamed_text))
 
@@ -134,6 +142,7 @@ async def generate_structured_with_schema_retries(
     validate_schema: bool = False,
     validate_schema_max_loop_count: int = 4,
     disconnect_checker: Optional[DisconnectChecker] = None,
+    text_chunk_callback: Optional[TextChunkCallback] = None,
 ) -> dict:
     """
     Parse retries (inner loop) plus optional JSON Schema validation feedback loops (outer loop),
@@ -149,6 +158,11 @@ async def generate_structured_with_schema_retries(
             content = await _generate_structured_content(
                 client,
                 disconnect_checker=disconnect_checker,
+                text_chunk_callback=(
+                    text_chunk_callback
+                    if validation_attempt == 0 and attempt == 0
+                    else None
+                ),
                 **get_generate_kwargs(
                     model=model,
                     messages=working_messages,

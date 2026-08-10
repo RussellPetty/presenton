@@ -138,8 +138,11 @@ export async function readDecomposedFile(filePath: string) {
   return result?.content || "";
 }
 
-export const conversationStorageKey = (scope: string, resourceId: string) =>
-  `presenton:chat:${scope}:conversationId:${resourceId}`;
+export const conversationStorageKey = (
+  scope: string,
+  resourceId: string,
+  presentationType: "standard" | "smart",
+) => `presenton:chat:${scope}:${presentationType}:conversationId:${resourceId}`;
 
 export const readStoredConversationId = (key: string) => {
   if (typeof window === "undefined") return null;

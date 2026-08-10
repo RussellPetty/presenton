@@ -97,6 +97,8 @@ const SlideActionBar = ({
   const slideLayout = typeof slide?.layout === "string" ? slide.layout : "";
   const templateId = useMemo(() => getSlideTemplateId(slide), [slide]);
   const isTemplateV2Slide = isTemplateV2PresentationSlide(slide);
+  const isSmartSlide =
+    typeof slide?.html_content === "string" && slide.html_content.trim();
   const speakerNote =
     typeof slide?.speaker_note === "string" ? slide.speaker_note.trim() : "";
   const keepVisible =
@@ -315,39 +317,41 @@ const SlideActionBar = ({
         )}
       >
         <div className="pointer-events-auto hide-scrollbar flex h-10 max-w-[calc(100%_-_2rem)] items-center overflow-x-auto rounded-[8px] border border-[#E6E6EC] bg-white px-2 shadow-[0_2px_14px_rgba(17,24,39,0.12)]">
-          <button
-            type="button"
-            onClick={handleBlankSlide}
-            disabled={hasReachedSlideLimit}
-            className={cn(
-              "flex h-8 shrink-0 items-center gap-2 rounded-[6px] px-2 text-sm font-normal leading-none text-[#111324] transition-colors hover:bg-[#F7F6F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141e5]",
-              hasReachedSlideLimit && "cursor-not-allowed opacity-50"
-            )}
-          >
-            <span>Blank</span>
-            <Plus className="h-4 w-4" strokeWidth={2.4} />
-          </button>
-
-          {!isTemplateFree && (
+          {!isSmartSlide && (
             <>
-              <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
-
               <button
                 type="button"
-                onClick={openTemplatePicker}
+                onClick={handleBlankSlide}
                 disabled={hasReachedSlideLimit}
                 className={cn(
                   "flex h-8 shrink-0 items-center gap-2 rounded-[6px] px-2 text-sm font-normal leading-none text-[#111324] transition-colors hover:bg-[#F7F6F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141e5]",
                   hasReachedSlideLimit && "cursor-not-allowed opacity-50"
                 )}
               >
-                <span>Use Template</span>
+                <span>Blank</span>
                 <Plus className="h-4 w-4" strokeWidth={2.4} />
               </button>
+
+              {!isTemplateFree && (
+                <>
+                  <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
+                  <button
+                    type="button"
+                    onClick={openTemplatePicker}
+                    disabled={hasReachedSlideLimit}
+                    className={cn(
+                      "flex h-8 shrink-0 items-center gap-2 rounded-[6px] px-2 text-sm font-normal leading-none text-[#111324] transition-colors hover:bg-[#F7F6F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141e5]",
+                      hasReachedSlideLimit && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    <span>Use Template</span>
+                    <Plus className="h-4 w-4" strokeWidth={2.4} />
+                  </button>
+                </>
+              )}
+              <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
             </>
           )}
-
-          <Separator orientation="vertical" className="mx-2 h-6 shrink-0 bg-[#EDEEEF]" />
           {speakerNote &&
             <Popover
               open={isSpeakerPopoverOpen}

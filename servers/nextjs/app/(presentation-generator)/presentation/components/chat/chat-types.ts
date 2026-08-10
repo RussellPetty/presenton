@@ -78,6 +78,7 @@ export type ChatApiAdapter = {
   streamMessage: (
     payload: {
       resourceId: string;
+      presentationType?: "standard" | "smart";
       message: string;
       conversation_id?: string;
       attachments?: ChatAttachment[];
@@ -89,6 +90,7 @@ export type ChatApiAdapter = {
 
 export type ChatProps = {
   presentationId: string;
+  presentationType?: "standard" | "smart";
   presentationData?: unknown;
   resourceId?: string;
   chatAdapter?: ChatApiAdapter;

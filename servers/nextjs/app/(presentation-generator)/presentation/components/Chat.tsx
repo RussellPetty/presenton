@@ -57,7 +57,9 @@ import {
 import { LLM_PROVIDERS } from "@/utils/providerConstants";
 import type { AppDispatch, RootState } from "@/store/store";
 import {
+  clearChatHtmlSelection,
   setPresentationData,
+  type ChatHtmlSelection,
   type PresentationData,
 } from "@/store/slices/presentationGeneration";
 
@@ -123,8 +125,12 @@ import {
 } from "./chat/chat-widgets";
 
 export type { ChatApiAdapter } from "./chat/chat-types";
+
+const MAX_SELECTED_HTML_CONTEXT_CHARS = 3500;
+
 const Chat = ({
   presentationId,
+  presentationType = "standard",
   presentationData,
   resourceId,
   chatAdapter = presentationChatAdapter,
@@ -153,6 +159,9 @@ const Chat = ({
     LLM_PROVIDERS[llmConfig.LLM || "openai"]?.label ||
     llmConfig.LLM ||
     "AI model";
+  const chatHtmlSelection = useSelector(
+    (state: RootState) => state.presentationGeneration.chatHtmlSelection,
+  );
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -203,7 +212,6 @@ const Chat = ({
   const focusDispatchTimerRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
   const refreshQueuedRef = useRef(false);
-  const didIncrementalRefreshRef = useRef(false);
   const openedAnalyticsKeyRef = useRef<string | null>(null);
   const promptMetricsRef = useRef<AssistantPromptMetrics | null>(null);
   const activeEditPreviewRef = useRef<{
@@ -267,7 +275,8 @@ const Chat = ({
       try {
         const sKey = conversationStorageKey(
           conversationStorageScope,
-          activeResourceId
+          activeResourceId,
+          presentationType,
         );
         const storedId = readStoredConversationId(sKey);
         let conversations: ChatConversationSummary[] | null = null;
@@ -370,7 +379,12 @@ const Chat = ({
     return () => {
       cancelled = true;
     };
-  }, [activeResourceId, chatAdapter, conversationStorageScope]);
+  }, [
+    activeResourceId,
+    chatAdapter,
+    conversationStorageScope,
+    presentationType,
+  ]);
 
   useEffect(() => {
     const activePreview = activeEditPreviewRef.current;
@@ -553,6 +567,7 @@ const Chat = ({
     message: string,
     images = pastedImages,
     additionalContext?: string,
+    selectionContext: ChatHtmlSelection | null = chatHtmlSelection,
   ) => {
     const contextLines: string[] = [];
 
@@ -564,6 +579,35 @@ const Chat = ({
     if (variant === "template-v2") {
       contextLines.push(
         "UI context: the user is editing a rendered TemplateV2 presentation with the v2 assistant. Use getTemplateSummary, getAvailableLayouts, getAvailableBlocks, searchSlide, getSlideAtIndex, getContentSchemaFromLayoutId, addNewSlide, addNewSlideLayout, saveSlide, updateSlide, deleteSlide, addElement, updateElement, deleteElement, addComponent, createComponent, updateComponent, deleteComponent, getPresentationTheme, setPresentationTheme, readSourceDocuments, and generateAssets. For visible edits inside an existing slide, inspect with getSlideAtIndex and use the returned componentId/elementPath exactly. Use updateElement for element toolbar-style properties and updateComponent for component move, resize, duplicate, layer order, group, and ungroup actions. When adding or creating rendered elements/components, prefer reusable template blocks over primitives: for custom new slides, search getAvailableBlocks for a title/header text block first, then requested chart/table/content blocks, adapt their component JSON, and include the final requested content instead of placeholder blocks. Keep new rendered elements/components strictly inside the 1280x720 visible slide window."
+      );
+    }
+    if (presentationType === "smart" && variant === "presentation") {
+      contextLines.push(
+        "UI context: the user is editing a Smart HTML presentation. Read the authoritative target HTML with getSlideAtIndex, preserve its design and scripts, and save a complete validated HTML fragment with saveSlide.",
+      );
+    }
+    if (presentationType === "smart" && selectionContext) {
+      const selectedHtml =
+        selectionContext.html.length > MAX_SELECTED_HTML_CONTEXT_CHARS
+          ? `${selectionContext.html.slice(0, MAX_SELECTED_HTML_CONTEXT_CHARS)}\n<!-- selected HTML truncated -->`
+          : selectionContext.html;
+      contextLines.push(
+        `UI context: the user selected one HTML element from slide ${selectionContext.slideNumber} (zero-based index ${selectionContext.slideIndex}). Edit this selected element within the authoritative full slide HTML; preserve unrelated elements.`,
+      );
+      if (selectionContext.elementTag) {
+        contextLines.push(
+          `Selected element tag: ${selectionContext.elementTag}.`,
+        );
+      }
+      if (selectionContext.selectedText) {
+        contextLines.push(
+          `Selected element text: ${selectionContext.selectedText}`,
+        );
+      }
+      contextLines.push(
+        "<selected_html>",
+        selectedHtml,
+        "</selected_html>",
       );
     }
 
@@ -669,9 +713,14 @@ const Chat = ({
     setExpandedEditPreviewByMessage({});
     setSelectedEditVersionByMessage({});
     setApplyingEditPreviewMessageId(null);
+    dispatch(clearChatHtmlSelection());
     if (activeResourceId) {
       removeStoredConversationId(
-        conversationStorageKey(conversationStorageScope, activeResourceId)
+        conversationStorageKey(
+          conversationStorageScope,
+          activeResourceId,
+          presentationType,
+        ),
       );
     }
     inputRef.current?.focus();
@@ -801,7 +850,6 @@ const Chat = ({
     }
 
     refreshInFlightRef.current = true;
-    didIncrementalRefreshRef.current = true;
     try {
       await onPresentationChanged();
     } catch (error) {
@@ -821,11 +869,7 @@ const Chat = ({
 
   const refreshPresentationIfNeeded = async (toolCalls: string[]) => {
     const hasMutation = toolCalls.some((tool) => MUTATING_TOOLS.has(tool));
-    if (
-      !hasMutation ||
-      !onPresentationChanged ||
-      didIncrementalRefreshRef.current
-    ) {
+    if (!hasMutation || !onPresentationChanged) {
       return;
     }
 
@@ -1103,6 +1147,8 @@ const Chat = ({
       }
     }
 
+    const selectionContext = chatHtmlSelection;
+
     const userMessage: ChatMessage = {
       id: createMessageId(),
       role: "user",
@@ -1140,11 +1186,11 @@ const Chat = ({
       [assistantMessageId]: false,
     }));
     setInput("");
+    if (selectionContext) dispatch(clearChatHtmlSelection());
     setErrorMessage(null);
     setHasChatMutationStarted(false);
     setIsSending(true);
     setActiveAssistantMessageId(assistantMessageId);
-    didIncrementalRefreshRef.current = false;
     refreshQueuedRef.current = false;
     refreshInFlightRef.current = false;
     promptMetricsRef.current = {
@@ -1166,6 +1212,7 @@ const Chat = ({
       link_count: chatLinks.length,
       has_selected_slide: typeof currentSlide === "number",
       has_selected_template_target: Boolean(selectedTemplateV2Target),
+      has_selected_html_element: Boolean(selectionContext),
     });
     const streamAbortController = new AbortController();
     abortControllerRef.current = streamAbortController;
@@ -1175,10 +1222,12 @@ const Chat = ({
       const response = await chatAdapter.streamMessage(
         {
           resourceId: activeResourceId,
+          presentationType,
           message: buildBackendMessage(
             outboundMessage,
             imagesForMessage,
             options.backendContext,
+            selectionContext,
           ),
           conversation_id: conversationId ?? undefined,
           attachments: buildChatDocumentAttachments(attachedDocuments),
@@ -1311,7 +1360,11 @@ const Chat = ({
             : previous;
         if (next && activeResourceId) {
           storeConversationId(
-            conversationStorageKey(conversationStorageScope, activeResourceId),
+            conversationStorageKey(
+              conversationStorageScope,
+              activeResourceId,
+              presentationType,
+            ),
             next
           );
         }
@@ -1666,7 +1719,16 @@ const Chat = ({
       selectedTemplateV2Target.elementType ||
       selectedTemplateV2Target.componentId ||
       selectedTemplateV2Target.kind
-    : "";
+    : chatHtmlSelection
+      ? `Slide ${chatHtmlSelection.slideNumber}: ${
+          chatHtmlSelection.selectedText ||
+          chatHtmlSelection.elementTag ||
+          "Selected element"
+        }`
+      : "";
+  const clearChatTargetReference = chatHtmlSelection
+    ? () => dispatch(clearChatHtmlSelection())
+    : onClearChatTargetReference;
 
   if (usesEditorLayout) {
     const previewFonts = getPresentationFonts(presentationData);
@@ -1975,10 +2037,10 @@ const Chat = ({
                     title={chatTargetReference}
                   >
                     <span className="truncate">{chatTargetReference}</span>
-                    {onClearChatTargetReference && (
+                    {clearChatTargetReference && (
                       <button
                         type="button"
-                        onClick={onClearChatTargetReference}
+                        onClick={clearChatTargetReference}
                         className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8069C5] transition-colors hover:bg-[#E4DFFF] hover:text-[#5235A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]/40"
                         aria-label="Remove selected element from context"
                         title="Remove selected element from context"
@@ -2576,10 +2638,10 @@ const Chat = ({
                 title={chatTargetReference}
               >
                 <span className="truncate">{chatTargetReference}</span>
-                {onClearChatTargetReference && (
+                {clearChatTargetReference && (
                   <button
                     type="button"
-                    onClick={onClearChatTargetReference}
+                    onClick={clearChatTargetReference}
                     className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8069C5] transition-colors hover:bg-[#E4DFFF] hover:text-[#5235A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]/40"
                     aria-label="Remove selected element from context"
                     title="Remove selected element from context"

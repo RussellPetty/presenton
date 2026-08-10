@@ -12,6 +12,7 @@ export const presentationChatAdapter: ChatApiAdapter = {
     PresentationChatApi.streamMessage(
       {
         presentation_id: payload.resourceId,
+        presentation_type: payload.presentationType,
         message: payload.message,
         conversation_id: payload.conversation_id,
         attachments: payload.attachments,

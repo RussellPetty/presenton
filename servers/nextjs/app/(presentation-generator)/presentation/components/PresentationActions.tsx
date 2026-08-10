@@ -1196,10 +1196,12 @@ function PrimaryActionButton({
 
 function ActionsSidebar({
   activeAction,
+  aiOnly = false,
   blocksUnavailable = false,
   onActionSelect,
 }: {
   activeAction: ActionId;
+  aiOnly?: boolean;
   blocksUnavailable?: boolean;
   onActionSelect: (action: ActionId) => void;
 }) {
@@ -1217,37 +1219,45 @@ function ActionsSidebar({
           label="AI"
           onClick={() => onActionSelect("ai")}
         />
-        <div className="h-px w-[30px] bg-[#EDEEEF]" />
-        <PrimaryActionButton
-          active={activeAction === "blocks"}
-          disabled={blocksUnavailable}
-          disabledReason="Blocks require a presentation template"
-          icon={<BlocksIcon />}
-          label="Blocks"
-          onClick={() => onActionSelect("blocks")}
-        />
+        {!aiOnly && (
+          <>
+            <div className="h-px w-[30px] bg-[#EDEEEF]" />
+            <PrimaryActionButton
+              active={activeAction === "blocks"}
+              disabled={blocksUnavailable}
+              disabledReason="Blocks require a presentation template"
+              icon={<BlocksIcon />}
+              label="Blocks"
+              onClick={() => onActionSelect("blocks")}
+            />
+          </>
+        )}
       </div>
 
-      <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
-
-      <nav className="flex w-full flex-col items-center gap-5">
-        {insertActions.map((item) => (
-          <React.Fragment key={item.id}>
-            <NavButton
-              item={item}
-              active={activeAction === item.id}
-              onClick={() => onActionSelect(item.id)}
-            />
-            <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
-          </React.Fragment>
-        ))}
-      </nav>
+      {!aiOnly && (
+        <>
+          <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
+          <nav className="flex w-full flex-col items-center gap-5">
+            {insertActions.map((item) => (
+              <React.Fragment key={item.id}>
+                <NavButton
+                  item={item}
+                  active={activeAction === item.id}
+                  onClick={() => onActionSelect(item.id)}
+                />
+                <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
+              </React.Fragment>
+            ))}
+          </nav>
+        </>
+      )}
     </aside>
   );
 }
 
 function ActionsPanel({
   activeAction,
+  aiOnly = false,
   blocksUnavailable = false,
   chatProps,
   editingDisabled = false,
@@ -1261,6 +1271,7 @@ function ActionsPanel({
   presentationId,
 }: {
   activeAction: ActionId;
+  aiOnly?: boolean;
   blocksUnavailable?: boolean;
   chatProps: Omit<PresentationActionsProps, "editingDisabled" | "presentationData">;
   editingDisabled?: boolean;
@@ -1283,7 +1294,7 @@ function ActionsPanel({
         />
       </div>
 
-      {!blocksUnavailable && activeAction === "blocks" && (
+      {!aiOnly && !blocksUnavailable && activeAction === "blocks" && (
         <BlocksPanel
           disabled={editingDisabled}
           presentationId={presentationId}
@@ -1291,7 +1302,7 @@ function ActionsPanel({
           onInsertBlock={onBlockSelect}
         />
       )}
-      {activeAction === "texts" && (
+      {!aiOnly && activeAction === "texts" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Texts"
@@ -1299,7 +1310,7 @@ function ActionsPanel({
           onItemSelect={onTextItemSelect}
         />
       )}
-      {activeAction === "charts" && (
+      {!aiOnly && activeAction === "charts" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Charts"
@@ -1310,7 +1321,7 @@ function ActionsPanel({
           onItemSelect={onChartItemSelect}
         />
       )}
-      {activeAction === "tables" && (
+      {!aiOnly && activeAction === "tables" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Tables"
@@ -1318,7 +1329,7 @@ function ActionsPanel({
           onItemSelect={onTableItemSelect}
         />
       )}
-      {activeAction === "images" && (
+      {!aiOnly && activeAction === "images" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Images"
@@ -1326,7 +1337,7 @@ function ActionsPanel({
           onItemSelect={onImageItemSelect}
         />
       )}
-      {activeAction === "elements" && (
+      {!aiOnly && activeAction === "elements" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Elements"
@@ -1362,6 +1373,7 @@ function templateV2TargetKey(
 
 const PresentationActions = (props: PresentationActionsProps) => {
   const { editingDisabled = false, presentationData, ...chatProps } = props;
+  const aiOnly = props.presentationType === "smart";
   const blocksUnavailable = isTemplateFreePresentation(presentationData);
   const [{ activeAction }, dispatchUiState] = useReducer(
     presentationActionsUiReducer,
@@ -1398,10 +1410,13 @@ const PresentationActions = (props: PresentationActionsProps) => {
       : chatProps.currentSlide;
 
   useEffect(() => {
-    if (blocksUnavailable && activeAction === "blocks") {
+    if (
+      (aiOnly || (blocksUnavailable && activeAction === "blocks")) &&
+      activeAction !== "ai"
+    ) {
       dispatchUiState({ type: "selectAction", activeAction: "ai" });
     }
-  }, [activeAction, blocksUnavailable]);
+  }, [activeAction, aiOnly, blocksUnavailable]);
 
   useEffect(() => {
     setHiddenSlideReference(null);
@@ -1602,6 +1617,9 @@ const PresentationActions = (props: PresentationActionsProps) => {
   };
 
   const handleActionSelect = (activeAction: ActionId) => {
+    if (aiOnly && activeAction !== "ai") {
+      return;
+    }
     if (blocksUnavailable && activeAction === "blocks") {
       return;
     }
@@ -1621,11 +1639,13 @@ const PresentationActions = (props: PresentationActionsProps) => {
     >
       <ActionsSidebar
         activeAction={activeAction}
+        aiOnly={aiOnly}
         blocksUnavailable={blocksUnavailable}
         onActionSelect={handleActionSelect}
       />
       <ActionsPanel
         activeAction={activeAction}
+        aiOnly={aiOnly}
         blocksUnavailable={blocksUnavailable}
         chatProps={{
           ...chatProps,
