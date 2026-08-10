@@ -15,6 +15,17 @@ VALID_SMART_HTML = (
     '<h2 class="text-5xl">Updated title</h2></section>'
 )
 
+VALID_SMART_CHART_HTML = (
+    '<section data-slide-type="content" data-slide-title="Updated chart" '
+    'class="relative h-[720px] w-[1280px] overflow-hidden bg-white">'
+    '<canvas id="chart-a1b2c3" width="600" height="300"></canvas>'
+    "<script>(() => { const canvas = document.querySelector('#chart-a1b2c3'); "
+    "new Chart(canvas, {type: 'bar', data: {labels: ['A'], datasets: "
+    "[{data: [7]}]}, options: {responsive: false, animation: false, plugins: "
+    "{datalabels: {formatter: function(value) { return value; }}}}}); "
+    "})();</script></section>"
+)
+
 
 class _Rows:
     def __init__(self, rows):
@@ -81,6 +92,8 @@ def test_smart_prompt_requires_full_validated_html_replacement():
     assert "includeFullContent=true" in prompt
     assert "replaceOldSlideAtIndex=true" in prompt
     assert "template layout/schema/component" in prompt
+    assert "never save a canvas" in prompt
+    assert "do not add a CDN script" in prompt
 
 
 def test_smart_chat_exposes_only_html_appropriate_tools():
@@ -164,6 +177,39 @@ def test_smart_slide_save_validates_and_replaces_html():
     assert slide.content == {"title": "Updated title"}
     assert slide.ui is None
     assert session.commit_count == 1
+
+
+def test_smart_chat_save_preserves_complete_chart_script():
+    presentation_id = uuid.uuid4()
+    presentation = _smart_presentation(presentation_id)
+    slide = SlideModel(
+        presentation=presentation_id,
+        layout_group="smart-html",
+        layout="smart-html",
+        index=0,
+        content={"title": "Original"},
+        html_content=VALID_SMART_HTML,
+        speaker_note="",
+    )
+    session = _SmartSession(presentation, [slide])
+    memory = PresentationChatMemoryLayer(
+        session,
+        presentation_id,
+        presentation_type="smart",
+    )
+
+    result = asyncio.run(
+        memory.save_html_slide(
+            html=VALID_SMART_CHART_HTML,
+            index=0,
+            replace_old_slide_at_index=True,
+        )
+    )
+
+    assert result["saved"] is True
+    assert "<canvas" in slide.html_content
+    assert "<script" in slide.html_content
+    assert "new Chart" in slide.html_content
 
 
 def test_smart_slide_save_rejects_invalid_canvas():

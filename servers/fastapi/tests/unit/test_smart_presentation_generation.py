@@ -225,6 +225,88 @@ def test_smart_html_normalization_keeps_safe_chartjs_initialization():
     assert "<script" in html
 
 
+def test_smart_html_normalization_keeps_chartjs_formatter_callbacks():
+    html = normalize_smart_slide_html(
+        _smart_slide_html(
+            "Regional metrics",
+            body=(
+                '<canvas id="chart-c4d5e6" width="600" height="300"></canvas>'
+                "<script>(() => { const canvas = "
+                "document.querySelector('#chart-c4d5e6'); "
+                "new Chart(canvas, {type: 'bar', data: {labels: ['Location', 'Top'], "
+                "datasets: [{data: [42, 51]}]}, options: {responsive: false, "
+                "animation: false, plugins: {datalabels: {formatter: "
+                "function(value) { return value + '%'; }}}}}); })();</script>"
+            ),
+        )
+    )
+
+    assert "<script" in html
+    assert "function(value)" in html
+    assert "Location" in html
+    assert "Top" in html
+
+
+def test_smart_html_normalization_rejects_chart_canvas_without_initializer():
+    with pytest.raises(HTTPException, match="missing its inline Chart.js"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Incomplete chart",
+                body=(
+                    '<canvas id="chart-a1b2c3" width="600" height="300">'
+                    "</canvas>"
+                ),
+            )
+        )
+
+
+def test_smart_html_normalization_rejects_chart_scripts_with_network_access():
+    with pytest.raises(HTTPException, match="missing its inline Chart.js"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Unsafe chart",
+                body=(
+                    '<canvas id="chart-a1b2c3" width="600" height="300">'
+                    "</canvas><script>(() => { fetch('/private'); "
+                    "new Chart(document.querySelector('#chart-a1b2c3'), "
+                    "{type: 'bar', data: {labels: [], datasets: []}}); "
+                    "})();</script>"
+                ),
+            )
+        )
+
+
+def test_smart_api_parser_returns_complete_chart_html():
+    chart_slide = _smart_slide_html(
+        "Metrics",
+        body=(
+            '<canvas id="chart-d4e5f6" width="600" height="300"></canvas>'
+            "<script>(() => { const canvas = "
+            "document.querySelector('#chart-d4e5f6'); "
+            "new Chart(canvas, {type: 'line', data: {labels: ['Q1'], "
+            "datasets: [{data: [10]}]}, options: {responsive: false, "
+            "animation: false}}); })();</script>"
+        ),
+    )
+    response = (
+        "<!-- PRESENTATION_TITLE: Metrics -->"
+        "<!-- SLIDE_START -->"
+        + chart_slide
+        + "<!-- SLIDE_END -->"
+    )
+
+    _, slides = parse_smart_presentation_html(
+        response,
+        expected_slide_count=1,
+        include_title_slide=False,
+        include_table_of_contents=False,
+    )
+
+    assert "<canvas" in slides[0]["html"]
+    assert "<script" in slides[0]["html"]
+    assert "new Chart" in slides[0]["html"]
+
+
 @pytest.mark.parametrize(
     "unsafe_layout",
     (

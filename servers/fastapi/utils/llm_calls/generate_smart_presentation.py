@@ -120,6 +120,10 @@ CHART_JS_INSTRUCTIONS = """
   Set `responsive: false` and `animation: false`.
 - Use the slide palette. Configure `options.plugins.datalabels` for visible
   value labels outside bar and pie/donut charts.
+- A chart is incomplete unless the same slide contains both its canvas and its
+  inline initialization script. Never return a chart canvas by itself.
+- Example:
+  `<canvas id="chart-f81a12" width="900" height="420"></canvas><script>(() => { const canvas = document.querySelector('#chart-f81a12'); if (!canvas) return; new Chart(canvas, { type: 'bar', data: { labels: ['A', 'B'], datasets: [{ data: [10, 20], backgroundColor: ['#866255', '#B78E7E'] }] }, options: { responsive: false, animation: false, plugins: { datalabels: { anchor: 'end', align: 'end' } } } }); })();</script>`
 """
 
 SMART_DIRECT_HTML_PROMPT = (
@@ -189,10 +193,21 @@ _JAVASCRIPT_URL = re.compile(
     r"\s+(href|src)\s*=\s*([\"'])\s*javascript:[^\"']*\2", re.IGNORECASE
 )
 _UNSAFE_CHART_SCRIPT = re.compile(
-    r"\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|eval|Function|import)\b|"
-    r"\b(?:parent|top|opener|localStorage|sessionStorage|cookie|location)\b",
+    r"\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|eval)\s*\(|"
+    r"\bimport\s*\(|"
+    r"\bwindow\s*\.\s*(?:parent|top|opener|localStorage|sessionStorage)\b|"
+    r"\b(?:parent|top|opener|localStorage|sessionStorage)\s*(?:\.|\[)|"
+    r"\b(?:document|window)\s*\.\s*(?:cookie|location)\b|"
+    r"\bnavigator\s*\.\s*sendBeacon\b|"
+    r"\bwindow\s*\.\s*open\s*\(",
     re.IGNORECASE,
 )
+_UNSAFE_FUNCTION_CONSTRUCTOR = re.compile(r"\b(?:new\s+)?Function\s*\(")
+_CHART_CANVAS = re.compile(
+    r"<canvas\b[^>]*\bid\s*=\s*([\"'])(chart-[a-z0-9_-]+)\1",
+    re.IGNORECASE,
+)
+_CHART_INITIALIZER = re.compile(r"\bnew\s+(?:window\.)?Chart\s*\(")
 _SECTION_OPEN = re.compile(r"^\s*<section\b([^>]*)>", re.IGNORECASE)
 _SECTION_CLOSE = re.compile(r"</section>\s*$", re.IGNORECASE)
 _HEADING = re.compile(r"<h[1-3]\b[^>]*>(.*?)</h[1-3]\s*>", re.IGNORECASE | re.DOTALL)
@@ -326,11 +341,39 @@ def _sanitize_script(match: re.Match[str]) -> str:
     attributes, content = match.group(1), match.group(2)
     if re.search(r"\bsrc\s*=", attributes, re.IGNORECASE):
         return ""
-    if not re.search(r"\bnew\s+(?:window\.)?Chart\s*\(", content):
+    if not _CHART_INITIALIZER.search(content):
         return ""
-    if _UNSAFE_CHART_SCRIPT.search(content):
+    if (
+        _UNSAFE_CHART_SCRIPT.search(content)
+        or _UNSAFE_FUNCTION_CONSTRUCTOR.search(content)
+    ):
         return ""
     return match.group(0)
+
+
+def _validate_chart_initializers(html: str) -> None:
+    chart_canvas_ids = [match.group(2) for match in _CHART_CANVAS.finditer(html)]
+    if not chart_canvas_ids:
+        return
+
+    chart_scripts = [
+        match.group(2)
+        for match in _SCRIPT_TAG.finditer(html)
+        if _CHART_INITIALIZER.search(match.group(2))
+    ]
+    missing_initializers = [
+        canvas_id
+        for canvas_id in chart_canvas_ids
+        if not any(canvas_id in script for script in chart_scripts)
+    ]
+    if missing_initializers:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The Smart slide chart canvas is missing its inline Chart.js "
+                "initialization script: " + ", ".join(missing_initializers)
+            ),
+        )
 
 
 def normalize_smart_slide_html(value: Any) -> str:
@@ -340,6 +383,7 @@ def normalize_smart_slide_html(value: Any) -> str:
     html = _SCRIPT_TAG.sub(_sanitize_script, html)
     html = _EVENT_HANDLER_ATTRIBUTE.sub("", html)
     html = _JAVASCRIPT_URL.sub("", html)
+    _validate_chart_initializers(html)
     root_match = _SECTION_OPEN.match(html)
     if root_match is None or _SECTION_CLOSE.search(html) is None:
         raise HTTPException(status_code=400, detail="The model returned an invalid Smart slide")
