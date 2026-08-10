@@ -186,6 +186,13 @@ slide.html_content; they are not template JSON slides.
   them.
 - Keep every meaningful element inside the 1280x720 canvas. Do not introduce
   scrolling, line clamps, truncation, ellipses, clipped text, or overflow.
+- Keep headings, body text, cards, charts, and images in normal-flow flex/grid
+  layouts with explicit gaps. Use absolute/fixed positioning only for
+  non-content decoration marked `aria-hidden="true"` and
+  `data-decorative="true"`; never use negative margins/translations to force
+  meaningful content into place.
+- Do not put `overflow-hidden` on a descendant containing text. Shorten or
+  reflow the content until every line is visible and no sibling boxes overlap.
 - Existing-slide edits use replaceOldSlideAtIndex=true at the same index.
 - New slides use replaceOldSlideAtIndex=false at the requested insertion index
   and must match neighboring slides and the deck context.

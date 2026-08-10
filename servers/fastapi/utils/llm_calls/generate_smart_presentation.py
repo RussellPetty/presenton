@@ -18,6 +18,7 @@ from llmai.shared import (
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
+from utils.smart_slide_layout import inspect_smart_slide_layout
 from utils.llm_utils import (
     extract_text,
     get_generate_kwargs,
@@ -28,8 +29,8 @@ from utils.llm_utils import (
 DEFAULT_SMART_SLIDE_COUNT = 8
 MAX_SMART_SLIDE_COUNT = 20
 SMART_GENERATION_MAX_ATTEMPTS = 8
-SMART_MAX_VISIBLE_CHARACTERS = 1800
-SMART_MAX_VISIBLE_WORDS = 220
+SMART_MAX_VISIBLE_CHARACTERS = 1200
+SMART_MAX_VISIBLE_WORDS = 140
 SmartSlideCallback = Callable[[int, dict[str, str]], Awaitable[None]]
 
 SMART_DECK_SYSTEM_PROMPT = (
@@ -49,7 +50,8 @@ Overflow prevention is a hard requirement:
   footer, padding, gaps, and line heights so their combined height stays within
   the canvas. Prefer fewer, shorter points over dense copy.
 - Keep body copy presentation-sized: normally at most 6 bullets, 5 cards, or
-  2 short paragraphs on one slide. Split ideas across slides when needed.
+  2 short paragraphs on one slide. Aim for no more than 100 visible words and
+  treat 140 as a hard maximum. Split ideas across slides when needed.
 - Use flex/grid for primary layout. Add `min-w-0` to constrained columns and
   `min-h-0` to constrained rows. Text containers must use `break-words` where
   long values or URLs may appear.
@@ -61,9 +63,13 @@ Overflow prevention is a hard requirement:
 - Never use `overflow-auto`, `overflow-scroll`, `overflow-x-auto`,
   `overflow-y-auto`, scrollbars, `line-clamp-*`, `truncate`, `text-ellipsis`, or
   intentional clipping on text containers.
-- Use absolute positioning only for decorative layers or deliberate overlays.
-  Keep all meaningful text, charts, images, and cards fully inside the safe
-  area. Decorative layers must remain behind content and must not cover text.
+- Keep headings, body text, cards, charts, and images in normal-flow flex/grid
+  layouts. Absolute/fixed positioning is for non-content decoration only; mark
+  those layers `aria-hidden="true"` and `data-decorative="true"`. Never use
+  negative margins or translations to make meaningful items collide.
+- Never place `overflow-hidden` on a descendant that contains text. Keep all
+  meaningful content fully inside the safe area by reducing density and reflowing
+  the layout, not by clipping it.
 - Before returning each slide, perform a final fit pass: verify every line of
   text is visible, cards contain their content, siblings do not overlap, and no
   meaningful element crosses the 1280×720 boundary.
@@ -428,6 +434,16 @@ def _validate_smart_slide_layout_safety(html: str) -> None:
                 "The Smart slide is too text-dense for a 1280x720 canvas "
                 f"({word_count} words, {len(visible_text)} characters). Shorten "
                 "the copy or distribute it across the remaining slides."
+            ),
+        )
+
+    layout_issues = inspect_smart_slide_layout(html)
+    if layout_issues:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The Smart slide has overflow or overlap risks: "
+                + " ".join(layout_issues)
             ),
         )
 

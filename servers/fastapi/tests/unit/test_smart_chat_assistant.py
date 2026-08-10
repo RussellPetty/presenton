@@ -94,6 +94,8 @@ def test_smart_prompt_requires_full_validated_html_replacement():
     assert "template layout/schema/component" in prompt
     assert "never save a canvas" in prompt
     assert "do not add a CDN script" in prompt
+    assert "normal-flow flex/grid" in prompt
+    assert "no sibling boxes overlap" in prompt
 
 
 def test_smart_chat_exposes_only_html_appropriate_tools():
@@ -232,4 +234,34 @@ def test_smart_slide_save_rejects_invalid_canvas():
 
     assert result["saved"] is False
     assert result["validation_errors"]
+    assert session.commit_count == 0
+
+
+def test_smart_chat_save_rejects_overlapping_positioned_content():
+    presentation_id = uuid.uuid4()
+    presentation = _smart_presentation(presentation_id)
+    session = _SmartSession(presentation, [])
+    memory = PresentationChatMemoryLayer(
+        session,
+        presentation_id,
+        presentation_type="smart",
+    )
+    overlapping_html = (
+        '<section class="relative h-[720px] w-[1280px] overflow-hidden">'
+        '<div class="absolute left-[40px] top-[80px] w-[500px] h-[180px]">'
+        "First</div>"
+        '<div class="absolute left-[300px] top-[120px] w-[500px] h-[180px]">'
+        "Second</div></section>"
+    )
+
+    result = asyncio.run(
+        memory.save_html_slide(
+            html=overlapping_html,
+            index=0,
+            replace_old_slide_at_index=False,
+        )
+    )
+
+    assert result["saved"] is False
+    assert "sibling content boxes overlap" in result["validation_errors"][0]
     assert session.commit_count == 0

@@ -100,6 +100,8 @@ def test_smart_prompt_matches_cloud_one_shot_method_without_speaker_notes():
     assert "Speaker note" not in prompt
     assert "Overflow prevention is a hard requirement" in prompt
     assert "Never use `overflow-auto`" in prompt
+    assert "normal-flow flex/grid" in prompt
+    assert "140 as a hard maximum" in prompt
 
 
 def test_smart_retry_prompt_includes_layout_validation_feedback():
@@ -329,6 +331,83 @@ def test_smart_html_normalization_rejects_text_density_that_cannot_fit():
         normalize_smart_slide_html(
             _smart_slide_html("Dense layout", body=f"<p>{dense_copy}</p>")
         )
+
+
+def test_smart_html_normalization_rejects_nested_text_clipping():
+    with pytest.raises(HTTPException, match="nested container hides text"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Clipped card",
+                body='<div class="h-[80px] overflow-hidden">Visible text</div>',
+            )
+        )
+
+
+def test_smart_html_normalization_rejects_unbounded_absolute_text():
+    with pytest.raises(HTTPException, match="missing a complete pixel box"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Floating text",
+                body='<div class="absolute left-8 top-8">Floating content</div>',
+            )
+        )
+
+
+def test_smart_html_normalization_rejects_negative_content_offsets():
+    with pytest.raises(HTTPException, match="negative margin or translation"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Colliding content",
+                body='<div class="-mt-8">Pulled over the heading</div>',
+            )
+        )
+
+
+def test_smart_html_normalization_rejects_off_canvas_positioned_content():
+    with pytest.raises(HTTPException, match="right slide/container boundary"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Off canvas",
+                body=(
+                    '<div class="absolute left-[1100px] top-[40px] '
+                    'w-[300px] h-[80px]">Outside</div>'
+                ),
+            )
+        )
+
+
+def test_smart_html_normalization_rejects_overlapping_positioned_siblings():
+    with pytest.raises(HTTPException, match="sibling content boxes overlap"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Overlap",
+                body=(
+                    '<div class="absolute left-[64px] top-[120px] '
+                    'w-[420px] h-[180px]">First</div>'
+                    '<div class="absolute left-[360px] top-[160px] '
+                    'w-[420px] h-[180px]">Second</div>'
+                ),
+            )
+        )
+
+
+def test_smart_html_normalization_accepts_separated_positioned_content():
+    html = normalize_smart_slide_html(
+        _smart_slide_html(
+            "Separated",
+            body=(
+                '<div class="absolute left-[64px] top-[120px] '
+                'w-[420px] h-[180px]">First</div>'
+                '<div class="absolute left-[560px] top-[120px] '
+                'w-[420px] h-[180px]">Second</div>'
+                '<div aria-hidden="true" data-decorative="true" '
+                'class="absolute -translate-x-1/2">Decoration</div>'
+            ),
+        )
+    )
+
+    assert "First" in html
+    assert "Second" in html
 
 
 def test_smart_deck_requires_exact_slide_count_and_omits_speaker_notes():
