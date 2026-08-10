@@ -149,3 +149,43 @@ test("renders charts with local Chart.js and datalabels scripts", async () => {
   assert.equal(inlineScripts.length, 1);
   assert.doesNotThrow(() => new Function(inlineScripts[0]));
 });
+
+test("renders infographics without visible value text", async () => {
+  const { templateV2UiToHtml } = await importRenderer();
+
+  const html = templateV2UiToHtml({
+    elements: [
+      {
+        type: "infographic",
+        position: { x: 0, y: 0 },
+        size: { width: 320, height: 190 },
+        data: {
+          type: "gauge",
+          min_value: 0,
+          max_value: 100,
+          value: 63.25,
+        },
+        colors: ["E5E7EB", "2563EB"],
+      },
+      {
+        type: "infographic",
+        position: { x: 0, y: 220 },
+        size: { width: 420, height: 74 },
+        data: {
+          type: "progress_bar",
+          min_value: 0,
+          max_value: 100,
+          value: 71.5,
+        },
+        colors: ["E5E7EB", "2563EB"],
+      },
+    ],
+  });
+
+  assert.ok(html);
+  assert.match(html, /<svg[^>]*><path/);
+  assert.match(html, /width:71\.5%/);
+  assert.doesNotMatch(html, /<text\b/);
+  assert.doesNotMatch(html, />63\.25</);
+  assert.doesNotMatch(html, />71\.5</);
+});

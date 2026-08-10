@@ -978,21 +978,10 @@ function renderProgressBarInfographic(item: JsonRecord, mode: RenderMode): strin
   const baseColor = infographicBaseColor(item);
   const fallbackSize = { width: 180, height: 40 };
   const box = readBox(item, fallbackSize);
-  const showLabel = (box.height ?? fallbackSize.height) >= 28;
-  const label = showLabel
-    ? `<div style="color:#111827;font-size:${cssNumber(
-      Math.max(
-        10,
-        Math.min(16, Math.round((box.height ?? fallbackSize.height) * 0.3))
-      )
-    )}px;font-weight:700;line-height:1;text-align:right">${escapeHtml(
-      metrics.label
-    )}</div>`
-    : "";
 
   return `<div style="${frameStyle(item, mode, fallbackSize)}${transformStyle(
     item
-  )}display:flex;flex-direction:column;gap:6px;justify-content:center;overflow:hidden"><div style="position:relative;width:100%;height:${cssNumber(
+  )}display:flex;align-items:center;overflow:hidden"><div style="position:relative;width:100%;height:${cssNumber(
     Math.max(
       6,
       Math.min(18, Math.round((box.height ?? fallbackSize.height) * 0.35))
@@ -1001,7 +990,7 @@ function renderProgressBarInfographic(item: JsonRecord, mode: RenderMode): strin
     baseColor
   )};overflow:hidden"><div style="height:100%;width:${cssNumber(
     metrics.ratio * 100
-  )}%;border-radius:inherit;background:${escapeCssColor(highlightColor)}"></div></div>${label}</div>`;
+  )}%;border-radius:inherit;background:${escapeCssColor(highlightColor)}"></div></div></div>`;
 }
 
 function renderGaugeInfographic(item: JsonRecord, mode: RenderMode): string {
@@ -1022,9 +1011,7 @@ function renderGaugeInfographic(item: JsonRecord, mode: RenderMode): string {
     item
   )}overflow:hidden"><svg width="100%" height="100%" viewBox="0 0 120 72" preserveAspectRatio="xMidYMid meet" style="display:block"><path d="M 12 60 A 48 48 0 0 1 108 60" fill="none" stroke="${escapeAttribute(
     escapeCssColor(baseColor)
-  )}" stroke-width="12" stroke-linecap="round"/>${progressPath}<text x="60" y="52" text-anchor="middle" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">${escapeHtml(
-    metrics.label
-  )}</text></svg></div>`;
+  )}" stroke-width="12" stroke-linecap="round"/>${progressPath}</svg></div>`;
 }
 
 function chartConfig(item: JsonRecord, height: number): JsonRecord {
@@ -1736,7 +1723,6 @@ function withAlpha(color: string, alpha: number): string {
 
 interface InfographicMetrics {
   ratio: number;
-  label: string;
 }
 
 function infographicKindFromValue(value: string | null): InfographicKind {
@@ -1758,7 +1744,6 @@ function infographicMetrics(item: JsonRecord): InfographicMetrics {
 
   return {
     ratio,
-    label: formatInfographicNumber(value),
   };
 }
 
@@ -1807,11 +1792,6 @@ function gaugePoint(
     x: centerX + radius * Math.cos(radians),
     y: centerY + radius * Math.sin(radians),
   };
-}
-
-function formatInfographicNumber(value: number): string {
-  const rounded = Math.round(value * 100) / 100;
-  return Object.is(rounded, -0) ? "0" : String(rounded);
 }
 
 function clamp(value: number, min: number, max: number): number {

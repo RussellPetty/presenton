@@ -2886,16 +2886,23 @@ function RawInfographicElement({
     "#E5E7EB";
   const highlightColor =
     withHash(readString(colors[1])) ?? "#2563EB";
-  const value = readNumber(data?.value) ?? 0;
-
   if (infographicType === "progress_bar") {
-    const radius = Math.min(height / 2, 8);
+    const barHeight = Math.max(6, Math.min(18, Math.round(height * 0.35)));
+    const barY = (height - barHeight) / 2;
+    const radius = barHeight / 2;
     return (
       <Group listening={interactive} {...shadowProps(element)}>
-        <Rect width={width} height={height} cornerRadius={radius} fill={baseColor} />
         <Rect
+          y={barY}
+          width={width}
+          height={barHeight}
+          cornerRadius={radius}
+          fill={baseColor}
+        />
+        <Rect
+          y={barY}
           width={width * progress}
-          height={height}
+          height={barHeight}
           cornerRadius={radius}
           fill={highlightColor}
         />
@@ -2904,7 +2911,7 @@ function RawInfographicElement({
   }
 
   const valueAngle = 180 * progress;
-  const thickness = Math.max(6, Math.min(width, height) * 0.18);
+  const thickness = Math.max(6, Math.min(width * 0.1, height / 6));
   const outerRadius = Math.max(1, Math.min(width * 0.43, height * 0.86));
   const innerRadius = Math.max(1, outerRadius - thickness);
   const middleRadius = (outerRadius + innerRadius) / 2;
@@ -2946,19 +2953,6 @@ function RawInfographicElement({
           <Circle x={end.x} y={end.y} radius={capRadius} fill={highlightColor} />
         </>
       ) : null}
-      <Text
-        x={0}
-        y={height * 0.5}
-        width={width}
-        height={height * 0.3}
-        text={String(Math.round(value))}
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontSize={Math.max(10, Math.min(width, height) * 0.22)}
-        fontStyle="bold"
-        align="center"
-        verticalAlign="middle"
-        fill="#172033"
-      />
     </Group>
   );
 }
