@@ -9,6 +9,7 @@ export type PresentationVersion = "v1-standard" | "v2-standard";
 export interface PresentationResponse {
   id: string;
   version?: PresentationVersion;
+  generation_mode?: "standard" | "smart";
   title: string;
   created_at: string;
   updated_at: string;

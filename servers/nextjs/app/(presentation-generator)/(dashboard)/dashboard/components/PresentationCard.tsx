@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect } from "react";
+import React from "react";
 
 import { Card } from "@/components/ui/card";
 import { DashboardApi } from "@/app/(presentation-generator)/services/api/dashboard";
@@ -12,7 +12,6 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
 
-import { useFontLoader } from "@/app/(presentation-generator)/hooks/useFontLoad";
 import SlideScale from "@/app/(presentation-generator)/components/PresentationRender";
 import {
   shouldRenderTemplateV2HtmlPreview,
@@ -42,8 +41,8 @@ export const PresentationCard = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isDuplicating, setIsDuplicating] = React.useState(false);
   const isUnsupported = presentation?.version === "v1-standard";
-
-  
+  const presentationType =
+    presentation?.generation_mode === "smart" ? "smart" : "standard";
 
   const handlePreview = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,8 +58,9 @@ export const PresentationCard = ({
       presentation_id: id,
       title_length: (title || "").length,
       slide_count: presentation?.slides?.length || 0,
+      presentation_type: presentationType,
     });
-    router.push(`/presentation?id=${id}&type=standard`);
+    router.push(`/presentation?id=${id}&type=${presentationType}`);
   };
 
 
@@ -113,7 +113,6 @@ export const PresentationCard = ({
     firstSlide,
     presentation?.version
   );
-  console.log('presentation'  , presentation)
   return (
     <Card
       suppressHydrationWarning={true}
@@ -158,12 +157,24 @@ export const PresentationCard = ({
           ) : (
             <SlideScale
               slide={firstSlide}
+              fonts={presentation.fonts}
               isClickable={false}
               presentationLayout={presentation.layout}
             />
           )}
         </div>
-       <p className="absolute right-2 top-2 z-40 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-[#191919] shadow-sm backdrop-blur-sm">{presentation.n_slides}</p>
+        <p
+          className={`absolute left-2 top-2 z-40 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize shadow-sm backdrop-blur-sm ${
+            presentationType === "smart"
+              ? "bg-[#F4F0FF]/95 text-[#6941C6]"
+              : "bg-white/90 text-[#475467]"
+          }`}
+        >
+          {presentationType}
+        </p>
+        <p className="absolute right-2 top-2 z-40 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-[#191919] shadow-sm backdrop-blur-sm">
+          {presentation.n_slides ?? presentation?.slides?.length ?? 0}
+        </p>
         <div className={`z-40 flex bg-white px-5 py-3 ${viewMode === "list" ? "min-w-0 flex-1 items-center border-l border-[#EDEEEF]" : "relative mt-auto w-full border-t border-[#EDEEEF]"}`}>
           <div className="flex items-center justify-between gap-7 w-full">
             <div className="flex flex-col items-start gap-1">
