@@ -92,7 +92,7 @@ from utils.process_slides import (
     process_slide_and_fetch_assets,
 )
 from utils.icon_weights import DEFAULT_ICON_TYPE, extract_icon_type_from_settings
-from utils.llm_utils import message_content_to_text
+from utils.llm_utils import TextGenerationMetrics, message_content_to_text
 from utils.sse import safe_sse_stream
 from api.v1.auth.config import SESSION_COOKIE_NAME
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
@@ -1740,7 +1740,7 @@ async def _stream_smart_presentation(
             )
         ).to_string()
         streamed_slides: dict[int, SlideModel] = {}
-        slide_events: asyncio.Queue[SlideModel] = asyncio.Queue()
+        generation_events: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
 
         async def emit_slide(index: int, slide: dict[str, str]) -> None:
             if index < 0 or index >= slide_count:
@@ -1761,7 +1761,10 @@ async def _stream_smart_presentation(
                 streamed_slide.content = {"title": slide["title"]}
                 streamed_slide.html_content = slide["html"]
                 streamed_slide.speaker_note = ""
-            await slide_events.put(streamed_slide)
+            await generation_events.put(("slide", streamed_slide))
+
+        async def emit_metrics(metrics: TextGenerationMetrics) -> None:
+            await generation_events.put(("metrics", metrics))
 
         generation_task = asyncio.create_task(
             generate_smart_presentation(
@@ -1777,17 +1780,32 @@ async def _stream_smart_presentation(
                 community_design_context=community_context,
                 fonts=presentation.fonts,
                 on_slide=emit_slide,
+                on_metrics=emit_metrics,
             )
         )
 
         try:
-            while not generation_task.done() or not slide_events.empty():
+            while not generation_task.done() or not generation_events.empty():
                 try:
-                    streamed_slide = await asyncio.wait_for(
-                        slide_events.get(), timeout=0.1
+                    event_type, event_value = await asyncio.wait_for(
+                        generation_events.get(), timeout=0.1
                     )
                 except asyncio.TimeoutError:
                     continue
+                if event_type == "metrics":
+                    metrics = event_value
+                    if not isinstance(metrics, TextGenerationMetrics):
+                        raise TypeError("Invalid Smart generation metrics event")
+                    yield SSEResponse(
+                        event="response",
+                        data=json.dumps(
+                            {"type": "generation_metrics", **metrics.to_dict()}
+                        ),
+                    ).to_string()
+                    continue
+                streamed_slide = event_value
+                if not isinstance(streamed_slide, SlideModel):
+                    raise TypeError("Invalid Smart slide event")
                 yield SSEResponse(
                     event="response",
                     data=json.dumps(
