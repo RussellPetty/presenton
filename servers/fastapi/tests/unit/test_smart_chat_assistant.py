@@ -96,6 +96,7 @@ def test_smart_prompt_requires_full_validated_html_replacement():
     assert "do not add a CDN script" in prompt
     assert "normal-flow flex/grid" in prompt
     assert "no sibling boxes overlap" in prompt
+    assert "Preserve important facts" in prompt
 
 
 def test_smart_chat_exposes_only_html_appropriate_tools():

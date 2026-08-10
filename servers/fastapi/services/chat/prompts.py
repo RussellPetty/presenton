@@ -193,6 +193,10 @@ slide.html_content; they are not template JSON slides.
   meaningful content into place.
 - Do not put `overflow-hidden` on a descendant containing text. Shorten or
   reflow the content until every line is visible and no sibling boxes overlap.
+- Preserve important facts and requested points when repairing layout. Prefer
+  clearer columns, smaller gaps/padding, concise wording, or redistribution to
+  another requested slide over deleting substantive content. Text-led slides
+  may be denser than visual/chart slides when they remain readable.
 - Existing-slide edits use replaceOldSlideAtIndex=true at the same index.
 - New slides use replaceOldSlideAtIndex=false at the requested insertion index
   and must match neighboring slides and the deck context.

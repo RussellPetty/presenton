@@ -101,7 +101,8 @@ def test_smart_prompt_matches_cloud_one_shot_method_without_speaker_notes():
     assert "Overflow prevention is a hard requirement" in prompt
     assert "Never use `overflow-auto`" in prompt
     assert "normal-flow flex/grid" in prompt
-    assert "140 as a hard maximum" in prompt
+    assert "text-led slides may use" in prompt
+    assert "do not silently discard" in prompt
 
 
 def test_smart_retry_prompt_includes_layout_validation_feedback():
@@ -330,6 +331,35 @@ def test_smart_html_normalization_rejects_text_density_that_cannot_fit():
     with pytest.raises(HTTPException, match="too text-dense"):
         normalize_smart_slide_html(
             _smart_slide_html("Dense layout", body=f"<p>{dense_copy}</p>")
+        )
+
+
+def test_smart_html_normalization_allows_richer_text_led_slide():
+    rich_copy = " ".join(["strategy"] * 170)
+
+    html = normalize_smart_slide_html(
+        _smart_slide_html(
+            "Detailed strategy",
+            body=f'<div class="grid grid-cols-2 gap-8"><p>{rich_copy}</p></div>',
+        )
+    )
+
+    assert rich_copy in html
+
+
+def test_smart_html_normalization_keeps_visual_slides_more_concise():
+    rich_copy = " ".join(["evidence"] * 161)
+
+    with pytest.raises(HTTPException, match="too text-dense"):
+        normalize_smart_slide_html(
+            _smart_slide_html(
+                "Visual evidence",
+                body=(
+                    '<img src="https://example.com/evidence.png" '
+                    'alt="Evidence" class="h-[320px] w-[480px]">'
+                    f"<p>{rich_copy}</p>"
+                ),
+            )
         )
 
 

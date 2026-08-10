@@ -29,8 +29,14 @@ from utils.llm_utils import (
 DEFAULT_SMART_SLIDE_COUNT = 8
 MAX_SMART_SLIDE_COUNT = 20
 SMART_GENERATION_MAX_ATTEMPTS = 8
-SMART_MAX_VISIBLE_CHARACTERS = 1200
-SMART_MAX_VISIBLE_WORDS = 140
+SMART_TITLE_MAX_VISIBLE_CHARACTERS = 800
+SMART_TITLE_MAX_VISIBLE_WORDS = 80
+SMART_VISUAL_MAX_VISIBLE_CHARACTERS = 1400
+SMART_VISUAL_MAX_VISIBLE_WORDS = 160
+SMART_TEXT_MAX_VISIBLE_CHARACTERS = 1700
+SMART_TEXT_MAX_VISIBLE_WORDS = 190
+SMART_TOC_MAX_VISIBLE_CHARACTERS = 1900
+SMART_TOC_MAX_VISIBLE_WORDS = 220
 SmartSlideCallback = Callable[[int, dict[str, str]], Awaitable[None]]
 
 SMART_DECK_SYSTEM_PROMPT = (
@@ -49,9 +55,14 @@ Overflow prevention is a hard requirement:
 - Plan vertical space before writing HTML. Budget the title, subtitle, content,
   footer, padding, gaps, and line heights so their combined height stays within
   the canvas. Prefer fewer, shorter points over dense copy.
-- Keep body copy presentation-sized: normally at most 6 bullets, 5 cards, or
-  2 short paragraphs on one slide. Aim for no more than 100 visible words and
-  treat 140 as a hard maximum. Split ideas across slides when needed.
+- Keep body copy presentation-sized and adapt density to the composition.
+  Visual/chart slides should usually use 80-130 words; text-led slides may use
+  130-180 words when organized into readable columns or sections. TOC slides
+  may include the entries required by the deck.
+- Preserve the user's important facts, evidence, and requested points. When one
+  slide is crowded, redistribute content across the fixed deck, simplify
+  decoration, or use a clearer multi-column structure; do not silently discard
+  substance merely to make the slide sparse.
 - Use flex/grid for primary layout. Add `min-w-0` to constrained columns and
   `min-h-0` to constrained rows. Text containers must use `break-words` where
   long values or URLs may appear.
@@ -424,16 +435,38 @@ def _validate_smart_slide_layout_safety(html: str) -> None:
     visible_text = html_module.unescape(_HTML_TAG.sub(" ", visible_text))
     visible_text = " ".join(visible_text.split())
     word_count = len(visible_text.split())
+    root_match = _SECTION_OPEN.match(html)
+    root_attributes = root_match.group(1) if root_match else ""
+    slide_type = (
+        _attribute(root_attributes, "data-slide-type") or "content"
+    ).casefold()
+    has_primary_visual = bool(
+        re.search(r"<(?:canvas|img|svg|video)\b", html, re.IGNORECASE)
+    )
+    if slide_type == "title":
+        max_words = SMART_TITLE_MAX_VISIBLE_WORDS
+        max_characters = SMART_TITLE_MAX_VISIBLE_CHARACTERS
+    elif slide_type in {"toc", "table_of_contents"}:
+        max_words = SMART_TOC_MAX_VISIBLE_WORDS
+        max_characters = SMART_TOC_MAX_VISIBLE_CHARACTERS
+    elif has_primary_visual:
+        max_words = SMART_VISUAL_MAX_VISIBLE_WORDS
+        max_characters = SMART_VISUAL_MAX_VISIBLE_CHARACTERS
+    else:
+        max_words = SMART_TEXT_MAX_VISIBLE_WORDS
+        max_characters = SMART_TEXT_MAX_VISIBLE_CHARACTERS
     if (
-        len(visible_text) > SMART_MAX_VISIBLE_CHARACTERS
-        or word_count > SMART_MAX_VISIBLE_WORDS
+        len(visible_text) > max_characters
+        or word_count > max_words
     ):
         raise HTTPException(
             status_code=400,
             detail=(
-                "The Smart slide is too text-dense for a 1280x720 canvas "
+                f"The Smart {slide_type} slide is too text-dense for its "
+                "1280x720 composition "
                 f"({word_count} words, {len(visible_text)} characters). Shorten "
-                "the copy or distribute it across the remaining slides."
+                "or reflow the copy, or redistribute it across the fixed deck "
+                "without dropping important content."
             ),
         )
 
