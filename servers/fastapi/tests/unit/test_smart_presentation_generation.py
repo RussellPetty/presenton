@@ -1,8 +1,11 @@
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from llmai.shared import ReasoningConfig, ReasoningEffortValue, UserMessage
 
+from enums.llm_provider import LLMProvider
 from services.community_presentations import (
     CommunityPresentationReference,
     build_community_design_context,
@@ -13,7 +16,9 @@ from services.community_presentations import (
 from utils.llm_calls.generate_smart_presentation import (
     SMART_DECK_SYSTEM_PROMPT,
     SmartSlideStreamParser,
+    _stream_deck_response,
     get_smart_messages,
+    get_smart_reasoning_config,
     normalize_smart_deck,
     normalize_smart_slide_html,
     parse_smart_presentation_html,
@@ -123,6 +128,99 @@ def test_smart_retry_prompt_includes_layout_validation_feedback():
     prompt = str(messages[1].content)
     assert "prior response failed validation" in prompt
     assert "Slide content uses overflow-y-auto" in prompt
+
+
+def test_smart_reasoning_uses_low_effort_for_openai(monkeypatch):
+    monkeypatch.setattr(
+        "utils.llm_calls.generate_smart_presentation.disable_thinking",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "utils.llm_calls.generate_smart_presentation.get_llm_provider",
+        lambda: LLMProvider.OPENAI,
+    )
+    monkeypatch.setattr(
+        "utils.llm_calls.generate_smart_presentation.llmai.supports_thinking",
+        lambda model, provider=None: True,
+    )
+
+    reasoning, supports_thinking = get_smart_reasoning_config("gpt-5")
+
+    assert supports_thinking is True
+    assert reasoning is not None
+    assert reasoning.enabled is True
+    assert reasoning.effort == ReasoningEffortValue.LOW
+
+
+def test_smart_reasoning_respects_disable_thinking(monkeypatch):
+    monkeypatch.setattr(
+        "utils.llm_calls.generate_smart_presentation.disable_thinking",
+        lambda: True,
+    )
+
+    reasoning, supports_thinking = get_smart_reasoning_config("gpt-5")
+
+    assert reasoning is None
+    assert supports_thinking is False
+
+
+def test_smart_stream_separates_thinking_and_reports_exact_usage(monkeypatch):
+    reasoning = ReasoningConfig(enabled=True)
+    captured_kwargs = {}
+
+    async def fake_stream_generate_events(_client, **kwargs):
+        captured_kwargs.update(kwargs)
+        yield SimpleNamespace(type="thinking", chunk="private planning")
+        yield SimpleNamespace(type="content", chunk="visible deck")
+        yield SimpleNamespace(
+            type="completion",
+            content=None,
+            usage=SimpleNamespace(
+                input_tokens=12,
+                output_tokens=8,
+                total_tokens=20,
+                reasoning=SimpleNamespace(
+                    billed_tokens=5,
+                    billed_estimated=False,
+                ),
+            ),
+            duration_seconds=2.0,
+        )
+
+    monkeypatch.setattr(
+        "utils.llm_calls.generate_smart_presentation.stream_generate_events",
+        fake_stream_generate_events,
+    )
+    monkeypatch.setattr("utils.llm_utils.get_extra_body", lambda **_kwargs: None)
+    content_chunks = []
+    thinking_chunks = []
+
+    async def on_chunk(chunk):
+        content_chunks.append(chunk)
+
+    async def on_thinking_chunk(chunk):
+        thinking_chunks.append(chunk)
+
+    response, metrics = asyncio.run(
+        _stream_deck_response(
+            object(),
+            "thinking-model",
+            [UserMessage(content="Build a deck")],
+            on_chunk,
+            reasoning=reasoning,
+            on_thinking_chunk=on_thinking_chunk,
+        )
+    )
+
+    assert response == "visible deck"
+    assert content_chunks == ["visible deck"]
+    assert thinking_chunks == ["private planning"]
+    assert captured_kwargs["reasoning"] is reasoning
+    assert metrics.input_tokens == 12
+    assert metrics.output_tokens == 8
+    assert metrics.thinking_tokens == 5
+    assert metrics.thinking_tokens_estimated is False
+    assert metrics.supports_thinking is True
 
 
 def test_normalize_community_ids_preserves_order_and_deduplicates():

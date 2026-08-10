@@ -1,34 +1,45 @@
 from __future__ import annotations
 
+import asyncio
 import html as html_module
 import json
 import re
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any, Optional
 
+import llmai
 from fastapi import HTTPException
 from llmai import get_client
 from llmai.shared import (
     Message,
+    ReasoningConfig,
+    ReasoningEffortValue,
     ResponseStreamCompletionChunk,
+    ResponseStreamThinkingChunk,
     SystemMessage,
     UserMessage,
 )
 
 from utils.llm_client_error_handler import handle_llm_client_exceptions
-from utils.llm_config import get_llm_config
-from utils.llm_provider import get_model
-from utils.smart_slide_layout import inspect_smart_slide_layout
+from utils.llm_config import disable_thinking, get_llm_config
+from utils.llm_provider import get_llm_provider, get_model
 from utils.llm_utils import (
+    TextGenerationMetrics,
+    build_text_generation_metrics,
+    estimate_message_tokens,
+    estimate_text_tokens,
+    estimate_thinking_tokens,
     extract_text,
     get_generate_kwargs,
     stream_generate_events,
 )
-
+from utils.smart_slide_layout import inspect_smart_slide_layout
 
 DEFAULT_SMART_SLIDE_COUNT = 8
 MAX_SMART_SLIDE_COUNT = 20
 SMART_GENERATION_MAX_ATTEMPTS = 8
+SMART_GENERATION_METRICS_INTERVAL_SECONDS = 5.0
 SMART_TITLE_MAX_VISIBLE_CHARACTERS = 800
 SMART_TITLE_MAX_VISIBLE_WORDS = 80
 SMART_VISUAL_MAX_VISIBLE_CHARACTERS = 1400
@@ -38,6 +49,7 @@ SMART_TEXT_MAX_VISIBLE_WORDS = 190
 SMART_TOC_MAX_VISIBLE_CHARACTERS = 1900
 SMART_TOC_MAX_VISIBLE_WORDS = 220
 SmartSlideCallback = Callable[[int, dict[str, str]], Awaitable[None]]
+SmartMetricsCallback = Callable[[TextGenerationMetrics], Awaitable[None]]
 
 SMART_DECK_SYSTEM_PROMPT = (
     "You are an expert presentation designer and frontend engineer. Return the "
@@ -614,26 +626,84 @@ async def _stream_deck_response(
     model: str,
     messages: Sequence[Message],
     on_chunk: Callable[[str], Awaitable[None]],
-) -> str:
+    *,
+    reasoning: ReasoningConfig | None = None,
+    on_thinking_chunk: Callable[[str], Awaitable[None]] | None = None,
+    model_supports_thinking: bool = False,
+) -> tuple[str, TextGenerationMetrics]:
     chunks: list[str] = []
-    completion_content: Any = None
+    thinking_chunks: list[str] = []
+    completion: Any = None
+    started_at = time.perf_counter()
     async for event in stream_generate_events(
         client,
-        **get_generate_kwargs(model=model, messages=messages, stream=True),
+        **get_generate_kwargs(
+            model=model,
+            messages=messages,
+            reasoning=reasoning,
+            stream=True,
+        ),
     ):
-        if isinstance(event, ResponseStreamCompletionChunk):
-            completion_content = event.content
+        if (
+            isinstance(event, ResponseStreamCompletionChunk)
+            or getattr(event, "type", None) == "completion"
+        ):
+            completion = event
+        elif (
+            isinstance(event, ResponseStreamThinkingChunk)
+            or getattr(event, "type", None) == "thinking"
+        ):
+            chunk = getattr(event, "chunk", None)
+            if isinstance(chunk, str) and chunk:
+                thinking_chunks.append(chunk)
+                if on_thinking_chunk is not None:
+                    await on_thinking_chunk(chunk)
         elif getattr(event, "type", None) == "content":
             chunk = getattr(event, "chunk", None)
             if isinstance(chunk, str):
                 chunks.append(chunk)
                 await on_chunk(chunk)
-    response = extract_text(completion_content) or "".join(chunks)
+    response = extract_text(getattr(completion, "content", None)) or "".join(chunks)
     if not chunks and response:
         await on_chunk(response)
     if not response:
         raise HTTPException(status_code=400, detail="LLM did not return any content")
-    return response
+    metrics = build_text_generation_metrics(
+        model=model,
+        messages=messages,
+        content=response,
+        streamed_thinking="".join(thinking_chunks),
+        completion=completion,
+        started_at=started_at,
+        model_supports_thinking=model_supports_thinking,
+    )
+    return response, metrics
+
+
+def get_smart_reasoning_config(model: str) -> tuple[ReasoningConfig | None, bool]:
+    """Enable reasoning only when llmai knows the selected model supports it."""
+    if disable_thinking():
+        return None, False
+
+    provider = get_llm_provider().value
+    try:
+        supports_thinking = llmai.supports_thinking(model, provider=provider) is True
+    except Exception:
+        supports_thinking = False
+    if not supports_thinking:
+        return None, False
+
+    return (
+        ReasoningConfig(
+            enabled=True,
+            effort=(
+                ReasoningEffortValue.LOW
+                if provider in {"openai", "azure"}
+                else None
+            ),
+        ),
+        True,
+    )
 
 
 async def generate_smart_presentation(
@@ -650,9 +720,11 @@ async def generate_smart_presentation(
     community_design_context: str = "",
     fonts: Optional[dict[str, str]] = None,
     on_slide: SmartSlideCallback | None = None,
+    on_metrics: SmartMetricsCallback | None = None,
 ) -> dict[str, Any]:
-    client = get_client(config=get_llm_config())
+    client = get_client(config=get_llm_config(use_openai_responses_api=True))
     model = get_model()
+    reasoning, configured_thinking_support = get_smart_reasoning_config(model)
     accepted_slides: list[dict[str, str]] = []
     title = ""
     last_exception: Exception | None = None
@@ -676,8 +748,15 @@ async def generate_smart_presentation(
         )
         parser = SmartSlideStreamParser()
         attempt_slides: list[dict[str, str]] = []
+        streamed_response = ""
+        streamed_thinking = ""
+        model_supports_thinking = configured_thinking_support
+        attempt_started_at = time.perf_counter()
+        estimated_input_tokens = estimate_message_tokens(messages)
 
         async def handle_chunk(chunk: str) -> None:
+            nonlocal streamed_response
+            streamed_response += chunk
             for slide in parser.feed(chunk):
                 index = len(accepted_slides) + len(attempt_slides)
                 if index >= n_slides:
@@ -695,8 +774,59 @@ async def generate_smart_presentation(
                 if on_slide is not None:
                     await on_slide(index, slide)
 
+        async def handle_thinking_chunk(chunk: str) -> None:
+            nonlocal streamed_thinking, model_supports_thinking
+            streamed_thinking += chunk
+            model_supports_thinking = True
+
+        async def emit_estimated_metrics_periodically() -> None:
+            while True:
+                await asyncio.sleep(SMART_GENERATION_METRICS_INTERVAL_SECONDS)
+                duration = max(time.perf_counter() - attempt_started_at, 1e-9)
+                output_tokens = estimate_text_tokens(streamed_response)
+                thinking_tokens = (
+                    estimate_thinking_tokens(streamed_thinking)
+                    if streamed_thinking
+                    else (0 if model_supports_thinking else None)
+                )
+                if on_metrics is not None:
+                    await on_metrics(
+                        TextGenerationMetrics(
+                            model=model,
+                            input_tokens=estimated_input_tokens,
+                            output_tokens=output_tokens,
+                            total_tokens=estimated_input_tokens + output_tokens,
+                            tokens_per_second=output_tokens / duration,
+                            duration_seconds=duration,
+                            estimated=True,
+                            thinking_tokens=thinking_tokens,
+                            thinking_tokens_estimated=model_supports_thinking,
+                            supports_thinking=model_supports_thinking,
+                        )
+                    )
+
+        metrics_task = (
+            asyncio.create_task(emit_estimated_metrics_periodically())
+            if on_metrics is not None
+            else None
+        )
         try:
-            response = await _stream_deck_response(client, model, messages, handle_chunk)
+            try:
+                response, metrics = await _stream_deck_response(
+                    client,
+                    model,
+                    messages,
+                    handle_chunk,
+                    reasoning=reasoning,
+                    on_thinking_chunk=handle_thinking_chunk,
+                    model_supports_thinking=model_supports_thinking,
+                )
+            finally:
+                if metrics_task is not None:
+                    metrics_task.cancel()
+                    await asyncio.gather(metrics_task, return_exceptions=True)
+            if on_metrics is not None:
+                await on_metrics(metrics)
             parsed_title, parsed_slides = parse_smart_presentation_html(
                 response,
                 expected_slide_count=n_slides - len(accepted_slides),
@@ -711,8 +841,11 @@ async def generate_smart_presentation(
                 )
             title = title or parsed_title
             accepted_slides.extend(attempt_slides)
-            return {"title": title, "slides": accepted_slides}
+            return {"title": title, "slides": accepted_slides, "metrics": metrics}
         except Exception as exc:
+            if metrics_task is not None and not metrics_task.done():
+                metrics_task.cancel()
+                await asyncio.gather(metrics_task, return_exceptions=True)
             last_exception = exc
             retry_error = (
                 str(exc.detail)
