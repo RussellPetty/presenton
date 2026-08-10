@@ -1245,6 +1245,147 @@ def test_apply_template_content_to_ui_matches_repeated_content_lengths():
     ]
 
 
+def _branching_timeline_ui():
+    def timeline_group(index):
+        return {
+            "type": "group",
+            "name": f"timeline_{index}",
+            "position": {"x": index * 100, "y": index * 20},
+            "children": [
+                {
+                    "type": "group",
+                    "name": "timeline_items",
+                    "children": [
+                        {
+                            "type": "image",
+                            "decorative": True,
+                            "name": "connector_branch_path",
+                            "data": f"connector-{index}.svg",
+                            "is_icon": False,
+                        }
+                    ],
+                },
+                {
+                    "type": "group",
+                    "name": "timeline_milestone",
+                    "children": [
+                        {
+                            "type": "text",
+                            "decorative": False,
+                            "name": "milestone_title",
+                            "min_length": 4,
+                            "max_length": 20,
+                            "runs": [{"text": "Old title"}],
+                        },
+                        {
+                            "type": "image",
+                            "decorative": False,
+                            "name": "milestone_icon",
+                            "data": "/static/icons/placeholder.svg",
+                            "is_icon": True,
+                        },
+                    ],
+                },
+            ],
+        }
+
+    return {
+        "components": [
+            {
+                "id": "branching_timeline_area",
+                "elements": [
+                    timeline_group(index)
+                    for index in (4, 5, 3, 1, 2)
+                ],
+            }
+        ]
+    }
+
+
+def _branching_timeline_content():
+    return {
+        "branching_timeline_area": {
+            "timeline": [
+                {
+                    "timeline_milestone": {
+                        "milestone_title": title,
+                        "milestone_icon": {
+                            "icon_query": f"{title} icon",
+                            "icon_url": f"/static/icons/{index}.svg",
+                        },
+                    }
+                }
+                for index, title in enumerate(
+                    (
+                        "Owned Restaurants",
+                        "Franchising Scale",
+                        "Recipe Standards",
+                        "Distinct Formats",
+                        "Efficient Growth",
+                    ),
+                    start=1,
+                )
+            ]
+        }
+    }
+
+
+def _assert_branching_timeline_hydrated(ui):
+    elements = ui["components"][0]["elements"]
+    assert [element["name"] for element in elements] == [
+        "timeline_4",
+        "timeline_5",
+        "timeline_3",
+        "timeline_1",
+        "timeline_2",
+    ]
+    assert [len(element["children"]) for element in elements] == [2] * 5
+    assert [
+        element["children"][1]["children"][0]["runs"][0]["text"]
+        for element in elements
+    ] == [
+        "Owned Restaurants",
+        "Franchising Scale",
+        "Recipe Standards",
+        "Distinct Formats",
+        "Efficient Growth",
+    ]
+    assert [
+        element["children"][1]["children"][1]["data"]
+        for element in elements
+    ] == [f"/static/icons/{index}.svg" for index in range(1, 6)]
+    assert [
+        element["children"][0]["children"][0]["data"]
+        for element in elements
+    ] == [
+        "connector-4.svg",
+        "connector-5.svg",
+        "connector-3.svg",
+        "connector-1.svg",
+        "connector-2.svg",
+    ]
+
+
+def test_apply_template_content_to_ui_hydrates_repeated_top_level_groups():
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        _branching_timeline_ui(),
+        _branching_timeline_content(),
+    )
+
+    _assert_branching_timeline_hydrated(hydrated)
+
+
+def test_chat_template_content_hydrates_repeated_top_level_groups():
+    ui = _branching_timeline_ui()
+
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
+        ui,
+        _branching_timeline_content(),
+    )
+
+    _assert_branching_timeline_hydrated(ui)
+
+
 def test_apply_template_content_to_ui_hydrates_direct_repeated_images():
     ui = {
         "id": "layout-1",

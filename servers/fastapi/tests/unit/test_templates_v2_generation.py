@@ -970,9 +970,36 @@ def test_direct_generation_prompt_uses_decorative_element_metadata():
     )
     assert "`decorative=true`" in GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
     assert "`decorative=false`" in GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
-    assert "If removal changes meaning, it is content" in (
+    assert "fixed visual scaffolding" in GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
+    assert "connector and branching lines" in GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
+    assert "a ring around a replaceable topic icon is decorative" in (
         GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
     )
+
+
+def test_direct_generation_prompt_covers_repeatable_layout_capacity_and_infographics():
+    prompt = GENERATE_SLIDE_LAYOUT_SYSTEM_PROMPT
+
+    assert "# Regular Repeatable Region Rules:" in prompt
+    assert "one complete representative child prototype" in prompt
+    assert "# Repeatable Timeline and Staggered Item Rules:" in prompt
+    assert "Order repeated item groups from the center outward" in prompt
+    assert "# Connector and Vector Path Rules:" in prompt
+    assert "# Content Capacity and Min/Max Rules:" in prompt
+    assert "sum(item widths) + sum(gaps)" in prompt
+    assert "An `infographic` renders the graphic only" in prompt
+    assert "valid `data` object" in prompt
+    assert "# Final Layout Self-Check:" in prompt
+    assert "minimum-content state" in prompt
+    assert "Must use `previewSlide` tool at least once" in prompt
+
+
+def test_component_clustering_prompt_uses_structure_instead_of_example_content():
+    prompt = CLUSTER_SIMILAR_COMPONENTS_SYSTEM_PROMPT
+
+    assert "same structural role" in prompt
+    assert "Ignore the example content entirely" in prompt
+    assert "repeated-item arrangement" in prompt
 
 
 def test_json_repair_retry_rebuilds_messages_without_provider_response_items():

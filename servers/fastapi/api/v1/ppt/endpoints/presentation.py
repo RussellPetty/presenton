@@ -100,6 +100,7 @@ from utils.web_search import build_web_search_query, get_web_search_context
 from api.v1.auth.context import get_current_owner_id
 from models.presentation_layout import PresentationLayoutModel, SlideLayoutModel
 from templates.v2.schema import get_template_schema
+from templates.v2.content import hydrate_repeated_top_level_groups
 from templates.default_templates import resolve_default_template_id
 from services.community_presentations import (
     build_community_design_context,
@@ -525,9 +526,22 @@ def _apply_template_content_to_ui(
 
         elements = component.get("elements")
         if isinstance(elements, list):
-            component["elements"] = _apply_template_content_to_element_list(
+            repeated_groups = hydrate_repeated_top_level_groups(
                 elements,
                 component_content,
+                apply_item=lambda element, item: _apply_template_content_to_element(
+                    element,
+                    item,
+                    direct_value=True,
+                ),
+            )
+            component["elements"] = (
+                repeated_groups
+                if repeated_groups is not None
+                else _apply_template_content_to_element_list(
+                    elements,
+                    component_content,
+                )
             )
 
     return hydrated_ui
