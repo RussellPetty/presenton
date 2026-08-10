@@ -212,7 +212,6 @@ const Chat = ({
   const focusDispatchTimerRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
   const refreshQueuedRef = useRef(false);
-  const didIncrementalRefreshRef = useRef(false);
   const openedAnalyticsKeyRef = useRef<string | null>(null);
   const promptMetricsRef = useRef<AssistantPromptMetrics | null>(null);
   const activeEditPreviewRef = useRef<{
@@ -851,7 +850,6 @@ const Chat = ({
     }
 
     refreshInFlightRef.current = true;
-    didIncrementalRefreshRef.current = true;
     try {
       await onPresentationChanged();
     } catch (error) {
@@ -871,11 +869,7 @@ const Chat = ({
 
   const refreshPresentationIfNeeded = async (toolCalls: string[]) => {
     const hasMutation = toolCalls.some((tool) => MUTATING_TOOLS.has(tool));
-    if (
-      !hasMutation ||
-      !onPresentationChanged ||
-      didIncrementalRefreshRef.current
-    ) {
+    if (!hasMutation || !onPresentationChanged) {
       return;
     }
 
@@ -1197,7 +1191,6 @@ const Chat = ({
     setHasChatMutationStarted(false);
     setIsSending(true);
     setActiveAssistantMessageId(assistantMessageId);
-    didIncrementalRefreshRef.current = false;
     refreshQueuedRef.current = false;
     refreshInFlightRef.current = false;
     promptMetricsRef.current = {
