@@ -25,6 +25,7 @@ from services.mem0_presentation_memory_service import MEM0_PRESENTATION_MEMORY_S
 from services.temp_file_service import TEMP_FILE_SERVICE
 from templates.presentation_layout import PresentationLayoutModel, SlideLayoutModel
 from templates.v2.schema import get_template_schema
+from templates.v2.content import hydrate_repeated_top_level_groups
 from utils.asset_directory_utils import (
     filesystem_image_path_to_app_data_url,
     get_images_directory,
@@ -3758,6 +3759,27 @@ class PresentationChatMemoryLayer:
     ) -> None:
         elements = component.get("elements")
         if not isinstance(elements, list):
+            return
+
+        def apply_repeated_item(
+            element: dict[str, Any],
+            item: Any,
+        ) -> dict[str, Any]:
+            cls._apply_template_element_content(
+                element,
+                item,
+                theme=theme,
+                direct_value=True,
+            )
+            return element
+
+        repeated_groups = hydrate_repeated_top_level_groups(
+            elements,
+            content,
+            apply_item=apply_repeated_item,
+        )
+        if repeated_groups is not None:
+            component["elements"] = repeated_groups
             return
 
         cls._apply_template_elements_content(
