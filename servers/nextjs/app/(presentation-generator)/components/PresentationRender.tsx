@@ -110,7 +110,7 @@ const SlideScale = ({
             transform: `scale(${scale})`,
           }}
         >
-          <div
+          {/* <div
             className="slide-edit-stage relative w-full h-full select-none"
             data-testid="slide-content"
             style={
@@ -121,7 +121,7 @@ const SlideScale = ({
                 msUserSelect: "none",
               } as React.CSSProperties
             }
-          >
+          > */}
             {!isClickable && (
               <div
                 className="absolute inset-0 bg-transparent z-30 w-full h-full  select-none"
@@ -170,7 +170,7 @@ const SlideScale = ({
             )}
           </div>
         </div>
-      </div>
+      {/* </div> */}
     </div>
   );
 };
