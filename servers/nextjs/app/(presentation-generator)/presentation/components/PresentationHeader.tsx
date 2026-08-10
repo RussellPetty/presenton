@@ -94,6 +94,7 @@ const PresentationHeader = ({
   isPresentationSaving,
   currentSlide,
   generationMode = "standard",
+
 }: {
   presentation_id: string;
   isPresentationSaving: boolean;
@@ -596,6 +597,7 @@ const PresentationHeader = ({
             </ToolTip>
           </div>
 
+        {generationMode === "standard" && (
           <ToolTip content="Keyboard shortcuts (?)">
             <button
               type="button"
@@ -613,7 +615,7 @@ const PresentationHeader = ({
                 strokeWidth={1.8}
               />
             </button>
-          </ToolTip>
+          </ToolTip>)}
 
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
