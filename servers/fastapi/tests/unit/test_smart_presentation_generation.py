@@ -209,6 +209,19 @@ def test_smart_html_normalization_removes_executable_markup():
     assert "<script" not in html
 
 
+def test_smart_html_normalization_removes_malformed_script_end_tag():
+    html = normalize_smart_slide_html(
+        """<section class="relative h-[720px] w-[1280px] overflow-hidden">
+          <h2>Safe title</h2>
+          <script>alert('no')</script\t\n data-extra>
+        </section>"""
+    )
+
+    assert "Safe title" in html
+    assert "alert" not in html
+    assert "<script" not in html
+
+
 def test_smart_html_normalization_keeps_safe_chartjs_initialization():
     html = normalize_smart_slide_html(
         _smart_slide_html(

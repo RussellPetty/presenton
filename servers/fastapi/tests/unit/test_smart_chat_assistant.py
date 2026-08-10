@@ -85,6 +85,14 @@ def test_chat_request_accepts_smart_presentation_type():
     assert payload.presentation_type == "smart"
 
 
+def test_smart_memory_text_strips_malformed_script_end_tag():
+    text = PresentationChatMemoryLayer._html_to_text(
+        "<h2>Safe title</h2><script>secret()</script\t\n data-extra><p>Visible</p>"
+    )
+
+    assert text == "Safe title Visible"
+
+
 def test_smart_prompt_requires_full_validated_html_replacement():
     prompt = build_system_prompt("", "", presentation_type="smart")
 

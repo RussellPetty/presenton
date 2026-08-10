@@ -4345,7 +4345,7 @@ class PresentationChatMemoryLayer:
         if not html:
             return ""
         without_scripts = re.sub(
-            r"<script\b[^>]*>.*?</script\s*>",
+            r"<script\b[^>]*>.*?</script\b[^>]*>",
             " ",
             html,
             flags=re.IGNORECASE | re.DOTALL,

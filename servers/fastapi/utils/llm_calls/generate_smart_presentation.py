@@ -201,7 +201,7 @@ _UNSAFE_DOCUMENT_TAGS = re.compile(
     re.IGNORECASE,
 )
 _SCRIPT_TAG = re.compile(
-    r"<script\b([^>]*)>(.*?)</script\s*>", re.IGNORECASE | re.DOTALL
+    r"<script\b([^>]*)>(.*?)</script\b[^>]*>", re.IGNORECASE | re.DOTALL
 )
 _EVENT_HANDLER_ATTRIBUTE = re.compile(
     r"\s+on[a-z]+\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s>]+)", re.IGNORECASE
