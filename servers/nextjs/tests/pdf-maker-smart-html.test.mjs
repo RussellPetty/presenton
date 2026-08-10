@@ -15,3 +15,14 @@ test("pdf maker mounts Smart slide HTML directly without an iframe", async () =>
   assert.match(source, /useSmartChartInjection\(\{/);
   assert.doesNotMatch(source, /<iframe\b/);
 });
+
+test("pdf maker preserves the DOM depth required by the PPTX extractor", async () => {
+  const source = await readFile(pdfMakerSourceUrl, "utf8");
+
+  assert.match(
+    source,
+    /<div className="slides-export-stack font-inter">[\s\S]*slides\.map/,
+  );
+  assert.match(source, /className="main-slide [^"]*"/);
+  assert.match(source, /className="slide-export-inner [^"]*"/);
+});
