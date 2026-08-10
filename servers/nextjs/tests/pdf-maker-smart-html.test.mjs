@@ -13,6 +13,8 @@ test("pdf maker mounts Smart slide HTML directly without an iframe", async () =>
   assert.match(source, /const SmartHtmlPdfSlide/);
   assert.match(source, /dangerouslySetInnerHTML=\{\{ __html: html \}\}/);
   assert.match(source, /useSmartChartInjection\(\{/);
+  assert.match(source, /data-screenshot="true"/);
+  assert.match(source, /data-screenshot-include-children="true"/);
   assert.doesNotMatch(source, /<iframe\b/);
 });
 

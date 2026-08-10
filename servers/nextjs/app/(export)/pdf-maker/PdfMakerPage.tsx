@@ -122,12 +122,16 @@ const SmartHtmlPdfSlide = ({
 
   return (
     <div className="smart-slide-export-root h-[720px] w-[1280px] overflow-hidden bg-white">
-      <div
-        ref={containerRef}
-        data-smart-slide-instance={instanceId}
-        className="smart-slide-export-content h-[720px] w-[1280px] overflow-hidden bg-white"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <div className="smart-slide-export-content h-[720px] w-[1280px] overflow-hidden bg-white">
+        <div
+          ref={containerRef}
+          data-smart-slide-instance={instanceId}
+          data-screenshot="true"
+          data-screenshot-include-children="true"
+          className="h-[720px] w-[1280px] overflow-hidden bg-white"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
     </div>
   );
 };
