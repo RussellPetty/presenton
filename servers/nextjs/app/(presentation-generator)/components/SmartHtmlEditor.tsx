@@ -461,6 +461,7 @@ export default function SmartHtmlEditor({
   useSmartChartInjection({
     html: tailwindReady ? html : "",
     instanceId,
+    domRevision: `${slide.index ?? "none"}:${slideIndex}`,
     containerRef,
   });
 
