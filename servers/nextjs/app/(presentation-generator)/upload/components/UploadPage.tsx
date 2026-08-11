@@ -145,7 +145,7 @@ const UploadPage = () => {
   const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
 
   const [files, setFiles] = useState<File[]>([]);
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("smart");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("standard");
   const [communityReference, setCommunityReference] =
     useState<CommunityPresentation | null>(null);
   const [config, setConfig] = useState<PresentationConfig>({
