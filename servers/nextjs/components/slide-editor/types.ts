@@ -148,10 +148,19 @@ export type ChartSeries = {
 
 export type DataLabelPosition = "base" | "mid" | "top" | "outside";
 
-export type TextRun = {
+export type PlainTextRun = {
   text: string;
   font?: Font | null;
 };
+
+export type LatexTextRun = {
+  type: "latex";
+  latex: string;
+  display_mode?: boolean | null;
+  font?: Font | null;
+};
+
+export type TextRun = PlainTextRun | LatexTextRun;
 
 export type TextListItem = TextRun[];
 
@@ -195,16 +204,6 @@ export type TextElement = ElementBase & {
   fill?: Fill | null;
   stroke?: Stroke | null;
   runs: TextRun[];
-  max_length?: number | null;
-  min_length?: number | null;
-};
-
-export type MathElement = ElementBase & {
-  type: "math";
-  latex: string;
-  display_mode?: boolean | null;
-  font?: Font | null;
-  alignment?: Alignment | null;
   max_length?: number | null;
   min_length?: number | null;
 };
@@ -364,7 +363,6 @@ export type GroupElement = RequiredElementBase & {
 
 export type SlideElement =
   | TextElement
-  | MathElement
   | ContainerElement
   | ImageElement
   | TextListElement

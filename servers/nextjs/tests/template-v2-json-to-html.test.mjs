@@ -88,17 +88,22 @@ test("renders legacy text-decoration underline fields", async () => {
   );
 });
 
-test("renders math expressions with KaTeX and export screenshot metadata", async () => {
+test("renders LaTeX text runs with KaTeX and export screenshot metadata", async () => {
   const { templateV2UiToHtml } = await importRenderer();
 
   const html = templateV2UiToHtml({
     elements: [
       {
-        type: "math",
+        type: "text",
         position: { x: 20, y: 30 },
         size: { width: 600, height: 120 },
-        latex: String.raw`$$\frac{x_i^2}{\sum_{j=1}^n y_j}$$`,
-        display_mode: true,
+        runs: [
+          {
+            type: "latex",
+            latex: String.raw`$$\frac{x_i^2}{\sum_{j=1}^n y_j}$$`,
+            display_mode: true,
+          },
+        ],
         font: { size: 38, color: "#312E81" },
         alignment: { horizontal: "center", vertical: "middle" },
       },
@@ -109,7 +114,7 @@ test("renders math expressions with KaTeX and export screenshot metadata", async
   assert.match(html, /data-presenton-math="true"/);
   assert.match(html, /data-screenshot="true"/);
   assert.match(html, /data-screenshot-include-children="true"/);
-  assert.match(html, /class="katex-display"/);
+  assert.match(html, /class="presenton-math"/);
   assert.match(html, /<math[^>]*display="block"/);
   assert.match(html, /x_i\^2/);
   assert.doesNotMatch(html, /\$\$/);

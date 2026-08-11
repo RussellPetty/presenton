@@ -1,4 +1,5 @@
 import type { Font, TextRun } from "@/components/slide-editor/types";
+import { isLatexTextRun } from "@/components/slide-editor/text/text-runs";
 
 type MarkdownStyle = {
   bold?: boolean;
@@ -8,6 +9,10 @@ type MarkdownStyle = {
 export function renderMarkdownTextRuns(runs: TextRun[]): TextRun[] {
   const rendered: TextRun[] = [];
   for (const run of runs) {
+    if (isLatexTextRun(run)) {
+      rendered.push(run);
+      continue;
+    }
     for (const parsed of parseMarkdownText(run.text)) {
       appendRun(rendered, parsed.text, mergeFont(run.font, parsed.style));
     }
@@ -17,7 +22,7 @@ export function renderMarkdownTextRuns(runs: TextRun[]): TextRun[] {
 
 export function renderMarkdownTextContent(runs: TextRun[]): string {
   return renderMarkdownTextRuns(runs)
-    .map((run) => run.text)
+    .map((run) => (isLatexTextRun(run) ? run.latex : run.text))
     .join("");
 }
 
@@ -89,7 +94,7 @@ function mergeFont(font: TextRun["font"], style: MarkdownStyle): TextRun["font"]
 function appendRun(runs: TextRun[], text: string, font: TextRun["font"]) {
   if (!text) return;
   const previous = runs[runs.length - 1];
-  if (previous && sameFont(previous.font, font)) {
+  if (previous && !isLatexTextRun(previous) && sameFont(previous.font, font)) {
     previous.text += text;
     return;
   }

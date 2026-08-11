@@ -2,7 +2,6 @@ import type { SlideElement } from "@/components/slide-editor/types";
 
 export type ExportMode = "native" | "keynote" | "raster";
 export type TextSlideElement = Extract<SlideElement, { type: "text" }>;
-export type MathSlideElement = Extract<SlideElement, { type: "math" }>;
 export type BulletsSlideElement = Extract<SlideElement, { type: "text-list" }>;
 export type ImageSlideElement = Extract<SlideElement, { type: "image" }>;
 export type ShapeSlideElement = Extract<
