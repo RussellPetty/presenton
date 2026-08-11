@@ -43,7 +43,6 @@ import {
   BarChart3,
   GraduationCap,
   Rocket,
-  Sparkles,
 } from "lucide-react";
 
 type GenerationMode = "smart" | "standard";
@@ -54,6 +53,7 @@ const STANDARD_PROMPT_STARTERS = [
     description: "A focused 12-slide fundraising narrative",
     prompt:
       "Build a concise, investor-ready 12-slide pitch deck for [company or product]. Create a clear narrative covering: the customer problem, the key insight, the solution and product experience, target customer, market size, competitive landscape, business model, go-to-market strategy, traction and key metrics, roadmap, team, and fundraising ask. Use decisive slide headlines, keep each slide focused on one message, and add clearly labeled placeholders wherever facts or numbers are still needed.",
+    template: "momentum",
     icon: Rocket,
     accent: "bg-[#7357F6]",
     iconStyle: "bg-[#F1EDFF] text-[#6547E8]",
@@ -64,6 +64,7 @@ const STANDARD_PROMPT_STARTERS = [
     description: "KPIs, insights, decisions, and ownership",
     prompt:
       "Create an executive quarterly business review for [company or team]. Lead with a one-slide executive summary, then show KPI performance versus targets, important trends, wins, misses, and the drivers behind each result. Include customer and financial insights, top risks, decisions needed from leadership, and next-quarter priorities with a named owner and measurable outcome. Make the story data-led, use charts where they improve understanding, and mark missing data with specific placeholders.",
+    template: "executive",
     icon: BarChart3,
     accent: "bg-[#1689E8]",
     iconStyle: "bg-[#EAF6FF] text-[#087BCB]",
@@ -74,6 +75,7 @@ const STANDARD_PROMPT_STARTERS = [
     description: "Teach, demonstrate, practice, and assess",
     prompt:
       "Design a 45-minute beginner-friendly training deck about [topic] for [audience]. Start with learning objectives and a short agenda, explain each core concept in plain language, and reinforce it with a realistic example or visual. Add one guided activity, one knowledge check with answers, common mistakes to avoid, a practical checklist, and a final recap with next steps and resources. Keep the tone encouraging and make every slide useful to both the presenter and the learner.",
+    template: "dynamic",
     icon: GraduationCap,
     accent: "bg-[#F08A3C]",
     iconStyle: "bg-[#FFF1E7] text-[#D86D1C]",
@@ -186,6 +188,7 @@ const UploadPage = () => {
 
   const [files, setFiles] = useState<File[]>([]);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("standard");
+  const [suggestedTemplate, setSuggestedTemplate] = useState<string | null>(null);
   const [communityReference, setCommunityReference] =
     useState<CommunityPresentation | null>(null);
   const [config, setConfig] = useState<PresentationConfig>({
@@ -316,6 +319,16 @@ const UploadPage = () => {
         previous_generation_mode: previousMode,
       });
     }
+  };
+
+  const getGenerationDestination = (presentationId: string) => {
+    if (generationMode === "smart") {
+      return `/presentation?id=${presentationId}&stream=true&type=smart`;
+    }
+
+    const params = new URLSearchParams({ id: presentationId });
+    if (suggestedTemplate) params.set("template", suggestedTemplate);
+    return `/outline?${params.toString()}`;
   };
 
   const handleCommunityReferenceChange = (
@@ -525,10 +538,7 @@ const UploadPage = () => {
       destination:
         generationMode === "smart" ? "/presentation" : "/outline",
     });
-    const destination =
-      generationMode === "smart"
-        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
-        : "/outline";
+    const destination = getGenerationDestination(createResponse.id);
     trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
     router.push(destination);
   };
@@ -581,10 +591,7 @@ const UploadPage = () => {
       destination:
         generationMode === "smart" ? "/presentation" : "/outline",
     });
-    const destination =
-      generationMode === "smart"
-        ? `/presentation?id=${createResponse.id}&stream=true&type=smart`
-        : "/outline";
+    const destination = getGenerationDestination(createResponse.id);
     trackEvent(MixpanelEvent.Navigation, { from: pathname, to: destination });
     router.push(destination);
   };
@@ -709,7 +716,10 @@ const UploadPage = () => {
                   <button
                     key={starter.label}
                     type="button"
-                    onClick={() => handleConfigChange("prompt", starter.prompt)}
+                    onClick={() => {
+                      handleConfigChange("prompt", starter.prompt);
+                      setSuggestedTemplate(starter.template);
+                    }}
                     className={`group relative min-w-0 overflow-hidden rounded-xl border border-[#E5E5EA] bg-white px-3.5 pb-3.5 pt-4 text-left shadow-[0_2px_10px_rgba(16,19,35,0.025)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2 ${starter.hoverStyle}`}
                   >
                     <span

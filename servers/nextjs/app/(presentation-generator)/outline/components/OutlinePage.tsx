@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 
@@ -113,9 +113,13 @@ const scrollToPageTop = () => {
 const OutlinePage: React.FC = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { presentation_id, outlines } = useSelector(
+  const searchParams = useSearchParams();
+  const { presentation_id: storedPresentationId, outlines } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
+  const queryPresentationId = searchParams.get("id")?.trim() || null;
+  const suggestedTemplate = searchParams.get("template")?.trim() || null;
+  const presentation_id = queryPresentationId || storedPresentationId;
   const { config: savedConfig, files } = useSelector(
     (state: RootState) => state.pptGenUpload
   );
@@ -153,6 +157,12 @@ const OutlinePage: React.FC = () => {
     !isTemplateStage &&
     !outlineControlsBusy &&
     (outlines.length > 0 || streamState.statusMessage === "Outline ready");
+
+  useEffect(() => {
+    if (queryPresentationId && queryPresentationId !== storedPresentationId) {
+      dispatch(setPresentationId(queryPresentationId));
+    }
+  }, [dispatch, queryPresentationId, storedPresentationId]);
 
   useEffect(() => {
     if (savedConfig) {
@@ -388,6 +398,10 @@ const OutlinePage: React.FC = () => {
           <TemplateSelection
             presentationId={presentation_id}
             selectedTemplateId={selectedTemplateId}
+            suggestedTemplate={suggestedTemplate}
+            onSuggestedTemplateResolved={(template) =>
+              setSelectedTemplateId((current) => current ?? template.id)
+            }
             onSelectTemplate={handleTemplateSelect}
           />
         </main>

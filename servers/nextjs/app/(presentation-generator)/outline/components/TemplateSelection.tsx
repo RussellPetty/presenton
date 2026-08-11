@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useEffect } from "react";
 import CreateCustomTemplate from "../../(dashboard)/templates/components/CreateCustomTemplate";
 import { useTemplateSummaries } from "../../hooks/useTemplateSummaries";
 import {
@@ -14,6 +14,13 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 interface TemplateSelectionProps {
   presentationId: string | null;
   selectedTemplateId: string | null;
+  suggestedTemplate?: string | null;
+  onSuggestedTemplateResolved?: (template: {
+    id: string;
+    name: string;
+    source: "default" | "custom";
+    position: number;
+  }) => void;
   onSelectTemplate: (template: {
     id: string;
     name: string;
@@ -27,11 +34,54 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
   function TemplateSelection({
     presentationId,
     selectedTemplateId,
+    suggestedTemplate,
+    onSuggestedTemplateResolved,
     onSelectTemplate,
     onCreateTemplate,
   }) {
     const { defaultTemplates, customTemplates, loading } =
       useTemplateSummaries();
+
+    useEffect(() => {
+      if (loading || !suggestedTemplate || selectedTemplateId) return;
+
+      const normalizedSuggestion = suggestedTemplate.trim().toLowerCase();
+      const normalizeName = (name: string) =>
+        name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const candidates = [
+        ...defaultTemplates.map((template, position) => ({
+          template,
+          position,
+          source: "default" as const,
+        })),
+        ...customTemplates.map((template, position) => ({
+          template,
+          position,
+          source: "custom" as const,
+        })),
+      ];
+      const match = candidates.find(
+        ({ template }) =>
+          template.id === suggestedTemplate ||
+          normalizeName(template.name) === normalizedSuggestion
+      );
+
+      if (match) {
+        onSuggestedTemplateResolved?.({
+          id: match.template.id,
+          name: match.template.name,
+          source: match.source,
+          position: match.position,
+        });
+      }
+    }, [
+      customTemplates,
+      defaultTemplates,
+      loading,
+      onSuggestedTemplateResolved,
+      selectedTemplateId,
+      suggestedTemplate,
+    ]);
 
     if (loading) {
       return <TemplateListLoadingState />;
