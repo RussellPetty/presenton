@@ -1,7 +1,6 @@
 "use client";
 
 import React, { memo, useEffect } from "react";
-import { Sparkles } from "lucide-react";
 import CreateCustomTemplate from "../../(dashboard)/templates/components/CreateCustomTemplate";
 import { useTemplateSummaries } from "../../hooks/useTemplateSummaries";
 import {
@@ -127,12 +126,9 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
     };
 
     const suggestionNotice = suggestedTemplate && selectedTemplateId && (
-      <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#E4E0FF] bg-[#F7F5FF] px-4 py-3 font-syne text-xs text-[#5141E5]">
-        <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span>
-          <strong className="font-semibold">Suggested template selected.</strong>{" "}
-          Click the template to continue.
-        </span>
+      <div className="mb-5 rounded-xl border border-[#E4E0FF] bg-[#F7F5FF] px-4 py-3 font-syne text-xs font-medium text-[#5141E5]">
+        <strong className="font-semibold">Suggested template selected.</strong>{" "}
+        Click the highlighted template to continue.
       </div>
     );
 

@@ -24,10 +24,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { notify } from "@/components/ui/sonner";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
-import {
-  IMAGE_PROVIDERS,
-  LLM_PROVIDERS,
-} from "@/utils/providerConstants";
+import { IMAGE_PROVIDERS, LLM_PROVIDERS } from "@/utils/providerConstants";
 
 const GITHUB_REPOSITORY_URL = "https://github.com/presenton/presenton";
 const DISCORD_INVITE_URL = "https://discord.com/invite/9ZsKKxudNE";
@@ -79,7 +76,7 @@ const FloatingActionCards = () => (
 
 const BlankPresentationGraphic = ({ loading }: { loading: boolean }) => (
   <span
-    className="relative ml-auto block h-[90px] w-[90px] shrink-0"
+    className="relative ml-auto  h-[90px] flex justify-center items-center w-[90px] shrink-0"
     aria-hidden="true"
   >
     {loading ? (
@@ -87,20 +84,58 @@ const BlankPresentationGraphic = ({ loading }: { loading: boolean }) => (
         <Loader2 className="h-5 w-5 animate-spin text-[#7A5AF8]" />
       </span>
     ) : (
-      <span className="absolute left-1/2 top-1/2 h-[90px] w-[90px] -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 group-hover:-translate-y-[52%] group-hover:scale-105 min-[1920px]:scale-[1.1778] min-[1920px]:group-hover:scale-[1.22]">
-        <span className="absolute left-[22.312px] top-[20.46px] h-[52.514px] w-[48.892px] -rotate-[5.81deg] bg-[rgba(0,0,0,0.14)]" />
-        <span className="absolute left-[21.452px] top-[19.94px] h-[52.514px] w-[48.892px] -rotate-[5.81deg] bg-[#ECEEEE]" />
-        <span className="absolute left-[23.57px] top-[21.78px] h-[50.53px] w-[47.045px] bg-[rgba(0,0,0,0.14)]" />
-        <span className="absolute left-[22.79px] top-[21.2px] h-[50.53px] w-[47.045px] bg-[#FEFEFF]" />
-        <Image
-          src="/dashboard/blank-presentation-clip.svg"
-          alt=""
-          width={9}
-          height={15}
-          className="absolute left-[25.05px] top-[15.66px] h-[14.283px] w-[8.282px]"
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="63"
+        height="63"
+        viewBox="0 0 63 63"
+        fill="none"
+      >
+        <rect
+          width="63"
+          height="63"
+          transform="translate(0 -0.00585938)"
+          fill="#D1E9FF"
         />
-        <span className="absolute left-[25.31px] top-[21.2px] h-[0.387px] w-[0.968px] bg-[#FEFEFF]" />
-      </span>
+        <rect
+          x="10.5159"
+          y="13.0332"
+          width="38.88"
+          height="41.76"
+          transform="rotate(-5.80941 10.5159 13.0332)"
+          fill="black"
+          fillOpacity="0.14"
+        />
+        <rect
+          x="9.83057"
+          y="12.6211"
+          width="38.88"
+          height="41.76"
+          transform="rotate(-5.80941 9.83057 12.6211)"
+          fill="#ECEEEE"
+        />
+        <rect
+          x="13.6705"
+          y="11.9805"
+          width="38.88"
+          height="41.76"
+          fill="black"
+          fillOpacity="0.14"
+        />
+        <rect
+          x="13.0305"
+          y="11.5"
+          width="38.88"
+          height="41.76"
+          fill="#FEFEFF"
+        />
+        <path
+          d="M15.5906 11.5807L15.1906 9.66079C15.1905 8.1956 15.3118 7.7329 16.4 7.34961C18.0384 6.77254 18.6867 8.31651 18.9 8.84984L21.4001 16.8504C21.5068 17.3304 21.424 18.0305 20.4 18.3505C19.376 18.6705 18.5067 17.9105 18.4 17.3505L16.6635 11.5807"
+          stroke="#F46036"
+          strokeWidth="0.6"
+        />
+        <rect x="15.1105" y="11.5" width="0.8" height="0.32" fill="#FEFEFF" />
+      </svg>
     )}
   </span>
 );
@@ -127,9 +162,7 @@ const ListViewIcon = () => (
   />
 );
 
-const sortPresentationsNewestFirst = (
-  presentations: PresentationResponse[]
-) =>
+const sortPresentationsNewestFirst = (presentations: PresentationResponse[]) =>
   [...presentations].sort((a, b) => {
     const createdAtA = Date.parse(a.created_at);
     const createdAtB = Date.parse(b.created_at);
@@ -153,7 +186,7 @@ function formatGitHubStars(stars: number) {
 function DashboardHeader() {
   const pathname = usePathname();
   const llmConfig = useSelector(
-    (state: RootState) => state.userConfig.llm_config
+    (state: RootState) => state.userConfig.llm_config,
   );
   const [isElectronApp, setIsElectronApp] = useState(false);
 
@@ -163,14 +196,13 @@ function DashboardHeader() {
     : IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER || ""];
   const configuredProviders = [textProvider, imageProvider].filter(
     (provider): provider is NonNullable<typeof provider> =>
-      Boolean(provider?.icon)
+      Boolean(provider?.icon),
   );
 
   useEffect(() => {
     setIsElectronApp(Boolean(window.electron));
 
     let isMounted = true;
-
 
     return () => {
       isMounted = false;
@@ -208,8 +240,9 @@ function DashboardHeader() {
                 {configuredProviders.map((provider, index) => (
                   <span
                     key={`${provider.value}-${index}`}
-                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${index > 0 ? "-ml-[4.4px]" : "z-10"
-                      }`}
+                    className={`relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full border-[1.238px] border-[#EDEEEF] bg-white ${
+                      index > 0 ? "-ml-[4.4px]" : "z-10"
+                    }`}
                   >
                     <Image
                       src={provider.icon!}
@@ -228,8 +261,6 @@ function DashboardHeader() {
             </Link>
 
             <DashboardHeaderDivider />
-
-
 
             <Link
               href={DISCORD_INVITE_URL}
@@ -278,10 +309,7 @@ function DashboardHeader() {
                 height={18}
                 className="h-[17.6px] w-[17.6px] shrink-0"
               />
-
             </Link>
-
-
           </div>
 
           {isElectronApp && (
@@ -328,7 +356,9 @@ function DashboardHeader() {
 const DashboardPage: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const [presentations, setPresentations] = useState<PresentationResponse[]>([]);
+  const [presentations, setPresentations] = useState<PresentationResponse[]>(
+    [],
+  );
   const [legacyPresentations, setLegacyPresentations] = useState<
     PresentationResponse[]
   >([]);
@@ -341,12 +371,12 @@ const DashboardPage: React.FC = () => {
 
   const sortedPresentations = useMemo(
     () => sortPresentationsNewestFirst(presentations),
-    [presentations]
+    [presentations],
   );
 
   const sortedLegacyPresentations = useMemo(
     () => sortPresentationsNewestFirst(legacyPresentations),
-    [legacyPresentations]
+    [legacyPresentations],
   );
 
   const fetchPresentations = useCallback(async () => {
@@ -400,7 +430,7 @@ const DashboardPage: React.FC = () => {
         slide_count: presentation.n_slides,
       });
       router.push(
-        `/presentation?id=${encodeURIComponent(presentation.id)}&type=standard`
+        `/presentation?id=${encodeURIComponent(presentation.id)}&type=standard`,
       );
     } catch (creationError) {
       const message =
@@ -421,14 +451,14 @@ const DashboardPage: React.FC = () => {
   const removePresentation = (presentationId: string) => {
     setPresentations((prev) => prev.filter((p) => p.id !== presentationId));
     setLegacyPresentations((prev) =>
-      prev.filter((p) => p.id !== presentationId)
+      prev.filter((p) => p.id !== presentationId),
     );
   };
 
   const removeLegacyPresentations = (presentationIds: string[]) => {
     const deletedIds = new Set(presentationIds);
     setLegacyPresentations((prev) =>
-      prev.filter((presentation) => !deletedIds.has(presentation.id))
+      prev.filter((presentation) => !deletedIds.has(presentation.id)),
     );
   };
 
@@ -468,7 +498,7 @@ const DashboardPage: React.FC = () => {
             onClick={() => void createBlankPresentation()}
             disabled={isCreatingBlankPresentation}
             aria-busy={isCreatingBlankPresentation}
-            className="group relative z-50 flex h-[89.983px] w-[304.5px] max-w-full items-center overflow-hidden rounded-[10.8px] border border-[#EDEEEF] bg-[linear-gradient(135deg,#FAFAFF_0%,#F3F0FF_100%)] px-5 text-left outline-none transition hover:border-[#CFC7FF] hover:shadow-[0_8px_22px_rgba(81,70,229,0.12)] focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-70"
+            className="group relative z-50 flex h-[89.983px] w-[304.5px] max-w-full items-center overflow-hidden rounded-[10.8px] border border-[#EDEEEF]  px-5 text-left outline-none transition hover:border-[#CFC7FF] hover:shadow-[0_8px_22px_rgba(81,70,229,0.12)] focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-70"
             aria-label="Create blank presentation"
           >
             <span className="flex min-w-0 flex-col pr-3">
