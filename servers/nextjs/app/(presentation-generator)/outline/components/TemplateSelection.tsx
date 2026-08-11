@@ -1,6 +1,7 @@
 "use client";
 
 import React, { memo, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 import CreateCustomTemplate from "../../(dashboard)/templates/components/CreateCustomTemplate";
 import { useTemplateSummaries } from "../../hooks/useTemplateSummaries";
 import {
@@ -30,6 +31,9 @@ interface TemplateSelectionProps {
   onCreateTemplate?: () => void;
 }
 
+const normalizeTemplateName = (name: string) =>
+  name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
 const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
   function TemplateSelection({
     presentationId,
@@ -46,8 +50,6 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
       if (loading || !suggestedTemplate || selectedTemplateId) return;
 
       const normalizedSuggestion = suggestedTemplate.trim().toLowerCase();
-      const normalizeName = (name: string) =>
-        name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const candidates = [
         ...defaultTemplates.map((template, position) => ({
           template,
@@ -63,7 +65,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
       const match = candidates.find(
         ({ template }) =>
           template.id === suggestedTemplate ||
-          normalizeName(template.name) === normalizedSuggestion
+          normalizeTemplateName(template.name) === normalizedSuggestion
       );
 
       if (match) {
@@ -91,32 +93,53 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
       template: (typeof defaultTemplates)[number],
       index: number,
       source: "default" | "custom"
-    ) => (
-      <TemplateListCard
-        key={template.id}
-        template={template}
-        isSelected={selectedTemplateId === template.id}
-        showArrow
-        selectionPage
-        onClick={() => {
-          trackEvent(MixpanelEvent.TemplateV2_Template_Selected, {
-            presentation_id: presentationId,
-            template_id: template.id,
-            template_source: source,
-          });
-          onSelectTemplate({
-            id: template.id,
-            name: template.name,
-            source,
-            position: index,
-          });
-        }}
-      />
+    ) => {
+      const isSuggested = Boolean(
+        suggestedTemplate &&
+          (template.id === suggestedTemplate ||
+            normalizeTemplateName(template.name) ===
+              suggestedTemplate.trim().toLowerCase())
+      );
+
+      return (
+        <TemplateListCard
+          key={template.id}
+          template={template}
+          isSelected={selectedTemplateId === template.id}
+          isSuggested={isSuggested}
+          showArrow
+          selectionPage
+          onClick={() => {
+            trackEvent(MixpanelEvent.TemplateV2_Template_Selected, {
+              presentation_id: presentationId,
+              template_id: template.id,
+              template_source: source,
+            });
+            onSelectTemplate({
+              id: template.id,
+              name: template.name,
+              source,
+              position: index,
+            });
+          }}
+        />
+      );
+    };
+
+    const suggestionNotice = suggestedTemplate && selectedTemplateId && (
+      <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#E4E0FF] bg-[#F7F5FF] px-4 py-3 font-syne text-xs text-[#5141E5]">
+        <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>
+          <strong className="font-semibold">Suggested template selected.</strong>{" "}
+          Click the template to continue.
+        </span>
+      </div>
     );
 
     if (customTemplates.length === 0) {
       return (
         <div className="mb-8">
+          {suggestionNotice}
           <TemplateListSection label="Templates" selectionPage>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <CreateCustomTemplate
@@ -134,6 +157,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(
 
     return (
       <div className="mb-8 space-y-[30px]">
+        {suggestionNotice}
         <TemplateListSection label="Custom" selectionPage>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <CreateCustomTemplate

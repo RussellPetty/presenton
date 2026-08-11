@@ -63,12 +63,14 @@ export const TemplateListCard = memo(function TemplateListCard({
   template,
   onClick,
   isSelected = false,
+  isSuggested = false,
   showArrow = false,
   selectionPage = false,
 }: {
   template: TemplateListItem;
   onClick: () => void;
   isSelected?: boolean;
+  isSuggested?: boolean;
   showArrow?: boolean;
   selectionPage?: boolean;
 }) {
@@ -131,6 +133,11 @@ export const TemplateListCard = memo(function TemplateListCard({
       {isSelected && (
         <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#7A5AF8] text-white shadow-sm">
           <CheckCircle2 className="h-4 w-4" />
+        </span>
+      )}
+      {isSuggested && (
+        <span className="absolute right-3.5 top-[52px] z-50 rounded-full border border-[#DDD7FF] bg-white/95 px-2.5 py-1 font-syne text-[10px] font-semibold text-[#6553E8] shadow-sm backdrop-blur">
+          Suggested
         </span>
       )}
       <TemplatePreviewStage selectionPage={selectionPage}>
