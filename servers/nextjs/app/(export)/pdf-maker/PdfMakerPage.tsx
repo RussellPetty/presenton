@@ -126,8 +126,6 @@ const SmartHtmlPdfSlide = ({
         <div
           ref={containerRef}
           data-smart-slide-instance={instanceId}
-          data-screenshot="true"
-          data-screenshot-include-children="true"
           className="h-[720px] w-[1280px] overflow-hidden bg-white"
           dangerouslySetInnerHTML={{ __html: html }}
         />

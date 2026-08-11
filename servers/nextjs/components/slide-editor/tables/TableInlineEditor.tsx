@@ -13,6 +13,7 @@ import {
 import type { Font, TableCell, TextRun } from "@/components/slide-editor/types";
 import { effectiveLineHeight } from "@/components/slide-editor/text/text-line-height";
 import {
+  isLatexTextRun,
   textRunsContent,
   type TextSelectionRange,
 } from "@/components/slide-editor/text/text-runs";
@@ -287,11 +288,15 @@ function normalizedTextRuns(
   font: Font | null | undefined,
 ) {
   const runs = source.runs.length > 0 ? source.runs : [{ text: " " }];
-  return runs.map((run) => ({
-    ...run,
-    text: run.text || " ",
-    font: run.font ?? font ?? undefined,
-  }));
+  return runs.map((run) =>
+    isLatexTextRun(run)
+      ? { ...run, font: run.font ?? font ?? undefined }
+      : {
+          ...run,
+          text: run.text || " ",
+          font: run.font ?? font ?? undefined,
+        },
+  );
 }
 
 function formatTableCell(cell: string) {

@@ -264,7 +264,10 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     setLoading,
     setError,
     fetchUserSlides,
-    { preloadPresentationData: shouldPreloadTemplateV2Presentation }
+    {
+      preloadPresentationData: shouldPreloadTemplateV2Presentation,
+      generationMode: isSmartPresentation ? "smart" : "standard",
+    }
   );
 
   useEffect(() => {
@@ -332,8 +335,15 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
       presentation_id,
       stream_mode: !!stream,
       presentation_mode: isPresentMode ? "present" : "edit",
+      generation_mode: isSmartPresentation ? "smart" : "standard",
     });
-  }, [pathname, presentation_id, stream, isPresentMode]);
+  }, [
+    isPresentMode,
+    isSmartPresentation,
+    pathname,
+    presentation_id,
+    stream,
+  ]);
 
   useEffect(() => {
     if (!presentationData || !isTemplateV2Presentation || loading || error) {

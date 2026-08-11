@@ -5455,12 +5455,6 @@
                 "height": 467.29
               },
               "rotation": 0,
-              "infographic_type": "gauge",
-              "max_value": 100,
-              "min_value": 0,
-              "value": 100,
-              "base_color": "#8CB7D6",
-              "highlight_color": "#2B9BE8",
               "decorative": false,
               "name": "radial_framework_visual",
               "data": {
@@ -5468,7 +5462,11 @@
                 "min_value": 0,
                 "max_value": 100,
                 "value": 100
-              }
+              },
+              "colors": [
+                "#8CB7D6",
+                "#2B9BE8"
+              ]
             }
           ]
         },
@@ -7470,12 +7468,6 @@
                 "height": 242.11
               },
               "rotation": 49.33,
-              "infographic_type": "gauge",
-              "max_value": 100,
-              "min_value": 0,
-              "value": 84,
-              "base_color": "#1D242D",
-              "highlight_color": "#448BCA",
               "decorative": false,
               "name": "score_gauge",
               "data": {
@@ -7483,7 +7475,11 @@
                 "min_value": 0,
                 "max_value": 100,
                 "value": 84
-              }
+              },
+              "colors": [
+                "#1D242D",
+                "#448BCA"
+              ]
             },
             {
               "type": "text",
@@ -8112,12 +8108,6 @@
                         "width": 88,
                         "height": 88
                       },
-                      "infographic_type": "gauge",
-                      "max_value": 100,
-                      "min_value": 0,
-                      "value": 10,
-                      "base_color": "#F4F2EF",
-                      "highlight_color": "#44AFFF",
                       "decorative": false,
                       "name": "metric_gauge",
                       "data": {
@@ -8125,7 +8115,11 @@
                         "min_value": 0,
                         "max_value": 100,
                         "value": 10
-                      }
+                      },
+                      "colors": [
+                        "#F4F2EF",
+                        "#44AFFF"
+                      ]
                     },
                     {
                       "type": "text",
@@ -9916,12 +9910,6 @@
                         "width": 152.85,
                         "height": 152.85
                       },
-                      "infographic_type": "gauge",
-                      "max_value": 100,
-                      "min_value": 0,
-                      "value": 82,
-                      "base_color": "#D9D9D9",
-                      "highlight_color": "#215A9F",
                       "decorative": false,
                       "name": "metric_gauge",
                       "data": {
@@ -9929,7 +9917,11 @@
                         "min_value": 0,
                         "max_value": 100,
                         "value": 82
-                      }
+                      },
+                      "colors": [
+                        "#D9D9D9",
+                        "#215A9F"
+                      ]
                     },
                     {
                       "type": "text",
@@ -23950,12 +23942,6 @@
                 "height": 242.11
               },
               "rotation": -0.17,
-              "infographic_type": "gauge",
-              "max_value": 100,
-              "min_value": 0,
-              "value": 84,
-              "base_color": "#1D242D",
-              "highlight_color": "#448BCA",
               "decorative": false,
               "name": "score_gauge",
               "data": {
@@ -23965,9 +23951,9 @@
                 "value": 84
               },
               "colors": [
-                "#ffffff"
-              ],
-              "show_label": false
+                "#1D242D",
+                "#448BCA"
+              ]
             },
             {
               "type": "text",
@@ -24741,12 +24727,6 @@
                         "width": 88,
                         "height": 88
                       },
-                      "infographic_type": "gauge",
-                      "max_value": 100,
-                      "min_value": 0,
-                      "value": 10,
-                      "base_color": "#F4F2EF",
-                      "highlight_color": "#44AFFF",
                       "decorative": false,
                       "name": "metric_gauge",
                       "data": {
@@ -24754,7 +24734,11 @@
                         "min_value": 0,
                         "max_value": 100,
                         "value": 10
-                      }
+                      },
+                      "colors": [
+                        "#F4F2EF",
+                        "#44AFFF"
+                      ]
                     },
                     {
                       "type": "text",
@@ -26838,12 +26822,6 @@
                         "width": 152.85,
                         "height": 152.85
                       },
-                      "infographic_type": "gauge",
-                      "max_value": 100,
-                      "min_value": 0,
-                      "value": 82,
-                      "base_color": "#D9D9D9",
-                      "highlight_color": "#215A9F",
                       "decorative": false,
                       "name": "metric_gauge",
                       "data": {
@@ -26851,7 +26829,11 @@
                         "min_value": 0,
                         "max_value": 100,
                         "value": 82
-                      }
+                      },
+                      "colors": [
+                        "#D9D9D9",
+                        "#215A9F"
+                      ]
                     },
                     {
                       "type": "text",
@@ -30182,5 +30164,5 @@
       ]
     }
   ],
-  "description": ""
+  "description": "Sophisticated editorial layouts pairing expressive serif headlines with clean sans-serif typography, structured storytelling, and refined blue accents for reports, thought leadership, and narrative presentations."
 }

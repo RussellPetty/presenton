@@ -6,6 +6,7 @@ import {
   CHART_BROWSER_SCRIPT_URL,
   CHART_DATALABELS_SCRIPT_URL,
 } from "@/lib/chart-browser";
+import { TAILWIND_BROWSER_SCRIPT_URL } from "@/lib/tailwind-browser";
 
 const SLIDE_WIDTH = 1280;
 const SLIDE_HEIGHT = 720;
@@ -38,7 +39,7 @@ function previewDocument(html: string, fonts: unknown) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=1280, initial-scale=1">
       ${fontAssets(fonts)}
-      <script src="https://cdn.tailwindcss.com"></script>
+      <script src="${TAILWIND_BROWSER_SCRIPT_URL}"></script>
       <script src="${CHART_BROWSER_SCRIPT_URL}"></script>
       <script src="${CHART_DATALABELS_SCRIPT_URL}"></script>
       <script>

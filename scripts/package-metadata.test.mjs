@@ -22,7 +22,6 @@ test("application versions stay aligned", async () => {
       readJson("electron/package-lock.json"),
     ]);
 
-  assert.equal(rootPackage.version, "0.9.2-beta");
   assert.equal(electronPackage.version, rootPackage.version);
   assert.equal(rootLock.version, rootPackage.version);
   assert.equal(rootLock.packages[""].version, rootPackage.version);

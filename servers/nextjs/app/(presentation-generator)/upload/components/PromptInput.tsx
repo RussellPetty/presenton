@@ -81,7 +81,7 @@ export function PromptInput({
           <Textarea
             value={value}
             autoFocus
-            rows={3}
+            rows={variant === "smart" ? 3 : 6}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={

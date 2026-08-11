@@ -4,6 +4,7 @@ import {
   measureNoWrapTextWidth,
   rawFont,
 } from "@/components/slide-editor/text/template-v2-text";
+import { measureMathLatex } from "@/lib/math";
 import type {
   ChartType,
   Fill,
@@ -19,12 +20,14 @@ const DEFAULT_CHART_INSERT_POSITION = { x: 128, y: 115 };
 const DEFAULT_CHART_INSERT_SIZE = { width: 717, height: 410 };
 const DEFAULT_INFOGRAPHIC_INSERT_POSITION = { x: 128, y: 170 };
 const DEFAULT_IMAGE_PLACEHOLDER_SRC = "/placeholder.jpg";
+const DEFAULT_MATH_INSERT_CENTER_X = 640;
+const DEFAULT_MATH_INSERT_CENTER_Y = 325;
 const TEXT_INSERT_HORIZONTAL_PADDING_PX = 8;
 const TEXT_INSERT_VERTICAL_PADDING_PX = 14;
 const IMAGE_RADIUS = { tl: 10, tr: 10, bl: 10, br: 10 };
 const MATH_INSERT_PRESETS: Record<
   string,
-  { latex: string; name: string; fontSize?: number; height?: number }
+  { latex: string; name: string; fontSize?: number }
 > = {
   equation: { latex: String.raw`E = mc^2`, name: "equation" },
   "equation-quadratic": {
@@ -46,7 +49,6 @@ const MATH_INSERT_PRESETS: Record<
     latex: String.raw`A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}`,
     name: "matrix_formula",
     fontSize: 38,
-    height: 180,
   },
 };
 
@@ -115,29 +117,36 @@ function makeTextElement({
   };
 }
 
-function makeMathElement({
+function makeLatexTextElement({
   latex,
   name,
   fontSize = 44,
-  height = 150,
 }: {
   latex: string;
   name: string;
   fontSize?: number;
-  height?: number;
 }): SlideElement {
+  const measured = measureMathLatex(latex, fontSize, true);
+  const width = Math.max(
+    1,
+    Math.ceil(measured.width) + TEXT_INSERT_HORIZONTAL_PADDING_PX,
+  );
+  const height = Math.max(1, Math.ceil(measured.height));
+
   return {
-    type: "math",
-    position: { x: 210, y: 250 },
-    size: { width: 860, height },
+    type: "text",
+    position: {
+      x: Math.round(DEFAULT_MATH_INSERT_CENTER_X - width / 2),
+      y: Math.round(DEFAULT_MATH_INSERT_CENTER_Y - height / 2),
+    },
+    size: { width, height },
     alignment: { horizontal: "center", vertical: "middle" },
     font: {
       family: "KaTeX_Main",
       size: fontSize,
       color: "101323",
     },
-    latex,
-    display_mode: true,
+    runs: [{ type: "latex", latex, display_mode: true }],
     decorative: false,
     name,
     max_length: 4000,
@@ -237,7 +246,7 @@ function makeBulletListElement(marker: Marker): SlideElement {
 
 export function createTextInsertElements(kind?: string): SlideElement[] {
   const mathPreset = kind ? MATH_INSERT_PRESETS[kind] : undefined;
-  if (mathPreset) return [makeMathElement(mathPreset)];
+  if (mathPreset) return [makeLatexTextElement(mathPreset)];
 
   switch (kind) {
     case "title-block":

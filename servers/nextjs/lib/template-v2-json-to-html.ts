@@ -1,6 +1,7 @@
 import { resolveBackendAssetUrl } from "@/utils/api";
 import { markdownToPlainChartText } from "@/components/slide-editor/charts/chart-data";
 import { normalizeRawTextMarkdownElement } from "@/components/slide-editor/text/template-v2-text";
+import { isLatexTextRun } from "@/components/slide-editor/text/text-runs";
 import { normalizeMathLatex, renderMathHtml } from "@/lib/math";
 import {
   CHART_BROWSER_SCRIPT_URL,
@@ -82,7 +83,6 @@ interface TemplateV2RenderPayload {
 
 const ELEMENT_TYPES = new Set([
   "text",
-  "math",
   "container",
   "image",
   "text-list",
@@ -110,6 +110,11 @@ const DEFAULT_CHART_COLORS = [
 ];
 
 const CHART_FONT_FAMILY = "Inter, Arial, sans-serif";
+const TEMPLATE_V2_MATH_CSS = `
+.presenton-math{line-height:normal;overflow:visible}
+.presenton-math>.katex{color:inherit;font:inherit;line-height:inherit;white-space:nowrap}
+.presenton-math>.katex>math{color:inherit;font-size:1em;margin:0;overflow:visible}
+`;
 
 export const TEMPLATE_V2_HTML_WIDTH = 1280;
 export const TEMPLATE_V2_HTML_HEIGHT = 720;
@@ -222,6 +227,7 @@ function jsonToHtml(
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${bg}}
 body{font-family:Arial,Helvetica,sans-serif}
 *,*::before,*::after{box-sizing:border-box}
+${TEMPLATE_V2_MATH_CSS}
 </style></head><body>${slideRoot}${chartScripts}</body></html>`;
 }
 
@@ -235,7 +241,7 @@ function jsonToHtmlFragment(
   const records = items.map(readRecord);
   const bg = escapeCssColor(background);
 
-  return `${renderFontAssetTags(fonts)}${renderSlideRoot(
+  return `${renderFontAssetTags(fonts)}<style>${TEMPLATE_V2_MATH_CSS}</style>${renderSlideRoot(
     records,
     width,
     height,
@@ -432,8 +438,6 @@ function renderItem(item: JsonRecord, mode: RenderMode): string {
       return renderImage(item, mode);
     case "text":
       return renderText(item, mode);
-    case "math":
-      return renderMath(item, mode);
     case "text-list":
       return renderTextList(item, mode);
     case "table":
@@ -507,9 +511,7 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
   const runHtml = runs
     .map((run) => {
       const runFont = { ...font, ...readRecord(run.font) };
-      return `<span style="${fontStyle(runFont)}">${escapeHtml(
-        readStringValue(run.text)
-      )}</span>`;
+      return renderTextRunHtml(run, runFont);
     })
     .join("");
 
@@ -524,29 +526,6 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
   )}${textOverflowStyle()}text-align:${textAlign(horizontal)};"><span style="display:block;width:100%">${runHtml}</span></div>`;
 }
 
-function renderMath(item: JsonRecord, mode: RenderMode): string {
-  const latex = normalizeMathLatex(item.latex);
-  if (!latex) return "";
-  const font = readRecord(item.font);
-  const alignment = readRecord(item.alignment);
-  const horizontal = readString(alignment.horizontal);
-  const vertical = readString(alignment.vertical);
-  const displayMode = readBoolean(item.display_mode ?? item.displayMode) ?? true;
-  const markup = renderMathHtml(latex, { displayMode });
-  const color = normalizeCssColor(readString(font.color) ?? "#111827");
-  const fontSize = readNumber(font.size) ?? 32;
-
-  return `<div data-presenton-math="true" data-screenshot="true" data-screenshot-include-children="true" aria-label="${escapeAttribute(
-    `Mathematical expression: ${latex}`
-  )}" style="${frameStyle(item, mode)}${transformStyle(
-    item
-  )}display:flex;align-items:${verticalAlign(vertical)};justify-content:${horizontalAlign(
-    horizontal
-  )};overflow:hidden;color:${escapeCssColor(color)};font-size:${cssNumber(
-    fontSize
-  )}px;"><div style="max-width:100%;max-height:100%;overflow:hidden;">${markup}</div></div>`;
-}
-
 function renderTextList(item: JsonRecord, mode: RenderMode): string {
   const marker = readString(item.marker);
   const tag = marker === "number" ? "ol" : "ul";
@@ -555,12 +534,8 @@ function renderTextList(item: JsonRecord, mode: RenderMode): string {
     .map((entry) => {
       const runs = normalizedListRunsForHtml(entry, font);
       const html = runs
-        .map(
-          (run) =>
-            `<span style="${fontStyle({
-              ...font,
-              ...readRecord(run.font),
-            })}">${escapeHtml(readStringValue(run.text))}</span>`
+        .map((run) =>
+          renderTextRunHtml(run, { ...font, ...readRecord(run.font) }),
         )
         .join("");
       return `<li style="${textOverflowStyle()}">${html}</li>`;
@@ -2344,9 +2319,7 @@ function cellText(
           fillColor,
           header
         );
-        return `<span style="${fontStyle(runFont)}">${escapeHtml(
-          readStringValue(run.text)
-        )}</span>`;
+        return renderTextRunHtml(run, runFont);
       })
       .join("");
   }
@@ -2377,9 +2350,7 @@ function cellText(
           fillColor,
           header
         );
-        return `<span style="${fontStyle(runFont)}">${escapeHtml(
-          readStringValue(run.text)
-        )}</span>`;
+        return renderTextRunHtml(run, runFont);
       })
       .join("");
   }
@@ -2510,14 +2481,48 @@ function normalizeRunsForHtml(
     runs,
   }).runs;
 
-  return normalized.map((run) => ({
-    text: run.text,
-    font: run.font,
-  }));
+  return normalized.map((run) =>
+    isLatexTextRun(run)
+      ? {
+          type: "latex",
+          latex: run.latex,
+          display_mode: run.display_mode ?? false,
+          font: run.font,
+        }
+      : { text: run.text, font: run.font },
+  );
 }
 
 function joinedRunText(runs: JsonRecord[]): string {
-  return runs.map((run) => readStringValue(run.text)).join("");
+  return runs
+    .map((run) =>
+      readString(run.type) === "latex"
+        ? normalizeMathLatex(run.latex)
+        : readStringValue(run.text),
+    )
+    .join("");
+}
+
+function renderTextRunHtml(run: JsonRecord, font: JsonRecord): string {
+  if (readString(run.type) !== "latex") {
+    return `<span style="${fontStyle(font)}">${escapeHtml(
+      readStringValue(run.text),
+    )}</span>`;
+  }
+
+  const latex = normalizeMathLatex(run.latex);
+  if (!latex) return "";
+  const displayMode = readBoolean(run.display_mode ?? run.displayMode) ?? false;
+  const display = displayMode ? "block" : "inline-block";
+  return `<span class="presenton-math" data-presenton-math="true" data-screenshot="true" data-screenshot-include-children="true" aria-label="${escapeAttribute(
+    `Mathematical expression: ${latex}`,
+  )}" style="${fontStyle(
+    font,
+    { includeLineHeight: false },
+  )}display:${display};vertical-align:middle;max-width:100%;line-height:normal;overflow:visible;">${renderMathHtml(
+    latex,
+    { displayMode, output: "mathml" },
+  )}</span>`;
 }
 
 function readListRuns(value: unknown): JsonRecord[] {

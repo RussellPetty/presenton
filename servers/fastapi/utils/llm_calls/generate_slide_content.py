@@ -17,7 +17,7 @@ from utils.schema_utils import (
     remove_fields_from_schema,
 )
 
-SLIDE_CONTENT_SYSTEM_PROMPT = """
+SLIDE_CONTENT_SYSTEM_PROMPT = r"""
 You will be given slide content and response schema.
 You need to generate structured content json based on the schema.
 
@@ -47,6 +47,13 @@ You need to generate structured content json based on the schema.
 - Output fields must contain only audience-facing content and data. For chart fields,
   populate the requested labels, series, and values rather than text such as "create a
   bar chart" or "show this data as a graph".
+
+# Math Expression Rules
+- Wrap every LaTeX expression in `<latex>` and `</latex>` inside the generated string.
+- Put only valid LaTeX inside the tags and do not include `$`, `$$`, `\(`, or `\[` delimiters.
+- Keep surrounding prose outside the tags. Example: `The area is <latex>\pi r^2</latex>.`
+- Apply the same rule to strings in text lists and table cells.
+- Do not use `<latex>` tags for ordinary text.
 
 {markdown_emphasis_rules}
 

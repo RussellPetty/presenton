@@ -1,8 +1,13 @@
 import { renderMarkdownTextRuns } from "@/components/slide-editor/text/markdown-text";
 import type { Font, TextRun } from "@/components/slide-editor/types";
 import { effectiveLineHeight } from "@/components/slide-editor/text/text-line-height";
-import { textRunsContent } from "@/components/slide-editor/text/text-runs";
+import {
+  isLatexTextRun,
+  textRunContent,
+  textRunsContent,
+} from "@/components/slide-editor/text/text-runs";
 import type { TemplateV2TextEditStyle } from "@/components/slide-editor/text/template-v2-text-editing";
+import { measureMathLatex, normalizeMathLatex } from "@/lib/math";
 
 type UnknownRecord = Record<string, any>;
 
@@ -14,6 +19,10 @@ export type RenderTextFont = Omit<
 export type RenderTextRun = {
   text: string;
   font: RenderTextFont;
+  type?: "latex";
+  latex?: string;
+  displayMode?: boolean;
+  renderHeight?: number;
 };
 export type LaidToken = {
   text: string;
@@ -22,6 +31,9 @@ export type LaidToken = {
   y: number;
   width: number;
   height: number;
+  type?: "latex";
+  latex?: string;
+  displayMode?: boolean;
 };
 export type TextListRenderItem = {
   marker: string;
@@ -52,7 +64,6 @@ const MIN_TRANSFORM_FONT_SIZE = 1;
 const MAX_TRANSFORM_FONT_SIZE = 512;
 const TRANSFORM_FONT_SCALE_EPSILON = 0.001;
 
-const richMeasureCtx: { ctx: CanvasRenderingContext2D | null } = { ctx: null };
 let renderTextMeasureCanvas: HTMLCanvasElement | null = null;
 const NON_BREAKING_SPACE = "\u00A0";
 
@@ -201,8 +212,8 @@ export function normalizeRawTextMarkdownElement(
   const sourceRuns = reconciledSourceRuns;
   const renderedRuns = renderMarkdownTextRuns(sourceRuns);
   const renderedText = textRunsContent(renderedRuns);
-  const sourceHasMarkdown = sourceRuns.some((run) =>
-    containsMarkdownSyntax(run.text),
+  const sourceHasMarkdown = sourceRuns.some(
+    (run) => !isLatexTextRun(run) && containsMarkdownSyntax(run.text),
   );
   const runsChanged = !sameTextRuns(originalSourceRuns, sourceRuns);
   const renderedRunsChanged = !sameTextRuns(sourceRuns, renderedRuns);
@@ -223,9 +234,7 @@ export function normalizeRawTextMarkdownElement(
 export function rawTextContent(element: TemplateV2RawTextElement) {
   const runs = readArray(element.runs);
   if (runs.length > 0) {
-    const content = runs
-      .map((run) => readString(asRecord(run)?.text) ?? "")
-      .join("");
+    const content = runs.map(rawRunRecordContent).join("");
     if (content) return content;
   }
   return rawStoredTextContent(element);
@@ -242,18 +251,7 @@ export function rawSourceTextRuns(
 ): TextRun[] {
   const fallbackFont = fontToSource(rawFont(element));
   const runs = readArray(element.runs)
-    .map((run) => {
-      const record = asRecord(run);
-      if (!record) return null;
-      const text = readString(record.text) ?? "";
-      if (!text) return null;
-      return {
-        text,
-        font: fontToSource(
-          fontFromRecord(asRecord(record.font), rawFont(element)),
-        ),
-      } satisfies TextRun;
-    })
+    .map((run) => rawRunRecordToTextRun(run, rawFont(element)))
     .filter(Boolean) as TextRun[];
 
   return runs.length > 0
@@ -270,7 +268,7 @@ export function rawTextRunsForEditor(
 export function rawTextHasRuns(element: TemplateV2RawTextElement) {
   return readArray(element.runs).some((run) => {
     const record = asRecord(run);
-    return Boolean(readString(record?.text));
+    return Boolean(rawRunRecordContent(record));
   });
 }
 
@@ -284,14 +282,18 @@ export function setRawTextContent(
   const firstRun = asRecord(sourceRuns[0]) ?? {};
   const runs = stripPlainTextListMarkersFromRuns(
     renderMarkdownTextRuns([{ text, font: fontToSource(rawFont(styled)) }]),
-  ).map((run) => ({
-    ...firstRun,
-    text: run.text,
-    font: {
-      ...(asRecord(firstRun.font) ?? {}),
-      ...(asRecord(run.font) ?? {}),
-    },
-  }));
+  ).map((run) =>
+    isLatexTextRun(run)
+      ? run
+      : {
+          ...firstRun,
+          text: run.text,
+          font: {
+            ...(asRecord(firstRun.font) ?? {}),
+            ...(asRecord(run.font) ?? {}),
+          },
+        },
+  );
   return {
     ...styled,
     text: textRunsContent(runs),
@@ -310,13 +312,28 @@ export function setRawTextRunsContent(
   ).map(
     (run, index) => {
       const sourceRun = asRecord(sourceRuns[index]) ?? {};
+      if (isLatexTextRun(run)) {
+        return {
+          ...sourceRun,
+          type: "latex",
+          text: undefined,
+          latex: run.latex,
+          display_mode: run.display_mode ?? false,
+          displayMode: undefined,
+          font: rawInlineTextFontRecord(run.font, sourceRun.font),
+        };
+      }
       return {
         ...sourceRun,
+        type: undefined,
+        latex: undefined,
+        display_mode: undefined,
+        displayMode: undefined,
         text: run.text,
         font: rawInlineTextFontRecord(run.font, sourceRun.font),
       };
     },
-  );
+  ) as TextRun[];
   return {
     ...element,
     text: textRunsContent(nextRuns),
@@ -360,9 +377,10 @@ export function rawTextListRunsForEditor(
 
     if (index > 0) appendTextRun(runs, "\n", itemFont);
     if (prefix) appendTextRun(runs, prefix, itemFont);
-    itemRuns.forEach((run) =>
-      appendTextRun(runs, run.text, run.font ?? itemFont),
-    );
+    itemRuns.forEach((run) => {
+      if (isLatexTextRun(run)) runs.push(cloneTextRun(run));
+      else appendTextRun(runs, run.text, run.font ?? itemFont);
+    });
   });
 
   return runs.length > 0 ? runs : [{ text: " ", font: fallbackFont }];
@@ -373,11 +391,8 @@ export function rawTextListRenderTextRuns(
 ): RenderTextRun[] {
   const baseFont = rawFont(element);
   return rawTextListRunsForEditor(element)
-    .filter((run) => run.text)
-    .map((run) => ({
-      text: run.text,
-      font: fontFromRecord(asRecord(run.font), baseFont),
-    }));
+    .filter((run) => textRunContent(run))
+    .map((run) => renderTextRun(run, baseFont));
 }
 
 export function rawTextListRenderItems(
@@ -396,11 +411,8 @@ export function rawTextListRenderItems(
       baseFont,
     );
     const runs = itemRuns
-      .filter((run) => run.text)
-      .map((run) => ({
-        text: run.text,
-        font: fontFromRecord(asRecord(run.font), baseFont),
-      }));
+      .filter((run) => textRunContent(run))
+      .map((run) => renderTextRun(run, baseFont));
 
     return {
       marker: textListMarkerPrefix(element.marker, index),
@@ -414,7 +426,7 @@ export function rawTextListItemText(item: unknown) {
   if (typeof item === "string") return item;
   if (Array.isArray(item)) {
     return item
-      .map((run) => readString(asRecord(run)?.text) ?? "")
+      .map(rawRunRecordContent)
       .join("");
   }
   const record = asRecord(item);
@@ -422,7 +434,7 @@ export function rawTextListItemText(item: unknown) {
   const directText = readString(record.text);
   if (directText != null) return directText;
   return readArray(record.runs)
-    .map((run) => readString(asRecord(run)?.text) ?? "")
+    .map(rawRunRecordContent)
     .join("");
 }
 
@@ -471,7 +483,7 @@ export function setRawTextListRunsContent(
   const stripMarker = readString(element.marker) !== "none";
   const lines = splitTextRunsOnNewlines(runs)
     .map((line) => (stripMarker ? stripTextListMarkerFromRuns(line) : line))
-    .map((line) => line.filter((run) => run.text))
+    .map((line) => line.filter((run) => textRunContent(run)))
     .filter((line) => textRunsContent(line).trim().length > 0);
 
   const fallbackItem = sourceItems[sourceItems.length - 1];
@@ -496,10 +508,9 @@ export function rawTableCellText(cell: unknown) {
   if (runs.length > 0) {
     return textRunsContent(
       renderMarkdownTextRuns(
-        runs.map((run) => ({
-          text: readString(asRecord(run)?.text) ?? "",
-          font: asRecord(run)?.font as TextRun["font"],
-        })),
+        runs
+          .map((run) => rawRunRecordToTextRun(run, rawFont(record)))
+          .filter((run): run is TextRun => Boolean(run)),
       ),
     );
   }
@@ -525,11 +536,22 @@ export function rawRenderTextRuns(
   const runs = normalizeRawTextMarkdownElement(element).runs;
 
   return runs
-    .filter((run) => run.text)
-    .map((run) => ({
-      text: run.text,
-      font: fontFromRecord(asRecord(run.font), baseFont),
-    }));
+    .filter((run) => textRunContent(run))
+    .map((run) => renderTextRun(run, baseFont));
+}
+
+function renderTextRun(run: TextRun, fallback: RenderTextFont): RenderTextRun {
+  const font = fontFromRecord(asRecord(run.font), fallback);
+  if (isLatexTextRun(run)) {
+    return {
+      type: "latex",
+      text: run.latex,
+      latex: run.latex,
+      displayMode: run.display_mode ?? false,
+      font,
+    };
+  }
+  return { text: run.text, font };
 }
 
 export function textVisualLocalBox(
@@ -704,15 +726,35 @@ export function layoutRichText(
   boxHeight: number,
   wrap: string | null | undefined,
 ): { tokens: LaidToken[]; contentHeight: number } {
-  type Tok = {
-    text: string;
-    font: RenderTextFont;
+  type Tok = RenderTextRun & {
     newline: boolean;
     space: boolean;
     width: number;
+    breakBefore?: boolean;
+    breakAfter?: boolean;
   };
   const tokens: Tok[] = [];
   for (const run of runs) {
+    if (run.type === "latex") {
+      const latex = normalizeMathLatex(run.latex);
+      if (!latex) continue;
+      const displayMode = run.displayMode ?? false;
+      const measured = measureMathLatex(latex, run.font.size, displayMode);
+      tokens.push({
+        ...run,
+        text: latex,
+        latex,
+        displayMode,
+        newline: false,
+        space: false,
+        width: Math.min(Math.max(1, measured.width), Math.max(1, maxWidth)),
+        renderHeight: measured.height,
+        breakBefore: displayMode,
+        breakAfter: displayMode,
+      });
+      continue;
+    }
+
     const display = displayText(run.text);
     if (!display) continue;
     for (const part of display.split(/(\n|[ \t]+)/)) {
@@ -729,8 +771,8 @@ export function layoutRichText(
         const space = /^[ \t]+$/.test(part);
         const measuredParts =
           wrap !== "none" && !space
-            ? splitOversizedTextSegment(part, run.font, maxWidth, measureRunText)
-            : [{ text: part, width: measureRunText(part, run.font) }];
+            ? splitOversizedTextSegment(part, run.font, maxWidth, measureRenderText)
+            : [{ text: part, width: measureRenderText(part, run.font) }];
 
         for (const measuredPart of measuredParts) {
           tokens.push({
@@ -751,29 +793,36 @@ export function layoutRichText(
   let curWidth = 0;
   const flush = () => {
     const height = cur.length
-      ? Math.max(...cur.map((t) => t.font.size * t.font.lineHeight))
+      ? Math.max(
+          ...cur.map(
+            (token) =>
+              token.renderHeight ?? token.font.size * token.font.lineHeight,
+          ),
+        )
       : baseFont.size * baseFont.lineHeight;
     lines.push({ toks: cur, height, width: curWidth });
     cur = [];
     curWidth = 0;
   };
-  for (const tok of tokens) {
-    if (tok.newline) {
+  for (const token of tokens) {
+    if (token.newline) {
       flush();
       continue;
     }
+    if (token.breakBefore && cur.length > 0) flush();
     if (
       wrap !== "none" &&
-      !tok.space &&
-      curWidth + tok.width > maxWidth &&
+      !token.space &&
+      curWidth + token.width > maxWidth &&
       cur.length > 0
     ) {
       flush();
     }
-    cur.push(tok);
-    curWidth += tok.width;
+    cur.push(token);
+    curWidth += token.width;
+    if (token.breakAfter) flush();
   }
-  flush();
+  if (cur.length > 0 || lines.length === 0) flush();
 
   const contentHeight = lines.reduce((sum, line) => sum + line.height, 0);
   let y =
@@ -786,20 +835,23 @@ export function layoutRichText(
 
   const laid: LaidToken[] = [];
   for (const line of lines) {
-    let x = lineStartX(align, maxWidth, line.width, wrap === "none");
-    for (const tok of line.toks) {
-      if (tok.text) {
-        const tokenBoxHeight = tok.font.size * tok.font.lineHeight;
+    let lineWidth = line.width;
+    for (let index = line.toks.length - 1; index >= 0 && line.toks[index].space; index -= 1) {
+      lineWidth -= line.toks[index].width;
+    }
+    let x = lineStartX(align, maxWidth, lineWidth, wrap === "none");
+    for (const token of line.toks) {
+      if (token.text) {
+        const tokenHeight =
+          token.renderHeight ?? token.font.size * token.font.lineHeight;
         laid.push({
-          text: tok.text,
-          font: tok.font,
+          ...token,
           x,
-          y: y + (line.height - tokenBoxHeight),
-          width: tok.width,
-          height: tokenBoxHeight,
+          y: y + (line.height - tokenHeight),
+          height: tokenHeight,
         });
       }
-      x += tok.width;
+      x += token.width;
     }
     y += line.height;
   }
@@ -897,6 +949,7 @@ export function layoutTextListRenderItems(
         line.marker.font.size *
         (line.marker.font.lineHeight ?? textLineHeight);
       tokens.push({
+        ...line.marker,
         text: line.marker.text,
         font: line.marker.font,
         x,
@@ -909,8 +962,10 @@ export function layoutTextListRenderItems(
     x += line.indentWidth;
     for (const segment of line.segments) {
       const segmentHeight =
+        segment.renderHeight ??
         segment.font.size * (segment.font.lineHeight ?? textLineHeight);
       tokens.push({
+        ...segment,
         text: segment.text,
         font: segment.font,
         x,
@@ -942,6 +997,25 @@ export function layoutRenderTextRuns(
   };
 
   for (const run of runs) {
+    if (run.type === "latex") {
+      const latex = normalizeMathLatex(run.latex);
+      if (!latex) continue;
+      const displayMode = run.displayMode ?? false;
+      const measured = measureMathLatex(latex, run.font.size, displayMode);
+      const segment = {
+        ...run,
+        text: latex,
+        latex,
+        displayMode,
+        width: Math.min(Math.max(1, measured.width), Math.max(1, width)),
+        renderHeight: measured.height,
+      };
+      if (displayMode) pushLine();
+      lines[lines.length - 1].push(segment);
+      lineWidth += segment.width;
+      if (displayMode) pushLine();
+      continue;
+    }
     const parts = run.text.match(/\n|[^\S\n]+|[^\s]+/g) ?? [run.text];
     for (const part of parts) {
       if (part === "\n") {
@@ -985,6 +1059,7 @@ export function lineRenderHeight(
     1,
     ...line.map(
       (segment) =>
+        segment.renderHeight ??
         segment.font.size * (segment.font.lineHeight ?? fallbackLineHeight),
     ),
   );
@@ -1267,12 +1342,31 @@ function rawRunRecordToTextRun(
 ): TextRun | null {
   const record = asRecord(value);
   if (!record) return null;
+  if (readString(record.type) === "latex") {
+    const latex = normalizeMathLatex(record.latex);
+    if (!latex) return null;
+    return {
+      type: "latex",
+      latex,
+      display_mode:
+        readBoolean(record.display_mode ?? record.displayMode) ?? false,
+      font: fontToSource(fontFromRecord(asRecord(record.font), fallback)),
+    };
+  }
   const text = readString(record.text) ?? "";
   if (!text) return null;
   return {
     text,
     font: fontToSource(fontFromRecord(asRecord(record.font), fallback)),
   };
+}
+
+function rawRunRecordContent(value: unknown) {
+  const record = asRecord(value);
+  if (!record) return "";
+  return readString(record.type) === "latex"
+    ? normalizeMathLatex(record.latex)
+    : readString(record.text) ?? "";
 }
 
 function textListMarkerPrefix(value: unknown, index: number) {
@@ -1288,8 +1382,21 @@ function rawTextListItemWithRuns(source: unknown, runs: TextRun[]): unknown {
     : readArray(asRecord(source)?.runs);
   return runs.map((run, index) => {
     const sourceRun = asRecord(sourceRuns[index]) ?? {};
+    if (isLatexTextRun(run)) {
+      return {
+        ...sourceRun,
+        type: "latex",
+        text: undefined,
+        latex: run.latex,
+        display_mode: run.display_mode ?? false,
+        font: rawInlineTextFontRecord(run.font, sourceRun.font),
+      };
+    }
     return {
       ...sourceRun,
+      type: undefined,
+      latex: undefined,
+      display_mode: undefined,
       text: run.text,
       font: rawInlineTextFontRecord(run.font, sourceRun.font),
     };
@@ -1300,6 +1407,10 @@ function splitTextRunsOnNewlines(runs: TextRun[]): TextRun[][] {
   const lines: TextRun[][] = [[]];
 
   for (const run of runs) {
+    if (isLatexTextRun(run)) {
+      lines[lines.length - 1].push(cloneTextRun(run));
+      continue;
+    }
     const parts = (run.text || "").split(/\r?\n/);
     parts.forEach((part, index) => {
       if (index > 0) lines.push([]);
@@ -1325,9 +1436,10 @@ function stripPlainTextListMarkersFromRuns(runs: TextRun[]): TextRun[] {
       normalizedLine[0]?.font ?? line[0]?.font ?? stripped.at(-1)?.font;
 
     if (index > 0) appendTextRun(stripped, "\n", lineFont);
-    normalizedLine.forEach((run) =>
-      appendTextRun(stripped, run.text, run.font),
-    );
+    normalizedLine.forEach((run) => {
+      if (isLatexTextRun(run)) stripped.push(cloneTextRun(run));
+      else appendTextRun(stripped, run.text, run.font);
+    });
   });
 
   return stripped.length > 0 ? stripped : [{ text: " " }];
@@ -1346,6 +1458,10 @@ function removeTextRunPrefix(runs: TextRun[], length: number): TextRun[] {
   const stripped: TextRun[] = [];
 
   for (const run of runs) {
+    if (isLatexTextRun(run)) {
+      stripped.push(cloneTextRun(run));
+      continue;
+    }
     if (remaining <= 0) {
       stripped.push(cloneTextRun(run));
       continue;
@@ -1378,6 +1494,7 @@ function appendTextRun(
   const previous = runs[runs.length - 1];
   if (
     previous &&
+    !isLatexTextRun(previous) &&
     JSON.stringify(previous.font ?? null) === JSON.stringify(font ?? null)
   ) {
     previous.text += text;
@@ -1390,6 +1507,7 @@ function reconcileTextRunsWithStoredText(
   runs: TextRun[],
   storedText: string,
 ): TextRun[] {
+  if (runs.some(isLatexTextRun)) return runs;
   if (!storedText || runs.length === 0) return runs;
   if (containsMarkdownSyntax(storedText)) return runs;
   if (textRunsContent(runs) === storedText) return runs;
@@ -1398,6 +1516,7 @@ function reconcileTextRunsWithStoredText(
   let cursor = 0;
 
   for (const run of runs) {
+    if (isLatexTextRun(run)) continue;
     const runText = run.text ?? "";
     if (!runText) continue;
     const index = storedText.indexOf(runText, cursor);
@@ -1424,7 +1543,7 @@ function appendRunText(
 ) {
   if (!text) return;
   const previous = runs[runs.length - 1];
-  if (previous) {
+  if (previous && !isLatexTextRun(previous)) {
     previous.text += text;
     return;
   }
@@ -1445,19 +1564,17 @@ function containsMarkdownSyntax(text: string) {
 function sameTextRuns(left: TextRun[], right: TextRun[]) {
   if (left.length !== right.length) return false;
   return left.every(
-    (run, index) =>
-      run.text === right[index]?.text &&
-      JSON.stringify(run.font ?? null) ===
-      JSON.stringify(right[index]?.font ?? null),
+    (run, index) => {
+      const other = right[index];
+      if (!other) return false;
+      return (
+        JSON.stringify(run) === JSON.stringify(other) ||
+        (textRunContent(run) === textRunContent(other) &&
+          JSON.stringify(run.font ?? null) ===
+            JSON.stringify(other.font ?? null))
+      );
+    },
   );
-}
-
-function measureContext(): CanvasRenderingContext2D | null {
-  if (typeof document === "undefined") return null;
-  if (!richMeasureCtx.ctx) {
-    richMeasureCtx.ctx = document.createElement("canvas").getContext("2d");
-  }
-  return richMeasureCtx.ctx;
 }
 
 function richFontCss(font: RenderTextFont): string {
@@ -1469,18 +1586,6 @@ function richFontCss(font: RenderTextFont): string {
 function quotedFontFamily(family: string): string {
   const name = (family || DEFAULT_FONT.family).trim() || DEFAULT_FONT.family;
   return `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
-
-function measureRunText(text: string, font: RenderTextFont): number {
-  if (!text) return 0;
-  const ctx = measureContext();
-  if (!ctx) return text.length * font.size * TEXT_AVERAGE_CHAR_EM;
-  ctx.font = richFontCss(font);
-  const width = ctx.measureText(text).width;
-  const spacing = font.letterSpacing
-    ? font.letterSpacing * Math.max(0, text.length - 1)
-    : 0;
-  return width + spacing;
 }
 
 function measureRenderText(text: string, font: RenderTextFont) {

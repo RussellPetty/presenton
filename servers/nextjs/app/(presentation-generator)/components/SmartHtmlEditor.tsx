@@ -11,13 +11,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { Sparkles } from "lucide-react";
 
 import IconsEditor from "@/components/slide-editor/images/IconsEditor";
-import { useTailwindRuntimeReady } from "@/components/runtime/TailwindCdnRuntime";
+import { useTailwindRuntimeReady } from "@/components/runtime/TailwindBrowserRuntime";
 import {
   clearChatHtmlSelection,
   setChatHtmlSelection,
   updateSlideHtmlContent,
 } from "@/store/slices/presentationGeneration";
 import type { RootState } from "@/store/store";
+import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import ImageEditor from "./ImageEditor";
 import SmartHtmlSlide from "./SmartHtmlSlide";
 import { useSmartChartInjection } from "./useSmartChartInjection";
@@ -387,6 +388,14 @@ export default function SmartHtmlEditor({
           selectedAt: Date.now(),
         })
       );
+      trackEvent(MixpanelEvent.Smart_Mode_Element_Selected, {
+        slide_id: slide.id ?? null,
+        slide_index: slideIndex,
+        element_tag: target.tagName.toLowerCase(),
+        has_text: Boolean(target.textContent?.trim()),
+        selected_text_char_count:
+          target.textContent?.replace(/\s+/g, " ").trim().length ?? 0,
+      });
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;

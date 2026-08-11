@@ -2,8 +2,11 @@ import katex from "katex";
 
 export const MAX_MATH_LATEX_LENGTH = 4000;
 
+const mathMeasurementCache = new Map<string, { width: number; height: number }>();
+
 type MathRenderOptions = {
   displayMode?: boolean;
+  output?: "htmlAndMathml" | "mathml";
 };
 
 export function normalizeMathLatex(value: unknown): string {
@@ -26,11 +29,54 @@ export function renderMathHtml(
   if (!normalized) return "";
   return katex.renderToString(normalized, {
     displayMode: options.displayMode ?? true,
-    output: "htmlAndMathml",
+    output: options.output ?? "htmlAndMathml",
     strict: "warn",
     throwOnError: false,
     trust: false,
   });
+}
+
+export function measureMathLatex(
+  latex: unknown,
+  fontSize: number,
+  displayMode = false,
+): { width: number; height: number } {
+  const normalized = normalizeMathLatex(latex);
+  const safeFontSize = Math.max(1, Math.min(512, fontSize));
+  if (!normalized) return { width: 0, height: safeFontSize * 1.2 };
+
+  const cacheKey = `${safeFontSize}:${displayMode ? 1 : 0}:${normalized}`;
+  const cached = mathMeasurementCache.get(cacheKey);
+  if (cached) return cached;
+
+  let measurement = {
+    width: Math.max(safeFontSize * 0.75, normalized.length * safeFontSize * 0.5),
+    height: safeFontSize * (displayMode ? 1.6 : 1.25),
+  };
+
+  if (typeof document !== "undefined" && document.body) {
+    const container = document.createElement("span");
+    container.style.cssText = `position:fixed;left:-10000px;top:-10000px;display:inline-block;width:max-content;height:max-content;visibility:hidden;white-space:nowrap;font-size:${safeFontSize}px;line-height:1.2;`;
+    container.innerHTML = katex.renderToString(normalized, {
+      displayMode,
+      output: "mathml",
+      strict: "warn",
+      throwOnError: false,
+      trust: false,
+    });
+    document.body.appendChild(container);
+    const katexNode = container.querySelector<HTMLElement>(".katex");
+    if (katexNode) katexNode.style.cssText = "font:inherit;line-height:inherit;";
+    const mathNode = container.querySelector<MathMLElement>("math");
+    const bounds = (mathNode ?? katexNode ?? container).getBoundingClientRect();
+    container.remove();
+    if (bounds.width > 0 && bounds.height > 0) {
+      measurement = { width: bounds.width, height: bounds.height };
+    }
+  }
+
+  mathMeasurementCache.set(cacheKey, measurement);
+  return measurement;
 }
 
 export function mathSvgDataUri({

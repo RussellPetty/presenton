@@ -2,6 +2,7 @@ import { LanguageType, PresentationConfig } from "../type";
 import { useEffect, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
   ChevronRight,
   ChevronUp,
   Languages,
@@ -173,7 +174,7 @@ const SlideCountSelect: React.FC<{
               {compact && value ? `Slides ${value}` : displayLabel}
             </span>
             {compact && (
-              <ChevronRight
+              <ChevronUp
                 aria-hidden="true"
                 strokeWidth={1.75}
                 className="h-3.5 w-3.5 shrink-0 rotate-90"
@@ -317,7 +318,7 @@ const LanguageSelect: React.FC<{
             {value || "Select language"}
           </span>
           {compact && (
-            <ChevronRight
+            <ChevronUp
               aria-hidden="true"
               strokeWidth={1.75}
               className="h-3.5 w-3.5 shrink-0 rotate-90"

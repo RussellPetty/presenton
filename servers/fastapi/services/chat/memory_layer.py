@@ -32,6 +32,7 @@ from utils.asset_directory_utils import (
     normalize_slide_asset_url,
 )
 from utils.icon_weights import DEFAULT_ICON_WEIGHT, extract_icon_type_from_settings
+from utils.latex_text import normalize_latex, replace_text_runs, text_runs_to_tagged_text
 from utils.outline_utils import get_presentation_title_from_presentation_outline
 from utils.outline_limits import normalize_outline_content
 from utils.process_slides import (
@@ -2666,12 +2667,14 @@ class PresentationChatMemoryLayer:
             if node.get("type") == "text":
                 runs = node.get("runs")
                 if isinstance(runs, list) and runs:
-                    joined = "".join(
-                        str(run.get("text") or "")
+                    joined = text_runs_to_tagged_text(runs)
+                    if any(
+                        isinstance(run, dict) and run.get("type") == "latex"
                         for run in runs
-                        if isinstance(run, dict)
-                    )
-                    node["text"] = joined
+                    ):
+                        node.pop("text", None)
+                    else:
+                        node["text"] = joined
                 elif isinstance(node.get("text"), str):
                     node["runs"] = [{"text": node["text"]}]
             elif node.get("type") == "table":
@@ -2728,7 +2731,7 @@ class PresentationChatMemoryLayer:
             )
             alias_text = PresentationChatMemoryLayer._table_cell_alias_text(normalized)
             if normalized_runs and (
-                PresentationChatMemoryLayer._runs_plain_text(normalized_runs)
+                PresentationChatMemoryLayer._runs_content_text(normalized_runs)
                 or not alias_text
             ):
                 normalized["runs"] = normalized_runs
@@ -2754,13 +2757,24 @@ class PresentationChatMemoryLayer:
         for run in runs:
             if isinstance(run, dict):
                 next_run = copy.deepcopy(run)
-                next_run["text"] = PresentationChatMemoryLayer._table_cell_text_value(
-                    next_run.get("text")
-                    if "text" in next_run
-                    else next_run.get("content")
-                    if "content" in next_run
-                    else next_run.get("value")
-                )
+                if next_run.get("type") == "latex":
+                    latex = PresentationChatMemoryLayer._table_cell_text_value(
+                        next_run.get("latex")
+                        if "latex" in next_run
+                        else next_run.get("content")
+                        if "content" in next_run
+                        else next_run.get("value")
+                    )
+                    next_run["latex"] = normalize_latex(latex)
+                    next_run.pop("text", None)
+                else:
+                    next_run["text"] = PresentationChatMemoryLayer._table_cell_text_value(
+                        next_run.get("text")
+                        if "text" in next_run
+                        else next_run.get("content")
+                        if "content" in next_run
+                        else next_run.get("value")
+                    )
                 normalized.append(next_run)
             else:
                 next_run = {
@@ -2772,8 +2786,8 @@ class PresentationChatMemoryLayer:
         return normalized
 
     @staticmethod
-    def _runs_plain_text(runs: list[dict[str, Any]]) -> str:
-        return "".join(str(run.get("text") or "") for run in runs)
+    def _runs_content_text(runs: list[dict[str, Any]]) -> str:
+        return text_runs_to_tagged_text(runs)
 
     @staticmethod
     def _table_cell_alias_text(cell: dict[str, Any]) -> str:
@@ -2796,13 +2810,10 @@ class PresentationChatMemoryLayer:
         if isinstance(value, dict):
             runs = value.get("runs")
             if isinstance(runs, list):
-                text = "".join(
-                    PresentationChatMemoryLayer._table_cell_text_value(run)
-                    for run in runs
-                )
+                text = text_runs_to_tagged_text(runs)
                 if text:
                     return text
-            for key in ("text", "content", "value", "label", "data"):
+            for key in ("text", "latex", "content", "value", "label", "data"):
                 if key in value:
                     return PresentationChatMemoryLayer._table_cell_text_value(value[key])
             return ""
@@ -3972,7 +3983,10 @@ class PresentationChatMemoryLayer:
             if text is None or text == "":
                 return
             cls._set_template_runs_text(element, text)
-            element["text"] = text
+            if any(run.get("type") == "latex" for run in element["runs"]):
+                element.pop("text", None)
+            else:
+                element["text"] = text
             return
 
         if element_type == "math":
@@ -4085,16 +4099,7 @@ class PresentationChatMemoryLayer:
         text: str,
         fallback_font: Any,
     ) -> list[dict[str, Any]]:
-        if isinstance(existing_runs, list) and existing_runs:
-            first = existing_runs[0]
-            if isinstance(first, dict):
-                run = copy.deepcopy(first)
-                run["text"] = text
-                return [run]
-        run: dict[str, Any] = {"text": text}
-        if isinstance(fallback_font, dict):
-            run["font"] = copy.deepcopy(fallback_font)
-        return [run]
+        return replace_text_runs(existing_runs, text, fallback_font)
 
     @staticmethod
     def _template_asset_url(value: Any) -> str | None:
