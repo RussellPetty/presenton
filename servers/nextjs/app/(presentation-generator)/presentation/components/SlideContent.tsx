@@ -17,6 +17,7 @@ interface SlideContentProps {
       promptOverlayKind?: "blank" | "layout";
     },
   ) => void;
+  onSlideActive?: (index: number) => void;
   isChatEditing?: boolean;
   showBlankPromptOverlay?: boolean;
   onBlankPromptOverlayDismiss?: () => void;
@@ -34,6 +35,7 @@ const SlideContent = ({
   selected = false,
   presentationId,
   onSlideAdded,
+  onSlideActive,
   isChatEditing = false,
   showBlankPromptOverlay = false,
   onBlankPromptOverlayDismiss,
@@ -62,10 +64,17 @@ const SlideContent = ({
         className={`group w-full font-syne ${isTemplateV2SlideContent ? "relative" : ""
           }`}
       >
-        <div className="relative max-xl:mb-6">
+        <div
+          className={
+            isChatEditing
+              ? "chat-slide-glow relative rounded-[14px] max-xl:mb-6"
+              : "relative max-xl:mb-6"
+          }
+          onPointerDownCapture={() => onSlideActive?.(index)}
+        >
           {isChatEditing && (
             <div
-              className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center font-syne"
+              className="pointer-events-none absolute inset-x-0 bottom-4 z-[90] flex justify-center font-syne"
               aria-live="polite"
             >
               <span className="inline-flex items-center rounded-[50px] bg-[linear-gradient(179deg,#F2E1FB_0%,#FFFFFF_100%)] p-[10px] shadow-[0_4px_18px_rgba(40,35,68,0.12)]">
@@ -95,6 +104,7 @@ const SlideContent = ({
             renderIndex={index}
             enableViewportCulling
             isSelected={selected}
+            showEditScan={isChatEditing}
             showBlankPromptOverlay={showBlankPromptOverlay}
             onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
             showTemplatePromptOverlay={showTemplatePromptOverlay}
@@ -123,6 +133,7 @@ export default memo(
     previous.selected === next.selected &&
     previous.presentationId === next.presentationId &&
     previous.onSlideAdded === next.onSlideAdded &&
+    previous.onSlideActive === next.onSlideActive &&
     previous.isChatEditing === next.isChatEditing &&
     previous.showBlankPromptOverlay === next.showBlankPromptOverlay &&
     previous.showTemplatePromptOverlay === next.showTemplatePromptOverlay &&

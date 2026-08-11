@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Manrope, Syne, Unbounded } from "next/font/google";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
+import TailwindCdnRuntime from "@/components/runtime/TailwindCdnRuntime";
 const inter = localFont({
   src: [
     {
@@ -99,6 +101,7 @@ export default function RootLayout({
 
           </MixpanelInitializer>
         </Providers>
+        <TailwindCdnRuntime />
         <Toaster position="top-center" />
       </body>
     </html>

@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import CreateCustomTemplate from "./CreateCustomTemplate";
 import Link from "next/link";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { ensureTailwindBrowserScript } from "@/lib/tailwind-browser";
 import { useTemplateSummaries, TemplateTab } from "../../../hooks/useTemplateSummaries";
 import {
   ProcessingTemplateListCard,
@@ -31,13 +32,7 @@ const LayoutPreview = () => {
     }
 
     trackEvent(MixpanelEvent.Templates_Page_Viewed);
-    const existingScript = document.querySelector('script[src*="tailwindcss.com"]');
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.tailwindcss.com";
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    ensureTailwindBrowserScript();
   }, []);
 
   const handleOpenTemplate = useCallback(

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { V1ContentRender } from "../../(presentation-generator)/components/V1ContentRender";
+import SmartHtmlEditor from "./SmartHtmlEditor";
+import SmartHtmlSlide from "./SmartHtmlSlide";
 
 const BASE_WIDTH = 1280;
 const BASE_HEIGHT = 720;
@@ -20,6 +22,7 @@ const SlideScale = ({
   renderIndex,
   enableViewportCulling = false,
   isSelected = false,
+  showEditScan = false,
   showBlankPromptOverlay = false,
   onBlankPromptOverlayDismiss,
   showTemplatePromptOverlay = false,
@@ -38,6 +41,7 @@ const SlideScale = ({
   renderIndex?: number;
   enableViewportCulling?: boolean;
   isSelected?: boolean;
+  showEditScan?: boolean;
   showBlankPromptOverlay?: boolean;
   onBlankPromptOverlayDismiss?: () => void;
   showTemplatePromptOverlay?: boolean;
@@ -106,7 +110,7 @@ const SlideScale = ({
             transform: `scale(${scale})`,
           }}
         >
-          <div
+          {/* <div
             className="slide-edit-stage relative w-full h-full select-none"
             data-testid="slide-content"
             style={
@@ -117,32 +121,56 @@ const SlideScale = ({
                 msUserSelect: "none",
               } as React.CSSProperties
             }
-          >
+          > */}
             {!isClickable && (
               <div
                 className="absolute inset-0 bg-transparent z-30 w-full h-full  select-none"
                 aria-hidden="true"
               />
             )}
-            <V1ContentRender
-              slide={slide}
-              presentationId={presentationId}
-              isEditMode={isEditMode}
-              theme={theme}
-              fonts={fonts}
-              presentationLayout={presentationLayout}
-              renderIndex={renderIndex}
-              displayScale={scale}
-              enableViewportCulling={enableViewportCulling}
-              isSelected={isSelected}
-              showBlankPromptOverlay={showBlankPromptOverlay}
-              onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
-              showTemplatePromptOverlay={showTemplatePromptOverlay}
-              onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
-            />
+            {typeof slide?.html_content === "string" && slide.html_content.trim() ? (
+              isEditMode && isClickable && !presentMode && !fixedSize ? (
+                <SmartHtmlEditor
+                  slide={slide}
+                  renderIndex={renderIndex}
+                  fonts={fonts}
+                  title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
+                />
+              ) : (
+                <SmartHtmlSlide
+                  fixedSize
+                  fonts={fonts}
+                  html={slide.html_content}
+                  title={`Slide ${(renderIndex ?? slide.index ?? 0) + 1}`}
+                />
+              )
+            ) : (
+              <V1ContentRender
+                slide={slide}
+                presentationId={presentationId}
+                isEditMode={isEditMode}
+                theme={theme}
+                fonts={fonts}
+                presentationLayout={presentationLayout}
+                renderIndex={renderIndex}
+                displayScale={scale}
+                enableViewportCulling={enableViewportCulling}
+                isSelected={isSelected}
+                showBlankPromptOverlay={showBlankPromptOverlay}
+                onBlankPromptOverlayDismiss={onBlankPromptOverlayDismiss}
+                showTemplatePromptOverlay={showTemplatePromptOverlay}
+                onTemplatePromptOverlayDismiss={onTemplatePromptOverlayDismiss}
+              />
+            )}
+            {showEditScan && (
+              <div
+                className="slide-edit-overlay pointer-events-none absolute inset-0 overflow-hidden"
+                aria-hidden="true"
+              />
+            )}
           </div>
         </div>
-      </div>
+      {/* </div> */}
     </div>
   );
 };

@@ -11,6 +11,7 @@ from .models.layouts import RawSlideLayout
 
 CONTENT_TYPES = {
     "text",
+    "math",
     "image",
     "text-list",
     "table",
@@ -76,6 +77,12 @@ def get_component_schema(component: Any | dict[str, Any]) -> dict[str, Any] | No
         "properties": properties,
         "required": list(properties),
     }
+
+
+def get_repeated_top_level_group_schema_name(elements: list[Any]) -> str | None:
+    """Return the array field name when all component elements form one repeat."""
+    node = _component_repeated_top_level_group_node(elements, path="elements")
+    return node[0] if node is not None else None
 
 
 def get_template_schema(
@@ -185,7 +192,7 @@ def _node_for_element(element: dict[str, Any]) -> tuple[str, dict[str, Any]] | N
 def _content_schema_for_element(element: dict[str, Any]) -> dict[str, Any]:
     element_type = element["type"]
 
-    if element_type == "text":
+    if element_type in {"text", "math"}:
         return _compact(
             {
                 "type": "string",
@@ -557,6 +564,13 @@ def _component_schema_nodes_for_elements(
     *,
     path: str = "elements",
 ) -> list[tuple[str, dict[str, Any]]]:
+    repeated_top_level_groups = _component_repeated_top_level_group_node(
+        elements,
+        path=path,
+    )
+    if repeated_top_level_groups is not None:
+        return [repeated_top_level_groups]
+
     nodes: list[tuple[str, dict[str, Any]]] = []
     for index, element in enumerate(elements):
         if isinstance(element, dict):
@@ -621,7 +635,14 @@ def _component_schema_nodes_for_element(
         if name is None or not child_nodes:
             return child_nodes
 
-        if element_type in {"flex", "grid"}:
+        supports_repeated_children = element_type in {"flex", "grid"} or (
+            element_type == "group"
+            and all(
+                isinstance(child, dict) and child.get("type") == "group"
+                for child in children
+            )
+        )
+        if supports_repeated_children:
             array_schema = _component_array_schema_for_repeated_children(
                 element,
                 child_node_sets,
@@ -632,6 +653,39 @@ def _component_schema_nodes_for_element(
         return [(name, _component_object_schema_from_nodes(child_nodes))]
 
     return []
+
+
+def _component_repeated_top_level_group_node(
+    elements: list[Any],
+    *,
+    path: str,
+) -> tuple[str, dict[str, Any]] | None:
+    groups = [element for element in elements if isinstance(element, dict)]
+    if (
+        len(groups) != len(elements)
+        or not groups
+        or any(group.get("type") != "group" for group in groups)
+    ):
+        return None
+
+    node_sets = [
+        _component_schema_nodes_for_element(group, path=f"{path}.{index}")
+        for index, group in enumerate(groups)
+    ]
+    result = _component_repeated_children_schema_result(
+        {"type": "group", "children": groups},
+        node_sets,
+    )
+    if result is None or not node_sets[0]:
+        return None
+
+    schema, strategy = result
+    first_name = node_sets[0][0][0]
+    token = _component_normalization_token_for_nodes(
+        node_sets[0],
+        strategy=strategy,
+    )
+    return _component_strip_repeated_suffix(first_name, token), schema
 
 
 def _component_schema_element_name(element: dict[str, Any]) -> str | None:
@@ -673,6 +727,14 @@ def _component_array_schema_for_repeated_children(
     element: dict[str, Any],
     child_node_sets: list[list[tuple[str, dict[str, Any]]]],
 ) -> dict[str, Any] | None:
+    result = _component_repeated_children_schema_result(element, child_node_sets)
+    return result[0] if result is not None else None
+
+
+def _component_repeated_children_schema_result(
+    element: dict[str, Any],
+    child_node_sets: list[list[tuple[str, dict[str, Any]]]],
+) -> tuple[dict[str, Any], str] | None:
     populated_node_sets = [node_set for node_set in child_node_sets if node_set]
     if len(populated_node_sets) != len(child_node_sets):
         return None
@@ -692,16 +754,33 @@ def _component_array_schema_for_repeated_children(
             normalized_item_schemas
         )
         if merged_item_schema is not None:
-            return _without_none_values(
-                {
-                    "type": "array",
-                    "minItems": element.get("min_children"),
-                    "maxItems": element.get("max_children"),
-                    "items": merged_item_schema,
-                }
+            min_items, max_items = _component_repeated_item_limits(
+                element,
+                len(child_node_sets),
+            )
+            return (
+                _without_none_values(
+                    {
+                        "type": "array",
+                        "minItems": min_items,
+                        "maxItems": max_items,
+                        "items": merged_item_schema,
+                    }
+                ),
+                strategy,
             )
 
     return None
+
+
+def _component_repeated_item_limits(
+    element: dict[str, Any],
+    item_count: int,
+) -> tuple[Any, Any]:
+    if element.get("type") != "group":
+        return element.get("min_children"), element.get("max_children")
+
+    return item_count // 2, item_count
 
 
 def _component_normalized_repeated_item_schema(

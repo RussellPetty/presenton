@@ -243,6 +243,7 @@ def get_llm_config(*, use_openai_responses_api: bool = False) -> ClientConfig:
                 )
 
             return AzureOpenAIClientConfig(
+                api_type=OpenAIApiType.RESPONSES,
                 api_key=api_key,
                 api_version=api_version,
                 endpoint=endpoint or None,

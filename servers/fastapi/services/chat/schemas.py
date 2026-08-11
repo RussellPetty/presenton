@@ -73,6 +73,22 @@ class GetSlideAtIndexInput(StrictSchemaModel):
     model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
 
+class GetSmartPresentationContextInput(StrictSchemaModel):
+    include_slide_html: bool = Field(default=False, alias="includeSlideHtml")
+    max_html_chars_per_slide: int = Field(
+        default=0,
+        alias="maxHtmlCharsPerSlide",
+        ge=0,
+        le=50000,
+        description=(
+            "Optional HTML prefix length per slide. Use 0 for complete HTML when "
+            "includeSlideHtml is true."
+        ),
+    )
+
+    model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
+
+
 class SearchSlidesInput(StrictSchemaModel):
     query: str = Field(min_length=1, max_length=1000)
     limit: int = Field(ge=1, le=10)
@@ -128,7 +144,7 @@ class GetAvailableBlocksInput(OpenAIStrictSchemaModel):
         max_length=80,
         description=(
             "Optional current element type filter: text, container, image, "
-            "text-list, table, vector, svg, chart, infographic, flex, grid, or "
+            "math, text-list, table, vector, svg, chart, infographic, flex, grid, or "
             "group. For title/header/subtitle blocks, use text with a "
             "title/header/subtitle query."
         ),
@@ -220,6 +236,28 @@ class SaveSlideInput(StrictSchemaModel):
             raise ValueError("'content' must be a JSON object.")
 
         return value
+
+
+class SaveSmartSlideInput(StrictSchemaModel):
+    html: str = Field(
+        min_length=1,
+        max_length=500000,
+        description="Complete replacement HTML fragment for one Smart slide.",
+    )
+    index: int = Field(ge=0, le=1000)
+    replace_old_slide_at_index: bool = Field(alias="replaceOldSlideAtIndex")
+    speaker_note: str | None = Field(
+        default=None,
+        alias="speakerNote",
+        max_length=10000,
+    )
+    edit_prompt: str | None = Field(
+        default=None,
+        alias="editPrompt",
+        max_length=4000,
+    )
+
+    model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
 
 class AddNewSlideLayoutInput(StrictSchemaModel):

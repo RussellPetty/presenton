@@ -16,6 +16,7 @@ export interface ChatAttachment {
 
 export interface ChatMessageRequest {
   presentation_id: string;
+  presentation_type?: "standard" | "smart";
   message: string;
   conversation_id?: string;
   attachments?: ChatAttachment[];

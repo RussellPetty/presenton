@@ -2,6 +2,33 @@ from api.v1.ppt.endpoints import presentation as presentation_endpoint
 from services.chat.memory_layer import PresentationChatMemoryLayer
 
 
+def test_apply_template_content_to_ui_preserves_latex_syntax():
+    ui = {
+        "id": "math-layout",
+        "components": [
+            {
+                "id": "equation",
+                "elements": [
+                    {
+                        "type": "math",
+                        "decorative": False,
+                        "name": "formula",
+                        "latex": "E = mc^2",
+                    }
+                ],
+            }
+        ],
+    }
+
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        ui,
+        {"equation": {"formula": r"$$\sum_{i=1}^n x_i^2$$"}},
+    )
+
+    assert hydrated["components"][0]["elements"][0]["latex"] == r"\sum_{i=1}^n x_i^2"
+    assert ui["components"][0]["elements"][0]["latex"] == "E = mc^2"
+
+
 def _duplicate_named_groups_ui():
     def block_group():
         return {
@@ -865,6 +892,43 @@ def test_chat_template_image_content_stores_prompt():
     assert image["fit"] == "cover"
     assert image["prompt"] == "Analytics dashboard"
 
+    contained_image = {
+        "type": "image",
+        "decorative": False,
+        "name": "contained_image",
+        "data": "/old-contained-image.png",
+        "fit": "contain",
+        "is_icon": False,
+    }
+    PresentationChatMemoryLayer._set_template_element_value(
+        contained_image,
+        {
+            "image_prompt": "Product team planning",
+            "image_url": "/app_data/images/planning.png",
+        },
+    )
+
+    assert contained_image["data"] == "/app_data/images/planning.png"
+    assert contained_image["fit"] == "cover"
+
+    default_fit_image = {
+        "type": "image",
+        "decorative": False,
+        "name": "default_fit_image",
+        "data": "/old-default-image.png",
+        "is_icon": False,
+    }
+    PresentationChatMemoryLayer._set_template_element_value(
+        default_fit_image,
+        {
+            "image_prompt": "Customer success dashboard",
+            "image_url": "/app_data/images/customer-success.png",
+        },
+    )
+
+    assert default_fit_image["data"] == "/app_data/images/customer-success.png"
+    assert default_fit_image["fit"] == "cover"
+
     icon = {
         "type": "image",
         "decorative": False,
@@ -939,6 +1003,14 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
                     {
                         "type": "image",
                         "decorative": False,
+                        "name": "contained_image",
+                        "data": "/static/images/replaceable_template_image.png",
+                        "fit": "contain",
+                        "is_icon": False,
+                    },
+                    {
+                        "type": "image",
+                        "decorative": False,
                         "name": "vector_image",
                         "data": "/static/images/replaceable_template_image.svg",
                         "fit": "fill",
@@ -965,6 +1037,9 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
                 "hero_image": {
                     "image_url": "/app_data/images/dashboard.png",
                 },
+                "contained_image": {
+                    "image_url": "/app_data/images/product.png",
+                },
                 "vector_image": {
                     "image_url": "/app_data/images/diagram.svg",
                 },
@@ -975,9 +1050,13 @@ def test_apply_template_image_content_avoids_stretching_generated_photos():
         },
     )
 
-    hero_image, vector_image, clipped_image = hydrated["components"][0]["elements"]
+    hero_image, contained_image, vector_image, clipped_image = hydrated["components"][
+        0
+    ]["elements"]
     assert hero_image["data"] == "/app_data/images/dashboard.png"
     assert hero_image["fit"] == "cover"
+    assert contained_image["data"] == "/app_data/images/product.png"
+    assert contained_image["fit"] == "cover"
     assert vector_image["data"] == "/app_data/images/diagram.svg"
     assert vector_image["fit"] == "fill"
     assert clipped_image["data"] == "/app_data/images/freeform.png"
@@ -1164,6 +1243,147 @@ def test_apply_template_content_to_ui_matches_repeated_content_lengths():
         [{"text": "Generated bullet one"}],
         [{"text": "Generated bullet two"}],
     ]
+
+
+def _branching_timeline_ui():
+    def timeline_group(index):
+        return {
+            "type": "group",
+            "name": f"timeline_{index}",
+            "position": {"x": index * 100, "y": index * 20},
+            "children": [
+                {
+                    "type": "group",
+                    "name": "timeline_items",
+                    "children": [
+                        {
+                            "type": "image",
+                            "decorative": True,
+                            "name": "connector_branch_path",
+                            "data": f"connector-{index}.svg",
+                            "is_icon": False,
+                        }
+                    ],
+                },
+                {
+                    "type": "group",
+                    "name": "timeline_milestone",
+                    "children": [
+                        {
+                            "type": "text",
+                            "decorative": False,
+                            "name": "milestone_title",
+                            "min_length": 4,
+                            "max_length": 20,
+                            "runs": [{"text": "Old title"}],
+                        },
+                        {
+                            "type": "image",
+                            "decorative": False,
+                            "name": "milestone_icon",
+                            "data": "/static/icons/placeholder.svg",
+                            "is_icon": True,
+                        },
+                    ],
+                },
+            ],
+        }
+
+    return {
+        "components": [
+            {
+                "id": "branching_timeline_area",
+                "elements": [
+                    timeline_group(index)
+                    for index in (4, 5, 3, 1, 2)
+                ],
+            }
+        ]
+    }
+
+
+def _branching_timeline_content():
+    return {
+        "branching_timeline_area": {
+            "timeline": [
+                {
+                    "timeline_milestone": {
+                        "milestone_title": title,
+                        "milestone_icon": {
+                            "icon_query": f"{title} icon",
+                            "icon_url": f"/static/icons/{index}.svg",
+                        },
+                    }
+                }
+                for index, title in enumerate(
+                    (
+                        "Owned Restaurants",
+                        "Franchising Scale",
+                        "Recipe Standards",
+                        "Distinct Formats",
+                        "Efficient Growth",
+                    ),
+                    start=1,
+                )
+            ]
+        }
+    }
+
+
+def _assert_branching_timeline_hydrated(ui):
+    elements = ui["components"][0]["elements"]
+    assert [element["name"] for element in elements] == [
+        "timeline_4",
+        "timeline_5",
+        "timeline_3",
+        "timeline_1",
+        "timeline_2",
+    ]
+    assert [len(element["children"]) for element in elements] == [2] * 5
+    assert [
+        element["children"][1]["children"][0]["runs"][0]["text"]
+        for element in elements
+    ] == [
+        "Owned Restaurants",
+        "Franchising Scale",
+        "Recipe Standards",
+        "Distinct Formats",
+        "Efficient Growth",
+    ]
+    assert [
+        element["children"][1]["children"][1]["data"]
+        for element in elements
+    ] == [f"/static/icons/{index}.svg" for index in range(1, 6)]
+    assert [
+        element["children"][0]["children"][0]["data"]
+        for element in elements
+    ] == [
+        "connector-4.svg",
+        "connector-5.svg",
+        "connector-3.svg",
+        "connector-1.svg",
+        "connector-2.svg",
+    ]
+
+
+def test_apply_template_content_to_ui_hydrates_repeated_top_level_groups():
+    hydrated = presentation_endpoint._apply_template_content_to_ui(
+        _branching_timeline_ui(),
+        _branching_timeline_content(),
+    )
+
+    _assert_branching_timeline_hydrated(hydrated)
+
+
+def test_chat_template_content_hydrates_repeated_top_level_groups():
+    ui = _branching_timeline_ui()
+
+    PresentationChatMemoryLayer._apply_template_content_to_ui(
+        ui,
+        _branching_timeline_content(),
+    )
+
+    _assert_branching_timeline_hydrated(ui)
 
 
 def test_apply_template_content_to_ui_hydrates_direct_repeated_images():

@@ -24,7 +24,7 @@ import {
   BlocksPanel,
   InsertPanel,
   chartTypeItems,
-  elementItems,
+  elementItemGroups,
   imageItems,
   infographicItems,
   tableTypeItems,
@@ -224,7 +224,7 @@ export function TemplateInsertPanel({
       ) : activePanel === "elements" ? (
         <InsertPanel
           title="Elements"
-          groups={[{ label: "Add", items: elementItems }]}
+          groups={elementItemGroups}
           onItemSelect={onElementItemSelect}
         />
       ) : null}

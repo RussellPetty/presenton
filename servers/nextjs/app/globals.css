@@ -363,6 +363,20 @@ thead {
   }
 }
 
+.chat-slide-glow {
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(216, 180, 254, 0.32),
+    0 0 0 5px rgba(139, 92, 246, 0.08),
+    0 10px 24px rgba(99, 102, 241, 0.08);
+  will-change: box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-edit-overlay::before {
+    animation: none;
+  }
+}
+
 /* Markdown Styles */
 .markdown-content {
   @apply prose prose-slate max-w-none;

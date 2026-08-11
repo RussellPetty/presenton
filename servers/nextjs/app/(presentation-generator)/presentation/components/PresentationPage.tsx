@@ -166,13 +166,16 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const templateV2EditorLoadedKeyRef = useRef<string | null>(null);
   const router = useRouter();
   const shouldPreloadTemplateV2Presentation =
-    searchParams.get("editor") === "v2";
+    searchParams.get("editor") === "v2" || searchParams.get("type") === "smart";
 
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
   const presentationDataRef = useRef(presentationData);
   const slidesLength = presentationData?.slides?.length ?? 0;
+  const isSmartPresentation =
+    searchParams.get("type") === "smart" ||
+    presentationData?.generation_mode === "smart";
   const isTemplateV2Presentation =
     presentationData?.version === "v2-standard" ||
     hasTemplateV2Layouts(presentationData?.layout) ||
@@ -657,7 +660,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   }
 
   return (
-    <div className="h-screen overflow-hidden font-syne">
+    <div className="h-dvh overflow-hidden font-syne">
       <OverlayLoader
         show={loadingState.isLoading}
         text={loadingState.message}
@@ -667,7 +670,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
       />
       <div
         style={{
-          background: "#EDEEEF",
+          background: isSmartPresentation ? "#F6F6F9" : "#EDEEEF",
         }}
         id="presentation-slides-wrapper"
         className="relative flex h-full flex-col overflow-hidden"
@@ -676,6 +679,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
           presentation_id={presentation_id}
           isPresentationSaving={isSaving}
           currentSlide={selectedSlide}
+          generationMode={isSmartPresentation ? "smart" : "standard"}
         />
         <div className="flex flex-1 min-h-0 gap-3 overflow-hidden xl:gap-5 2xl:gap-6">
           <div className="hidden h-full w-[120px] shrink-0 self-start sticky top-0 pt-[18px] md:block">
@@ -723,6 +727,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
                             index={index}
                             selected={selectedSlide === index}
                             presentationId={presentation_id}
+                            onSlideActive={setSelectedSlide}
                             onSlideAdded={handleEditorSlideNavigation}
                             theme={presentationData?.theme}
                             fonts={presentationData?.fonts}
@@ -811,6 +816,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
             <div className="min-h-0 flex-1">
               <PresentationActions
                 presentationId={presentation_id}
+                presentationType={isSmartPresentation ? "smart" : "standard"}
                 variant={isTemplateV2Presentation ? "template-v2" : "presentation"}
                 currentSlide={selectedSlide}
                 presentationData={presentationData}

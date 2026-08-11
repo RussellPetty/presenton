@@ -80,6 +80,12 @@ const SidePanel = ({
     ? lastSlideLayoutGroup
     : lastSlideLayoutGroup || lastSlideLayoutTemplateId;
   const isTemplateFree = isTemplateFreePresentation(presentationData);
+  const isSmartPresentation =
+    presentationData?.generation_mode === "smart" ||
+    presentationData?.slides?.some(
+      (slide: any) =>
+        typeof slide?.html_content === "string" && slide.html_content.trim()
+    );
 
   const handleAddSlideClick = () => {
     if (!presentationData?.slides?.length || isStreaming) return;
@@ -282,18 +288,21 @@ const SidePanel = ({
               )}
             </div>
           </DndContext>
-          <Separator orientation="horizontal" className=" " />
-
-          <button
-            type="button"
-            onClick={handleAddSlideClick}
-            className="py-4 gap-2 flex flex-col duration-300 items-center justify-center rounded-lg cursor-pointer mx-auto"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-normal text-[#000000]">
-              Add Slide
-            </span>
-          </button>
+          {!isSmartPresentation && (
+            <>
+              <Separator orientation="horizontal" />
+              <button
+                type="button"
+                onClick={handleAddSlideClick}
+                className="mx-auto flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg py-4 duration-300"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-normal text-[#000000]">
+                  Add Slide
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
       {newSlideModal}

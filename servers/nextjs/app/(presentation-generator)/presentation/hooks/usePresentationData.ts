@@ -20,7 +20,9 @@ export const usePresentationData = (
 
   const fetchUserSlides = useCallback(async (options?: { clearHistory?: boolean }) => {
     try {
-      const data = await DashboardApi.getPresentation(presentationId);
+      const data = await DashboardApi.getPresentation(presentationId, {
+        cache: "no-store",
+      });
 
       if (data?.version === "v1-standard") {
         notify.warning(

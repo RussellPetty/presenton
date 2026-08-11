@@ -731,11 +731,20 @@ def test_build_slide_preview_html_adds_fixed_viewport_css(monkeypatch):
     )
 
     assert '<base href="http://backend.test/" />' in html
-    assert '<script src="https://cdn.tailwindcss.com"></script>' in html
     assert (
-        '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
-        in html
+        '<script src="http://backend.test/static/vendor/'
+        'tailwindcss-browser-4.3.3.js"></script>' in html
     )
+    assert "cdn.tailwindcss.com" not in html
+    assert (
+        '<script src="http://backend.test/static/vendor/'
+        'chart-4.5.1.umd.min.js"></script>' in html
+    )
+    assert (
+        '<script src="http://backend.test/static/vendor/'
+        'chartjs-plugin-datalabels-2.2.0.min.js"></script>' in html
+    )
+    assert "cdn.jsdelivr.net/npm/chart.js" not in html
     assert "width: 1024px;" in html
     assert "height: 768px;" in html
     assert ".slide-content" in html
@@ -1002,11 +1011,11 @@ async def test_create_slide_previews_from_html_uses_converter_dimensions_and_fon
     assert height == 768
     assert len(htmls) == 1
     html = htmls[0]
-    assert '<script src="https://cdn.tailwindcss.com"></script>' in html
-    assert (
-        '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
-        in html
-    )
+    assert 'tailwindcss-browser-4.3.3.js"></script>' in html
+    assert "cdn.tailwindcss.com" not in html
+    assert 'chart-4.5.1.umd.min.js"></script>' in html
+    assert 'chartjs-plugin-datalabels-2.2.0.min.js"></script>' in html
+    assert "cdn.jsdelivr.net/npm/chart.js" not in html
     assert ".deck-font { color: black; }" in html
     assert 'font-family: "Khand Bold";' in html
     assert "fonts.googleapis.com/css2?family=Montserrat" in html

@@ -4,33 +4,58 @@ import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   AlignCenter,
   AreaChart,
+  ArrowDown,
+  ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
+  ArrowUpDown,
+  ArrowUpRight,
   BarChart3,
+  Bookmark,
   ChartNoAxesGantt,
   ChevronDown,
+  ChevronsRight,
   Circle,
+  Cloud,
   Columns2,
   Diamond,
+  Droplet,
+  Flag,
   Gauge,
   Grid3X3,
   GripVertical,
+  Heart,
   Hexagon,
+  Home,
   Image,
   LineChart,
   List,
   ListOrdered,
+  MessageSquare,
   Minus,
+  Moon,
+  Move,
+  Octagon,
   Pentagon,
   PieChart,
+  Play,
+  Plus,
   Quote,
   RectangleHorizontal,
   Rows3,
+  Shield,
   Shapes,
+  Star,
+  Sun,
   Table2,
   Triangle,
   Type,
   ListMinus,
   Search,
+  Sigma,
+  X,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,12 +64,14 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import type { SlideElement } from "@/components/slide-editor/types";
 
 import {
+  ELEMENT_INSERT_GROUPS,
   createChartInsertElements,
   createElementInsertElements,
   createImageInsertContent,
   createInfographicInsertElements,
   createTableInsertElements,
   createTextInsertElements,
+  type ElementInsertKind,
   type EditorInsertContent,
 } from "@/components/slide-editor/insert/insert-elements";
 import {
@@ -179,6 +206,11 @@ const insertActions: ActionItem[] = [
 ];
 
 export const textItems = [
+  { id: "equation", label: "Equation", icon: Sigma },
+  { id: "equation-quadratic", label: "Quadratic", icon: Sigma },
+  { id: "equation-summation", label: "Summation", icon: Sigma },
+  { id: "equation-integral", label: "Integral", icon: Sigma },
+  { id: "equation-matrix", label: "Matrix", icon: Sigma },
   { id: "title-block", label: "Title Block", icon: AlignCenter },
   { id: "subtitle", label: "Subtitle", icon: AlignCenter },
   { id: "bullet-list", label: "Bullet List", icon: List },
@@ -221,17 +253,65 @@ export const imageItems = [
   { id: "image-grid", label: "Image Grid", icon: Grid3X3 },
 ] satisfies PaletteItem[];
 
-export const elementItems = [
-  { id: "vector-rectangle", label: "Rectangle", icon: RectangleHorizontal },
-  { id: "vector-circle", label: "Circle", icon: Circle },
-  { id: "vector-ellipse", label: "Ellipse", icon: Circle },
-  { id: "vector-triangle", label: "Triangle", icon: Triangle },
-  { id: "vector-diamond", label: "Diamond", icon: Diamond },
-  { id: "vector-pentagon", label: "Pentagon", icon: Pentagon },
-  { id: "vector-hexagon", label: "Hexagon", icon: Hexagon },
-  { id: "vector-arrow", label: "Arrow", icon: ArrowRight },
-  { id: "vector-line", label: "Line", icon: Minus },
-] satisfies PaletteItem[];
+const elementIconById: Record<ElementInsertKind, LucideIcon> = {
+  "vector-rectangle": RectangleHorizontal,
+  "vector-rounded-rectangle": RectangleHorizontal,
+  "vector-capsule": RectangleHorizontal,
+  "vector-circle": Circle,
+  "vector-ellipse": Circle,
+  "vector-triangle": Triangle,
+  "vector-right-triangle": Triangle,
+  "vector-diamond": Diamond,
+  "vector-parallelogram": Shapes,
+  "vector-trapezoid": Shapes,
+  "vector-pentagon": Pentagon,
+  "vector-hexagon": Hexagon,
+  "vector-octagon": Octagon,
+  "vector-teardrop": Droplet,
+  "vector-line": Minus,
+  "vector-line-arrow": ArrowRight,
+  "vector-line-arrow-left": ArrowLeft,
+  "vector-line-arrow-up": ArrowUp,
+  "vector-line-arrow-down": ArrowDown,
+  "vector-arrowhead-filled-right": ArrowRight,
+  "vector-arrowhead-filled-left": ArrowLeft,
+  "vector-arrowhead-filled-up": ArrowUp,
+  "vector-arrowhead-filled-down": ArrowDown,
+  "vector-arrow": ArrowRight,
+  "vector-arrow-left": ArrowLeft,
+  "vector-arrow-up": ArrowUp,
+  "vector-arrow-down": ArrowDown,
+  "vector-arrow-left-right": ArrowLeftRight,
+  "vector-arrow-up-down": ArrowUpDown,
+  "vector-chevron-right": ChevronsRight,
+  "vector-notched-arrow": ArrowRight,
+  "vector-bent-arrow": ArrowUpRight,
+  "vector-four-way-arrow": Move,
+  "vector-plus": Plus,
+  "vector-cross": X,
+  "vector-lightning": Zap,
+  "vector-home": Home,
+  "vector-speech-bubble": MessageSquare,
+  "vector-cloud": Cloud,
+  "vector-heart": Heart,
+  "vector-star": Star,
+  "vector-bookmark": Bookmark,
+  "vector-shield": Shield,
+  "vector-flag": Flag,
+  "vector-moon": Moon,
+  "vector-sun": Sun,
+  "vector-play": Play,
+};
+
+export const elementItemGroups = ELEMENT_INSERT_GROUPS.map((group) => ({
+  label: group.label,
+  items: group.items.map((item) => ({
+    ...item,
+    icon: elementIconById[item.id],
+  })),
+}));
+
+export const elementItems = elementItemGroups.flatMap((group) => group.items);
 
 const templateBlocksCache = new Map<string, TemplateBlockGroup[]>();
 const BLOCK_PREVIEW_WIDTH = 1280;
@@ -1116,10 +1196,12 @@ function PrimaryActionButton({
 
 function ActionsSidebar({
   activeAction,
+  aiOnly = false,
   blocksUnavailable = false,
   onActionSelect,
 }: {
   activeAction: ActionId;
+  aiOnly?: boolean;
   blocksUnavailable?: boolean;
   onActionSelect: (action: ActionId) => void;
 }) {
@@ -1137,37 +1219,45 @@ function ActionsSidebar({
           label="AI"
           onClick={() => onActionSelect("ai")}
         />
-        <div className="h-px w-[30px] bg-[#EDEEEF]" />
-        <PrimaryActionButton
-          active={activeAction === "blocks"}
-          disabled={blocksUnavailable}
-          disabledReason="Blocks require a presentation template"
-          icon={<BlocksIcon />}
-          label="Blocks"
-          onClick={() => onActionSelect("blocks")}
-        />
+        {!aiOnly && (
+          <>
+            <div className="h-px w-[30px] bg-[#EDEEEF]" />
+            <PrimaryActionButton
+              active={activeAction === "blocks"}
+              disabled={blocksUnavailable}
+              disabledReason="Blocks require a presentation template"
+              icon={<BlocksIcon />}
+              label="Blocks"
+              onClick={() => onActionSelect("blocks")}
+            />
+          </>
+        )}
       </div>
 
-      <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
-
-      <nav className="flex w-full flex-col items-center gap-5">
-        {insertActions.map((item) => (
-          <React.Fragment key={item.id}>
-            <NavButton
-              item={item}
-              active={activeAction === item.id}
-              onClick={() => onActionSelect(item.id)}
-            />
-            <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
-          </React.Fragment>
-        ))}
-      </nav>
+      {!aiOnly && (
+        <>
+          <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
+          <nav className="flex w-full flex-col items-center gap-5">
+            {insertActions.map((item) => (
+              <React.Fragment key={item.id}>
+                <NavButton
+                  item={item}
+                  active={activeAction === item.id}
+                  onClick={() => onActionSelect(item.id)}
+                />
+                <div className="h-px w-[30px] shrink-0 bg-[#EDEEEF]" />
+              </React.Fragment>
+            ))}
+          </nav>
+        </>
+      )}
     </aside>
   );
 }
 
 function ActionsPanel({
   activeAction,
+  aiOnly = false,
   blocksUnavailable = false,
   chatProps,
   editingDisabled = false,
@@ -1181,6 +1271,7 @@ function ActionsPanel({
   presentationId,
 }: {
   activeAction: ActionId;
+  aiOnly?: boolean;
   blocksUnavailable?: boolean;
   chatProps: Omit<PresentationActionsProps, "editingDisabled" | "presentationData">;
   editingDisabled?: boolean;
@@ -1203,7 +1294,7 @@ function ActionsPanel({
         />
       </div>
 
-      {!blocksUnavailable && activeAction === "blocks" && (
+      {!aiOnly && !blocksUnavailable && activeAction === "blocks" && (
         <BlocksPanel
           disabled={editingDisabled}
           presentationId={presentationId}
@@ -1211,7 +1302,7 @@ function ActionsPanel({
           onInsertBlock={onBlockSelect}
         />
       )}
-      {activeAction === "texts" && (
+      {!aiOnly && activeAction === "texts" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Texts"
@@ -1219,7 +1310,7 @@ function ActionsPanel({
           onItemSelect={onTextItemSelect}
         />
       )}
-      {activeAction === "charts" && (
+      {!aiOnly && activeAction === "charts" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Charts"
@@ -1230,7 +1321,7 @@ function ActionsPanel({
           onItemSelect={onChartItemSelect}
         />
       )}
-      {activeAction === "tables" && (
+      {!aiOnly && activeAction === "tables" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Tables"
@@ -1238,7 +1329,7 @@ function ActionsPanel({
           onItemSelect={onTableItemSelect}
         />
       )}
-      {activeAction === "images" && (
+      {!aiOnly && activeAction === "images" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Images"
@@ -1246,11 +1337,11 @@ function ActionsPanel({
           onItemSelect={onImageItemSelect}
         />
       )}
-      {activeAction === "elements" && (
+      {!aiOnly && activeAction === "elements" && (
         <InsertPanel
           disabled={editingDisabled}
           title="Elements"
-          groups={[{ label: "Add", items: elementItems }]}
+          groups={elementItemGroups}
           onItemSelect={onElementItemSelect}
         />
       )}
@@ -1282,6 +1373,7 @@ function templateV2TargetKey(
 
 const PresentationActions = (props: PresentationActionsProps) => {
   const { editingDisabled = false, presentationData, ...chatProps } = props;
+  const aiOnly = props.presentationType === "smart";
   const blocksUnavailable = isTemplateFreePresentation(presentationData);
   const [{ activeAction }, dispatchUiState] = useReducer(
     presentationActionsUiReducer,
@@ -1318,10 +1410,13 @@ const PresentationActions = (props: PresentationActionsProps) => {
       : chatProps.currentSlide;
 
   useEffect(() => {
-    if (blocksUnavailable && activeAction === "blocks") {
+    if (
+      (aiOnly || (blocksUnavailable && activeAction === "blocks")) &&
+      activeAction !== "ai"
+    ) {
       dispatchUiState({ type: "selectAction", activeAction: "ai" });
     }
-  }, [activeAction, blocksUnavailable]);
+  }, [activeAction, aiOnly, blocksUnavailable]);
 
   useEffect(() => {
     setHiddenSlideReference(null);
@@ -1522,6 +1617,9 @@ const PresentationActions = (props: PresentationActionsProps) => {
   };
 
   const handleActionSelect = (activeAction: ActionId) => {
+    if (aiOnly && activeAction !== "ai") {
+      return;
+    }
     if (blocksUnavailable && activeAction === "blocks") {
       return;
     }
@@ -1541,11 +1639,13 @@ const PresentationActions = (props: PresentationActionsProps) => {
     >
       <ActionsSidebar
         activeAction={activeAction}
+        aiOnly={aiOnly}
         blocksUnavailable={blocksUnavailable}
         onActionSelect={handleActionSelect}
       />
       <ActionsPanel
         activeAction={activeAction}
+        aiOnly={aiOnly}
         blocksUnavailable={blocksUnavailable}
         chatProps={{
           ...chatProps,

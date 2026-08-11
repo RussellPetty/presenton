@@ -22,6 +22,33 @@ const DEFAULT_IMAGE_PLACEHOLDER_SRC = "/placeholder.jpg";
 const TEXT_INSERT_HORIZONTAL_PADDING_PX = 8;
 const TEXT_INSERT_VERTICAL_PADDING_PX = 14;
 const IMAGE_RADIUS = { tl: 10, tr: 10, bl: 10, br: 10 };
+const MATH_INSERT_PRESETS: Record<
+  string,
+  { latex: string; name: string; fontSize?: number; height?: number }
+> = {
+  equation: { latex: String.raw`E = mc^2`, name: "equation" },
+  "equation-quadratic": {
+    latex: String.raw`x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`,
+    name: "quadratic_formula",
+    fontSize: 38,
+  },
+  "equation-summation": {
+    latex: String.raw`\sum_{i=1}^{n} i = \frac{n(n+1)}{2}`,
+    name: "summation_formula",
+    fontSize: 40,
+  },
+  "equation-integral": {
+    latex: String.raw`\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}`,
+    name: "integral_formula",
+    fontSize: 38,
+  },
+  "equation-matrix": {
+    latex: String.raw`A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}`,
+    name: "matrix_formula",
+    fontSize: 38,
+    height: 180,
+  },
+};
 
 export type EditorInsertContent = {
   elements?: SlideElement[];
@@ -85,6 +112,36 @@ function makeTextElement({
     name,
     max_length: maxLength,
     min_length: Math.ceil(maxLength / 2),
+  };
+}
+
+function makeMathElement({
+  latex,
+  name,
+  fontSize = 44,
+  height = 150,
+}: {
+  latex: string;
+  name: string;
+  fontSize?: number;
+  height?: number;
+}): SlideElement {
+  return {
+    type: "math",
+    position: { x: 210, y: 250 },
+    size: { width: 860, height },
+    alignment: { horizontal: "center", vertical: "middle" },
+    font: {
+      family: "KaTeX_Main",
+      size: fontSize,
+      color: "101323",
+    },
+    latex,
+    display_mode: true,
+    decorative: false,
+    name,
+    max_length: 4000,
+    min_length: 1,
   };
 }
 
@@ -179,6 +236,9 @@ function makeBulletListElement(marker: Marker): SlideElement {
 }
 
 export function createTextInsertElements(kind?: string): SlideElement[] {
+  const mathPreset = kind ? MATH_INSERT_PRESETS[kind] : undefined;
+  if (mathPreset) return [makeMathElement(mathPreset)];
+
   switch (kind) {
     case "title-block":
       return [
@@ -754,6 +814,79 @@ const DEFAULT_VECTOR_LINE_STROKE: Stroke = {
   width: 2,
 };
 
+export const ELEMENT_INSERT_GROUPS = [
+  {
+    label: "Basic Shapes",
+    items: [
+      { id: "vector-rectangle", label: "Rectangle" },
+      { id: "vector-rounded-rectangle", label: "Rounded Rect" },
+      { id: "vector-capsule", label: "Capsule" },
+      { id: "vector-circle", label: "Circle" },
+      { id: "vector-ellipse", label: "Ellipse" },
+      { id: "vector-triangle", label: "Triangle" },
+      { id: "vector-right-triangle", label: "Right Triangle" },
+      { id: "vector-diamond", label: "Diamond" },
+      { id: "vector-parallelogram", label: "Parallelogram" },
+      { id: "vector-trapezoid", label: "Trapezoid" },
+      { id: "vector-pentagon", label: "Pentagon" },
+      { id: "vector-hexagon", label: "Hexagon" },
+      { id: "vector-octagon", label: "Octagon" },
+      { id: "vector-teardrop", label: "Teardrop" },
+    ],
+  },
+  {
+    label: "Lines & Arrows",
+    items: [
+      { id: "vector-line", label: "Line" },
+      { id: "vector-line-arrow", label: "Open Right" },
+      { id: "vector-line-arrow-left", label: "Open Left" },
+      { id: "vector-line-arrow-up", label: "Open Up" },
+      { id: "vector-line-arrow-down", label: "Open Down" },
+      { id: "vector-arrowhead-filled-right", label: "Filled Right" },
+      { id: "vector-arrowhead-filled-left", label: "Filled Left" },
+      { id: "vector-arrowhead-filled-up", label: "Filled Up" },
+      { id: "vector-arrowhead-filled-down", label: "Filled Down" },
+    ],
+  },
+  {
+    label: "Block Arrows",
+    items: [
+      { id: "vector-arrow", label: "Right Arrow" },
+      { id: "vector-arrow-left", label: "Left Arrow" },
+      { id: "vector-arrow-up", label: "Up Arrow" },
+      { id: "vector-arrow-down", label: "Down Arrow" },
+      { id: "vector-arrow-left-right", label: "Left–Right Arrow" },
+      { id: "vector-arrow-up-down", label: "Up–Down Arrow" },
+      { id: "vector-chevron-right", label: "Chevron" },
+      { id: "vector-notched-arrow", label: "Notched Arrow" },
+      { id: "vector-bent-arrow", label: "Bent Arrow" },
+      { id: "vector-four-way-arrow", label: "Four-Way Arrow" },
+    ],
+  },
+  {
+    label: "Symbols",
+    items: [
+      { id: "vector-plus", label: "Plus" },
+      { id: "vector-cross", label: "Cross" },
+      { id: "vector-lightning", label: "Lightning" },
+      { id: "vector-home", label: "Home" },
+      { id: "vector-speech-bubble", label: "Speech Bubble" },
+      { id: "vector-cloud", label: "Cloud" },
+      { id: "vector-heart", label: "Heart" },
+      { id: "vector-star", label: "Star" },
+      { id: "vector-bookmark", label: "Bookmark" },
+      { id: "vector-shield", label: "Shield" },
+      { id: "vector-flag", label: "Flag" },
+      { id: "vector-moon", label: "Moon" },
+      { id: "vector-sun", label: "Sun" },
+      { id: "vector-play", label: "Play" },
+    ],
+  },
+] as const;
+
+export type ElementInsertKind =
+  (typeof ELEMENT_INSERT_GROUPS)[number]["items"][number]["id"];
+
 function makeVector({
   points,
   shape,
@@ -761,6 +894,7 @@ function makeVector({
   fill = DEFAULT_VECTOR_FILL,
   stroke = DEFAULT_VECTOR_STROKE,
   curve,
+  cornerRadii,
 }: {
   points: Array<{ x: number; y: number }>;
   shape?: "polygon" | "ellipse";
@@ -768,6 +902,7 @@ function makeVector({
   fill?: Fill | null;
   stroke?: Stroke | null;
   curve?: { type: "smooth"; tension?: number; segments?: number };
+  cornerRadii?: number[];
 }): SlideElement {
   return {
     type: "vector",
@@ -775,6 +910,7 @@ function makeVector({
     points,
     closed,
     ...(curve ? { curve } : {}),
+    ...(cornerRadii ? { corner_radii: cornerRadii } : {}),
     ...(fill ? { fill } : {}),
     ...(stroke ? { stroke } : {}),
   };
@@ -791,6 +927,20 @@ export function createElementInsertElements(kind?: string): SlideElement[] {
             { x: 518, y: 326 },
             { x: 134, y: 326 },
           ],
+        }),
+      ];
+    case "vector-rounded-rectangle":
+      return [
+        makeVector({
+          points: rectangleVectorPoints(134, 134, 384, 192),
+          cornerRadii: [28, 28, 28, 28],
+        }),
+      ];
+    case "vector-capsule":
+      return [
+        makeVector({
+          points: rectangleVectorPoints(134, 158, 440, 180),
+          cornerRadii: [90, 90, 90, 90],
         }),
       ];
     case "vector-circle":
@@ -817,6 +967,16 @@ export function createElementInsertElements(kind?: string): SlideElement[] {
           ],
         }),
       ];
+    case "vector-right-triangle":
+      return [
+        makeVector({
+          points: [
+            { x: 134, y: 122 },
+            { x: 518, y: 354 },
+            { x: 134, y: 354 },
+          ],
+        }),
+      ];
     case "vector-diamond":
       return [
         makeVector({
@@ -825,6 +985,28 @@ export function createElementInsertElements(kind?: string): SlideElement[] {
             { x: 518, y: 238 },
             { x: 326, y: 354 },
             { x: 134, y: 238 },
+          ],
+        }),
+      ];
+    case "vector-parallelogram":
+      return [
+        makeVector({
+          points: [
+            { x: 210, y: 134 },
+            { x: 574, y: 134 },
+            { x: 498, y: 326 },
+            { x: 134, y: 326 },
+          ],
+        }),
+      ];
+    case "vector-trapezoid":
+      return [
+        makeVector({
+          points: [
+            { x: 226, y: 134 },
+            { x: 482, y: 134 },
+            { x: 574, y: 326 },
+            { x: 134, y: 326 },
           ],
         }),
       ];
@@ -840,18 +1022,357 @@ export function createElementInsertElements(kind?: string): SlideElement[] {
           points: regularPolygonVectorPoints(326, 248, 166, 6),
         }),
       ];
-    case "vector-arrow":
+    case "vector-octagon":
+      return [
+        makeVector({
+          points: regularPolygonVectorPoints(
+            326,
+            248,
+            160,
+            8,
+            Math.PI / 8,
+          ),
+        }),
+      ];
+    case "vector-teardrop":
       return [
         makeVector({
           points: [
-            { x: 134, y: 206 },
-            { x: 420, y: 206 },
-            { x: 420, y: 158 },
-            { x: 574, y: 248 },
-            { x: 420, y: 338 },
-            { x: 420, y: 290 },
-            { x: 134, y: 290 },
+            { x: 326, y: 112 },
+            { x: 442, y: 240 },
+            { x: 426, y: 330 },
+            { x: 326, y: 386 },
+            { x: 226, y: 330 },
+            { x: 210, y: 240 },
           ],
+          curve: { type: "smooth", tension: 0.32, segments: 16 },
+        }),
+      ];
+    case "vector-arrow":
+      return [
+        makeVector({
+          points: rightArrowVectorPoints(),
+        }),
+      ];
+    case "vector-arrow-left":
+      return [
+        makeVector({
+          points: mirrorVectorPoints(rightArrowVectorPoints(), 354),
+        }),
+      ];
+    case "vector-arrow-up":
+      return [
+        makeVector({
+          points: rotateVectorPoints(rightArrowVectorPoints(), 354, 248, -90),
+        }),
+      ];
+    case "vector-arrow-down":
+      return [
+        makeVector({
+          points: rotateVectorPoints(rightArrowVectorPoints(), 354, 248, 90),
+        }),
+      ];
+    case "vector-arrow-left-right":
+      return [
+        makeVector({
+          points: [
+            { x: 126, y: 248 },
+            { x: 224, y: 158 },
+            { x: 224, y: 206 },
+            { x: 484, y: 206 },
+            { x: 484, y: 158 },
+            { x: 582, y: 248 },
+            { x: 484, y: 338 },
+            { x: 484, y: 290 },
+            { x: 224, y: 290 },
+            { x: 224, y: 338 },
+          ],
+        }),
+      ];
+    case "vector-arrow-up-down":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            [
+              { x: 126, y: 248 },
+              { x: 224, y: 158 },
+              { x: 224, y: 206 },
+              { x: 484, y: 206 },
+              { x: 484, y: 158 },
+              { x: 582, y: 248 },
+              { x: 484, y: 338 },
+              { x: 484, y: 290 },
+              { x: 224, y: 290 },
+              { x: 224, y: 338 },
+            ],
+            354,
+            248,
+            90,
+          ),
+        }),
+      ];
+    case "vector-chevron-right":
+      return [
+        makeVector({
+          points: [
+            { x: 174, y: 142 },
+            { x: 320, y: 142 },
+            { x: 520, y: 248 },
+            { x: 320, y: 354 },
+            { x: 174, y: 354 },
+            { x: 374, y: 248 },
+          ],
+        }),
+      ];
+    case "vector-notched-arrow":
+      return [
+        makeVector({
+          points: [
+            { x: 134, y: 158 },
+            { x: 422, y: 158 },
+            { x: 422, y: 118 },
+            { x: 574, y: 248 },
+            { x: 422, y: 378 },
+            { x: 422, y: 338 },
+            { x: 134, y: 338 },
+            { x: 214, y: 248 },
+          ],
+        }),
+      ];
+    case "vector-bent-arrow":
+      return [
+        makeVector({
+          points: [
+            { x: 134, y: 382 },
+            { x: 134, y: 220 },
+            { x: 402, y: 220 },
+            { x: 402, y: 158 },
+            { x: 574, y: 278 },
+            { x: 402, y: 398 },
+            { x: 402, y: 336 },
+            { x: 218, y: 336 },
+            { x: 218, y: 382 },
+          ],
+          cornerRadii: [14, 14, 14, 0, 0, 0, 14, 14, 14],
+        }),
+      ];
+    case "vector-four-way-arrow":
+      return [
+        makeVector({
+          points: [
+            { x: 326, y: 104 },
+            { x: 402, y: 178 },
+            { x: 366, y: 178 },
+            { x: 366, y: 208 },
+            { x: 396, y: 208 },
+            { x: 396, y: 172 },
+            { x: 472, y: 248 },
+            { x: 396, y: 324 },
+            { x: 396, y: 288 },
+            { x: 366, y: 288 },
+            { x: 366, y: 318 },
+            { x: 402, y: 318 },
+            { x: 326, y: 392 },
+            { x: 250, y: 318 },
+            { x: 286, y: 318 },
+            { x: 286, y: 288 },
+            { x: 256, y: 288 },
+            { x: 256, y: 324 },
+            { x: 180, y: 248 },
+            { x: 256, y: 172 },
+            { x: 256, y: 208 },
+            { x: 286, y: 208 },
+            { x: 286, y: 178 },
+            { x: 250, y: 178 },
+          ],
+        }),
+      ];
+    case "vector-plus":
+      return [
+        makeVector({
+          points: plusVectorPoints(326, 248, 250, 250, 88),
+          cornerRadii: Array(12).fill(8),
+        }),
+      ];
+    case "vector-cross":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            plusVectorPoints(326, 248, 250, 250, 76),
+            326,
+            248,
+            45,
+          ),
+          cornerRadii: Array(12).fill(6),
+        }),
+      ];
+    case "vector-lightning":
+      return [
+        makeVector({
+          points: [
+            { x: 354, y: 104 },
+            { x: 216, y: 270 },
+            { x: 314, y: 270 },
+            { x: 278, y: 400 },
+            { x: 454, y: 210 },
+            { x: 350, y: 210 },
+          ],
+        }),
+      ];
+    case "vector-home":
+      return [
+        makeVector({
+          points: [
+            { x: 326, y: 112 },
+            { x: 536, y: 254 },
+            { x: 480, y: 254 },
+            { x: 480, y: 382 },
+            { x: 364, y: 382 },
+            { x: 364, y: 286 },
+            { x: 288, y: 286 },
+            { x: 288, y: 382 },
+            { x: 172, y: 382 },
+            { x: 172, y: 254 },
+            { x: 116, y: 254 },
+          ],
+          cornerRadii: [6, 6, 0, 10, 8, 8, 8, 8, 10, 0, 6],
+        }),
+      ];
+    case "vector-speech-bubble":
+      return [
+        makeVector({
+          points: [
+            { x: 142, y: 130 },
+            { x: 534, y: 130 },
+            { x: 534, y: 318 },
+            { x: 326, y: 318 },
+            { x: 226, y: 394 },
+            { x: 246, y: 318 },
+            { x: 142, y: 318 },
+          ],
+          cornerRadii: [22, 22, 22, 5, 0, 0, 22],
+        }),
+      ];
+    case "vector-cloud":
+      return [
+        makeVector({
+          points: [
+            { x: 182, y: 334 },
+            { x: 132, y: 286 },
+            { x: 158, y: 222 },
+            { x: 232, y: 204 },
+            { x: 270, y: 142 },
+            { x: 360, y: 134 },
+            { x: 414, y: 190 },
+            { x: 486, y: 190 },
+            { x: 532, y: 246 },
+            { x: 514, y: 310 },
+            { x: 450, y: 338 },
+          ],
+          curve: { type: "smooth", tension: 0.42, segments: 16 },
+        }),
+      ];
+    case "vector-heart":
+      return [
+        makeVector({
+          points: [
+            { x: 326, y: 190 },
+            { x: 270, y: 126 },
+            { x: 190, y: 126 },
+            { x: 142, y: 194 },
+            { x: 154, y: 266 },
+            { x: 220, y: 330 },
+            { x: 326, y: 394 },
+            { x: 432, y: 330 },
+            { x: 498, y: 266 },
+            { x: 510, y: 194 },
+            { x: 462, y: 126 },
+            { x: 382, y: 126 },
+          ],
+          curve: { type: "smooth", tension: 0.38, segments: 16 },
+        }),
+      ];
+    case "vector-star":
+      return [
+        makeVector({
+          points: regularStarVectorPoints(326, 248, 158, 72, 5),
+          cornerRadii: Array(10).fill(3),
+        }),
+      ];
+    case "vector-bookmark":
+      return [
+        makeVector({
+          points: [
+            { x: 230, y: 112 },
+            { x: 422, y: 112 },
+            { x: 422, y: 394 },
+            { x: 326, y: 330 },
+            { x: 230, y: 394 },
+          ],
+          cornerRadii: [12, 12, 4, 0, 4],
+        }),
+      ];
+    case "vector-shield":
+      return [
+        makeVector({
+          points: [
+            { x: 170, y: 132 },
+            { x: 482, y: 132 },
+            { x: 468, y: 284 },
+            { x: 410, y: 346 },
+            { x: 326, y: 398 },
+            { x: 242, y: 346 },
+            { x: 184, y: 284 },
+          ],
+          cornerRadii: [18, 18, 18, 18, 12, 18, 18],
+        }),
+      ];
+    case "vector-flag":
+      return [
+        makeVector({
+          points: [
+            { x: 154, y: 126 },
+            { x: 510, y: 126 },
+            { x: 450, y: 238 },
+            { x: 510, y: 350 },
+            { x: 154, y: 350 },
+          ],
+          cornerRadii: [8, 8, 4, 8, 8],
+        }),
+      ];
+    case "vector-moon":
+      return [
+        makeVector({
+          points: [
+            { x: 382, y: 112 },
+            { x: 268, y: 126 },
+            { x: 188, y: 204 },
+            { x: 180, y: 292 },
+            { x: 250, y: 374 },
+            { x: 366, y: 390 },
+            { x: 302, y: 330 },
+            { x: 278, y: 250 },
+            { x: 310, y: 170 },
+          ],
+          curve: { type: "smooth", tension: 0.34, segments: 16 },
+        }),
+      ];
+    case "vector-sun":
+      return [
+        makeVector({
+          points: regularStarVectorPoints(326, 248, 164, 104, 16),
+          cornerRadii: Array(32).fill(3),
+        }),
+      ];
+    case "vector-play":
+      return [
+        makeVector({
+          points: [
+            { x: 226, y: 118 },
+            { x: 526, y: 248 },
+            { x: 226, y: 378 },
+          ],
+          cornerRadii: [14, 14, 14],
         }),
       ];
     case "vector-line":
@@ -864,6 +1385,82 @@ export function createElementInsertElements(kind?: string): SlideElement[] {
           closed: false,
           fill: null,
           stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
+      ];
+    case "vector-line-arrow":
+      return [
+        makeVector({
+          points: openArrowheadVectorPoints(),
+          closed: false,
+          fill: null,
+          stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
+      ];
+    case "vector-line-arrow-left":
+      return [
+        makeVector({
+          points: mirrorVectorPoints(openArrowheadVectorPoints(), 338),
+          closed: false,
+          fill: null,
+          stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
+      ];
+    case "vector-line-arrow-up":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            openArrowheadVectorPoints(),
+            338,
+            248,
+            -90,
+          ),
+          closed: false,
+          fill: null,
+          stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
+      ];
+    case "vector-line-arrow-down":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            openArrowheadVectorPoints(),
+            338,
+            248,
+            90,
+          ),
+          closed: false,
+          fill: null,
+          stroke: DEFAULT_VECTOR_LINE_STROKE,
+        }),
+      ];
+    case "vector-arrowhead-filled-right":
+      return [makeVector({ points: filledArrowheadVectorPoints() })];
+    case "vector-arrowhead-filled-left":
+      return [
+        makeVector({
+          points: mirrorVectorPoints(filledArrowheadVectorPoints(), 338),
+        }),
+      ];
+    case "vector-arrowhead-filled-up":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            filledArrowheadVectorPoints(),
+            338,
+            248,
+            -90,
+          ),
+        }),
+      ];
+    case "vector-arrowhead-filled-down":
+      return [
+        makeVector({
+          points: rotateVectorPoints(
+            filledArrowheadVectorPoints(),
+            338,
+            248,
+            90,
+          ),
         }),
       ];
     default:
@@ -887,6 +1484,123 @@ function ellipseVectorPoints(
     { x: centerX, y: y + height },
     { x, y: centerY },
   ];
+}
+
+function rectangleVectorPoints(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  return [
+    { x, y },
+    { x: x + width, y },
+    { x: x + width, y: y + height },
+    { x, y: y + height },
+  ];
+}
+
+function rightArrowVectorPoints() {
+  return [
+    { x: 134, y: 206 },
+    { x: 420, y: 206 },
+    { x: 420, y: 158 },
+    { x: 574, y: 248 },
+    { x: 420, y: 338 },
+    { x: 420, y: 290 },
+    { x: 134, y: 290 },
+  ];
+}
+
+function openArrowheadVectorPoints() {
+  return [
+    { x: 246, y: 154 },
+    { x: 430, y: 248 },
+    { x: 246, y: 342 },
+  ];
+}
+
+function filledArrowheadVectorPoints() {
+  return [
+    { x: 246, y: 168 },
+    { x: 430, y: 248 },
+    { x: 246, y: 328 },
+  ];
+}
+
+function mirrorVectorPoints(
+  points: Array<{ x: number; y: number }>,
+  axisX: number,
+) {
+  return points.map((point) => ({ x: axisX * 2 - point.x, y: point.y }));
+}
+
+function rotateVectorPoints(
+  points: Array<{ x: number; y: number }>,
+  centerX: number,
+  centerY: number,
+  degrees: number,
+) {
+  const radians = (degrees * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  return points.map((point) => {
+    const offsetX = point.x - centerX;
+    const offsetY = point.y - centerY;
+    return {
+      x: centerX + offsetX * cosine - offsetY * sine,
+      y: centerY + offsetX * sine + offsetY * cosine,
+    };
+  });
+}
+
+function plusVectorPoints(
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  armWidth: number,
+) {
+  const left = centerX - width / 2;
+  const right = centerX + width / 2;
+  const top = centerY - height / 2;
+  const bottom = centerY + height / 2;
+  const armLeft = centerX - armWidth / 2;
+  const armRight = centerX + armWidth / 2;
+  const armTop = centerY - armWidth / 2;
+  const armBottom = centerY + armWidth / 2;
+  return [
+    { x: armLeft, y: top },
+    { x: armRight, y: top },
+    { x: armRight, y: armTop },
+    { x: right, y: armTop },
+    { x: right, y: armBottom },
+    { x: armRight, y: armBottom },
+    { x: armRight, y: bottom },
+    { x: armLeft, y: bottom },
+    { x: armLeft, y: armBottom },
+    { x: left, y: armBottom },
+    { x: left, y: armTop },
+    { x: armLeft, y: armTop },
+  ];
+}
+
+function regularStarVectorPoints(
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number,
+  tips: number,
+  rotation = -Math.PI / 2,
+) {
+  return Array.from({ length: tips * 2 }, (_, index) => {
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    const angle = rotation + (Math.PI * index) / tips;
+    return {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
 }
 
 function regularPolygonVectorPoints(

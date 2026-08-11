@@ -9,6 +9,7 @@ export type PresentationVersion = "v1-standard" | "v2-standard";
 export interface PresentationResponse {
   id: string;
   version?: PresentationVersion;
+  generation_mode?: "standard" | "smart";
   title: string;
   created_at: string;
   updated_at: string;
@@ -65,13 +66,17 @@ export class DashboardApi {
     }
   }
 
-  static async getPresentation(id: string) {
+  static async getPresentation(
+    id: string,
+    options?: { cache?: RequestCache }
+  ) {
     try {
       const response = await fetch(
         getApiUrl(`/api/v1/ppt/presentation/${id}`),
         {
           method: "GET",
           credentials: "include",
+          cache: options?.cache,
         }
       );
 

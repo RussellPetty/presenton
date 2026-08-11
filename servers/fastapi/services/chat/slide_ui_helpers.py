@@ -9,6 +9,7 @@ from typing import Any
 _PATH_SEGMENT_RE = re.compile(r"^(?P<key>components|elements|children)\[(?P<index>\d+)\]$")
 CONTENT_EDITABLE_ELEMENT_TYPES = {
     "text",
+    "math",
     "text-list",
     "table",
     "image",
@@ -383,7 +384,7 @@ def _normalize_generated_image_fit(
     element: dict[str, Any],
     asset_url: str | None,
 ) -> None:
-    if element.get("is_icon") is True or element.get("fit") != "fill":
+    if element.get("is_icon") is True or element.get("fit") == "cover":
         return
     if _has_image_clip_path(element):
         return
@@ -1307,6 +1308,11 @@ def _element_content(element: dict[str, Any]) -> Any:
     element_type = element.get("type")
     if element_type == "text":
         return {"text": _runs_text(element.get("runs"))}
+    if element_type == "math":
+        return {
+            "latex": element.get("latex"),
+            "display_mode": element.get("display_mode", True),
+        }
     if element_type == "text-list":
         items = element.get("items") if isinstance(element.get("items"), list) else []
         return {"items": [_runs_text(item) for item in items]}
@@ -1761,7 +1767,7 @@ def _content_update_requested_for_type(
     vector: dict[str, Any] | None,
     infographic: dict[str, Any] | None,
 ) -> bool:
-    if element_type == "text":
+    if element_type in {"text", "math"}:
         return text is not None
     if element_type == "text-list":
         return items is not None
@@ -1974,7 +1980,7 @@ def _update_chart_element(
                 raise ValueError("Each chart series must match the category count.")
 
 
-TEXT_STYLE_ELEMENT_TYPES = {"text", "text-list", "table"}
+TEXT_STYLE_ELEMENT_TYPES = {"text", "math", "text-list", "table"}
 
 
 def _apply_element_style_patch(
@@ -1991,6 +1997,8 @@ def _apply_element_style_patch(
 
     if element_type == "text":
         _apply_font_patch_to_text_element(element, font_patch)
+    elif element_type == "math":
+        _merge_font_patch(element, font_patch)
     elif element_type == "text-list":
         _apply_font_patch_to_text_list_element(element, font_patch)
     elif element_type == "table":

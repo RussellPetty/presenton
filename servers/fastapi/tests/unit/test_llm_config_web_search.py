@@ -1,4 +1,4 @@
-from llmai import DeepSeekClientConfig
+from llmai import AzureOpenAIClientConfig, DeepSeekClientConfig
 from llmai.shared import OpenAIApiType, OpenAIClientConfig
 
 from utils.llm_config import get_extra_body, get_llm_config
@@ -13,6 +13,21 @@ def test_openai_uses_responses_api_only_for_native_web_search(monkeypatch):
 
     assert regular_config.api_type == OpenAIApiType.COMPLETIONS
     assert search_config.api_type == OpenAIApiType.RESPONSES
+
+
+def test_azure_uses_responses_api(monkeypatch):
+    monkeypatch.setenv("LLM", "azure")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
+    monkeypatch.setenv(
+        "AZURE_OPENAI_ENDPOINT",
+        "https://test-resource.openai.azure.com",
+    )
+
+    config = get_llm_config()
+
+    assert isinstance(config, AzureOpenAIClientConfig)
+    assert config.api_type == OpenAIApiType.RESPONSES
 
 
 def test_deepseek_provider_uses_deepseek_client_config(monkeypatch):

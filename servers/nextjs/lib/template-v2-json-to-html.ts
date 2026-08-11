@@ -1,6 +1,11 @@
 import { resolveBackendAssetUrl } from "@/utils/api";
 import { markdownToPlainChartText } from "@/components/slide-editor/charts/chart-data";
 import { normalizeRawTextMarkdownElement } from "@/components/slide-editor/text/template-v2-text";
+import { normalizeMathLatex, renderMathHtml } from "@/lib/math";
+import {
+  CHART_BROWSER_SCRIPT_URL,
+  CHART_DATALABELS_SCRIPT_URL,
+} from "@/lib/chart-browser";
 
 type JsonRecord = Record<string, unknown>;
 type RenderMode = "absolute" | "flow";
@@ -77,6 +82,7 @@ interface TemplateV2RenderPayload {
 
 const ELEMENT_TYPES = new Set([
   "text",
+  "math",
   "container",
   "image",
   "text-list",
@@ -91,9 +97,6 @@ const ELEMENT_TYPES = new Set([
   "list-view",
   "grid-view",
 ]);
-
-const DEFAULT_CHART_JS_URL =
-  "https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js";
 
 const DEFAULT_CHART_COLORS = [
   "#7F22FE",
@@ -429,6 +432,8 @@ function renderItem(item: JsonRecord, mode: RenderMode): string {
       return renderImage(item, mode);
     case "text":
       return renderText(item, mode);
+    case "math":
+      return renderMath(item, mode);
     case "text-list":
       return renderTextList(item, mode);
     case "table":
@@ -517,6 +522,29 @@ function renderText(item: JsonRecord, mode: RenderMode): string {
     font,
     1.1
   )}${textOverflowStyle()}text-align:${textAlign(horizontal)};"><span style="display:block;width:100%">${runHtml}</span></div>`;
+}
+
+function renderMath(item: JsonRecord, mode: RenderMode): string {
+  const latex = normalizeMathLatex(item.latex);
+  if (!latex) return "";
+  const font = readRecord(item.font);
+  const alignment = readRecord(item.alignment);
+  const horizontal = readString(alignment.horizontal);
+  const vertical = readString(alignment.vertical);
+  const displayMode = readBoolean(item.display_mode ?? item.displayMode) ?? true;
+  const markup = renderMathHtml(latex, { displayMode });
+  const color = normalizeCssColor(readString(font.color) ?? "#111827");
+  const fontSize = readNumber(font.size) ?? 32;
+
+  return `<div data-presenton-math="true" data-screenshot="true" data-screenshot-include-children="true" aria-label="${escapeAttribute(
+    `Mathematical expression: ${latex}`
+  )}" style="${frameStyle(item, mode)}${transformStyle(
+    item
+  )}display:flex;align-items:${verticalAlign(vertical)};justify-content:${horizontalAlign(
+    horizontal
+  )};overflow:hidden;color:${escapeCssColor(color)};font-size:${cssNumber(
+    fontSize
+  )}px;"><div style="max-width:100%;max-height:100%;overflow:hidden;">${markup}</div></div>`;
 }
 
 function renderTextList(item: JsonRecord, mode: RenderMode): string {
@@ -950,21 +978,10 @@ function renderProgressBarInfographic(item: JsonRecord, mode: RenderMode): strin
   const baseColor = infographicBaseColor(item);
   const fallbackSize = { width: 180, height: 40 };
   const box = readBox(item, fallbackSize);
-  const showLabel = (box.height ?? fallbackSize.height) >= 28;
-  const label = showLabel
-    ? `<div style="color:#111827;font-size:${cssNumber(
-      Math.max(
-        10,
-        Math.min(16, Math.round((box.height ?? fallbackSize.height) * 0.3))
-      )
-    )}px;font-weight:700;line-height:1;text-align:right">${escapeHtml(
-      metrics.label
-    )}</div>`
-    : "";
 
   return `<div style="${frameStyle(item, mode, fallbackSize)}${transformStyle(
     item
-  )}display:flex;flex-direction:column;gap:6px;justify-content:center;overflow:hidden"><div style="position:relative;width:100%;height:${cssNumber(
+  )}display:flex;align-items:center;overflow:hidden"><div style="position:relative;width:100%;height:${cssNumber(
     Math.max(
       6,
       Math.min(18, Math.round((box.height ?? fallbackSize.height) * 0.35))
@@ -973,7 +990,7 @@ function renderProgressBarInfographic(item: JsonRecord, mode: RenderMode): strin
     baseColor
   )};overflow:hidden"><div style="height:100%;width:${cssNumber(
     metrics.ratio * 100
-  )}%;border-radius:inherit;background:${escapeCssColor(highlightColor)}"></div></div>${label}</div>`;
+  )}%;border-radius:inherit;background:${escapeCssColor(highlightColor)}"></div></div></div>`;
 }
 
 function renderGaugeInfographic(item: JsonRecord, mode: RenderMode): string {
@@ -994,9 +1011,7 @@ function renderGaugeInfographic(item: JsonRecord, mode: RenderMode): string {
     item
   )}overflow:hidden"><svg width="100%" height="100%" viewBox="0 0 120 72" preserveAspectRatio="xMidYMid meet" style="display:block"><path d="M 12 60 A 48 48 0 0 1 108 60" fill="none" stroke="${escapeAttribute(
     escapeCssColor(baseColor)
-  )}" stroke-width="12" stroke-linecap="round"/>${progressPath}<text x="60" y="52" text-anchor="middle" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">${escapeHtml(
-    metrics.label
-  )}</text></svg></div>`;
+  )}" stroke-width="12" stroke-linecap="round"/>${progressPath}</svg></div>`;
 }
 
 function chartConfig(item: JsonRecord, height: number): JsonRecord {
@@ -1113,13 +1128,21 @@ function chartConfig(item: JsonRecord, height: number): JsonRecord {
           },
         },
         tooltip: { enabled: false },
-        presentonDataLabels: {
-          enabled: dataLabels,
+        datalabels: {
+          align: chartDataLabelAlign(dataLabelPosition ?? "top"),
+          anchor: chartDataLabelAnchor(dataLabelPosition ?? "top"),
+          clamp: true,
+          clip: false,
           color: textColor,
-          fontFamily: CHART_FONT_FAMILY,
-          fontSize: valueFontSize,
-          horizontal: isHorizontalChart(chartKind),
-          position: dataLabelPosition ?? "top",
+          display: dataLabels,
+          font: {
+            family: CHART_FONT_FAMILY,
+            size: valueFontSize,
+            weight: 600,
+          },
+          offset: dataLabelPosition === "outside" ? 6 : 2,
+          presentonOutsideColor: textColor,
+          presentonPosition: dataLabelPosition ?? "top",
         },
       },
     },
@@ -1700,7 +1723,6 @@ function withAlpha(color: string, alpha: number): string {
 
 interface InfographicMetrics {
   ratio: number;
-  label: string;
 }
 
 function infographicKindFromValue(value: string | null): InfographicKind {
@@ -1722,7 +1744,6 @@ function infographicMetrics(item: JsonRecord): InfographicMetrics {
 
   return {
     ratio,
-    label: formatInfographicNumber(value),
   };
 }
 
@@ -1773,11 +1794,6 @@ function gaugePoint(
   };
 }
 
-function formatInfographicNumber(value: number): string {
-  const rounded = Math.round(value * 100) / 100;
-  return Object.is(rounded, -0) ? "0" : String(rounded);
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -1793,6 +1809,19 @@ function readDataLabelPosition(value: unknown): DataLabelPosition | null {
   return text && DATA_LABEL_POSITIONS.has(text)
     ? (text as DataLabelPosition)
     : null;
+}
+
+function chartDataLabelAnchor(position: DataLabelPosition) {
+  if (position === "base") return "start";
+  if (position === "mid") return "center";
+  return "end";
+}
+
+function chartDataLabelAlign(position: DataLabelPosition) {
+  if (position === "base") return "end";
+  if (position === "top") return "start";
+  if (position === "outside") return "end";
+  return "center";
 }
 
 function hasChartItem(item: JsonRecord): boolean {
@@ -1817,21 +1846,11 @@ function hasChartItem(item: JsonRecord): boolean {
 }
 
 function renderChartScripts(): string {
-  const chartJsUrl = readChartJsUrl();
-  return `<script src="${escapeAttribute(chartJsUrl)}"></script><script>${escapeScriptText(
+  return `<script src="${escapeAttribute(CHART_BROWSER_SCRIPT_URL)}"></script><script src="${escapeAttribute(
+    CHART_DATALABELS_SCRIPT_URL,
+  )}"></script><script>${escapeScriptText(
     chartRendererScript()
   )}</script>`;
-}
-
-function readChartJsUrl(): string {
-  const runtime = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  return (
-    runtime.process?.env?.NEXT_PUBLIC_CHART_JS_URL ||
-    runtime.process?.env?.CHART_JS_URL ||
-    DEFAULT_CHART_JS_URL
-  );
 }
 
 function chartRendererScript(): string {
@@ -1848,30 +1867,18 @@ function formatAxisTick(value){var numeric=Number(value);return Number.isFinite(
 function hydrateScales(scales){if(!scales)return;Object.keys(scales).forEach(function(key){var scale=scales[key];if(!scale)return;if(scale.ticks&&scale.ticks.presentonFormat){scale.ticks.callback=formatAxisTick;delete scale.ticks.presentonFormat}if(scale.r&&scale.r.ticks&&scale.r.ticks.presentonFormat){scale.r.ticks.callback=formatAxisTick;delete scale.r.ticks.presentonFormat}})}
 function barBorderRadius(rawValue,horizontal,radius){var value=chartValue(rawValue);if(horizontal){return value<0?{bottomLeft:radius,bottomRight:0,topLeft:radius,topRight:0}:{bottomLeft:0,bottomRight:radius,topLeft:0,topRight:radius}}return value<0?{bottomLeft:radius,bottomRight:radius,topLeft:0,topRight:0}:{bottomLeft:0,bottomRight:0,topLeft:radius,topRight:radius}}
 function hydrateBarBorderRadii(config){var datasets=config&&config.data&&Array.isArray(config.data.datasets)?config.data.datasets:[];datasets.forEach(function(dataset){var options=dataset&&dataset.presentonBarRadius;if(!options)return;var radius=readNumber(options.radius);dataset.borderRadius=function(context){return barBorderRadius(context&&context.raw,!!options.horizontal,radius==null?7:radius)};delete dataset.presentonBarRadius})}
-function datasetBackgroundColor(dataset,index){var bg=dataset&&dataset.backgroundColor;var color=Array.isArray(bg)?bg[index]:bg;return typeof color==="string"?color:null}
+function datasetBackgroundColor(dataset,index){var background=dataset&&dataset.backgroundColor;var color=Array.isArray(background)?background[index]:background;return typeof color==="string"?color:null}
 function clamp(value,min,max){return Math.min(Math.max(value,min),max)}
 function parseColor(color){if(!color)return null;var hex=String(color).match(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/);if(hex){var raw=hex[1].length===3?hex[1].split("").map(function(ch){return ch+ch}).join(""):hex[1];var value=Number.parseInt(raw,16);return[(value>>16)&255,(value>>8)&255,value&255,1]}var rgb=String(color).match(/^rgba?\\(([^)]+)\\)$/i);if(!rgb)return null;var channels=rgb[1].split(",").map(function(part){return Number(part.trim())});if(channels.length<3||channels.slice(0,3).some(Number.isNaN))return null;return[clamp(channels[0],0,255),clamp(channels[1],0,255),clamp(channels[2],0,255),clamp(Number.isFinite(channels[3])?channels[3]:1,0,1)]}
-function relativeLuminance(channels){var mapped=channels.map(function(channel){var n=channel/255;return n<=0.04045?n/12.92:Math.pow((n+0.055)/1.055,2.4)});return mapped[0]*0.2126+mapped[1]*0.7152+mapped[2]*0.0722}
-function contrastRatio(a,b){var lighter=Math.max(a,b);var darker=Math.min(a,b);return(lighter+0.05)/(darker+0.05)}
-function contrastTextColor(backgroundColor,fallback){var bg=parseColor(backgroundColor);if(!bg)return fallback;var composite=[bg[0],bg[1],bg[2]].map(function(channel){return channel*bg[3]+255*(1-bg[3])});var bgLum=relativeLuminance(composite);var dark=[16,24,40];var light=[255,255,255];var darkContrast=contrastRatio(bgLum,relativeLuminance(dark));var lightContrast=contrastRatio(bgLum,relativeLuminance(light));return lightContrast>=darkContrast?"#FFFFFF":"#101828"}
-function chartElementPoint(element){var x=readNumber(element&&element.x);var y=readNumber(element&&element.y);return x==null||y==null?null:{x:x,y:y}}
-function pointRadius(element){var options=element&&element.options||{};return Math.max(0,readNumber(options.radius)||readNumber(element&&element.radius)||3)}
-function labelBounds(x,y,width,height){var padding=2;return{left:x-width/2-padding,right:x+width/2+padding,top:y-height/2-padding,bottom:y+height/2+padding}}
-function boundsOverlap(a,b){return!(a.right<b.left||a.left>b.right||a.bottom<b.top||a.top>b.bottom)}
-function fitsChartArea(bounds,area){return bounds.left>=area.left&&bounds.right<=area.right&&bounds.top>=area.top&&bounds.bottom<=area.bottom}
-function lineDirection(elements,index,datasetIndex){var current=readNumber(elements[index]&&elements[index].y);var prev=readNumber(elements[index-1]&&elements[index-1].y);var next=readNumber(elements[index+1]&&elements[index+1].y);if(current==null)return datasetIndex%2===0?-1:1;if(prev!=null&&next!=null){if(current<=prev&&current<=next)return-1;if(current>=prev&&current>=next)return 1}if(next!=null&&prev==null)return next<current?1:-1;if(prev!=null&&next==null)return prev<current?1:-1;return datasetIndex%2===0?-1:1}
-function drawBarLabel(args){var ctx=args.ctx;var element=args.element;var x=readNumber(element&&element.x);var y=readNumber(element&&element.y);var base=readNumber(element&&element.base);var width=Math.abs(readNumber(element&&element.width)||0);var height=Math.abs(readNumber(element&&element.height)||0);if(x==null||y==null||base==null)return;var textWidth=ctx.measureText(args.label).width;var padding=5;var fits=args.horizontal?width>=textWidth+padding*2&&height>=args.fontSize*1.35:height>=args.fontSize*1.65&&width>=textWidth+padding*2;var position=args.position==="outside"||!fits?"outside":args.position;if(position!=="outside"){ctx.fillStyle=contrastTextColor(args.color,args.outsideColor);if(args.horizontal){var hDirection=args.value<0?-1:1;var labelX=position==="base"?base+hDirection*(textWidth/2+padding):position==="top"?x-hDirection*(textWidth/2+padding):(x+base)/2;ctx.fillText(args.label,labelX,y);return}var vDirection=args.value<0?1:-1;var labelY=position==="base"?base+vDirection*(args.fontSize/2+padding):position==="top"?y-vDirection*(args.fontSize/2+padding):(y+base)/2;ctx.fillText(args.label,x,labelY);return}ctx.fillStyle=args.outsideColor;if(args.horizontal){var outsideDirection=args.value<0?-1:1;ctx.fillText(args.label,x+outsideDirection*(textWidth/2+padding),y);return}var outsideYDirection=args.value<0?1:-1;ctx.fillText(args.label,x,y+outsideYDirection*(args.fontSize/2+padding))}
-function drawPointLabel(args){var ctx=args.ctx;var point=chartElementPoint(args.element);if(!point)return;var radius=pointRadius(args.element);var textWidth=ctx.measureText(args.label).width;var textHeight=args.fontSize*1.15;var direction=args.lineLike?lineDirection(args.metaElements,args.index,args.datasetIndex):(args.index+args.datasetIndex)%2===0?-1:1;var vertical=radius+textHeight/2+5;var horizontal=radius+textWidth/2+5;if(args.position!=="outside"){var placed=args.position==="base"?{x:point.x,y:point.y+vertical}:args.position==="top"?{x:point.x,y:point.y-vertical}:{x:point.x,y:point.y};var placedBounds=labelBounds(placed.x,placed.y,textWidth,textHeight);if(fitsChartArea(placedBounds,args.chartArea)&&!args.occupied.some(function(existing){return boundsOverlap(placedBounds,existing)})){args.occupied.push(placedBounds);ctx.fillStyle=args.outsideColor;ctx.fillText(args.label,placed.x,placed.y);return}}var candidates=[{x:point.x,y:point.y+direction*vertical},{x:point.x,y:point.y-direction*vertical},{x:point.x+horizontal,y:point.y},{x:point.x-horizontal,y:point.y},{x:point.x+horizontal,y:point.y+direction*vertical},{x:point.x-horizontal,y:point.y+direction*vertical},{x:point.x+horizontal,y:point.y-direction*vertical},{x:point.x-horizontal,y:point.y-direction*vertical},{x:point.x,y:point.y+direction*vertical*1.7},{x:point.x,y:point.y-direction*vertical*1.7}];for(var i=0;i<candidates.length;i++){var candidate=candidates[i];var bounds=labelBounds(candidate.x,candidate.y,textWidth,textHeight);if(!fitsChartArea(bounds,args.chartArea))continue;if(args.occupied.some(function(existing){return boundsOverlap(bounds,existing)}))continue;args.occupied.push(bounds);ctx.fillStyle=args.outsideColor;ctx.fillText(args.label,candidate.x,candidate.y);return}}
-function drawArcLabel(args){var element=args.element;var centerX=readNumber(element&&element.x);var centerY=readNumber(element&&element.y);var startAngle=readNumber(element&&element.startAngle);var endAngle=readNumber(element&&element.endAngle);var innerRadius=Math.max(0,readNumber(element&&element.innerRadius)||0);var outerRadius=Math.max(innerRadius,readNumber(element&&element.outerRadius)||0);var point=null;if(centerX!=null&&centerY!=null&&startAngle!=null&&endAngle!=null&&outerRadius>0){var angle=(startAngle+endAngle)/2;var ringWidth=Math.max(1,outerRadius-innerRadius);var textHeight=args.fontSize*1.15;var radius=args.position==="outside"?outerRadius+textHeight/2+7:args.position==="top"?Math.max(innerRadius+textHeight/2,outerRadius-textHeight/2-5):args.position==="base"?innerRadius>0?innerRadius+Math.min(ringWidth*0.25,textHeight+5):outerRadius*0.35:innerRadius+ringWidth/2;point={x:centerX+Math.cos(angle)*radius,y:centerY+Math.sin(angle)*radius}}else if(element&&typeof element.tooltipPosition==="function"){point=element.tooltipPosition(true)}if(!point)return;args.ctx.fillStyle=args.position==="outside"?args.outsideColor:contrastTextColor(args.color,args.outsideColor);args.ctx.fillText(args.label,point.x||0,point.y||0)}
-function isPointType(type){return type==="line"||type==="scatter"||type==="bubble"||type==="radar"}
-function isArcType(type){return type==="pie"||type==="doughnut"||type==="polarArea"}
-var dataLabelPlugin={id:"presentonDataLabels",afterDatasetsDraw:function(chart,args,options){if(!options||!options.enabled)return;var ctx=chart.ctx;var fontSize=options.fontSize||11;var outsideColor=options.color||"#475467";var position=options.position==="base"||options.position==="mid"||options.position==="outside"||options.position==="top"?options.position:"top";ctx.save();ctx.font="600 "+fontSize+"px "+(options.fontFamily||"Inter, Arial, sans-serif");ctx.textAlign="center";ctx.textBaseline="middle";var occupied=[];chart.data.datasets.forEach(function(dataset,datasetIndex){var meta=chart.getDatasetMeta(datasetIndex);if(meta.hidden)return;var metaType=String(meta.type||"");meta.data.forEach(function(element,index){var raw=Array.isArray(dataset.data)?dataset.data[index]:0;var value=chartValue(raw);var label=formatValue(value);if(!label)return;if(metaType==="bar"){drawBarLabel({color:datasetBackgroundColor(dataset,index),ctx:ctx,element:element,fontSize:fontSize,horizontal:!!options.horizontal,label:label,outsideColor:outsideColor,position:position,value:value});return}if(isPointType(metaType)){drawPointLabel({chartArea:chart.chartArea,ctx:ctx,datasetIndex:datasetIndex,element:element,fontSize:fontSize,index:index,label:label,lineLike:metaType==="line"||metaType==="radar",metaElements:meta.data,occupied:occupied,outsideColor:outsideColor,position:position});return}if(isArcType(metaType)){drawArcLabel({color:datasetBackgroundColor(dataset,index),ctx:ctx,element:element,fontSize:fontSize,label:label,outsideColor:outsideColor,position:position});return}var fallbackPosition=typeof element.tooltipPosition==="function"?element.tooltipPosition(true):null;if(!fallbackPosition)return;ctx.fillStyle=outsideColor;ctx.fillText(label,fallbackPosition.x||0,fallbackPosition.y||0)})});ctx.restore()}};
-function render(){if(!window.Chart){finish("error","Chart.js failed to load");return}try{var Chart=window.Chart;Chart.register(dataLabelPlugin);document.querySelectorAll("canvas[data-presenton-chart]").forEach(function(canvas){var configText=canvas.getAttribute("data-chart-config");if(!configText)return;var config=JSON.parse(configText);config.options=config.options||{};config.options.animation=false;config.options.responsive=false;config.options.maintainAspectRatio=false;hydrateScales(config.options.scales);hydrateBarBorderRadii(config);var existing=typeof Chart.getChart==="function"?Chart.getChart(canvas):null;if(existing)existing.destroy();var chart=new Chart(canvas,config);if(typeof chart.update==="function")chart.update("none")});requestAnimationFrame(function(){finish("ready")})}catch(error){finish("error",error&&error.message?error.message:String(error))}}
+function relativeLuminance(channels){var mapped=channels.map(function(channel){var normalized=channel/255;return normalized<=0.04045?normalized/12.92:Math.pow((normalized+0.055)/1.055,2.4)});return mapped[0]*0.2126+mapped[1]*0.7152+mapped[2]*0.0722}
+function contrastRatio(first,second){var lighter=Math.max(first,second);var darker=Math.min(first,second);return(lighter+0.05)/(darker+0.05)}
+function contrastTextColor(backgroundColor,fallback){var background=parseColor(backgroundColor);if(!background)return fallback;var composite=[background[0],background[1],background[2]].map(function(channel){return channel*background[3]+255*(1-background[3])});var luminance=relativeLuminance(composite);var dark=[16,24,40];var light=[255,255,255];return contrastRatio(luminance,relativeLuminance(light))>=contrastRatio(luminance,relativeLuminance(dark))?"#FFFFFF":"#101828"}
+function hydrateDataLabels(config){var plugins=config&&config.options&&config.options.plugins;var options=plugins&&plugins.datalabels;if(!options)return;var position=options.presentonPosition==="base"||options.presentonPosition==="mid"||options.presentonPosition==="outside"||options.presentonPosition==="top"?options.presentonPosition:"top";var outsideColor=options.presentonOutsideColor||options.color||"#475467";options.formatter=function(value){return formatValue(chartValue(value))};options.color=function(context){if(position==="outside")return outsideColor;var meta=context.chart.getDatasetMeta(context.datasetIndex);var type=String(meta&&meta.type||"");if(type!=="bar"&&type!=="pie"&&type!=="doughnut"&&type!=="polarArea")return outsideColor;return contrastTextColor(datasetBackgroundColor(context.dataset,context.dataIndex),outsideColor)};delete options.presentonOutsideColor;delete options.presentonPosition}
+function render(){if(!window.Chart){finish("error","Chart.js failed to load");return}if(!window.ChartDataLabels){finish("error","Chart.js datalabels plugin failed to load");return}try{var Chart=window.Chart;Chart.register(window.ChartDataLabels);document.querySelectorAll("canvas[data-presenton-chart]").forEach(function(canvas){var configText=canvas.getAttribute("data-chart-config");if(!configText)return;var config=JSON.parse(configText);config.options=config.options||{};config.options.animation=false;config.options.responsive=false;config.options.maintainAspectRatio=false;hydrateScales(config.options.scales);hydrateBarBorderRadii(config);hydrateDataLabels(config);var existing=typeof Chart.getChart==="function"?Chart.getChart(canvas):null;if(existing)existing.destroy();var chart=new Chart(canvas,config);if(typeof chart.update==="function")chart.update("none")});requestAnimationFrame(function(){finish("ready")})}catch(error){finish("error",error&&error.message?error.message:String(error))}}
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",render,{once:true})}else{render()}
 })();
 `;
 }
-
 function frameStyle(
   item: JsonRecord,
   mode: RenderMode,

@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -53,7 +54,7 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 
 import { useFontLoader as loadFontAssets } from "../hooks/useFontLoad";
 import TemplateService from "../services/api/template";
-import { TAILWIND_CDN_URL } from "./constants";
+import { ensureTailwindBrowserScript } from "@/lib/tailwind-browser";
 import { TemplateV2LayoutPreview } from "./components/EachSlide/TemplateV2LayoutPreview";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useTemplateCreation } from "./hooks/useTemplateCreation";
@@ -605,6 +606,7 @@ function AnalyzePanel({
   onFallbackFontChange,
   onLoadGoogleFontOptions,
   onContinue,
+  isAutoContinuing = false,
 }: {
   fontsData: FontData | null;
   uploadedFonts: UploadedFont[];
@@ -615,6 +617,7 @@ function AnalyzePanel({
   onFallbackFontChange: (fontName: string, option: GoogleFontOption) => void;
   onLoadGoogleFontOptions: () => void;
   onContinue: () => void;
+  isAutoContinuing?: boolean;
 }) {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [resolvingFont, setResolvingFont] = useState<FontItem | null>(null);
@@ -625,6 +628,32 @@ function AnalyzePanel({
   );
 
   const uploadedFontNames = new Set(uploadedFonts.map((font) => font.fontName));
+  const pendingMissingCount = missingFonts.filter(
+    (font) => !uploadedFontNames.has(font.name),
+  ).length;
+  const allFontsAvailable = Boolean(fontsData) && missingFonts.length === 0;
+  const allMissingFontsResolved =
+    missingFonts.length > 0 && pendingMissingCount === 0;
+  const fontAnalysisNotice = fontsData
+    ? allFontsAvailable
+      ? {
+        tone: "success",
+        title: "All fonts are available",
+        description: "Preparing the slide preview automatically.",
+      }
+      : allMissingFontsResolved
+        ? {
+          tone: "success",
+          title: "Missing fonts resolved",
+          description: "All required font files are attached. Continue to preview.",
+        }
+        : {
+          tone: "warning",
+          title: `${pendingMissingCount} font${pendingMissingCount === 1 ? "" : "s"} need attention`,
+          description:
+            "Upload exact font files or keep the selected fallback fonts before continuing.",
+        }
+    : null;
 
   const handleFontFile = (fontName: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -663,6 +692,46 @@ function AnalyzePanel({
         </div>
 
         <div className="relative -mt-px rounded-[28px] w-full  2xl:rounded-[32px] border border-[#EDEEF4] bg-white p-5 2xl:p-3 shadow-[0_0_16px_rgba(80,71,230,0.08)] transition-shadow duration-200 ">
+          {fontAnalysisNotice ? (
+            <div
+              className={`mb-5 flex items-start gap-3 rounded-[16px] border px-4 py-3 ${fontAnalysisNotice.tone === "success"
+                ? "border-[#BBF7D0] bg-[#F0FDF4]"
+                : "border-[#FDE68A] bg-[#FFFBEB]"
+                }`}
+            >
+              <span
+                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${fontAnalysisNotice.tone === "success"
+                  ? "bg-[#DCFCE7] text-[#16A34A]"
+                  : "bg-[#FEF3C7] text-[#D97706]"
+                  }`}
+              >
+                {fontAnalysisNotice.tone === "success" ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                )}
+              </span>
+              <div className="min-w-0">
+                <p
+                  className={`text-sm font-semibold ${fontAnalysisNotice.tone === "success"
+                    ? "text-[#166534]"
+                    : "text-[#92400E]"
+                    }`}
+                >
+                  {fontAnalysisNotice.title}
+                </p>
+                <p
+                  className={`mt-1 text-xs leading-[1.45] ${fontAnalysisNotice.tone === "success"
+                    ? "text-[#237A50]"
+                    : "text-[#9A5A08]"
+                    }`}
+                >
+                  {fontAnalysisNotice.description}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-3 pt-2 min-h-[140px] ">
             {fontChips.length > 0 ? (
               fontChips.map((font, index) => {
@@ -712,13 +781,13 @@ function AnalyzePanel({
           <div className="mt-6 flex justify-end px-1 pb-1">
             <GradientPillButton
               onClick={onContinue}
-              disabled={isUploading}
+              disabled={isUploading || isAutoContinuing}
               className="h-9 min-w-[120px] px-6 text-sm font-semibold"
             >
-              {isUploading ? (
+              {isUploading || isAutoContinuing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating...
+                  {isAutoContinuing ? "Preparing..." : "Creating..."}
                 </>
               ) : (
                 <>
@@ -1017,8 +1086,9 @@ function ThumbnailStrip({
     }
 
     const maxScrollLeft = node.scrollWidth - node.clientWidth;
-    setCanScrollLeft(node.scrollLeft > 1);
-    setCanScrollRight(node.scrollLeft < maxScrollLeft - 1);
+    const isOverflowing = maxScrollLeft > 1;
+    setCanScrollLeft(isOverflowing && node.scrollLeft > 1);
+    setCanScrollRight(isOverflowing && node.scrollLeft < maxScrollLeft - 1);
   }, []);
 
   useEffect(() => {
@@ -1043,6 +1113,13 @@ function ThumbnailStrip({
     };
   }, [count, updateScrollState]);
 
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollLeft = 0;
+    updateScrollState();
+  }, [count, updateScrollState]);
+
   const scrollThumbnails = useCallback(
     (direction: -1 | 1) => {
       const node = scrollRef.current;
@@ -1057,61 +1134,64 @@ function ThumbnailStrip({
 
   return (
     <div
-      className={`fixed ${bottomOffset} left-1/2 z-20 w-[calc(100vw-2rem)] max-w-[min(100%,1280px)] -translate-x-1/2 sm:w-[calc(100vw-4rem)]`}
+      className={`fixed ${bottomOffset} inset-x-0 z-20 flex justify-center px-4 sm:px-8`}
     >
-      <button
-        type="button"
-        onClick={() => scrollThumbnails(-1)}
-        aria-label="Scroll thumbnails left"
-        className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
-      <div
-        ref={scrollRef}
-        className="hide-scrollbar flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain rounded-[8px] px-1 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:gap-3 2xl:gap-4"
-      >
-        {Array.from({ length: count }, (_, index) => {
-          const slide = slides?.[index];
-          const url = urls?.[index] ?? slide?.screenshot_url;
-          const isReady = slide
-            ? Boolean(slide.processed && !slide.processing && slide.v2Layout)
-            : Boolean(url);
-          const isSelected = selectedIndex === index;
+      <div className="relative flex w-full max-w-[1280px] justify-center">
+        <button
+          type="button"
+          onClick={() => scrollThumbnails(-1)}
+          aria-label="Scroll thumbnails left"
+          className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+        <div
+          ref={scrollRef}
+          className="hide-scrollbar flex w-max max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain rounded-[8px] px-1 pb-3 pt-1 [-webkit-overflow-scrolling:touch] sm:gap-3 2xl:gap-4"
+        >
+          {Array.from({ length: count }, (_, index) => {
+            const slide = slides?.[index];
+            const url = urls?.[index] ?? slide?.screenshot_url;
+            const isReady = slide
+              ? Boolean(slide.processed && !slide.processing && slide.v2Layout)
+              : Boolean(url);
+            const isSelected = selectedIndex === index;
 
-          return (
-            <button
-              key={`thumb-${index}`}
-              type="button"
-              onClick={() => onSelect(index)}
-              className={`relative aspect-video w-[76px] shrink-0 overflow-visible rounded-[5px] border bg-white p-0 transition sm:w-[86px] sm:rounded-[6px] 2xl:w-[96px] ${isSelected ? "border-[#D9D9E2] ring-1 ring-[#D9D9E2]" : "border-[#ECECF2]"
-                }`}
-            >
-              {isReady && url ? (
-                <img
-                  src={resolveBackendAssetUrl(url)}
-                  alt={`Slide ${index + 1}`}
-                  className="h-full w-full rounded-[5px] object-cover sm:rounded-[6px]"
-                  draggable={false}
-                />
-              ) : (
-                <div className="h-full w-full rounded-[5px] bg-white sm:rounded-[6px]" />
-              )}
-              <span className="absolute -bottom-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#E6E7ED] bg-white text-[9px] text-black shadow-sm sm:-bottom-2 sm:-left-2 sm:h-5 sm:w-5 sm:text-[10px]">
-                {index + 1}
-              </span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={`thumb-${index}`}
+                type="button"
+                data-slide-thumbnail-index={index}
+                onClick={() => onSelect(index)}
+                className={`relative aspect-video w-[76px] shrink-0 overflow-visible rounded-[5px] border bg-white p-0 transition sm:w-[86px] sm:rounded-[6px] 2xl:w-[96px] ${isSelected ? "border-[#D9D9E2] ring-1 ring-[#D9D9E2]" : "border-[#ECECF2]"
+                  }`}
+              >
+                {isReady && url ? (
+                  <img
+                    src={resolveBackendAssetUrl(url)}
+                    alt={`Slide ${index + 1}`}
+                    className="h-full w-full rounded-[5px] object-cover sm:rounded-[6px]"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-full w-full rounded-[5px] bg-white sm:rounded-[6px]" />
+                )}
+                <span className="absolute -bottom-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#E6E7ED] bg-white text-[9px] text-black shadow-sm sm:-bottom-2 sm:-left-2 sm:h-5 sm:w-5 sm:text-[10px]">
+                  {index + 1}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => scrollThumbnails(1)}
+          aria-label="Scroll thumbnails right"
+          className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => scrollThumbnails(1)}
-        aria-label="Scroll thumbnails right"
-        className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6E7ED] bg-white/95 text-black shadow-[0_2px_10px_rgba(16,24,40,0.14)] transition sm:h-9 sm:w-9 ${canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
     </div>
   );
 }
@@ -1420,7 +1500,9 @@ const CustomTemplatePage = () => {
   const [selectedFallbackFonts, setSelectedFallbackFonts] = useState<
     Record<string, GoogleFontOption>
   >({});
+  const [isAutoPreviewQueued, setIsAutoPreviewQueued] = useState(false);
   const googleFontLoadStartedRef = useRef(false);
+  const autoPreviewStartedRef = useRef(false);
 
   const {
     selectedFile,
@@ -1450,12 +1532,17 @@ const CustomTemplatePage = () => {
     (state.step === "template-creation" || state.step === "completed") && slides.length > 0;
   const isFinalReview = state.step === "completed";
   const isGenerating = state.step === "template-creation";
+  const allCheckedFontsAvailable =
+    Boolean(state.fontsData) && (state.fontsData?.unavailable_fonts.length ?? 0) === 0;
   const generatedSlidesReady =
     isFinalReview && slides.some((slide) => slide.processed && !slide.error);
   const isTemplateModalOpen = templateModalMode !== null;
   const isCreateTemplateModal = templateModalMode === "create";
 
-  const missingFonts = state.fontsData?.unavailable_fonts ?? [];
+  const missingFonts = useMemo(
+    () => state.fontsData?.unavailable_fonts ?? [],
+    [state.fontsData],
+  );
   const uploadedFontNames = useMemo(
     () => new Set(uploadedFonts.map((font) => font.fontName)),
     [uploadedFonts],
@@ -1514,13 +1601,14 @@ const CustomTemplatePage = () => {
   }, [llmConfig]);
 
   useEffect(() => {
-    const existingScript = document.querySelector('script[src*="tailwindcss.com"]');
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = TAILWIND_CDN_URL;
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    autoPreviewStartedRef.current = false;
+    setIsAutoPreviewQueued(false);
+    setReviewSlideIndex(0);
+    setSelectedFallbackFonts({});
+  }, [selectedFile]);
+
+  useEffect(() => {
+    ensureTailwindBrowserScript();
   }, []);
 
   const handleLoadGoogleFontOptions = useCallback(() => {
@@ -1568,6 +1656,11 @@ const CustomTemplatePage = () => {
   }, [state.previewData?.fonts]);
 
   useEffect(() => {
+    if (!state.previewData) return;
+    setReviewSlideIndex(0);
+  }, [state.previewData]);
+
+  useEffect(() => {
     if (!showReview && !showPreview) return;
     const observer = setupImageUrlConverter();
     return () => observer?.disconnect();
@@ -1605,7 +1698,22 @@ const CustomTemplatePage = () => {
 
   const handleCheckFonts = useCallback(async () => {
     if (!selectedFile) return;
-    await checkFonts(selectedFile);
+    const data = await checkFonts(selectedFile);
+    if (!data) return;
+
+    const unavailableFontCount = data.unavailable_fonts?.length ?? 0;
+    if (unavailableFontCount === 0) {
+      notify.success(
+        "All fonts available",
+        "Preparing the slide preview automatically.",
+      );
+      return;
+    }
+
+    notify.warning(
+      "Fonts need attention",
+      `${unavailableFontCount} font${unavailableFontCount === 1 ? "" : "s"} are unavailable. Upload exact font files or use the selected fallback fonts before continuing.`,
+    );
   }, [checkFonts, selectedFile]);
 
   const handleFontUploadAndPreview = useCallback(async () => {
@@ -1630,9 +1738,42 @@ const CustomTemplatePage = () => {
   }, [
     fontUploadAndPreview,
     hasPendingMissingFonts,
-    loadFontAssets,
     selectedGoogleFontReplacements,
     selectedFile,
+  ]);
+
+  useEffect(() => {
+    if (
+      !showAnalyze ||
+      state.isLoading ||
+      !allCheckedFontsAvailable ||
+      autoPreviewStartedRef.current
+    ) {
+      return;
+    }
+
+    autoPreviewStartedRef.current = true;
+    setIsAutoPreviewQueued(true);
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        await handleFontUploadAndPreview();
+        if (!cancelled) {
+          setIsAutoPreviewQueued(false);
+        }
+      })();
+    }, 900);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      setIsAutoPreviewQueued(false);
+    };
+  }, [
+    allCheckedFontsAvailable,
+    handleFontUploadAndPreview,
+    showAnalyze,
+    state.isLoading,
   ]);
 
   const handleCreateTemplate = useCallback(
@@ -1781,6 +1922,7 @@ const CustomTemplatePage = () => {
             onFallbackFontChange={handleFallbackFontChange}
             onLoadGoogleFontOptions={handleLoadGoogleFontOptions}
             onContinue={handleFontUploadAndPreview}
+            isAutoContinuing={isAutoPreviewQueued}
           />
         ) : null}
 

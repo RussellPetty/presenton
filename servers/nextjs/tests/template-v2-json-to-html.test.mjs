@@ -87,3 +87,105 @@ test("renders legacy text-decoration underline fields", async () => {
     /<span style="[^"]*text-decoration:underline;[^"]*">Legacy<\/span>/,
   );
 });
+
+test("renders math expressions with KaTeX and export screenshot metadata", async () => {
+  const { templateV2UiToHtml } = await importRenderer();
+
+  const html = templateV2UiToHtml({
+    elements: [
+      {
+        type: "math",
+        position: { x: 20, y: 30 },
+        size: { width: 600, height: 120 },
+        latex: String.raw`$$\frac{x_i^2}{\sum_{j=1}^n y_j}$$`,
+        display_mode: true,
+        font: { size: 38, color: "#312E81" },
+        alignment: { horizontal: "center", vertical: "middle" },
+      },
+    ],
+  });
+
+  assert.ok(html);
+  assert.match(html, /data-presenton-math="true"/);
+  assert.match(html, /data-screenshot="true"/);
+  assert.match(html, /data-screenshot-include-children="true"/);
+  assert.match(html, /class="katex-display"/);
+  assert.match(html, /<math[^>]*display="block"/);
+  assert.match(html, /x_i\^2/);
+  assert.doesNotMatch(html, /\$\$/);
+});
+
+test("renders charts with local Chart.js and datalabels scripts", async () => {
+  const { templateV2UiToHtml } = await importRenderer();
+
+  const html = templateV2UiToHtml({
+    elements: [
+      {
+        type: "chart",
+        chartType: "bar",
+        position: { x: 0, y: 0 },
+        size: { width: 640, height: 360 },
+        categories: ["One", "Two"],
+        series: [{ name: "Values", values: [10, 20] }],
+        dataLabels: "top",
+      },
+    ],
+  });
+
+  assert.ok(html);
+  assert.match(html, /<script src="\/vendor\/chart-4\.5\.1\.umd\.min\.js"><\/script>/);
+  assert.match(
+    html,
+    /<script src="\/vendor\/chartjs-plugin-datalabels-2\.2\.0\.min\.js"><\/script>/,
+  );
+  assert.match(html, /&quot;datalabels&quot;:\{/);
+  assert.match(html, /Chart\.register\(window\.ChartDataLabels\)/);
+  assert.doesNotMatch(html, /cdn\.jsdelivr\.net/);
+
+  const inlineScripts = Array.from(
+    html.matchAll(/<script>([\s\S]*?)<\/script>/g),
+    (match) => match[1],
+  );
+  assert.equal(inlineScripts.length, 1);
+  assert.doesNotThrow(() => new Function(inlineScripts[0]));
+});
+
+test("renders infographics without visible value text", async () => {
+  const { templateV2UiToHtml } = await importRenderer();
+
+  const html = templateV2UiToHtml({
+    elements: [
+      {
+        type: "infographic",
+        position: { x: 0, y: 0 },
+        size: { width: 320, height: 190 },
+        data: {
+          type: "gauge",
+          min_value: 0,
+          max_value: 100,
+          value: 63.25,
+        },
+        colors: ["E5E7EB", "2563EB"],
+      },
+      {
+        type: "infographic",
+        position: { x: 0, y: 220 },
+        size: { width: 420, height: 74 },
+        data: {
+          type: "progress_bar",
+          min_value: 0,
+          max_value: 100,
+          value: 71.5,
+        },
+        colors: ["E5E7EB", "2563EB"],
+      },
+    ],
+  });
+
+  assert.ok(html);
+  assert.match(html, /<svg[^>]*><path/);
+  assert.match(html, /width:71\.5%/);
+  assert.doesNotMatch(html, /<text\b/);
+  assert.doesNotMatch(html, />63\.25</);
+  assert.doesNotMatch(html, />71\.5</);
+});

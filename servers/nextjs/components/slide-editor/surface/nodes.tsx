@@ -49,6 +49,7 @@ import {
 import { TemplateV2ChartJsElement as RawChartElement } from "@/components/slide-editor/charts/TemplateV2ChartJsElement";
 import { TemplateV2TableElement as RawTableElement } from "@/components/slide-editor/tables/TemplateV2TableElement";
 import { buildSvgUpdateUrl } from "@/lib/svg-color";
+import { mathSvgDataUri, normalizeMathLatex } from "@/lib/math";
 import {
   componentSideResizeBox,
   resizeComponentFromSideTransform,
@@ -421,6 +422,9 @@ export function RawComponentNode({
   onComponentDragMove,
   onComponentDragEnd,
   onElementChange,
+  onElementDragStart,
+  onElementDragMove,
+  onElementDragComplete,
   fontRevision,
 }: {
   component: RawComponent;
@@ -454,6 +458,18 @@ export function RawComponentNode({
   onElementChange: (
     selection: ElementSelection,
     updater: (element: RawElement) => RawElement,
+  ) => void;
+  onElementDragStart: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragMove: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragComplete: (
+    selection: ElementSelection,
+    node: Konva.Node,
   ) => void;
   fontRevision: number;
 }) {
@@ -742,6 +758,9 @@ export function RawComponentNode({
           onOpenEditor={onOpenElementEditor}
           onElementChange={onElementChange}
           onElementDragEnd={handleSingleElementComponentDragEnd}
+          onElementDragStart={onElementDragStart}
+          onElementDragMove={onElementDragMove}
+          onElementDragComplete={onElementDragComplete}
           parentBox={box}
           textConstraintBox={{
             x: 0,
@@ -805,6 +824,9 @@ export const MemoizedRawComponentNode = memo(
       previous.onComponentDragMove !== next.onComponentDragMove ||
       previous.onComponentDragEnd !== next.onComponentDragEnd ||
       previous.onElementChange !== next.onElementChange ||
+      previous.onElementDragStart !== next.onElementDragStart ||
+      previous.onElementDragMove !== next.onElementDragMove ||
+      previous.onElementDragComplete !== next.onElementDragComplete ||
       previous.selectedTableCell !== next.selectedTableCell ||
       previous.selectedKey !== next.selectedKey ||
       previous.fontRevision !== next.fontRevision
@@ -838,6 +860,9 @@ function RawElementNode({
   onOpenEditor,
   onElementChange,
   onElementDragEnd,
+  onElementDragStart,
+  onElementDragMove,
+  onElementDragComplete,
   parentBox,
   textConstraintBox,
   renderBox,
@@ -873,6 +898,18 @@ function RawElementNode({
     updater: (element: RawElement) => RawElement,
   ) => void;
   onElementDragEnd?: (selection: ElementSelection, delta: Point) => boolean;
+  onElementDragStart?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragMove?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
+  onElementDragComplete?: (
+    selection: ElementSelection,
+    node: Konva.Node,
+  ) => void;
   parentBox: Box;
   textConstraintBox?: Box | null;
   renderBox?: Box | null;
@@ -958,15 +995,19 @@ function RawElementNode({
       if (!vectorDraggable) return;
       event.cancelBubble = true;
       onSelect(selection);
+      const node = groupRef.current;
+      if (node) onElementDragStart?.(selection, node);
     },
-    [onSelect, selection, vectorDraggable],
+    [onElementDragStart, onSelect, selection, vectorDraggable],
   );
   const handleVectorDragMove = useCallback(
     (event: Konva.KonvaEventObject<DragEvent>) => {
       if (!vectorDraggable) return;
       event.cancelBubble = true;
+      const node = groupRef.current;
+      if (node) onElementDragMove?.(selection, node);
     },
-    [vectorDraggable],
+    [onElementDragMove, selection, vectorDraggable],
   );
   const handleVectorDragEnd = useCallback(
     (event: Konva.KonvaEventObject<DragEvent>) => {
@@ -974,6 +1015,7 @@ function RawElementNode({
       event.cancelBubble = true;
       const node = groupRef.current;
       if (!node) return;
+      onElementDragComplete?.(selection, node);
       const nextPosition = {
         x: node.x() - (centerOrigin ? box.width / 2 : 0),
         y: node.y() - (centerOrigin ? box.height / 2 : 0),
@@ -1006,6 +1048,7 @@ function RawElementNode({
       centerOrigin,
       layoutManaged,
       onElementChange,
+      onElementDragComplete,
       onElementDragEnd,
       selection,
       vectorDraggable,
@@ -1310,6 +1353,9 @@ function RawElementNode({
           onOpenEditor={onOpenEditor}
           onElementChange={onElementChange}
           onElementDragEnd={onElementDragEnd}
+          onElementDragStart={onElementDragStart}
+          onElementDragMove={onElementDragMove}
+          onElementDragComplete={onElementDragComplete}
           allowVectorResizeBeyondParent={false}
           allowVectorPointEditing={allowVectorPointEditing}
           allowDirectVectorSelection={allowDirectVectorSelection}
@@ -1350,6 +1396,9 @@ export const MemoizedRawElementNode = memo(RawElementNode, (previous, next) => {
     previous.onOpenEditor !== next.onOpenEditor ||
     previous.onElementChange !== next.onElementChange ||
     previous.onElementDragEnd !== next.onElementDragEnd ||
+    previous.onElementDragStart !== next.onElementDragStart ||
+    previous.onElementDragMove !== next.onElementDragMove ||
+    previous.onElementDragComplete !== next.onElementDragComplete ||
     !numberPathEqual(previous.elementPath, next.elementPath) ||
     !boxEqual(previous.parentBox, next.parentBox) ||
     !nullableBoxEqual(previous.textConstraintBox, next.textConstraintBox) ||
@@ -1712,6 +1761,16 @@ function RawElementVisual({
       />
     );
   }
+  if (type === "math") {
+    return (
+      <RawMathElement
+        element={element}
+        width={width}
+        height={height}
+        interactive={interactive}
+      />
+    );
+  }
   if (type === "text-list") {
     return (
       <RawTextListElement
@@ -1906,6 +1965,69 @@ function RawTextListElement({
         />
       ))}
     </Group>
+  );
+}
+
+function RawMathElement({
+  element,
+  width,
+  height,
+  interactive,
+}: {
+  element: RawElement;
+  width: number;
+  height: number;
+  interactive: boolean;
+}) {
+  const font = rawFont(element);
+  const latex = normalizeMathLatex(element.latex);
+  const horizontal = readString(element.alignment?.horizontal);
+  const vertical = readString(element.alignment?.vertical);
+  const source = useMemo(
+    () =>
+      mathSvgDataUri({
+        align:
+          horizontal === "left" || horizontal === "right"
+            ? horizontal
+            : "center",
+        color: withHash(font.color) ?? "#111827",
+        displayMode: readBoolean(element.display_mode ?? element.displayMode) ?? true,
+        fontSize: font.size,
+        height,
+        latex,
+        verticalAlign:
+          vertical === "top" || vertical === "bottom" ? vertical : "middle",
+        width,
+      }),
+    [element.displayMode, element.display_mode, font.color, font.size, height, horizontal, latex, vertical, width],
+  );
+  const loaded = useLoadedKonvaImage(source);
+
+  if (!loaded) {
+    return (
+      <Text
+        width={width}
+        height={height}
+        text={latex || "Add a LaTeX expression"}
+        fill={textFill(font)}
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize={Math.max(12, Math.min(font.size, 28))}
+        fontStyle="italic"
+        align="center"
+        verticalAlign="middle"
+        wrap="word"
+        listening={interactive}
+      />
+    );
+  }
+
+  return (
+    <KonvaImage
+      image={loaded}
+      width={width}
+      height={height}
+      listening={interactive}
+    />
   );
 }
 
@@ -2764,16 +2886,23 @@ function RawInfographicElement({
     "#E5E7EB";
   const highlightColor =
     withHash(readString(colors[1])) ?? "#2563EB";
-  const value = readNumber(data?.value) ?? 0;
-
   if (infographicType === "progress_bar") {
-    const radius = Math.min(height / 2, 8);
+    const barHeight = Math.max(6, Math.min(18, Math.round(height * 0.35)));
+    const barY = (height - barHeight) / 2;
+    const radius = barHeight / 2;
     return (
       <Group listening={interactive} {...shadowProps(element)}>
-        <Rect width={width} height={height} cornerRadius={radius} fill={baseColor} />
         <Rect
+          y={barY}
+          width={width}
+          height={barHeight}
+          cornerRadius={radius}
+          fill={baseColor}
+        />
+        <Rect
+          y={barY}
           width={width * progress}
-          height={height}
+          height={barHeight}
           cornerRadius={radius}
           fill={highlightColor}
         />
@@ -2782,7 +2911,7 @@ function RawInfographicElement({
   }
 
   const valueAngle = 180 * progress;
-  const thickness = Math.max(6, Math.min(width, height) * 0.18);
+  const thickness = Math.max(6, Math.min(width * 0.1, height / 6));
   const outerRadius = Math.max(1, Math.min(width * 0.43, height * 0.86));
   const innerRadius = Math.max(1, outerRadius - thickness);
   const middleRadius = (outerRadius + innerRadius) / 2;
@@ -2824,19 +2953,6 @@ function RawInfographicElement({
           <Circle x={end.x} y={end.y} radius={capRadius} fill={highlightColor} />
         </>
       ) : null}
-      <Text
-        x={0}
-        y={height * 0.5}
-        width={width}
-        height={height * 0.3}
-        text={String(Math.round(value))}
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontSize={Math.max(10, Math.min(width, height) * 0.22)}
-        fontStyle="bold"
-        align="center"
-        verticalAlign="middle"
-        fill="#172033"
-      />
     </Group>
   );
 }

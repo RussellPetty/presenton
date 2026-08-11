@@ -40,6 +40,14 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
                     "runs": [{"text": "A"}],
                 },
                 {
+                    "type": "math",
+                    "decorative": False,
+                    "name": "formula",
+                    "latex": r"E = mc^2",
+                    "min_length": 3,
+                    "max_length": 120,
+                },
+                {
                     "type": "image",
                     "decorative": False,
                     "name": "hero_image",
@@ -89,6 +97,7 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
         "type": "object",
         "properties": {
             "title": {"type": "string", "minLength": 4, "maxLength": 8},
+            "formula": {"type": "string", "minLength": 3, "maxLength": 120},
             "hero_image": {
                 "type": "object",
                 "properties": {"image_prompt": {"type": "string"}},
@@ -161,7 +170,7 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
                 "additionalProperties": False,
             },
         },
-        "required": ["title", "hero_image", "caption", "details"],
+        "required": ["title", "formula", "hero_image", "caption", "details"],
         "additionalProperties": False,
     }
 
@@ -571,6 +580,105 @@ def test_get_component_schema_uses_single_flex_child_as_repeated_array_item():
                 }
             },
             "required": ["title"],
+        },
+    }
+
+
+def test_get_component_schema_collapses_group_items_to_bounded_array():
+    component = {
+        "id": "timeline",
+        "description": "Timeline with grouped items.",
+        "elements": [
+            {
+                "type": "group",
+                "name": "timeline_items_group",
+                "children": [
+                    {
+                        "type": "group",
+                        "name": f"timeline_item_{index}",
+                        "children": [
+                            {
+                                "type": "text",
+                                "decorative": False,
+                                "name": f"heading_{index}",
+                                "min_length": 3,
+                                "max_length": 12,
+                            }
+                        ],
+                    }
+                    for index in range(1, 4)
+                ],
+            }
+        ],
+    }
+
+    schema = get_component_schema(component)
+
+    assert schema is not None
+    assert schema["properties"]["timeline_items_group"] == {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 3,
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "heading": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 12,
+                    "title": "Heading",
+                    "x-element-type": "text",
+                }
+            },
+            "required": ["heading"],
+        },
+    }
+
+
+def test_get_component_schema_collapses_repeated_top_level_groups_to_array():
+    component = {
+        "id": "metrics",
+        "description": "Repeated top-level metric groups.",
+        "elements": [
+            {
+                "type": "group",
+                "name": f"metric_group_{index}",
+                "children": [
+                    {
+                        "type": "text",
+                        "decorative": False,
+                        "name": f"label_{index}",
+                        "min_length": 2,
+                        "max_length": 8,
+                    }
+                ],
+            }
+            for index in range(1, 5)
+        ],
+    }
+
+    schema = get_component_schema(component)
+
+    assert schema is not None
+    assert schema["required"] == ["metric_group"]
+    assert schema["properties"]["metric_group"] == {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 4,
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 8,
+                    "title": "Label",
+                    "x-element-type": "text",
+                }
+            },
+            "required": ["label"],
         },
     }
 
