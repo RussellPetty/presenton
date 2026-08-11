@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -30,12 +30,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { notify } from "@/components/ui/sonner";
+import { sanitizeAnalyticsError } from "@/utils/analytics";
+import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import CommunityDesignPreviewDialog from "./CommunityDesignPreviewDialog";
 
 const PAGE_SIZE = 20;
 
+const getFilterAnalyticsProps = (
+  filters: CommunityPresentationListFilters
+) => {
+  const activeFilters = Object.entries(filters).filter(([key, value]) => {
+    if (key === "order" || key === "order_by") return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== "";
+  });
+
+  return {
+    active_filter_count: activeFilters.length,
+    active_filter_names: activeFilters.map(([key]) => key).sort().join(","),
+    sort_by: filters.order_by ?? "",
+    sort_order: filters.order ?? "",
+  };
+};
+
 export default function CommunityPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [filters, setFilters] =
     useState<CommunityPresentationListFilters>({});
@@ -51,9 +71,14 @@ export default function CommunityPage() {
   const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
+    trackEvent(MixpanelEvent.Community_Page_Viewed, { pathname });
+  }, [pathname]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     const loadPresentations = async () => {
+      const loadStartedAt = Date.now();
       try {
         setLoading(true);
         setError(null);
@@ -66,6 +91,15 @@ export default function CommunityPage() {
         if (controller.signal.aborted) return;
         setPresentations(response.results ?? []);
         setTotalPages(response.total_pages ?? 0);
+        trackEvent(MixpanelEvent.Community_Presentations_Loaded, {
+          pathname,
+          page,
+          page_size: PAGE_SIZE,
+          result_count: response.results?.length ?? 0,
+          total_pages: response.total_pages ?? 0,
+          duration_ms: Date.now() - loadStartedAt,
+          ...getFilterAnalyticsProps(filters),
+        });
       } catch (loadError) {
         if (controller.signal.aborted) return;
         setPresentations([]);
@@ -74,6 +108,16 @@ export default function CommunityPage() {
             ? loadError.message
             : "Failed to load community presentations"
         );
+        trackEvent(MixpanelEvent.Community_Presentations_Load_Failed, {
+          pathname,
+          page,
+          duration_ms: Date.now() - loadStartedAt,
+          error_message: sanitizeAnalyticsError(
+            loadError,
+            "Failed to load community presentations"
+          ),
+          ...getFilterAnalyticsProps(filters),
+        });
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -81,7 +125,7 @@ export default function CommunityPage() {
 
     void loadPresentations();
     return () => controller.abort();
-  }, [filters, page, retryVersion]);
+  }, [filters, page, pathname, retryVersion]);
 
   const filteredPresentations = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -103,6 +147,12 @@ export default function CommunityPage() {
   );
 
   const openPreview = async (presentation: CommunityPresentation) => {
+    const previewStartedAt = Date.now();
+    trackEvent(MixpanelEvent.Community_Presentation_Previewed, {
+      pathname,
+      presentation_id: presentation.id,
+      source: "presentation_card",
+    });
     setPreview(presentation);
     setPreviewLoading(true);
     try {
@@ -111,7 +161,22 @@ export default function CommunityPage() {
       setPresentations((current) =>
         current.map((item) => (item.id === detail.id ? detail : item))
       );
+      trackEvent(MixpanelEvent.Community_Presentation_Preview_Loaded, {
+        pathname,
+        presentation_id: detail.id,
+        slide_count: detail.slides?.length ?? 0,
+        duration_ms: Date.now() - previewStartedAt,
+      });
     } catch (previewError) {
+      trackEvent(MixpanelEvent.Community_Presentation_Preview_Failed, {
+        pathname,
+        presentation_id: presentation.id,
+        duration_ms: Date.now() - previewStartedAt,
+        error_message: sanitizeAnalyticsError(
+          previewError,
+          "Failed to load community presentation preview"
+        ),
+      });
       notify.error(
         "Could not load the complete preview",
         previewError instanceof Error ? previewError.message : undefined
@@ -121,7 +186,23 @@ export default function CommunityPage() {
     }
   };
 
-  const useDesign = (presentation: CommunityPresentation) => {
+  const useDesign = (
+    presentation: CommunityPresentation,
+    source: "presentation_card" | "preview_dialog"
+  ) => {
+    const properties = {
+      pathname,
+      presentation_id: presentation.id,
+      source,
+      slide_count: presentation.slides?.length ?? 0,
+      has_shared_prompt: Boolean(presentation.prompt?.trim()),
+    };
+    trackEvent(MixpanelEvent.Community_Design_Used, properties);
+    trackEvent(MixpanelEvent.Smart_Mode_Selected, {
+      ...properties,
+      source: `community_design_${source}`,
+      reference_id: presentation.id,
+    });
     const params = new URLSearchParams({
       mode: "smart",
       communityId: String(presentation.id),
@@ -138,6 +219,19 @@ export default function CommunityPage() {
       );
       return;
     }
+    const properties = {
+      pathname,
+      presentation_id: presentation.id,
+      source: "presentation_card",
+      prompt_char_count: prompt.length,
+      prompt_word_count: prompt.split(/\s+/).filter(Boolean).length,
+    };
+    trackEvent(MixpanelEvent.Community_Prompt_Used, properties);
+    trackEvent(MixpanelEvent.Smart_Mode_Selected, {
+      ...properties,
+      source: "community_prompt_presentation_card",
+      reference_id: presentation.id,
+    });
     const params = new URLSearchParams({ mode: "smart", prompt });
     router.push(`/upload?${params.toString()}`);
   };
@@ -182,6 +276,10 @@ export default function CommunityPage() {
             <CommunityPresentationFilters
               value={filters}
               onChange={(nextFilters) => {
+                trackEvent(MixpanelEvent.Community_Filters_Changed, {
+                  pathname,
+                  ...getFilterAnalyticsProps(nextFilters),
+                });
                 setPage(1);
                 setFilters(nextFilters);
               }}
@@ -213,7 +311,9 @@ export default function CommunityPage() {
                 key={presentation.id}
                 presentation={presentation}
                 onPreview={() => void openPreview(presentation)}
-                onUseDesign={() => useDesign(presentation)}
+                onUseDesign={() =>
+                  useDesign(presentation, "presentation_card")
+                }
                 onUsePrompt={() => usePrompt(presentation)}
               />
             ))}
@@ -270,7 +370,9 @@ export default function CommunityPage() {
         onOpenChange={(open) => {
           if (!open) setPreview(null);
         }}
-        onUseDesign={useDesign}
+        onUseDesign={(presentation) =>
+          useDesign(presentation, "preview_dialog")
+        }
       />
     </div>
   );
