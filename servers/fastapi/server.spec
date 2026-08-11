@@ -32,6 +32,7 @@ datas_docx2everything, binaries_docx2everything, hiddenimports_docx2everything =
 datas_greenlet, binaries_greenlet, hiddenimports_greenlet = safe_collect_all(
     "greenlet"
 )
+datas_llmai, binaries_llmai, hiddenimports_llmai = safe_collect_all("llmai")
 
 datas_spacy, binaries_spacy, hiddenimports_spacy = safe_collect_all("spacy")
 datas_spacy_model, binaries_spacy_model, hiddenimports_spacy_model = (
@@ -59,6 +60,7 @@ a = Analysis(
     + binaries_pptx
     + binaries_docx2everything
     + binaries_greenlet
+    + binaries_llmai
     + binaries_spacy
     + binaries_spacy_model,
     datas=[
@@ -73,6 +75,7 @@ a = Analysis(
     + datas_pptx
     + datas_docx2everything
     + datas_greenlet
+    + datas_llmai
     + datas_spacy
     + datas_spacy_model,
     hiddenimports=[
@@ -91,6 +94,7 @@ a = Analysis(
     + hiddenimports_pptx
     + hiddenimports_docx2everything
     + hiddenimports_greenlet
+    + hiddenimports_llmai
     + hiddenimports_spacy
     + hiddenimports_spacy_model
     + hiddenimports_mem0,

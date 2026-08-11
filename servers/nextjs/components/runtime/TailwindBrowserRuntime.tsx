@@ -4,13 +4,22 @@ import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export const SHARED_TAILWIND_CDN_URL = "https://cdn.tailwindcss.com";
+import { TAILWIND_BROWSER_SCRIPT_URL } from "@/lib/tailwind-browser";
+
 export const TAILWIND_RUNTIME_READY_EVENT =
   "presenton:tailwind-runtime-ready";
 export const TAILWIND_RUNTIME_REQUEST_EVENT =
   "presenton:tailwind-runtime-request";
 
-export default function TailwindCdnRuntime() {
+let runtimeReady = false;
+
+function notifyRuntimeReady() {
+  if (runtimeReady) return;
+  runtimeReady = true;
+  window.dispatchEvent(new Event(TAILWIND_RUNTIME_READY_EVENT));
+}
+
+export default function TailwindBrowserRuntime() {
   const pathname = usePathname();
   const [loadRequested, setLoadRequested] = useState(false);
   const deferUntilRequested =
@@ -31,21 +40,16 @@ export default function TailwindCdnRuntime() {
   return (
     <Script
       id="presenton-shared-tailwind-runtime"
-      onLoad={() => {
-        window.dispatchEvent(new Event(TAILWIND_RUNTIME_READY_EVENT));
-      }}
-      src={SHARED_TAILWIND_CDN_URL}
+      onLoad={notifyRuntimeReady}
+      onReady={notifyRuntimeReady}
+      src={TAILWIND_BROWSER_SCRIPT_URL}
       strategy="afterInteractive"
     />
   );
 }
 
 export function useTailwindRuntimeReady() {
-  const [ready, setReady] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      Boolean((window as Window & { tailwind?: unknown }).tailwind)
-  );
+  const [ready, setReady] = useState(runtimeReady);
 
   useEffect(() => {
     const requestTimer = window.setTimeout(() => {

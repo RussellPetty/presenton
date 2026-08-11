@@ -670,11 +670,22 @@ function formatMissingBundleResources(missing) {
 
 function collectMissingBundleResources(resourcesRoot) {
   const fastapiPath = path.join(resourcesRoot, "fastapi", getFastApiBinaryName())
+  const llmaiModelsPath = path.join(
+    resourcesRoot,
+    "fastapi",
+    "_internal",
+    "llmai",
+    "data",
+    "models.json"
+  )
   const nextjsRoot = path.join(resourcesRoot, "nextjs")
   const missing = []
 
   if (!fs.existsSync(fastapiPath)) {
     missing.push({ label: "FastAPI binary", path: fastapiPath })
+  }
+  if (!fs.existsSync(llmaiModelsPath)) {
+    missing.push({ label: "LLM model metadata", path: llmaiModelsPath })
   }
   if (!findNextJsStandaloneServer(nextjsRoot)) {
     const directNextServer = path.join(nextjsRoot, "server.js")

@@ -11,7 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Sparkles } from "lucide-react";
 
 import IconsEditor from "@/components/slide-editor/images/IconsEditor";
-import { useTailwindRuntimeReady } from "@/components/runtime/TailwindCdnRuntime";
+import { useTailwindRuntimeReady } from "@/components/runtime/TailwindBrowserRuntime";
 import {
   clearChatHtmlSelection,
   setChatHtmlSelection,
