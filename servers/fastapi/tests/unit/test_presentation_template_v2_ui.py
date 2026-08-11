@@ -1,8 +1,10 @@
+import copy
+
 from api.v1.ppt.endpoints import presentation as presentation_endpoint
 from services.chat.memory_layer import PresentationChatMemoryLayer
 
 
-def test_apply_template_content_to_ui_preserves_latex_syntax():
+def test_apply_template_content_to_ui_hydrates_latex_tag_into_run():
     ui = {
         "id": "math-layout",
         "components": [
@@ -10,10 +12,16 @@ def test_apply_template_content_to_ui_preserves_latex_syntax():
                 "id": "equation",
                 "elements": [
                     {
-                        "type": "math",
+                        "type": "text",
                         "decorative": False,
                         "name": "formula",
-                        "latex": "E = mc^2",
+                        "runs": [
+                            {
+                                "type": "latex",
+                                "latex": "E = mc^2",
+                                "display_mode": True,
+                            }
+                        ],
                     }
                 ],
             }
@@ -22,11 +30,77 @@ def test_apply_template_content_to_ui_preserves_latex_syntax():
 
     hydrated = presentation_endpoint._apply_template_content_to_ui(
         ui,
-        {"equation": {"formula": r"$$\sum_{i=1}^n x_i^2$$"}},
+        {"equation": {"formula": r"<latex>\sum_{i=1}^n x_i^2</latex>"}},
     )
 
-    assert hydrated["components"][0]["elements"][0]["latex"] == r"\sum_{i=1}^n x_i^2"
-    assert ui["components"][0]["elements"][0]["latex"] == "E = mc^2"
+    formula = hydrated["components"][0]["elements"][0]
+    assert formula["runs"] == [
+        {
+            "type": "latex",
+            "latex": r"\sum_{i=1}^n x_i^2",
+            "display_mode": True,
+        }
+    ]
+    assert "text" not in formula
+    assert ui["components"][0]["elements"][0]["runs"][0]["latex"] == "E = mc^2"
+
+
+def test_template_content_hydrates_mixed_latex_in_text_lists_and_tables():
+    ui = {
+        "id": "latex-layout",
+        "components": [
+            {
+                "id": "content",
+                "elements": [
+                    {
+                        "type": "text",
+                        "decorative": False,
+                        "name": "body",
+                        "font": {"family": "Inter"},
+                        "runs": [{"text": "Old"}],
+                    },
+                    {
+                        "type": "text-list",
+                        "decorative": False,
+                        "name": "facts",
+                        "items": [[{"text": "Old fact"}]],
+                    },
+                    {
+                        "type": "table",
+                        "decorative": False,
+                        "name": "values",
+                        "columns": [{"runs": [{"text": "Formula"}]}],
+                        "rows": [[{"runs": [{"text": "Old value"}]}]],
+                    },
+                ],
+            }
+        ],
+    }
+    content = {
+        "content": {
+            "body": r"Area is <latex>\pi r^2</latex>.",
+            "facts": [r"Identity: <latex>e^{i\pi}+1=0</latex>"],
+            "values": {
+                "columns": ["Formula"],
+                "rows": [[r"<latex>x^2</latex>"]],
+            },
+        }
+    }
+
+    endpoint_ui = presentation_endpoint._apply_template_content_to_ui(ui, content)
+    chat_ui = copy.deepcopy(ui)
+    PresentationChatMemoryLayer._apply_template_content_to_ui(chat_ui, content)
+
+    for hydrated in (endpoint_ui, chat_ui):
+        elements = hydrated["components"][0]["elements"]
+        assert [run.get("type") for run in elements[0]["runs"]] == [
+            None,
+            "latex",
+            None,
+        ]
+        assert elements[0]["runs"][1]["latex"] == r"\pi r^2"
+        assert elements[1]["items"][0][1]["latex"] == r"e^{i\pi}+1=0"
+        assert elements[2]["rows"][0][0]["runs"][0]["latex"] == r"x^2"
 
 
 def _duplicate_named_groups_ui():

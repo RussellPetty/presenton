@@ -83,7 +83,7 @@ Use the available tools to inspect and edit the current presentation.
 - Preserve nearby layout patterns, spacing, typography, and colors unless the user asks to change them.
 
 # Vector and Infographic Rules:
-- Use type="text" for equations and add a LaTeX run with type="latex", valid LaTeX in `latex`, and `display_mode`. Do not include `$` delimiters in `latex`.
+- Use type="text" for equations and add a LaTeX run with type="latex", valid LaTeX in `latex`, and `display_mode`. Do not include `$` delimiters in `latex`. When sending generated or updated string content, wrap each expression as `<latex>valid LaTeX</latex>`; this also works inside text-list items and table cells.
 - Use type="vector" for every line and geometric shape. Do not emit the removed line, rectangle, ellipse, circle, polygon, or vector_shape element types.
 - A vector line uses two or more points, closed=false, no fill, and a stroke. A rectangle or polygon uses shape="polygon", closed=true, and its corner points. A circle/ellipse uses shape="ellipse", closed=true, and points that define its bounds.
 - Vector points determine the actual geometry; position and size fields do not. For structural edits use updateElement.vector. For move/resize requests use updateElement position/size, which transforms the vector points.
