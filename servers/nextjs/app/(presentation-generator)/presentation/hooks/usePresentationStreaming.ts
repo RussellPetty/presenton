@@ -95,11 +95,15 @@ export const usePresentationStreaming = (
   setLoading: (loading: boolean) => void,
   setError: (error: boolean) => void,
   fetchUserSlides: () => void,
-  options: { preloadPresentationData?: boolean } = {}
+  options: {
+    preloadPresentationData?: boolean;
+    generationMode?: "standard" | "smart";
+  } = {}
 ) => {
   const dispatch = useDispatch();
   const previousSlidesLength = useRef(0);
   const preloadPresentationData = Boolean(options.preloadPresentationData);
+  const isSmartMode = options.generationMode === "smart";
 
   useEffect(() => {
     if (!stream) {
@@ -117,6 +121,7 @@ export const usePresentationStreaming = (
     let preloadRequest: Promise<void> | null = null;
     const streamStartedAt = Date.now();
     let streamIsTemplateV2 = preloadPresentationData;
+    let smartGenerationOutcomeTracked = false;
 
     const closeEventSource = () => {
       if (eventSource) {
@@ -136,6 +141,16 @@ export const usePresentationStreaming = (
       description: string,
       options: { showToast?: boolean } = {}
     ) => {
+      if (isSmartMode && !smartGenerationOutcomeTracked) {
+        smartGenerationOutcomeTracked = true;
+        trackEvent(MixpanelEvent.Smart_Mode_Generation_Failed, {
+          presentation_id: presentationId,
+          stage: "presentation_stream",
+          retry_count: retryCount,
+          duration_ms: Date.now() - streamStartedAt,
+          error_message: sanitizeAnalyticsError(description, "Stream failed"),
+        });
+      }
       if (streamIsTemplateV2) {
         trackEvent(MixpanelEvent.TemplateV2_Stream_Failed, {
           presentation_id: presentationId,
@@ -230,6 +245,23 @@ export const usePresentationStreaming = (
         ? (presentation as Record<string, unknown>).slides
         : store.getState().presentationGeneration.presentationData?.slides;
       trackEvent(MixpanelEvent.TemplateV2_Stream_Completed, {
+        presentation_id: presentationId,
+        slide_count: Array.isArray(slides) ? slides.length : 0,
+        retry_count: retryCount,
+        duration_ms: Date.now() - streamStartedAt,
+      });
+    };
+
+    const trackSmartModeGenerationCompleted = (presentation: unknown) => {
+      if (!isSmartMode || smartGenerationOutcomeTracked) return;
+      smartGenerationOutcomeTracked = true;
+      const slides =
+        presentation &&
+        typeof presentation === "object" &&
+        Array.isArray((presentation as Record<string, unknown>).slides)
+          ? (presentation as Record<string, unknown>).slides
+          : store.getState().presentationGeneration.presentationData?.slides;
+      trackEvent(MixpanelEvent.Smart_Mode_Generation_Completed, {
         presentation_id: presentationId,
         slide_count: Array.isArray(slides) ? slides.length : 0,
         retry_count: retryCount,
@@ -415,6 +447,7 @@ export const usePresentationStreaming = (
                 )
               );
               trackTemplateV2StreamCompleted(data.presentation);
+              trackSmartModeGenerationCompleted(data.presentation);
               dispatch(setStreaming(false));
               setLoading(false);
               isClosed = true;
@@ -443,6 +476,7 @@ export const usePresentationStreaming = (
               )
             );
             trackTemplateV2StreamCompleted(data.presentation);
+            trackSmartModeGenerationCompleted(data.presentation);
             setLoading(false);
             dispatch(setStreaming(false));
             isClosed = true;
@@ -493,7 +527,10 @@ export const usePresentationStreaming = (
     const startStream = async () => {
       dispatch(setStreaming(true));
       dispatch(clearPresentationData());
-      trackEvent(MixpanelEvent.Presentation_Stream_API_Call);
+      trackEvent(MixpanelEvent.Presentation_Stream_API_Call, {
+        presentation_id: presentationId,
+        generation_mode: options.generationMode ?? "standard",
+      });
       await preloadPreparedPresentation();
       if (!isClosed) {
         openStream();
@@ -515,5 +552,7 @@ export const usePresentationStreaming = (
     setError,
     fetchUserSlides,
     preloadPresentationData,
+    isSmartMode,
+    options.generationMode,
   ]);
 };
