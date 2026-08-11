@@ -141,6 +141,11 @@ const PresentationHeader = ({
     dispatch(setEnableHtmlSelector(nextValue));
     if (!nextValue) dispatch(clearChatHtmlSelection());
     window.localStorage.setItem("html-selector-mode", String(nextValue));
+    trackEvent(MixpanelEvent.Smart_Mode_Select_Edit_Toggled, {
+      pathname,
+      presentation_id,
+      enabled: nextValue,
+    });
   };
 
   const beginTitleEdit = () => {
@@ -329,7 +334,16 @@ const PresentationHeader = ({
       pathname,
       presentation_id,
       slide_count: presentationData?.slides?.length || 0,
+      generation_mode: generationMode,
     });
+    if (generationMode === "smart") {
+      trackEvent(MixpanelEvent.Smart_Mode_Generation_Started, {
+        pathname,
+        presentation_id,
+        slide_count: presentationData?.slides?.length || 0,
+        source: "regenerate",
+      });
+    }
     router.push(
       `/presentation?id=${presentation_id}&stream=true${
         generationMode === "smart" ? "&type=smart" : ""
@@ -356,6 +370,7 @@ const PresentationHeader = ({
       format,
       slide_count: presentationData?.slides?.length || 0,
       export_runtime: exportRuntime,
+      generation_mode: generationMode,
     });
   };
 
@@ -581,6 +596,7 @@ const PresentationHeader = ({
                     presentation_id,
                     slide_index: currentSlide || 0,
                     slide_count: presentationData?.slides?.length || 0,
+                    generation_mode: generationMode,
                   });
                   trackEvent(MixpanelEvent.Navigation, { from: pathname, to });
                   router.push(to);

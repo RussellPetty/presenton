@@ -23,6 +23,7 @@ import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
 import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { ConfigurationSelects } from "./ConfigurationSelects";
 import { RootState } from "@/store/store";
 import { ImagesApi } from "../../services/api/images";
@@ -174,7 +175,13 @@ const UploadPage = () => {
     if (Number.isSafeInteger(requestedCommunityId) && requestedCommunityId > 0) {
       CommunityPresentationApi.getById(requestedCommunityId)
         .then((presentation) => {
-          if (active) setCommunityReference(presentation);
+          if (!active) return;
+          setCommunityReference(presentation);
+          trackEvent(MixpanelEvent.Smart_Mode_Reference_Selected, {
+            pathname,
+            reference_id: presentation.id,
+            source: "url_parameter",
+          });
         })
         .catch((loadError) => {
           if (!active) return;
@@ -188,7 +195,7 @@ const UploadPage = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (llmConfig?.WEB_GROUNDING !== undefined) {
@@ -256,6 +263,43 @@ const UploadPage = () => {
         ? clampSlideCountValue(value)
         : value;
     setConfig((prev) => ({ ...prev, [key]: nextValue } as PresentationConfig));
+  };
+
+  const handleGenerationModeChange = (mode: GenerationMode) => {
+    if (mode === generationMode) return;
+    const previousMode = generationMode;
+    setGenerationMode(mode);
+    if (mode === "smart") {
+      trackEvent(MixpanelEvent.Smart_Mode_Selected, {
+        pathname,
+        source: "upload_mode_selector",
+        previous_generation_mode: previousMode,
+      });
+    }
+  };
+
+  const handleCommunityReferenceChange = (
+    presentation: CommunityPresentation | null,
+    source: "community_picker" | "prompt_reference"
+  ) => {
+    const previousReferenceId = communityReference?.id ?? null;
+    setCommunityReference(presentation);
+    if (presentation) {
+      trackEvent(MixpanelEvent.Smart_Mode_Reference_Selected, {
+        pathname,
+        reference_id: presentation.id,
+        previous_reference_id: previousReferenceId,
+        source,
+      });
+      return;
+    }
+    if (previousReferenceId !== null) {
+      trackEvent(MixpanelEvent.Smart_Mode_Reference_Removed, {
+        pathname,
+        reference_id: previousReferenceId,
+        source,
+      });
+    }
   };
 
   const ensureStockImageProviderReady = async (): Promise<boolean> => {
@@ -326,8 +370,14 @@ const UploadPage = () => {
    */
   const handleGeneratePresentation = async () => {
     if (!validateConfiguration()) return;
-    trackEvent(MixpanelEvent.Upload_Generation_Started, getUploadSnapshotProps());
-
+    const snapshot = getUploadSnapshotProps();
+    trackEvent(MixpanelEvent.Upload_Generation_Started, snapshot);
+    if (generationMode === "smart") {
+      trackEvent(MixpanelEvent.Smart_Mode_Generation_Started, {
+        ...snapshot,
+        source: "upload",
+      });
+    }
 
     const isStockProviderReady =
       generationMode === "smart" || (await ensureStockImageProviderReady());
@@ -504,6 +554,13 @@ const UploadPage = () => {
    */
   const handleGenerationError = (error: any) => {
     console.error("Error in upload page", error);
+    if (generationMode === "smart") {
+      trackEvent(MixpanelEvent.Smart_Mode_Generation_Failed, {
+        ...getUploadSnapshotProps(),
+        stage: "presentation_setup",
+        error_message: sanitizeAnalyticsError(error, "Generation setup failed"),
+      });
+    }
     setLoadingState({
       isLoading: false,
       message: "",
@@ -539,7 +596,7 @@ const UploadPage = () => {
                   type="button"
                   role="tab"
                   aria-selected={generationMode === mode}
-                  onClick={() => setGenerationMode(mode)}
+                  onClick={() => handleGenerationModeChange(mode)}
                   className={`rounded-md px-3 py-1 text-xs font-medium capitalize leading-6 text-[#191919] transition-colors ${
                     generationMode === mode ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"
                   }`}
@@ -565,7 +622,9 @@ const UploadPage = () => {
               ? [{ id: String(communityReference.id), label: communityReference.title || "Community design" }]
               : []
           }
-          onRemoveReference={() => setCommunityReference(null)}
+          onRemoveReference={() =>
+            handleCommunityReferenceChange(null, "prompt_reference")
+          }
           onChange={(value) => handleConfigChange("prompt", value)}
           onSubmit={handleGeneratePresentation}
           hasAttachments={files.length > 0}
@@ -584,7 +643,9 @@ const UploadPage = () => {
         <div className="px-4 sm:px-6">
           <CommunityReferencePicker
             selectedId={communityReference?.id ?? null}
-            onSelect={setCommunityReference}
+            onSelect={(presentation) =>
+              handleCommunityReferenceChange(presentation, "community_picker")
+            }
           />
         </div>
       )}
