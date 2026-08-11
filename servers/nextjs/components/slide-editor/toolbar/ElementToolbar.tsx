@@ -12,7 +12,6 @@ import { ImageToolbar } from "@/components/slide-editor/images/ImageToolbar";
 import { ShapeToolbar } from "@/components/slide-editor/shapes/ShapeToolbar";
 import { TableToolbar } from "@/components/slide-editor/tables/TableToolbar";
 import { TextToolbar } from "@/components/slide-editor/text/TextToolbar";
-import { MathToolbar } from "@/components/slide-editor/math/MathToolbar";
 
 type ElementToolbarProps = {
   element: SlideElement;
@@ -41,25 +40,6 @@ type ToolbarRenderer = (props: ElementToolbarProps) => ReactNode;
 const TOOLBAR_RENDERERS: Partial<
   Record<SlideElement["type"], ToolbarRenderer>
 > = {
-  math: ({
-    element,
-    anchorBox,
-    index,
-    onChange,
-    path,
-    scale,
-    componentActions,
-  }) =>
-    element.type === "math" ? (
-      <MathToolbar
-        element={element}
-        index={index}
-        anchorBox={anchorBox}
-        scale={scale}
-        componentActions={componentActions}
-        onChange={(index, element) => onChange(index, element, path)}
-      />
-    ) : null,
   text: ({
     element,
     anchorBox,

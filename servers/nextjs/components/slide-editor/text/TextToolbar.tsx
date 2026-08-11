@@ -22,6 +22,7 @@ import {
   Repeat2,
   Search,
   Settings,
+  Sigma,
   Underline,
   XCircle,
 } from "lucide-react";
@@ -43,8 +44,11 @@ import {
 } from "@/components/slide-editor/text/google-fonts";
 import {
   fontForTextSelection,
+  latexTextRunRangeAtCursor,
   normalizedTextSelectionRange,
+  textSelectionContainsLatex,
   textRunsContent,
+  toggleTextRunLatexForSelection,
   type TextSelectionRange,
 } from "@/components/slide-editor/text/text-runs";
 import { DeferredColorInput } from "@/components/slide-editor/toolbar/DeferredColorInput";
@@ -157,7 +161,14 @@ export function TextToolbar({
     selectionRange,
     textRunsContent(element.runs).length,
   );
+  const latexToggleRange =
+    activeSelectionRange ??
+    latexTextRunRangeAtCursor(element.runs, selectionRange?.start);
   const selectedFont = fontForTextSelection(element, activeSelectionRange);
+  const selectionIsLatex = textSelectionContainsLatex(
+    element.runs,
+    latexToggleRange,
+  );
   const font = elementFont({ font: selectedFont ?? element.font });
   const horizontalAlignment = element.alignment?.horizontal ?? "left";
   const letterSpacing = font.letterSpacing ?? 0;
@@ -544,6 +555,30 @@ export function TextToolbar({
               }
             >
               <Underline size={18} strokeWidth={2.25} aria-hidden="true" />
+            </ToolbarButton>
+            <ToolbarButton
+              title={
+                selectionIsLatex
+                  ? "Convert LaTeX to text"
+                  : "Convert selected text to LaTeX"
+              }
+              controlId="latex"
+              disabled={!latexToggleRange}
+              hoveredControl={hoveredControl}
+              pressed={selectionIsLatex}
+              setHoveredControl={setHoveredControl}
+              onClick={() => {
+                if (!latexToggleRange) return;
+                onChange(
+                  index,
+                  toggleTextRunLatexForSelection(
+                    element,
+                    latexToggleRange,
+                  ),
+                );
+              }}
+            >
+              <Sigma size={18} strokeWidth={2.2} aria-hidden="true" />
             </ToolbarButton>
             <ToolbarButton
               title={

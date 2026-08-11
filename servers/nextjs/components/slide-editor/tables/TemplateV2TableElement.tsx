@@ -4,7 +4,10 @@ import type { TextRun } from "@/components/slide-editor/types";
 import {
   layoutRichText,
   renderKonvaTextSegment,
+  type RenderTextRun,
 } from "@/components/slide-editor/text/template-v2-text";
+import { isLatexTextRun } from "@/components/slide-editor/text/text-runs";
+import { LatexRunNode } from "@/components/slide-editor/math/LatexRunNode";
 import { effectiveLineHeight } from "@/components/slide-editor/text/text-line-height";
 import { readableTableTextColor } from "@/components/slide-editor/tables/table-colors";
 import { colorWithOpacity } from "@/components/slide-editor/model/render-style";
@@ -159,7 +162,7 @@ function TableCellText({
   y: number;
   width: number;
   height: number;
-  runs: Array<{ text: string; font: RenderTextFont }>;
+  runs: RenderTextRun[];
   font: RenderTextFont;
   align: string;
   verticalAlign: string;
@@ -187,24 +190,42 @@ function TableCellText({
   return (
     <Group x={x} y={y} listening={false}>
       {tokens.map((token, index) => (
-        <Text
-          key={index}
-          x={token.x}
-          y={token.y}
-          width={token.width}
-          height={token.height}
-          text={renderKonvaTextSegment(token.text)}
-          fill={colorWithOpacity(withHash(token.font.color), token.font.opacity)}
-          fontFamily={`${token.font.family}, Inter`}
-          fontSize={token.font.size}
-          fontStyle={`${token.font.bold ? "bold" : "normal"} ${token.font.italic ? "italic" : ""
-            }`}
-          textDecoration={token.font.underline ? "underline" : ""}
-          lineHeight={token.font.lineHeight}
-          letterSpacing={token.font.letterSpacing}
-          wrap="none"
-          listening={false}
-        />
+        token.type === "latex" && token.latex ? (
+          <LatexRunNode
+            key={index}
+            x={token.x}
+            y={token.y}
+            width={token.width}
+            height={token.height}
+            latex={token.latex}
+            displayMode={token.displayMode}
+            fontSize={token.font.size}
+            color={
+              colorWithOpacity(withHash(token.font.color), token.font.opacity) ??
+              "#111827"
+            }
+            interactive={false}
+          />
+        ) : (
+          <Text
+            key={index}
+            x={token.x}
+            y={token.y}
+            width={token.width}
+            height={token.height}
+            text={renderKonvaTextSegment(token.text)}
+            fill={colorWithOpacity(withHash(token.font.color), token.font.opacity)}
+            fontFamily={`${token.font.family}, Inter`}
+            fontSize={token.font.size}
+            fontStyle={`${token.font.bold ? "bold" : "normal"} ${token.font.italic ? "italic" : ""
+              }`}
+            textDecoration={token.font.underline ? "underline" : ""}
+            lineHeight={token.font.lineHeight}
+            letterSpacing={token.font.letterSpacing}
+            wrap="none"
+            listening={false}
+          />
+        )
       ))}
     </Group>
   );
@@ -250,10 +271,18 @@ function rawTableRows(element: RawElement) {
 
 function rawTableCellRuns(cell: unknown, fallbackFont: RenderTextFont) {
   const sourceRuns = rawTableCellSourceRuns(cell, fallbackFont);
-  return renderMarkdownTextRuns(sourceRuns).map((run) => ({
-    text: run.text,
-    font: fontFromRecord(asRecord(run.font), fallbackFont),
-  }));
+  return renderMarkdownTextRuns(sourceRuns).map((run): RenderTextRun => {
+    const font = fontFromRecord(asRecord(run.font), fallbackFont);
+    return isLatexTextRun(run)
+      ? {
+          type: "latex",
+          text: run.latex,
+          latex: run.latex,
+          displayMode: run.display_mode ?? false,
+          font,
+        }
+      : { text: run.text, font };
+  });
 }
 
 function rawTableCellSourceRuns(
@@ -271,6 +300,21 @@ function rawTableCellSourceRuns(
     return runs
       .map((run) => {
         const runRecord = asRecord(run) ?? {};
+        if (readString(runRecord.type) === "latex") {
+          const latex = readString(runRecord.latex) ?? "";
+          return latex
+            ? ({
+                type: "latex",
+                latex,
+                display_mode:
+                  readBoolean(runRecord.display_mode ?? runRecord.displayMode) ??
+                  false,
+                font: fontToTextRunFont(
+                  fontFromRecord(asRecord(runRecord.font), cellFont),
+                ),
+              } satisfies TextRun)
+            : null;
+        }
         return {
           text: readString(runRecord.text) ?? "",
           font: fontToTextRunFont(
@@ -278,7 +322,7 @@ function rawTableCellSourceRuns(
           ),
         };
       })
-      .filter((run) => run.text.length > 0);
+      .filter(Boolean) as TextRun[];
   }
   const textRecord = asRecord(record.text);
   return [
@@ -303,12 +347,12 @@ function fontToTextRunFont(font: RenderTextFont): TextRun["font"] {
   };
 }
 
-function tableCellTextContent(runs: Array<{ text: string }>) {
+function tableCellTextContent(runs: RenderTextRun[]) {
   return runs.map((run) => run.text).join("");
 }
 
 function readableTableCellRuns(
-  runs: Array<{ text: string; font: RenderTextFont }>,
+  runs: RenderTextRun[],
   fill: string | undefined,
   isHeader: boolean,
 ) {

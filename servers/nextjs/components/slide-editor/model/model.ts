@@ -6,7 +6,10 @@ import type {
   TemplateV2InlineEditKind,
   TemplateV2TextEditStyle,
 } from "@/components/slide-editor/text/template-v2-text-editing";
-import { textRunsContent } from "@/components/slide-editor/text/text-runs";
+import {
+  isLatexTextRun,
+  textRunsContent,
+} from "@/components/slide-editor/text/text-runs";
 import {
   applyTextStyle,
   displayText,
@@ -515,7 +518,6 @@ export function scaleRawElementTextMetrics(element: RawElement, fontScale: numbe
   const type = readString(element.type);
   if (
     type !== "text" &&
-    type !== "math" &&
     type !== "text-list" &&
     type !== "table"
   ) {
@@ -1987,10 +1989,19 @@ export function rawElementForEditorToolbar(
   };
 
   if (type === "text") {
-    projected.runs = rawTextRunsForEditor(element).map((run) => ({
-      text: run.text,
-      font: rawFontRecordForEditor(run.font),
-    }));
+    projected.runs = rawTextRunsForEditor(element).map((run) =>
+      isLatexTextRun(run)
+        ? {
+            type: "latex",
+            latex: run.latex,
+            display_mode: run.display_mode ?? false,
+            font: rawFontRecordForEditor(run.font),
+          }
+        : {
+            text: run.text,
+            font: rawFontRecordForEditor(run.font),
+          },
+    );
   } else if (type === "text-list") {
     projected.items = readArray(element.items).map((item) => {
       if (Array.isArray(item)) {
@@ -2098,15 +2109,9 @@ export function mergeEditorToolbarElement(
 
   if (Array.isArray(editor.runs)) {
     const currentRuns = readArray(current.runs);
-    merged.runs = editor.runs.map((value, index) => {
-      const run = asRecord(value) ?? {};
-      const currentRun = asRecord(currentRuns[index]) ?? {};
-      return {
-        ...currentRun,
-        ...run,
-        font: editorFontRecordToRaw(run.font, currentRun.font),
-      };
-    });
+    merged.runs = editor.runs.map((value, index) =>
+      editorTextRunToRaw(value, currentRuns[index]),
+    );
   }
   if (readString(current.type) === "table") {
     merged.columns = readArray(editor.columns).map((cell, index) =>
@@ -2212,16 +2217,35 @@ export function editorTableCellToRaw(value: unknown, fallback: unknown) {
     ...cell,
     color: cell.color ?? current.color ?? current.fill,
     font: editorFontRecordToRaw(cell.font, current.font),
-    runs: readArray(cell.runs).map((value, index) => {
-      const run = asRecord(value) ?? {};
-      const currentRun = asRecord(currentRuns[index]) ?? {};
-      return {
-        ...currentRun,
-        ...run,
-        font: editorFontRecordToRaw(run.font, currentRun.font),
-      };
-    }),
+    runs: readArray(cell.runs).map((value, index) =>
+      editorTextRunToRaw(value, currentRuns[index]),
+    ),
   };
+}
+
+function editorTextRunToRaw(value: unknown, fallback: unknown) {
+  const run = asRecord(value) ?? {};
+  const currentRun = asRecord(fallback) ?? {};
+  const merged: UnknownRecord = {
+    ...currentRun,
+    ...run,
+    font: editorFontRecordToRaw(run.font, currentRun.font),
+  };
+
+  if (readString(run.type) === "latex" && readString(run.latex) != null) {
+    delete merged.text;
+    merged.type = "latex";
+    merged.display_mode =
+      readBoolean(run.display_mode ?? run.displayMode) ?? false;
+    delete merged.displayMode;
+  } else {
+    delete merged.type;
+    delete merged.latex;
+    delete merged.display_mode;
+    delete merged.displayMode;
+  }
+
+  return merged;
 }
 
 export function polygonElementFromFrame(

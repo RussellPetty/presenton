@@ -48,8 +48,8 @@ import {
 } from "@/components/slide-editor/surface/latestFrameBatch";
 import { TemplateV2ChartJsElement as RawChartElement } from "@/components/slide-editor/charts/TemplateV2ChartJsElement";
 import { TemplateV2TableElement as RawTableElement } from "@/components/slide-editor/tables/TemplateV2TableElement";
+import { LatexRunNode } from "@/components/slide-editor/math/LatexRunNode";
 import { buildSvgUpdateUrl } from "@/lib/svg-color";
-import { mathSvgDataUri, normalizeMathLatex } from "@/lib/math";
 import {
   componentSideResizeBox,
   resizeComponentFromSideTransform,
@@ -1761,16 +1761,6 @@ function RawElementVisual({
       />
     );
   }
-  if (type === "math") {
-    return (
-      <RawMathElement
-        element={element}
-        width={width}
-        height={height}
-        interactive={interactive}
-      />
-    );
-  }
   if (type === "text-list") {
     return (
       <RawTextListElement
@@ -1897,6 +1887,22 @@ function RawRichTextElement({
         return line.map((segment, segmentIndex) => {
           const segmentX = x;
           x += segment.width;
+          if (segment.type === "latex" && segment.latex) {
+            return (
+              <LatexRunNode
+                key={`${lineIndex}:${segmentIndex}`}
+                x={segmentX}
+                y={lineY}
+                width={segment.width}
+                height={lineMetric.height}
+                latex={segment.latex}
+                displayMode={segment.displayMode}
+                fontSize={segment.font.size}
+                color={textFill(segment.font) ?? "#111827"}
+                interactive={interactive}
+              />
+            );
+          }
           // Keep width automatic. The custom layout owns the x advance; a fixed
           // tight width lets Konva re-wrap and clip the final glyph.
           return (
@@ -1945,89 +1951,41 @@ function RawTextListElement({
   return (
     <Group listening={interactive}>
       {tokens.map((token, tokenIndex) => (
-        <Text
-          key={`${tokenIndex}:${token.x}:${token.y}`}
-          x={token.x}
-          y={token.y}
-          height={token.height}
-          text={renderKonvaTextSegment(token.text)}
-          fill={textFill(token.font)}
-          fontFamily={`${token.font.family}, Helvetica, sans-serif`}
-          fontSize={token.font.size}
-          fontStyle={`${token.font.bold ? "bold" : "normal"} ${token.font.italic ? "italic" : ""}`}
-          textDecoration={token.font.underline ? "underline" : ""}
-          verticalAlign="middle"
-          lineHeight={token.font.lineHeight}
-          letterSpacing={token.font.letterSpacing}
-          wrap="none"
-          {...shadowProps(element)}
-          listening={interactive}
-        />
+        token.type === "latex" && token.latex ? (
+          <LatexRunNode
+            key={`${tokenIndex}:${token.x}:${token.y}`}
+            x={token.x}
+            y={token.y}
+            width={token.width}
+            height={token.height}
+            latex={token.latex}
+            displayMode={token.displayMode}
+            fontSize={token.font.size}
+            color={textFill(token.font) ?? "#111827"}
+            interactive={interactive}
+          />
+        ) : (
+          <Text
+            key={`${tokenIndex}:${token.x}:${token.y}`}
+            x={token.x}
+            y={token.y}
+            height={token.height}
+            text={renderKonvaTextSegment(token.text)}
+            fill={textFill(token.font)}
+            fontFamily={`${token.font.family}, Helvetica, sans-serif`}
+            fontSize={token.font.size}
+            fontStyle={`${token.font.bold ? "bold" : "normal"} ${token.font.italic ? "italic" : ""}`}
+            textDecoration={token.font.underline ? "underline" : ""}
+            verticalAlign="middle"
+            lineHeight={token.font.lineHeight}
+            letterSpacing={token.font.letterSpacing}
+            wrap="none"
+            {...shadowProps(element)}
+            listening={interactive}
+          />
+        )
       ))}
     </Group>
-  );
-}
-
-function RawMathElement({
-  element,
-  width,
-  height,
-  interactive,
-}: {
-  element: RawElement;
-  width: number;
-  height: number;
-  interactive: boolean;
-}) {
-  const font = rawFont(element);
-  const latex = normalizeMathLatex(element.latex);
-  const horizontal = readString(element.alignment?.horizontal);
-  const vertical = readString(element.alignment?.vertical);
-  const source = useMemo(
-    () =>
-      mathSvgDataUri({
-        align:
-          horizontal === "left" || horizontal === "right"
-            ? horizontal
-            : "center",
-        color: withHash(font.color) ?? "#111827",
-        displayMode: readBoolean(element.display_mode ?? element.displayMode) ?? true,
-        fontSize: font.size,
-        height,
-        latex,
-        verticalAlign:
-          vertical === "top" || vertical === "bottom" ? vertical : "middle",
-        width,
-      }),
-    [element.displayMode, element.display_mode, font.color, font.size, height, horizontal, latex, vertical, width],
-  );
-  const loaded = useLoadedKonvaImage(source);
-
-  if (!loaded) {
-    return (
-      <Text
-        width={width}
-        height={height}
-        text={latex || "Add a LaTeX expression"}
-        fill={textFill(font)}
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontSize={Math.max(12, Math.min(font.size, 28))}
-        fontStyle="italic"
-        align="center"
-        verticalAlign="middle"
-        wrap="word"
-        listening={interactive}
-      />
-    );
-  }
-
-  return (
-    <KonvaImage
-      image={loaded}
-      width={width}
-      height={height}
-      listening={interactive}
-    />
   );
 }
 

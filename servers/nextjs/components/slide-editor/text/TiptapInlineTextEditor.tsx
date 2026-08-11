@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   Mark,
+  Node as TiptapNode,
   mergeAttributes,
   type Editor,
   type JSONContent,
@@ -17,15 +18,20 @@ import {
 import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import { NodeSelection } from "@tiptap/pm/state";
 import type { Font, Marker, TextRun } from "@/components/slide-editor/types";
 import {
+  isLatexTextRun,
   mergeAdjacentTextRuns,
   type TextSelectionRange,
 } from "@/components/slide-editor/text/text-runs";
+import { normalizeMathLatex } from "@/lib/math";
 
 export const COMMIT_TEMPLATE_V2_INLINE_TEXT_EVENT =
   "presenton:commit-template-v2-inline-text";
 const NON_BREAKING_SPACE = "\u00A0";
+const LATEX_RUN_FOCUS_EVENT = "presenton:latex-run-focus";
 
 type RunStyleAttrs = {
   family?: string | null;
@@ -76,6 +82,150 @@ const RunStyle = Mark.create({
   },
 });
 
+const LatexRun = TiptapNode.create({
+  name: "latexRun",
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      latex: { default: "" },
+      displayMode: { default: false },
+      font: { default: null },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-slide-latex-run]" }];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-slide-latex-run": "true",
+        "data-latex": node.attrs.latex,
+        contenteditable: "false",
+      }),
+      node.attrs.latex,
+    ];
+  },
+  renderText({ node }) {
+    return node.attrs.latex;
+  },
+  addNodeView() {
+    return ({ getPos, node, view }) => {
+      const dom = document.createElement("span");
+      const textarea = document.createElement("textarea");
+      let currentNode = node;
+      let committing = false;
+      let resizeFrame: number | null = null;
+
+      const resizeTextarea = () => {
+        textarea.style.width = `${Math.min(72, Math.max(12, textarea.value.length + 2))}ch`;
+        textarea.style.height = "auto";
+        const editorHeight =
+          currentNode.attrs.displayMode === true ? view.dom.clientHeight : 0;
+        textarea.style.height = `${Math.max(textarea.scrollHeight, editorHeight, 1)}px`;
+      };
+      const scheduleTextareaResize = () => {
+        if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = window.requestAnimationFrame(() => {
+          resizeFrame = null;
+          resizeTextarea();
+        });
+      };
+      const syncTextarea = () => {
+        const { displayMode, latex } = currentNode.attrs;
+        dom.dataset.slideLatexRun = "true";
+        dom.dataset.latex = latex;
+        dom.contentEditable = "false";
+        dom.style.cssText = `display:${displayMode ? "block" : "inline-block"};max-width:100%;vertical-align:middle;`;
+        textarea.value = latex;
+        resizeTextarea();
+        scheduleTextareaResize();
+      };
+
+      const commit = () => {
+        if (committing) return;
+        committing = true;
+
+        const position = getPos();
+        if (typeof position !== "number") {
+          committing = false;
+          syncTextarea();
+          return;
+        }
+        const latex = normalizeMathLatex(textarea.value);
+        const transaction = latex
+          ? view.state.tr.setNodeMarkup(position, undefined, {
+              ...currentNode.attrs,
+              latex,
+            })
+          : view.state.tr.delete(position, position + currentNode.nodeSize);
+        view.dispatch(transaction);
+        committing = false;
+      };
+
+      textarea.rows = 1;
+      textarea.wrap = "soft";
+      textarea.setAttribute("aria-label", "Edit LaTeX expression");
+      textarea.setAttribute("title", "LaTeX expression");
+      textarea.spellcheck = false;
+      textarea.style.cssText = `box-sizing:border-box;display:block;min-width:8ch;max-width:100%;min-height:1.8em;padding:2px 6px;border:1px solid #7c3aed;border-radius:4px;background:#fff;color:#111827;font:500 0.8em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;outline:none;overflow:hidden;overflow-wrap:anywhere;resize:none;white-space:pre-wrap;vertical-align:middle;`;
+      textarea.addEventListener("input", resizeTextarea);
+      textarea.addEventListener("focus", () => {
+        resizeTextarea();
+        const position = getPos();
+        if (typeof position !== "number") return;
+        const range = selectionRangeForPositions(
+          view.state.doc,
+          position,
+          position + currentNode.nodeSize,
+        );
+        view.dispatch(
+          view.state.tr.setSelection(
+            NodeSelection.create(view.state.doc, position),
+          ),
+        );
+        view.dom.dispatchEvent(
+          new CustomEvent<TextSelectionRange>(LATEX_RUN_FOCUS_EVENT, {
+            detail: range,
+          }),
+        );
+      });
+      textarea.addEventListener("blur", commit);
+      textarea.addEventListener("keydown", (keyboardEvent) => {
+        if (keyboardEvent.key === "Enter") {
+          keyboardEvent.preventDefault();
+          commit();
+          view.focus();
+        } else if (keyboardEvent.key === "Escape") {
+          keyboardEvent.preventDefault();
+          syncTextarea();
+          view.focus();
+        }
+      });
+      dom.appendChild(textarea);
+      syncTextarea();
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== "latexRun") return false;
+          currentNode = updatedNode;
+          if (document.activeElement !== textarea) syncTextarea();
+          return true;
+        },
+        stopEvent(event) {
+          return event.target === textarea;
+        },
+        destroy() {
+          if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
+        },
+      };
+    };
+  },
+});
+
 const TIPTAP_EXTENSIONS = [
   StarterKit.configure({
     heading: false,
@@ -87,6 +237,7 @@ const TIPTAP_EXTENSIONS = [
   }),
   Underline,
   RunStyle,
+  LatexRun,
 ];
 
 export function TiptapInlineTextEditor({
@@ -314,6 +465,22 @@ export function TiptapInlineTextEditor({
     });
     emitSelection(editor);
   }, [content, contentSignature, editor, emitSelection, runs]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const handleLatexRunFocus = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const range = event.detail as TextSelectionRange;
+      const signature = selectionRangeSignature(range);
+      lastSelectionSignatureRef.current = signature;
+      callbacksRef.current.onSelectionChange(range);
+    };
+    const editorDom = editor.view.dom;
+    editorDom.addEventListener(LATEX_RUN_FOCUS_EVENT, handleLatexRunFocus);
+    return () => {
+      editorDom.removeEventListener(LATEX_RUN_FOCUS_EVENT, handleLatexRunFocus);
+    };
+  }, [callbacksRef, editor]);
 
   useEffect(() => {
     if (!editor || !autoFocus) return;
@@ -544,6 +711,17 @@ function textRunsToTiptapContent(runs: TextRun[], baseFont: Font): JSONContent {
 
   for (const run of sourceRuns) {
     const font = normalizeFont(run.font, baseFont);
+    if (isLatexTextRun(run)) {
+      content.push({
+        type: "latexRun",
+        attrs: {
+          latex: run.latex,
+          displayMode: run.display_mode ?? false,
+          font,
+        },
+      });
+      continue;
+    }
     const marks = [
       {
         type: "runStyle",
@@ -603,6 +781,20 @@ function tiptapContentToTextRuns(doc: JSONContent, baseFont: Font): TextRun[] {
       );
       return;
     }
+    if (node.type === "latexRun") {
+      const latex = typeof node.attrs?.latex === "string" ? node.attrs.latex : "";
+      if (latex) {
+        const font = normalizeFont(node.attrs?.font as Font | undefined, baseFont);
+        lastFont = font;
+        runs.push({
+          type: "latex",
+          latex,
+          display_mode: node.attrs?.displayMode === true,
+          font,
+        });
+      }
+      return;
+    }
     node.content?.forEach(visit);
   };
 
@@ -647,11 +839,24 @@ function decodeEditorSpaces(text: string) {
 
 function selectionRangeFromEditor(editor: Editor) {
   const { from, to } = editor.state.selection;
-  if (from === to) return null;
+  return selectionRangeForPositions(editor.state.doc, from, to);
+}
+
+function selectionRangeForPositions(
+  doc: ProseMirrorNode,
+  from: number,
+  to: number,
+) {
   return {
-    start: editor.state.doc.textBetween(0, from, "\n", "\n").length,
-    end: editor.state.doc.textBetween(0, to, "\n", "\n").length,
+    start: doc.textBetween(0, from, "\n", editorLeafText).length,
+    end: doc.textBetween(0, to, "\n", editorLeafText).length,
   };
+}
+
+function editorLeafText(node: ProseMirrorNode) {
+  if (node.type.name === "latexRun") return String(node.attrs.latex ?? "");
+  if (node.type.name === "hardBreak") return "\n";
+  return "";
 }
 
 function selectionRangeSignature(range: TextSelectionRange | null) {

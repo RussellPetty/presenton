@@ -1,4 +1,8 @@
 import type { Marker, TextRun } from "@/components/slide-editor/types";
+import {
+  isLatexTextRun,
+  textRunsContent,
+} from "@/components/slide-editor/text/text-runs";
 import type { TextSelectionRange } from "@/components/slide-editor/text/text-runs";
 import {
   fontFromRecord,
@@ -65,13 +69,20 @@ export function measureWordWrappedTextRunsHeight(
   const baseFont: RenderTextRun["font"] = style;
   const sourceRuns = runs.length > 0 ? runs : [{ text: " ", font: {} }];
   const renderRuns = sourceRuns.map((run) => ({
-    text: run.text,
+    text: isLatexTextRun(run) ? run.latex : run.text,
+    ...(isLatexTextRun(run)
+      ? {
+          type: "latex" as const,
+          latex: run.latex,
+          displayMode: run.display_mode ?? false,
+        }
+      : {}),
     font: fontFromRecord(
       (run.font ?? {}) as Record<string, unknown>,
       baseFont,
     ),
   }));
-  const text = sourceRuns.map((run) => run.text).join("");
+  const text = textRunsContent(sourceRuns);
   const emptyHardLines = text.includes("\n")
     ? text.split("\n").filter((line) => line.length === 0).length
     : 0;

@@ -27,6 +27,21 @@ async function importInsertElements() {
   return import(pathToFileURL(outfile).href);
 }
 
+async function importTextRuns() {
+  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "latex-runs-"));
+  const outfile = path.join(tempDirectory, "text-runs.mjs");
+  await build({
+    absWorkingDir: projectRoot,
+    bundle: true,
+    entryPoints: ["components/slide-editor/text/text-runs.ts"],
+    format: "esm",
+    outfile,
+    platform: "node",
+    tsconfig: path.join(projectRoot, "tsconfig.json"),
+  });
+  return import(pathToFileURL(outfile).href);
+}
+
 test("creates distinct editable LaTeX examples from the insert palette", async () => {
   const { createTextInsertElements } = await importInsertElements();
   const examples = {
@@ -39,9 +54,35 @@ test("creates distinct editable LaTeX examples from the insert palette", async (
 
   for (const [id, latex] of Object.entries(examples)) {
     const [element] = createTextInsertElements(id);
-    assert.equal(element.type, "math");
-    assert.equal(element.latex, latex);
-    assert.equal(element.display_mode, true);
+    assert.equal(element.type, "text");
+    assert.deepEqual(element.runs, [
+      { type: "latex", latex, display_mode: true },
+    ]);
     assert.equal(element.decorative, false);
   }
+});
+
+test("toggles a text selection between plain text and LaTeX", async () => {
+  const { latexTextRunRangeAtCursor, toggleTextRunLatexForSelection } =
+    await importTextRuns();
+  const element = {
+    type: "text",
+    runs: [{ text: "Area = x^2" }],
+  };
+  const range = { start: 7, end: 10 };
+  const withLatex = toggleTextRunLatexForSelection(element, range);
+
+  assert.deepEqual(withLatex.runs, [
+    { text: "Area = " },
+    {
+      type: "latex",
+      latex: "x^2",
+      display_mode: false,
+      font: undefined,
+    },
+  ]);
+  assert.deepEqual(latexTextRunRangeAtCursor(withLatex.runs, 8), range);
+
+  const withText = toggleTextRunLatexForSelection(withLatex, range);
+  assert.deepEqual(withText.runs, [{ text: "Area = x^2" }]);
 });

@@ -76,6 +76,7 @@ from utils.llm_calls.generate_presentation_structure import (
 from utils.llm_calls.generate_slide_content import (
     get_slide_content_from_type_and_outline,
 )
+from utils.latex_text import parse_latex_tags, replace_text_runs
 from utils.ppt_utils import (
     select_toc_or_list_slide_layout_index,
 )
@@ -995,6 +996,15 @@ def _template_text_runs_from_markdown(
     *,
     fallback_font: Any = None,
 ) -> list[dict[str, Any]]:
+    if parse_latex_tags(text) is not None or (
+        isinstance(first_run, dict) and first_run.get("type") == "latex"
+    ):
+        return replace_text_runs(
+            [first_run] if isinstance(first_run, dict) else None,
+            text,
+            fallback_font,
+        )
+
     base_run = copy.deepcopy(first_run) if isinstance(first_run, dict) else {}
     parsed = _parse_template_markdown_text(text)
     has_markdown_style = any(style for _parsed_text, style in parsed)

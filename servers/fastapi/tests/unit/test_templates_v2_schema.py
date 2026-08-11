@@ -40,10 +40,10 @@ def test_extract_slide_schema_from_layout_extracts_editable_content():
                     "runs": [{"text": "A"}],
                 },
                 {
-                    "type": "math",
+                    "type": "text",
                     "decorative": False,
                     "name": "formula",
-                    "latex": r"E = mc^2",
+                    "runs": [{"type": "latex", "latex": r"E = mc^2"}],
                     "min_length": 3,
                     "max_length": 120,
                 },
