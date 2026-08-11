@@ -13,7 +13,7 @@ import {
   Keyboard,
   X,
   AlertTriangle,
-  Sparkles,
+  MousePointer2,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -518,35 +518,44 @@ const PresentationHeader = ({
             </div>
           )}
           {generationMode === "smart" && !isStreaming && (
-            <ToolTip content="Click a slide element to add it to AI chat">
+            <ToolTip
+              content={
+                enableHtmlSelector
+                  ? "Element selection is on"
+                  : "Click a slide element to add it to AI chat"
+              }
+            >
               <button
                 type="button"
                 data-testid="html-selector-btn"
                 onClick={toggleHtmlSelector}
                 aria-pressed={enableHtmlSelector}
                 className={cn(
-                  "hidden h-[38px] items-center gap-2.5 rounded-[80px] border px-3.5 font-syne text-xs font-semibold transition-colors xl:inline-flex",
+                  "hidden h-[38px] items-center gap-2 rounded-xl border px-3 font-syne text-xs font-semibold shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6D5DFB] focus-visible:ring-offset-2 xl:inline-flex",
                   enableHtmlSelector
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : "border-[#EDECEC] bg-[#F6F6F9] text-[#101323] hover:bg-white"
+                    ? "border-[#CEC6FF] bg-[#F3F0FF] text-[#5141E5]"
+                    : "border-[#E4E4E8] bg-white text-[#3D3D48] hover:border-[#D7D2F5] hover:bg-[#FAF9FF] hover:text-[#5141E5]"
                 )}
               >
-                <Sparkles className="h-3.5 w-3.5 text-[#5146E5]" />
-                <span className="whitespace-nowrap">Select Edit</span>
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                    enableHtmlSelector ? "bg-emerald-500" : "bg-slate-300"
+                    "flex h-6 w-6 items-center justify-center rounded-lg transition-colors",
+                    enableHtmlSelector
+                      ? "bg-[#6D5DFB] text-white"
+                      : "bg-[#F1EFFF] text-[#6553E8]"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
-                      enableHtmlSelector ? "translate-x-4" : "translate-x-1"
-                    )}
-                  />
+                  <MousePointer2 className="h-3.5 w-3.5" strokeWidth={2} />
                 </span>
+                <span className="whitespace-nowrap">Select to edit</span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "ml-0.5 h-1.5 w-1.5 rounded-full transition-colors",
+                    enableHtmlSelector ? "bg-[#6D5DFB]" : "bg-[#B8B8C2]"
+                  )}
+                />
               </button>
             </ToolTip>
           )}
