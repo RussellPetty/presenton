@@ -189,28 +189,31 @@ describe('<UploadPage />', () => {
   describe('Validation', () => {
     it('should show error when no prompt or documents provided', () => {
       // Click next without entering prompt or uploading files
-      cy.contains('button', 'Get Started').click()
+      cy.get('button[aria-label="Generate presentation"]').click()
       // Check for error toast
       checkToast('Input required')
     })
   })
 
   describe('Generation Flow', () => {
-    it('should proceed to outline page with prompt-only configuration', () => {
+    it('should proceed to the streaming presentation with prompt-only configuration', () => {
       // Enter prompt
       cy.get('[data-testid="prompt-input"]').type('Create a presentation about AI')
 
       // Click generate
-      cy.contains('button', 'Get Started').click()
+      cy.get('button[aria-label="Generate presentation"]').click()
 
       // Wait for API call with longer timeout
       cy.wait('@createPresentation', { timeout: 10000 })
 
-      // Verify navigation to outline page
-      cy.get('@router.push').should('be.calledWith', '/outline')
+      // Smart mode streams the generated deck directly.
+      cy.get('@router.push').should(
+        'be.calledWith',
+        '/presentation?id=test-id&stream=true&type=smart'
+      )
     })
 
-    it('should proceed to outline page with uploaded document', () => {
+    it('should proceed to the streaming presentation with an uploaded document', () => {
       // Upload a document
       cy.fixture('example.txt').as('testFile')
       cy.get('[data-testid="file-upload-input"]').selectFile('@testFile', { force: true })
@@ -238,9 +241,9 @@ describe('<UploadPage />', () => {
       }).as('decomposeDoc')
 
       // Click generate
-      cy.contains('button', 'Get Started').click()
+      cy.get('button[aria-label="Generate presentation"]').click()
 
-      // Wait for upload, decompose, and outline creation API calls
+      // Wait for upload, decompose, and presentation creation API calls
       cy.wait('@uploadDoc', { timeout: 10000 })
       cy.wait('@decomposeDoc', { timeout: 10000 })
       cy.wait('@createPresentation', { timeout: 10000 })
@@ -252,8 +255,11 @@ describe('<UploadPage />', () => {
         .and('have.property', 'file_paths')
         .and('deep.equal', ['/tmp/decomposed/example.txt'])
 
-      // Verify navigation to outline page
-      cy.get('@router.push').should('be.calledWith', '/outline')
+      // Smart mode streams the generated deck directly.
+      cy.get('@router.push').should(
+        'be.calledWith',
+        '/presentation?id=test-id&stream=true&type=smart'
+      )
     })
   })
 
@@ -267,7 +273,7 @@ describe('<UploadPage />', () => {
 
       // Enter prompt and try to generate
       cy.get('[data-testid="prompt-input"]').type('Test presentation')
-      cy.contains('button', 'Get Started').click()
+      cy.get('button[aria-label="Generate presentation"]').click()
 
       // Check for error toast
       checkToast('Generation failed')
