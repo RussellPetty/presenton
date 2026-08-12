@@ -20,6 +20,14 @@ type AuthStatus = {
   role?: "admin" | "user" | null;
 };
 
+type PresentonDeviceFlow = {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  verification_uri_complete: string;
+  expiresAt: number;
+};
+
 const initialStatus: AuthStatus = {
   configured: false,
   authenticated: false,
@@ -36,6 +44,11 @@ export default function AuthGate() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [presentonEnabled, setPresentonEnabled] = useState(false);
+  const [presentonFlow, setPresentonFlow] = useState<PresentonDeviceFlow | null>(null);
+  const [presentonPollDelay, setPresentonPollDelay] = useState(5);
+  const [presentonPollAttempt, setPresentonPollAttempt] = useState(0);
+  const [isPresentonStarting, setIsPresentonStarting] = useState(false);
   const isSetupMode = useMemo(() => !status.configured, [status.configured]);
 
   useEffect(() => {
@@ -64,6 +77,34 @@ export default function AuthGate() {
     }
 
     void refreshStatus();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthDisabled()) {
+      return;
+    }
+
+    const loadPresentonStatus = async () => {
+      try {
+        const response = await fetch(
+          getApiUrl("/api/v1/auth/presenton/status"),
+          {
+            method: "GET",
+            cache: "no-store",
+            credentials: "include",
+          }
+        );
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as { enabled?: boolean };
+        setPresentonEnabled(Boolean(payload.enabled));
+      } catch {
+        setPresentonEnabled(false);
+      }
+    };
+
+    void loadPresentonStatus();
   }, []);
 
   useEffect(() => {
@@ -322,6 +363,136 @@ export default function AuthGate() {
     }
   };
 
+  const startPresentonLogin = async () => {
+    if (isPresentonStarting) {
+      return;
+    }
+
+    setIsPresentonStarting(true);
+    const approvalWindow = window.open(
+      "about:blank",
+      "presenton-device-authorization",
+      "popup,width=720,height=800"
+    );
+    if (approvalWindow) {
+      approvalWindow.opener = null;
+      approvalWindow.document.title = "Connecting to Presenton…";
+    }
+
+    try {
+      const response = await fetch(
+        getApiUrl("/api/v1/auth/presenton/device/start"),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_name: "Presenton self-hosted" }),
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        approvalWindow?.close();
+        throw new Error(
+          formatFastApiDetail(payload?.detail) ||
+            "Could not start Login with Presenton."
+        );
+      }
+
+      const interval = Math.max(1, Number(payload.interval) || 5);
+      const expiresIn = Math.max(1, Number(payload.expires_in) || 900);
+      const flow: PresentonDeviceFlow = {
+        device_code: String(payload.device_code),
+        user_code: String(payload.user_code),
+        verification_uri: String(payload.verification_uri),
+        verification_uri_complete: String(payload.verification_uri_complete),
+        expiresAt: Date.now() + expiresIn * 1000,
+      };
+      setPresentonFlow(flow);
+      setPresentonPollDelay(interval);
+      setPresentonPollAttempt(0);
+      if (approvalWindow) {
+        approvalWindow.location.replace(flow.verification_uri_complete);
+      }
+    } catch (error) {
+      approvalWindow?.close();
+      notify.error(
+        "Could not connect to Presenton",
+        error instanceof Error
+          ? error.message
+          : "Please try again in a moment."
+      );
+    } finally {
+      setIsPresentonStarting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!presentonFlow || status.authenticated) {
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      if (Date.now() >= presentonFlow.expiresAt) {
+        setPresentonFlow(null);
+        notify.error(
+          "Authorization expired",
+          "Start Login with Presenton again to get a new code."
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          getApiUrl("/api/v1/auth/presenton/device/poll"),
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device_code: presentonFlow.device_code }),
+          }
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 202) {
+          if (payload?.error === "slow_down") {
+            setPresentonPollDelay((delay) => delay + 5);
+          }
+          setPresentonPollAttempt((attempt) => attempt + 1);
+          return;
+        }
+        if (!response.ok) {
+          throw new Error(
+            formatFastApiDetail(payload?.detail) || "Presenton login failed."
+          );
+        }
+
+        setStatus({
+          configured: Boolean(payload.configured),
+          authenticated: Boolean(payload.authenticated),
+          username: payload.username ?? null,
+          role: payload.role ?? null,
+        });
+        setPresentonFlow(null);
+        notify.success(
+          "Signed in with Presenton",
+          "Welcome. Loading your workspace."
+        );
+      } catch (error) {
+        setPresentonFlow(null);
+        notify.error(
+          "Presenton login failed",
+          error instanceof Error ? error.message : "Please try again."
+        );
+      }
+    }, presentonPollDelay * 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    presentonFlow,
+    presentonPollAttempt,
+    presentonPollDelay,
+    status.authenticated,
+  ]);
+
   if (
     isLoading ||
     isRedirecting ||
@@ -361,6 +532,68 @@ export default function AuthGate() {
             ? "One-time setup for this deployment. You will use the same username and password on future visits."
             : "This deployment is protected. Enter your credentials to open the app."}
         </p>
+
+        {presentonEnabled ? (
+          <div className="mt-7">
+            {presentonFlow ? (
+              <div className="rounded-xl border border-[#ded8f8] bg-[#f6f3ff] p-4">
+                <p className="text-sm font-semibold text-[#2f2940]">
+                  Finish signing in on Presenton
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[#6B647A]">
+                  Confirm that the code below matches the code in the authorization window.
+                </p>
+                <div className="mt-4 rounded-lg border border-[#e2dcfa] bg-white px-4 py-3 text-center font-mono text-lg font-semibold tracking-[0.18em] text-[#4d436d]">
+                  {presentonFlow.user_code}
+                </div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <a
+                    href={presentonFlow.verification_uri_complete}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-[#6d46e6] hover:text-[#5835c2]"
+                  >
+                    Open authorization page
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setPresentonFlow(null)}
+                    className="text-xs font-medium text-[#716b78] hover:text-[#3d3942]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="mt-3 text-xs text-[#7A7384]">
+                  Waiting for authorization…
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void startPresentonLogin()}
+                disabled={isPresentonStarting}
+                className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#dedbe5] bg-white px-5 text-sm font-semibold text-[#29252f] transition hover:border-[#c7baf7] hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#7A5AF8] text-xs font-bold text-white">
+                  P
+                </span>
+                {isPresentonStarting
+                  ? "Connecting to Presenton…"
+                  : isSetupMode
+                    ? "Set up with Presenton"
+                    : "Continue with Presenton"}
+              </button>
+            )}
+
+            <div className="mt-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#e5e3e8]" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9A95A1]">
+                or use local credentials
+              </span>
+              <div className="h-px flex-1 bg-[#e5e3e8]" />
+            </div>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="mt-7 space-y-5">
           <div className="space-y-2">
