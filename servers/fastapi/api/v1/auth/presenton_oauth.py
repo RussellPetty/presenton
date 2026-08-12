@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 
 from api.v1.auth.users import (
     PASSWORD_HELPER,
-    get_current_user,
+    get_current_admin,
     get_jwt_strategy,
     read_user_from_cookie,
     serialize_user,
@@ -23,8 +23,9 @@ from models.sql.user import User
 from services.database import get_async_session
 from services.presenton_cloud import (
     PresentonCloudError,
+    get_presenton_provider,
     has_cloud_credentials,
-    revoke_and_delete_presenton_identity,
+    revoke_and_clear_presenton_provider,
     store_presenton_credentials,
 )
 from utils.get_env import (
@@ -245,41 +246,36 @@ async def presenton_login_status(
     current_user: User | None = Depends(read_user_from_cookie),
 ):
     issuer = get_presenton_oauth_issuer()
-    identity = None
-    if current_user is not None:
-        identity = await session.scalar(
-            select(PresentonOAuthIdentity).where(
-                PresentonOAuthIdentity.user_id == current_user.id,
-                PresentonOAuthIdentity.issuer == issuer,
-            )
-        )
+    provider = await get_presenton_provider(session, issuer)
+    linked = has_cloud_credentials(provider)
+    can_manage = bool(current_user and current_user.is_superuser)
     return {
         "enabled": True,
         "issuer": issuer,
-        "linked": has_cloud_credentials(identity),
-        "identity_linked": identity is not None,
-        "cloud_generation_enabled": has_cloud_credentials(identity),
-        "email": identity.email if identity is not None else None,
-        "scopes": sorted((identity.scopes or "").split()) if identity else [],
+        "global_provider": True,
+        "managed_by_admin": True,
+        "can_manage": can_manage,
+        "linked": linked,
+        "identity_linked": provider is not None,
+        "cloud_generation_enabled": linked,
+        "email": provider.email if provider is not None and can_manage else None,
+        "scopes": sorted((provider.scopes or "").split())
+        if provider is not None and can_manage
+        else [],
     }
 
 
 @PRESENTON_OAUTH_ROUTER.post("/logout")
 async def logout_presenton_account(
     session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
+    _current_admin: User = Depends(get_current_admin),
 ):
     issuer = get_presenton_oauth_issuer()
-    identity = await session.scalar(
-        select(PresentonOAuthIdentity).where(
-            PresentonOAuthIdentity.user_id == current_user.id,
-            PresentonOAuthIdentity.issuer == issuer,
-        )
-    )
-    if identity is not None:
-        await revoke_and_delete_presenton_identity(
+    provider = await get_presenton_provider(session, issuer)
+    if provider is not None:
+        await revoke_and_clear_presenton_provider(
             session,
-            identity,
+            provider,
             provider_request=_provider_request,
         )
     return {"detail": "Disconnected from Presenton successfully"}
@@ -333,6 +329,9 @@ async def poll_presenton_device_login(
     session: AsyncSession = Depends(get_async_session),
     current_user: User | None = Depends(read_user_from_cookie),
 ):
+    if body.link_current_user and current_user is not None and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
     issuer, client_id = _oauth_config()
     try:
         token_response = await _provider_request(
@@ -418,22 +417,24 @@ async def poll_presenton_device_login(
             profile,
             link_user=current_user if body.link_current_user else None,
         )
-        try:
-            await store_presenton_credentials(
-                session,
-                user_id=user.id,
-                issuer=issuer,
-                access_token=access_token,
-                refresh_token=refresh_token_value,
-                scope=granted_scope,
-                expires_in=expires_in_value,
-            )
-        except PresentonCloudError as exc:
-            raise HTTPException(
-                status_code=exc.status_code,
-                detail=exc.detail,
-            ) from exc
-        credentials_stored = True
+        if user.is_superuser:
+            try:
+                await store_presenton_credentials(
+                    session,
+                    issuer=issuer,
+                    subject=profile.sub,
+                    email=profile.email,
+                    access_token=access_token,
+                    refresh_token=refresh_token_value,
+                    scope=granted_scope,
+                    expires_in=expires_in_value,
+                )
+            except PresentonCloudError as exc:
+                raise HTTPException(
+                    status_code=exc.status_code,
+                    detail=exc.detail,
+                ) from exc
+            credentials_stored = True
         token = await get_jwt_strategy().write_token(user)
         response = JSONResponse(
             {

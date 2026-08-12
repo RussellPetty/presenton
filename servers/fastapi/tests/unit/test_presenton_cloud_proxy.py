@@ -71,25 +71,26 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
 
 def test_cloud_private_assets_require_the_oauth_subject_namespace():
     cloud_user_id = uuid.uuid4()
-    identity = SimpleNamespace(subject=str(cloud_user_id))
+    provider = SimpleNamespace(subject=str(cloud_user_id))
 
-    assert presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+    assert presenton_cloud_proxy._cloud_asset_belongs_to_provider(
         f"/app_data/images/users/{cloud_user_id}/generated.png",
-        identity,
+        provider,
     )
-    assert not presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+    assert not presenton_cloud_proxy._cloud_asset_belongs_to_provider(
         f"/app_data/images/users/{uuid.uuid4()}/generated.png",
-        identity,
+        provider,
     )
-    assert not presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+    assert not presenton_cloud_proxy._cloud_asset_belongs_to_provider(
         "/app_data/images/generated.png",
-        identity,
+        provider,
     )
 
 
 def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     captured = {}
-    identity = SimpleNamespace(
+    provider = SimpleNamespace(
+        subject=str(uuid.uuid4()),
         access_token_encrypted="encrypted-access",
         refresh_token_encrypted="encrypted-refresh",
         scopes="presenton:api profile:read",
@@ -122,15 +123,15 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     upstream = FakeUpstream()
     client = FakeClient()
 
-    async def get_identity(_session, user_id, issuer):
-        captured["identity"] = (user_id, issuer)
-        return identity
+    async def get_provider(_session, issuer):
+        captured["provider_issuer"] = issuer
+        return provider
 
     async def open_response(_session, **kwargs):
         captured.update(kwargs)
         return client, upstream
 
-    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_identity", get_identity)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
     monkeypatch.setattr(
         presenton_cloud_proxy,
         "open_presenton_cloud_response",
@@ -173,8 +174,8 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
         b'data: {"status":"running"}\n\n'
         b'data: {"status":"complete"}\n\n'
     )
-    assert captured["identity"] == (user_id, "https://api.presenton.test")
-    assert captured["user_id"] == user_id
+    assert captured["provider_issuer"] == "https://api.presenton.test"
+    assert "user_id" not in captured
     assert captured["issuer"] == "https://api.presenton.test"
     assert captured["method"] == "POST"
     assert captured["path"] == "/api/v1/ppt/presentation/create"
@@ -194,13 +195,13 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
 
 
 def test_unlinked_request_stays_local(monkeypatch):
-    async def get_identity(_session, _user_id, _issuer):
+    async def get_provider(_session, _issuer):
         return None
 
     async def unexpected_open(*_args, **_kwargs):
         raise AssertionError("Cloud request must not be opened for an unlinked user")
 
-    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_identity", get_identity)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
     monkeypatch.setattr(
         presenton_cloud_proxy,
         "open_presenton_cloud_response",

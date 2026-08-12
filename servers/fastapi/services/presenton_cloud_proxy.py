@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from api.v1.auth.assets import normalized_app_data_parts
-from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
+from models.sql.presenton_cloud_provider import PresentonCloudProvider
 from models.sql.user import User
 from services.presenton_cloud import (
     PresentonCloudError,
-    get_presenton_identity,
+    get_presenton_provider,
     has_cloud_credentials,
     open_presenton_cloud_response,
 )
@@ -66,9 +66,9 @@ def should_proxy_presenton_cloud(path: str) -> bool:
     )
 
 
-def _cloud_asset_belongs_to_identity(
+def _cloud_asset_belongs_to_provider(
     path: str,
-    identity: PresentonOAuthIdentity,
+    provider: PresentonCloudProvider,
 ) -> bool:
     if not path.startswith(CLOUD_PRIVATE_ASSET_PATH_PREFIXES):
         return True
@@ -76,7 +76,7 @@ def _cloud_asset_belongs_to_identity(
     if not parts or len(parts) < 4 or parts[1] != "users":
         return False
     try:
-        return uuid.UUID(parts[2]) == uuid.UUID(identity.subject)
+        return uuid.UUID(parts[2]) == uuid.UUID(provider.subject)
     except (TypeError, ValueError):
         return False
 
@@ -106,17 +106,16 @@ async def maybe_proxy_presenton_cloud_request(
         return None
 
     issuer = get_presenton_oauth_issuer()
-    identity = await get_presenton_identity(session, user.id, issuer)
-    if not has_cloud_credentials(identity):
+    provider = await get_presenton_provider(session, issuer)
+    if not has_cloud_credentials(provider):
         return None
-    assert identity is not None
-    if not _cloud_asset_belongs_to_identity(request.url.path, identity):
+    assert provider is not None
+    if not _cloud_asset_belongs_to_provider(request.url.path, provider):
         return None
 
     try:
         client, upstream = await open_presenton_cloud_response(
             session,
-            user_id=user.id,
             issuer=issuer,
             method=request.method,
             path=request.url.path,

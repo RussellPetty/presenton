@@ -19,6 +19,11 @@ type PresentonStatus = {
   enabled: boolean;
   linked: boolean;
   email: string | null;
+  canManage: boolean;
+};
+
+type PresentonStatusResponse = Partial<PresentonStatus> & {
+  can_manage?: boolean;
 };
 
 type DeviceFlow = {
@@ -32,6 +37,7 @@ const initialStatus: PresentonStatus = {
   enabled: false,
   linked: false,
   email: null,
+  canManage: false,
 };
 
 function getErrorMessage(payload: unknown, fallback: string): string {
@@ -68,11 +74,12 @@ export default function OnboardingPresentonAccount({
         cache: "no-store",
       });
       if (!response.ok) return;
-      const payload = (await response.json()) as Partial<PresentonStatus>;
+      const payload = (await response.json()) as PresentonStatusResponse;
       setStatus({
         enabled: Boolean(payload.enabled),
         linked: Boolean(payload.linked),
         email: typeof payload.email === "string" ? payload.email : null,
+        canManage: Boolean(payload.canManage ?? payload.can_manage),
       });
     } finally {
       setIsLoading(false);
@@ -166,8 +173,8 @@ export default function OnboardingPresentonAccount({
       approvalWindowRef.current = null;
       await loadStatus();
       notify.success(
-        "Signed out",
-        "You have been disconnected from Presenton.",
+        "Presenton Cloud disconnected",
+        "The global provider has been disconnected from this workspace.",
       );
     } catch (error) {
       notify.error(
@@ -281,19 +288,21 @@ export default function OnboardingPresentonAccount({
             </div>
             <p className="mt-1.5 max-w-[390px] text-xs leading-5 text-[#6B647A]">
               {status.linked
-                ? status.email || "Your Presenton account is ready."
-                : "Sign in once and start generating—no API keys, models, or provider setup required."}
+                ? status.email || "Presenton Cloud is ready for this workspace."
+                : status.canManage
+                  ? "Connect once for everyone in this workspace—no per-user API keys or provider setup required."
+                  : "A workspace administrator must connect Presenton Cloud before it can be used."}
             </p>
           </div>
         </div>
 
-        {status.linked ? (
+        {status.linked && status.canManage ? (
           <button
             type="button"
             onClick={() => void signOut()}
             disabled={isLoggingOut}
-            title="Disconnect Presenton account"
-            aria-label="Disconnect Presenton account"
+            title="Disconnect global Presenton provider"
+            aria-label="Disconnect global Presenton provider"
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#E4DFF0] bg-white transition-colors hover:bg-[#F7F6F9] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isLoggingOut ? (
@@ -319,7 +328,7 @@ export default function OnboardingPresentonAccount({
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-      ) : !flow ? (
+      ) : !flow && status.canManage ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E0F8] bg-white/55 px-6 py-4">
           <div className="flex items-center gap-2 text-[11px] text-[#756D82]">
             <Cloud className="h-3.5 w-3.5 text-[#7C51F8]" />
@@ -338,6 +347,10 @@ export default function OnboardingPresentonAccount({
             )}
             {isStarting ? "Connecting…" : "Login with Presenton"}
           </button>
+        </div>
+      ) : !status.linked ? (
+        <div className="border-t border-[#E6E0F8] bg-white/55 px-6 py-4 text-xs text-[#6B647A]">
+          Ask a workspace administrator to connect the global Presenton provider.
         </div>
       ) : null}
 

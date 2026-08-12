@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from api.v1.auth import presenton_oauth
 from api.v1.auth.config import SESSION_COOKIE_NAME
 from api.v1.auth.router import API_V1_AUTH_ROUTER
+from models.sql.presenton_cloud_provider import PresentonCloudProvider
 from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
 from models.sql.user import User
 from services.database import get_async_session
@@ -22,6 +23,7 @@ def _build_client(tmp_path) -> tuple[TestClient, object, object]:
         async with engine.begin() as connection:
             await connection.run_sync(User.__table__.create)
             await connection.run_sync(PresentonOAuthIdentity.__table__.create)
+            await connection.run_sync(PresentonCloudProvider.__table__.create)
 
     asyncio.run(create_tables())
 
@@ -159,13 +161,19 @@ def test_presenton_device_login_creates_local_session_and_reuses_identity(
                 or 0
             )
             identity = await session.scalar(select(PresentonOAuthIdentity))
-            return users, identities, identity
+            provider = await session.scalar(select(PresentonCloudProvider))
+            return users, identities, identity, provider
 
-    users, identities, identity = asyncio.run(counts())
+    users, identities, identity, provider = asyncio.run(counts())
     assert (users, identities) == (1, 1)
-    assert identity.access_token_encrypted != "pt_access_2"
-    assert identity.refresh_token_encrypted != "pt_refresh_2"
-    assert identity.scopes == "presenton:api profile:read"
+    assert identity.access_token_encrypted is None
+    assert identity.refresh_token_encrypted is None
+    assert identity.scopes is None
+    assert provider.subject == "hosted-user-123"
+    assert provider.email == "person@example.com"
+    assert provider.access_token_encrypted != "pt_access_2"
+    assert provider.refresh_token_encrypted != "pt_refresh_2"
+    assert provider.scopes == "presenton:api profile:read"
     asyncio.run(engine.dispose())
 
 
@@ -275,7 +283,70 @@ def test_onboarding_links_presenton_identity_to_existing_admin(monkeypatch, tmp_
                 )
                 or 0
             )
-            return users, identities
+            providers = int(
+                await session.scalar(
+                    select(func.count()).select_from(PresentonCloudProvider)
+                )
+                or 0
+            )
+            return users, identities, providers
 
-    assert asyncio.run(counts()) == (1, 0)
+    assert asyncio.run(counts()) == (1, 1, 0)
+    asyncio.run(engine.dispose())
+
+
+def test_regular_user_cannot_change_the_global_presenton_provider(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
+    client, engine, session_maker = _build_client(tmp_path)
+    client.post(
+        "/api/v1/auth/setup",
+        json={"username": "admin", "password": "secret123"},
+    )
+
+    async def create_member():
+        async with session_maker() as session:
+            session.add(
+                User(
+                    username="member",
+                    hashed_password=presenton_oauth.PASSWORD_HELPER.hash("member123"),
+                    is_active=True,
+                    is_verified=True,
+                    is_superuser=False,
+                    auth_version=1,
+                )
+            )
+            await session.commit()
+
+    asyncio.run(create_member())
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "member", "password": "member123"},
+    )
+    assert login.status_code == 200
+
+    async def unexpected_provider_request(*_args, **_kwargs):
+        raise AssertionError("A regular user must be rejected before OAuth polling")
+
+    monkeypatch.setattr(
+        presenton_oauth,
+        "_provider_request",
+        unexpected_provider_request,
+    )
+    linked = client.post(
+        "/api/v1/auth/presenton/device/poll",
+        json={
+            "device_code": "member-device-code-12345",
+            "link_current_user": True,
+        },
+    )
+    disconnected = client.post("/api/v1/auth/presenton/logout")
+    status = client.get("/api/v1/auth/presenton/status")
+
+    assert linked.status_code == 403
+    assert disconnected.status_code == 403
+    assert status.json()["can_manage"] is False
+    assert status.json()["email"] is None
+    assert status.json()["scopes"] == []
     asyncio.run(engine.dispose())

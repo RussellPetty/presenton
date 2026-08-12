@@ -32,7 +32,8 @@ REVISION_PRIMARY_ADMIN_SLOT = "e1b3c5d7f9a2"
 REVISION_SMART_GENERATION = "f3a7c1d9e5b2"
 REVISION_PRESENTON_OAUTH_IDENTITY = "a4c6e8f0b2d4"
 REVISION_PRESENTON_OAUTH_CREDENTIALS = "b5d7f9a1c3e5"
-REVISION_HEAD = REVISION_PRESENTON_OAUTH_CREDENTIALS
+REVISION_PRESENTON_CLOUD_PROVIDER = "c6e8f1a3b5d7"
+REVISION_HEAD = REVISION_PRESENTON_CLOUD_PROVIDER
 
 
 async def migrate_database_on_startup() -> None:
@@ -136,6 +137,8 @@ def _infer_revision_from_schema(
         for table in owned_tables
     )
     if "provider_settings" in tables and "user" in tables and ownership_ready:
+        if "presenton_cloud_provider" in tables:
+            return REVISION_PRESENTON_CLOUD_PROVIDER
         if "presenton_oauth_identity" in tables:
             if _has_column(
                 inspector,
@@ -309,6 +312,7 @@ def _is_unversioned_populated_database(database_url: str) -> bool:
         "user",
         "access_tokens",
         "provider_settings",
+        "presenton_cloud_provider",
     }
     engine = create_engine(database_url)
     try:

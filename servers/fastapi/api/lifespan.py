@@ -7,8 +7,13 @@ from fastapi import FastAPI
 from migrations import migrate_database_on_startup
 from services.database import async_session_maker, create_db_and_tables, dispose_engines
 from services.provider_settings import migrate_provider_settings_from_file
+from services.presenton_cloud import migrate_legacy_presenton_credentials
 from templates.default_templates import import_default_templates_on_startup
-from utils.get_env import get_app_data_directory_env, get_can_change_keys_env
+from utils.get_env import (
+    get_app_data_directory_env,
+    get_can_change_keys_env,
+    get_presenton_oauth_issuer,
+)
 from utils.model_availability import (
     check_llm_and_image_provider_api_or_model_availability,
 )
@@ -59,6 +64,10 @@ async def app_lifespan(_: FastAPI):
     await bootstrap_database_admin()
     async with async_session_maker() as session:
         await migrate_provider_settings_from_file(session)
+        await migrate_legacy_presenton_credentials(
+            session,
+            get_presenton_oauth_issuer(),
+        )
     await import_default_templates_on_startup()
     if get_can_change_keys_env() != "false":
         update_env_with_user_config()
