@@ -78,9 +78,14 @@ if (process.platform === "linux") {
   } catch {
     app.commandLine.appendSwitch("no-sandbox");
   }
-  // Fall back to /tmp instead of shared memory to avoid Chromium crashes
-  // on systems where /dev/shm is unavailable/misconfigured.
-  app.commandLine.appendSwitch("disable-dev-shm-usage");
+  // Fall back to the system temp directory only when /dev/shm cannot be used.
+  // Forcing this switch on healthy desktop systems can make sandboxed Chromium
+  // frames fail when their temp directory is not available to the renderer.
+  try {
+    fs.accessSync("/dev/shm", fs.constants.W_OK | fs.constants.X_OK);
+  } catch {
+    app.commandLine.appendSwitch("disable-dev-shm-usage");
+  }
 }
 
 var win: BrowserWindow | undefined;

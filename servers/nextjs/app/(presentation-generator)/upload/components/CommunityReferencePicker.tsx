@@ -135,7 +135,11 @@ export default function CommunityReferencePicker({
                   aria-label={`Use ${item.title || "community design"}`}
                 >
                   {preview ? (
-                    <SmartHtmlSlide html={preview} fonts={item.fonts} />
+                    <SmartHtmlSlide
+                      executeScripts={false}
+                      html={preview}
+                      fonts={item.fonts}
+                    />
                   ) : (
                     <span className="flex h-full items-center justify-center text-xs text-[#999999]">
                       No preview

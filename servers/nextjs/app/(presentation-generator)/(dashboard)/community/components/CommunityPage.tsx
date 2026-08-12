@@ -403,7 +403,12 @@ function CommunityPresentationCard({
       >
         {thumbnail ? (
           <div className="transition duration-300 group-hover:scale-[1.015]">
-            <SmartHtmlSlide html={thumbnail} fonts={presentation.fonts} title={`${title} preview`} />
+            <SmartHtmlSlide
+              executeScripts={false}
+              html={thumbnail}
+              fonts={presentation.fonts}
+              title={`${title} preview`}
+            />
           </div>
         ) : (
           <span className="flex h-full items-center justify-center text-xs text-[#999999]">

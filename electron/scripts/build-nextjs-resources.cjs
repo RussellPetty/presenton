@@ -25,7 +25,11 @@ rm(nextBuildDir);
 const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 const build = spawnSync(npmCmd, ["run", "build"], {
   cwd: nextjsDir,
-  env: process.env,
+  env: {
+    ...process.env,
+    PRESENTON_ELECTRON_BUILD: "true",
+    NEXT_PUBLIC_PRESENTON_ELECTRON_PLATFORM: process.platform,
+  },
   stdio: "inherit",
   // Windows: cmd is required to run npm.cmd; without shell, spawnSync can throw EINVAL.
   shell: process.platform === "win32",
