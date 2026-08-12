@@ -38,50 +38,8 @@ import {
   CommunityPresentationApi,
   type CommunityPresentation,
 } from "../../services/api/community";
-import {
-  ArrowUpRight,
-  BarChart3,
-  GraduationCap,
-  Rocket,
-} from "lucide-react";
 
 type GenerationMode = "smart" | "standard";
-
-const STANDARD_PROMPT_STARTERS = [
-  {
-    label: "Investor pitch",
-    description: "A focused 12-slide fundraising narrative",
-    prompt:
-      "Build a concise, investor-ready 12-slide pitch deck for [company or product]. Create a clear narrative covering: the customer problem, the key insight, the solution and product experience, target customer, market size, competitive landscape, business model, go-to-market strategy, traction and key metrics, roadmap, team, and fundraising ask. Use decisive slide headlines, keep each slide focused on one message, and add clearly labeled placeholders wherever facts or numbers are still needed.",
-    template: "momentum",
-    icon: Rocket,
-    accent: "bg-[#7357F6]",
-    iconStyle: "bg-[#F1EDFF] text-[#6547E8]",
-    hoverStyle: "hover:border-[#CFC5FF] hover:shadow-[0_12px_30px_rgba(101,71,232,0.10)]",
-  },
-  {
-    label: "Executive review",
-    description: "KPIs, insights, decisions, and ownership",
-    prompt:
-      "Create an executive quarterly business review for [company or team]. Lead with a one-slide executive summary, then show KPI performance versus targets, important trends, wins, misses, and the drivers behind each result. Include customer and financial insights, top risks, decisions needed from leadership, and next-quarter priorities with a named owner and measurable outcome. Make the story data-led, use charts where they improve understanding, and mark missing data with specific placeholders.",
-    template: "executive",
-    icon: BarChart3,
-    accent: "bg-[#1689E8]",
-    iconStyle: "bg-[#EAF6FF] text-[#087BCB]",
-    hoverStyle: "hover:border-[#B8DEFA] hover:shadow-[0_12px_30px_rgba(8,123,203,0.10)]",
-  },
-  {
-    label: "Training deck",
-    description: "Teach, demonstrate, practice, and assess",
-    prompt:
-      "Design a 45-minute beginner-friendly training deck about [topic] for [audience]. Start with learning objectives and a short agenda, explain each core concept in plain language, and reinforce it with a realistic example or visual. Add one guided activity, one knowledge check with answers, common mistakes to avoid, a practical checklist, and a final recap with next steps and resources. Keep the tone encouraging and make every slide useful to both the presenter and the learner.",
-    template: "dynamic",
-    icon: GraduationCap,
-    accent: "bg-[#F08A3C]",
-    iconStyle: "bg-[#FFF1E7] text-[#D86D1C]",
-    hoverStyle: "hover:border-[#F5C9A8] hover:shadow-[0_12px_30px_rgba(216,109,28,0.10)]",
-  },
-] as const;
 
 const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
 const FILE_TYPE_WORD = new Set([".doc", ".docx", ".docm", ".odt", ".rtf"]);
@@ -188,7 +146,6 @@ const UploadPage = () => {
 
   const [files, setFiles] = useState<File[]>([]);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("standard");
-  const [suggestedTemplate, setSuggestedTemplate] = useState<string | null>(null);
   const [communityReference, setCommunityReference] =
     useState<CommunityPresentation | null>(null);
   const [config, setConfig] = useState<PresentationConfig>({
@@ -327,7 +284,6 @@ const UploadPage = () => {
     }
 
     const params = new URLSearchParams({ id: presentationId });
-    if (suggestedTemplate) params.set("template", suggestedTemplate);
     return `/outline?${params.toString()}`;
   };
 
@@ -689,67 +645,6 @@ const UploadPage = () => {
           }
         />
 
-        {generationMode === "standard" && (
-          <section
-            className="pt-1"
-            aria-labelledby="standard-prompt-starters"
-          >
-            <div className="mb-3.5 flex items-center gap-2.5 px-0.5">
-             
-              <div className="min-w-0">
-                <h2
-                  id="standard-prompt-starters"
-                  className="font-syne text-sm font-semibold leading-tight text-[#191919]"
-                >
-                  Not sure how to start?
-                </h2>
-                <p className="mt-1 font-manrope text-[11px] leading-tight text-[#777782]">
-                  Choose a detailed example and tailor the bracketed details.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-2.5 sm:grid-cols-3">
-              {STANDARD_PROMPT_STARTERS.map((starter) => {
-                const Icon = starter.icon;
-                return (
-                  <button
-                    key={starter.label}
-                    type="button"
-                    onClick={() => {
-                      handleConfigChange("prompt", starter.prompt);
-                      setSuggestedTemplate(starter.template);
-                    }}
-                    className={`group relative min-w-0 overflow-hidden rounded-xl border border-[#E5E5EA] bg-white px-3.5 pb-3.5 pt-4 text-left shadow-[0_2px_10px_rgba(16,19,35,0.025)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-2 ${starter.hoverStyle}`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`absolute inset-x-0 top-0 h-0.5 ${starter.accent}`}
-                    />
-                    <span className="flex items-start justify-between gap-3">
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${starter.iconStyle}`}
-                      >
-                        <Icon className="h-4 w-4" strokeWidth={1.8} />
-                      </span>
-                      <ArrowUpRight
-                        className="h-3.5 w-3.5 text-[#B0B0BA] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#575762]"
-                        strokeWidth={1.8}
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <span className="mt-3 block font-syne text-xs font-semibold text-[#252530]">
-                      {starter.label}
-                    </span>
-                    <span className="mt-1 block font-manrope text-[10px] leading-[1.45] text-[#7A7A85]">
-                      {starter.description}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
       </div>
 
       {generationMode === "smart" && (
