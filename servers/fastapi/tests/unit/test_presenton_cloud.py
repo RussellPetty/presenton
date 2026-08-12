@@ -12,9 +12,7 @@ from services import presenton_cloud
 from utils.datetime_utils import get_current_utc_datetime
 
 
-def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
-    monkeypatch, tmp_path
-):
+def test_presenton_jwt_is_encrypted_and_used_server_side(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'cloud.db'}")
     session_maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -23,26 +21,6 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
     class FakeAsyncClient:
         def __init__(self, **_kwargs):
             self.closed = False
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_args):
-            return None
-
-        async def post(self, url, **kwargs):
-            requests.append(("POST", url, kwargs))
-            assert url.endswith("/oauth/token")
-            assert kwargs["data"]["refresh_token"] == "pt_refresh_original"
-            return httpx.Response(
-                200,
-                json={
-                    "access_token": "pt_access_rotated",
-                    "refresh_token": "pt_refresh_rotated",
-                    "scope": "presenton:api profile:read",
-                    "expires_in": 3600,
-                },
-            )
 
         def build_request(self, method, url, **kwargs):
             return httpx.Request(method, url, **kwargs)
@@ -59,7 +37,7 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
                     },
                 )
             )
-            assert request.headers["Authorization"] == "Bearer pt_access_rotated"
+            assert request.headers["Authorization"] == "Bearer user.jwt.signature"
             return httpx.Response(
                 200,
                 json={"presentation_id": "cloud-id"},
@@ -81,20 +59,16 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
                 issuer="https://accounts.presenton.test",
                 subject="cloud-user",
                 email="cloud@example.com",
-                access_token="pt_access_original",
-                refresh_token="pt_refresh_original",
-                scope="profile:read presenton:api",
+                access_token="user.jwt.signature",
                 expires_in=3600,
             )
 
             stored = await session.scalar(select(PresentonCloudProvider))
             assert stored.subject == "cloud-user"
             assert stored.email == "cloud@example.com"
-            assert stored.access_token_encrypted != "pt_access_original"
-            assert stored.refresh_token_encrypted != "pt_refresh_original"
-            stored.token_expires_at = get_current_utc_datetime() - timedelta(seconds=1)
-            session.add(stored)
-            await session.commit()
+            assert stored.access_token_encrypted != "user.jwt.signature"
+            assert stored.refresh_token_encrypted is None
+            assert stored.scopes is None
 
             client, response = await presenton_cloud.open_presenton_cloud_response(
                 session,
@@ -110,23 +84,14 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
             await response.aclose()
             await client.aclose()
 
-            refreshed = await session.scalar(select(PresentonCloudProvider))
-            assert refreshed.access_token_encrypted != "pt_access_rotated"
-            assert refreshed.refresh_token_encrypted != "pt_refresh_rotated"
-            assert (
-                presenton_cloud._decrypt_token(refreshed.refresh_token_encrypted)
-                == "pt_refresh_rotated"
-            )
-
         await engine.dispose()
 
     asyncio.run(run())
     assert [request[1] for request in requests] == [
-        "https://accounts.presenton.test/oauth/token",
         "https://accounts.presenton.test/api/v1/ppt/presentation/create?mode=smart",
     ]
-    assert requests[1][2]["content"] == b'{"content":"Test cloud generation"}'
-    assert requests[1][2]["stream"] is True
+    assert requests[0][2]["content"] == b'{"content":"Test cloud generation"}'
+    assert requests[0][2]["stream"] is True
 
 
 def test_legacy_admin_credentials_are_migrated_to_the_global_provider(

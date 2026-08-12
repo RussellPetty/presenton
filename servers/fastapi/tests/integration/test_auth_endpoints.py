@@ -216,9 +216,7 @@ def test_admin_provider_settings_include_safe_global_presenton_status(
                 issuer="https://presenton-enterprise.fly.dev",
                 subject="cloud-admin",
                 email="cloud-admin@example.com",
-                access_token="secret-access-token",
-                refresh_token="secret-refresh-token",
-                scope="profile:read presenton:api",
+                access_token="user.jwt.signature",
                 expires_in=3600,
             )
 
@@ -228,7 +226,7 @@ def test_admin_provider_settings_include_safe_global_presenton_status(
     assert response.status_code == 200
     assert response.json()["PRESENTON_CONNECTED"] is True
     assert response.json()["PRESENTON_EMAIL"] == "cloud-admin@example.com"
-    assert response.json()["PRESENTON_SCOPES"] == ["presenton:api", "profile:read"]
+    assert "PRESENTON_SCOPES" not in response.json()
     assert "PRESENTON_ACCESS_TOKEN" not in response.json()
     assert "PRESENTON_REFRESH_TOKEN" not in response.json()
     asyncio.run(engine.dispose())

@@ -80,7 +80,7 @@ def test_admin_connects_global_provider_without_replacing_local_login(
     async def provider_request(method, url, **kwargs):
         if url.endswith("/oauth/device_authorization"):
             assert kwargs["data"]["client_id"] == "ptc_presenton_open_source"
-            assert kwargs["data"]["scope"] == "presenton:api profile:read"
+            assert "scope" not in kwargs["data"]
             return _response(
                 200,
                 {
@@ -96,10 +96,8 @@ def test_admin_connects_global_provider_without_replacing_local_login(
             return _response(
                 200,
                 {
-                    "access_token": "pt_access_provider",
-                    "refresh_token": "pt_refresh_provider",
-                    "scope": "presenton:api profile:read",
-                    "expires_in": 3600,
+                    "access_token": "user.jwt.signature",
+                    "expires_in": 30 * 24 * 60 * 60,
                 },
             )
         if url.endswith("/oauth/userinfo"):
@@ -149,8 +147,9 @@ def test_admin_connects_global_provider_without_replacing_local_login(
     user_count, provider = asyncio.run(rows())
     assert user_count == 1
     assert provider.subject == "hosted-provider-owner"
-    assert provider.access_token_encrypted != "pt_access_provider"
-    assert provider.refresh_token_encrypted != "pt_refresh_provider"
+    assert provider.access_token_encrypted != "user.jwt.signature"
+    assert provider.refresh_token_encrypted is None
+    assert provider.scopes is None
     asyncio.run(engine.dispose())
 
 
@@ -191,9 +190,7 @@ def test_admin_can_disconnect_global_provider(monkeypatch, tmp_path):
                 issuer="https://presenton-enterprise.fly.dev",
                 subject="hosted-provider-owner",
                 email="provider@example.com",
-                access_token="pt_access_provider",
-                refresh_token="pt_refresh_provider",
-                scope="presenton:api profile:read",
+                access_token="user.jwt.signature",
                 expires_in=3600,
             )
 
@@ -201,7 +198,7 @@ def test_admin_can_disconnect_global_provider(monkeypatch, tmp_path):
 
     async def provider_request(_method, url, **kwargs):
         assert url.endswith("/oauth/revoke")
-        assert kwargs["data"]["token"] == "pt_refresh_provider"
+        assert kwargs["headers"]["Authorization"] == "Bearer user.jwt.signature"
         return _response(200, {})
 
     monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
@@ -257,5 +254,5 @@ def test_regular_user_cannot_manage_global_provider(monkeypatch, tmp_path):
     status = client.get("/api/v1/auth/presenton/status").json()
     assert status["can_manage"] is False
     assert status["email"] is None
-    assert status["scopes"] == []
+    assert "scopes" not in status
     asyncio.run(engine.dispose())

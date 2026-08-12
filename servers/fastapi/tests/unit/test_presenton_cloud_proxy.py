@@ -1,10 +1,12 @@
 import asyncio
 import uuid
+from datetime import timedelta
 from types import SimpleNamespace
 
 from starlette.requests import Request
 
 from services import presenton_cloud_proxy
+from utils.datetime_utils import get_current_utc_datetime
 
 
 def _request(
@@ -92,8 +94,9 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     provider = SimpleNamespace(
         subject=str(uuid.uuid4()),
         access_token_encrypted="encrypted-access",
-        refresh_token_encrypted="encrypted-refresh",
-        scopes="presenton:api profile:read",
+        refresh_token_encrypted=None,
+        scopes=None,
+        token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
     )
 
     class FakeUpstream:

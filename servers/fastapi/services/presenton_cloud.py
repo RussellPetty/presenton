@@ -16,11 +16,8 @@ from models.sql.presenton_cloud_provider import PresentonCloudProvider
 from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
 from models.sql.user import User
 from utils.datetime_utils import get_current_utc_datetime
-from utils.get_env import get_presenton_oauth_client_id
 
-CLOUD_API_SCOPE = "presenton:api"
 GLOBAL_PROVIDER_ID = 1
-TOKEN_REFRESH_SKEW_SECONDS = 60
 
 
 class PresentonCloudError(RuntimeError):
@@ -52,10 +49,6 @@ def _decrypt_token(token: str | None) -> str | None:
         ) from exc
 
 
-def _scope_set(value: str | None) -> frozenset[str]:
-    return frozenset(part for part in (value or "").split() if part)
-
-
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
@@ -63,11 +56,17 @@ def _as_utc(value: datetime) -> datetime:
 
 
 def has_cloud_credentials(provider: PresentonCloudProvider | None) -> bool:
-    return bool(
-        provider
-        and provider.access_token_encrypted
-        and provider.refresh_token_encrypted
-        and CLOUD_API_SCOPE in _scope_set(provider.scopes)
+    if (
+        not provider
+        or not provider.access_token_encrypted
+        or provider.refresh_token_encrypted is not None
+        or provider.scopes is not None
+    ):
+        return False
+    if provider.token_expires_at is None:
+        return False
+    return _as_utc(provider.token_expires_at) > _as_utc(
+        get_current_utc_datetime()
     )
 
 
@@ -93,15 +92,8 @@ async def store_presenton_credentials(
     subject: str,
     email: str,
     access_token: str,
-    refresh_token: str,
-    scope: str,
     expires_in: int,
 ) -> PresentonCloudProvider:
-    if CLOUD_API_SCOPE not in _scope_set(scope):
-        raise PresentonCloudError(
-            403,
-            "Presenton did not grant cloud presentation access",
-        )
     provider = await session.get(
         PresentonCloudProvider,
         GLOBAL_PROVIDER_ID,
@@ -118,11 +110,11 @@ async def store_presenton_credentials(
     provider.subject = subject
     provider.email = email
     provider.access_token_encrypted = _encrypt_token(access_token)
-    provider.refresh_token_encrypted = _encrypt_token(refresh_token)
+    provider.refresh_token_encrypted = None
     provider.token_expires_at = get_current_utc_datetime() + timedelta(
         seconds=max(1, expires_in)
     )
-    provider.scopes = " ".join(sorted(_scope_set(scope)))
+    provider.scopes = None
     session.add(provider)
     await session.commit()
     await session.refresh(provider)
@@ -151,8 +143,7 @@ async def migrate_legacy_presenton_credentials(
                 for identity, user in identity_rows
                 if user.is_superuser
                 if identity.access_token_encrypted
-                and identity.refresh_token_encrypted
-                and CLOUD_API_SCOPE in _scope_set(identity.scopes)
+                and identity.token_expires_at is not None
             ),
             None,
         )
@@ -193,107 +184,20 @@ def _response_json(response: httpx.Response) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _response_detail(response: httpx.Response, fallback: str) -> str:
-    payload = _response_json(response)
-    for key in ("error_description", "detail", "error"):
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            return value
-    return fallback
-
-
-async def _refresh_access_token(
-    session: AsyncSession,
-    provider: PresentonCloudProvider,
-) -> tuple[str, PresentonCloudProvider]:
-    refresh_token = _decrypt_token(provider.refresh_token_encrypted)
-    if not refresh_token:
-        raise PresentonCloudError(401, "Reconnect your Presenton account")
-
-    try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(20.0),
-            follow_redirects=False,
-        ) as client:
-            response = await client.post(
-                f"{provider.issuer}/oauth/token",
-                data={
-                    "grant_type": "refresh_token",
-                    "client_id": get_presenton_oauth_client_id(),
-                    "refresh_token": refresh_token,
-                },
-            )
-    except httpx.HTTPError as exc:
-        raise PresentonCloudError(
-            502,
-            "Could not refresh the Presenton cloud session",
-        ) from exc
-
-    if not response.is_success:
-        provider.access_token_encrypted = None
-        provider.refresh_token_encrypted = None
-        provider.token_expires_at = None
-        provider.scopes = None
-        session.add(provider)
-        await session.commit()
-        raise PresentonCloudError(
-            401,
-            _response_detail(response, "Presenton authorization expired; reconnect"),
-        )
-
-    payload = _response_json(response)
-    access_token = payload.get("access_token")
-    rotated_refresh_token = payload.get("refresh_token")
-    scope = payload.get("scope")
-    expires_in = payload.get("expires_in")
-    if (
-        not isinstance(access_token, str)
-        or not access_token
-        or not isinstance(rotated_refresh_token, str)
-        or not rotated_refresh_token
-        or not isinstance(scope, str)
-        or CLOUD_API_SCOPE not in _scope_set(scope)
-    ):
-        raise PresentonCloudError(
-            502,
-            "Presenton returned an invalid refreshed session",
-        )
-
-    provider.access_token_encrypted = _encrypt_token(access_token)
-    provider.refresh_token_encrypted = _encrypt_token(rotated_refresh_token)
-    provider.token_expires_at = get_current_utc_datetime() + timedelta(
-        seconds=expires_in if isinstance(expires_in, int) and expires_in > 0 else 3600
-    )
-    provider.scopes = " ".join(sorted(_scope_set(scope)))
-    session.add(provider)
-    await session.commit()
-    await session.refresh(provider)
-    return access_token, provider
-
-
 async def get_valid_presenton_access_token(
     session: AsyncSession,
     *,
     issuer: str,
-    force_refresh: bool = False,
 ) -> tuple[str, PresentonCloudProvider]:
-    provider = await get_presenton_provider(session, issuer, for_update=True)
+    provider = await get_presenton_provider(session, issuer)
     if not has_cloud_credentials(provider):
         raise PresentonCloudError(401, "Connect the global Presenton provider first")
     assert provider is not None
 
-    now = get_current_utc_datetime()
-    expires_at = provider.token_expires_at
-    if (
-        not force_refresh
-        and expires_at is not None
-        and _as_utc(expires_at)
-        > _as_utc(now) + timedelta(seconds=TOKEN_REFRESH_SKEW_SECONDS)
-    ):
-        access_token = _decrypt_token(provider.access_token_encrypted)
-        if access_token:
-            return access_token, provider
-    return await _refresh_access_token(session, provider)
+    access_token = _decrypt_token(provider.access_token_encrypted)
+    if not access_token:
+        raise PresentonCloudError(401, "Reconnect your Presenton account")
+    return access_token, provider
 
 
 async def open_presenton_cloud_response(
@@ -338,18 +242,7 @@ async def open_presenton_cloud_response(
                 "Could not connect to the Presenton cloud API",
             ) from exc
 
-    client, response = await send(access_token)
-    if response.status_code != 401:
-        return client, response
-
-    await response.aclose()
-    await client.aclose()
-    refreshed_token, _provider = await get_valid_presenton_access_token(
-        session,
-        issuer=issuer,
-        force_refresh=True,
-    )
-    return await send(refreshed_token)
+    return await send(access_token)
 
 
 async def revoke_and_clear_presenton_provider(
@@ -357,22 +250,19 @@ async def revoke_and_clear_presenton_provider(
     provider: PresentonCloudProvider,
     provider_request: Callable[..., Awaitable[httpx.Response]] | None = None,
 ) -> None:
-    refresh_token: str | None
+    access_token: str | None
     try:
-        refresh_token = _decrypt_token(provider.refresh_token_encrypted)
+        access_token = _decrypt_token(provider.access_token_encrypted)
     except PresentonCloudError:
-        refresh_token = None
+        access_token = None
 
-    if refresh_token:
+    if access_token:
         try:
             if provider_request is not None:
                 await provider_request(
                     "POST",
                     f"{provider.issuer}/oauth/revoke",
-                    data={
-                        "token": refresh_token,
-                        "token_type_hint": "refresh_token",
-                    },
+                    headers={"Authorization": f"Bearer {access_token}"},
                 )
             else:
                 async with httpx.AsyncClient(
@@ -381,10 +271,7 @@ async def revoke_and_clear_presenton_provider(
                 ) as client:
                     await client.post(
                         f"{provider.issuer}/oauth/revoke",
-                        data={
-                            "token": refresh_token,
-                            "token_type_hint": "refresh_token",
-                        },
+                        headers={"Authorization": f"Bearer {access_token}"},
                     )
         except httpx.HTTPError:
             pass

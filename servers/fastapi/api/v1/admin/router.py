@@ -69,9 +69,6 @@ async def read_provider_settings(
         **settings,
         "PRESENTON_CONNECTED": has_cloud_credentials(provider),
         "PRESENTON_EMAIL": provider.email if provider is not None else None,
-        "PRESENTON_SCOPES": sorted((provider.scopes or "").split())
-        if provider is not None
-        else [],
     }
 
 

@@ -82,14 +82,14 @@ def _provider_error(payload: dict[str, Any], fallback: str) -> str:
     return fallback
 
 
-async def _best_effort_revoke(issuer: str, refresh_token: str | None) -> None:
-    if not refresh_token:
+async def _best_effort_revoke(issuer: str, access_token: str | None) -> None:
+    if not access_token:
         return
     try:
         await _provider_request(
             "POST",
             f"{issuer}/oauth/revoke",
-            data={"token": refresh_token, "token_type_hint": "refresh_token"},
+            headers={"Authorization": f"Bearer {access_token}"},
         )
     except httpx.HTTPError:
         pass
@@ -113,9 +113,6 @@ async def presenton_provider_status(
         "linked": linked,
         "cloud_generation_enabled": linked,
         "email": provider.email if provider is not None and can_manage else None,
-        "scopes": sorted((provider.scopes or "").split())
-        if provider is not None and can_manage
-        else [],
     }
 
 
@@ -151,7 +148,6 @@ async def start_presenton_provider_connection(
             f"{issuer}/oauth/device_authorization",
             data={
                 "client_id": client_id,
-                "scope": "presenton:api profile:read",
                 "device_name": (body.device_name or "Presenton self-hosted")[:120],
             },
         )
@@ -221,22 +217,13 @@ async def poll_presenton_provider_connection(
         )
 
     access_token = token_payload.get("access_token")
-    refresh_token = token_payload.get("refresh_token")
-    granted_scope = token_payload.get("scope")
     expires_in = token_payload.get("expires_in")
     if not isinstance(access_token, str) or not access_token:
         raise HTTPException(
             status_code=502, detail="Presenton did not return an access token"
         )
 
-    refresh_token_value = refresh_token if isinstance(refresh_token, str) else None
-    if not refresh_token_value:
-        raise HTTPException(
-            status_code=502, detail="Presenton did not return a refresh token"
-        )
-    if not isinstance(granted_scope, str):
-        raise HTTPException(status_code=502, detail="Presenton did not return scopes")
-    expires_in_value = expires_in if isinstance(expires_in, int) else 3600
+    expires_in_value = expires_in if isinstance(expires_in, int) else 30 * 24 * 60 * 60
     credentials_stored = False
     try:
         try:
@@ -269,8 +256,6 @@ async def poll_presenton_provider_connection(
                 subject=profile.sub,
                 email=profile.email,
                 access_token=access_token,
-                refresh_token=refresh_token_value,
-                scope=granted_scope,
                 expires_in=expires_in_value,
             )
         except PresentonCloudError as exc:
@@ -289,4 +274,4 @@ async def poll_presenton_provider_connection(
         )
     finally:
         if not credentials_stored:
-            await _best_effort_revoke(issuer, refresh_token_value)
+            await _best_effort_revoke(issuer, access_token)
