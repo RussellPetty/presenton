@@ -1,11 +1,8 @@
 import asyncio
 import copy
-from contextlib import ExitStack
 from datetime import datetime
 import json
 import logging
-import mimetypes
-import os
 import random
 import re
 import traceback
@@ -69,13 +66,6 @@ from services.database import get_async_session
 from services.database import async_session_maker
 from services.concurrent_service import CONCURRENT_SERVICE
 from models.sql.presentation import PresentationModel, PresentationVersion
-from models.sql.user import User
-from services.presenton_cloud import (
-    PresentonCloudError,
-    get_presenton_identity,
-    has_cloud_credentials,
-    request_presenton_cloud,
-)
 from models.sql.template_v2 import TemplateV2
 from models.sql.async_task import AsyncTaskModel
 from utils.asset_directory_utils import get_images_directory
@@ -86,7 +76,6 @@ from utils.llm_calls.generate_slide_content import (
     get_slide_content_from_type_and_outline,
 )
 from utils.latex_text import parse_latex_tags, replace_text_runs
-from utils.get_env import get_presenton_oauth_issuer
 from utils.ppt_utils import (
     select_toc_or_list_slide_layout_index,
 )
@@ -158,150 +147,6 @@ BLANK_PRESENTATION_SLIDE_UI: dict[str, Any] = {
 
 class PresentationPrepareResponse(BaseModel):
     presentation_id: uuid.UUID
-
-
-def _cloud_error_detail(response: Any, fallback: str) -> str:
-    try:
-        payload = response.json()
-    except ValueError:
-        return fallback
-    if isinstance(payload, dict):
-        detail = payload.get("detail") or payload.get("error_description")
-        if isinstance(detail, str) and detail.strip():
-            return detail
-    return fallback
-
-
-async def _presenton_cloud_user(
-    request_http: Request | None,
-    sql_session: AsyncSession,
-) -> User | None:
-    if request_http is None:
-        return None
-    user = getattr(request_http.state, "current_user", None)
-    if not isinstance(user, User):
-        return None
-    identity = await get_presenton_identity(
-        sql_session,
-        user.id,
-        get_presenton_oauth_issuer(),
-    )
-    return user if has_cloud_credentials(identity) else None
-
-
-def _presenton_cloud_generation_payload(
-    request: GeneratePresentationRequest,
-) -> dict[str, Any]:
-    payload = request.model_dump(
-        mode="json",
-        exclude={"slides_markdown", "template", "files"},
-    )
-    if request.slides_markdown:
-        payload["slides"] = request.slides_markdown
-        payload["n_slides"] = len(request.slides_markdown)
-    payload["generation_mode"] = "standard"
-    payload["standard_template"] = request.template
-    return payload
-
-
-async def _upload_generation_files_to_presenton_cloud(
-    request: GeneratePresentationRequest,
-    sql_session: AsyncSession,
-    user: User,
-) -> list[str] | None:
-    if not request.files:
-        return None
-    resolved_paths = TEMP_FILE_SERVICE.resolve_existing_temp_paths(request.files)
-    with ExitStack() as stack:
-        upload_parts = []
-        for path in resolved_paths:
-            file_handle = stack.enter_context(open(path, "rb"))
-            upload_parts.append(
-                (
-                    "files",
-                    (
-                        os.path.basename(path),
-                        file_handle,
-                        mimetypes.guess_type(path)[0] or "application/octet-stream",
-                    ),
-                )
-            )
-        try:
-            response = await request_presenton_cloud(
-                sql_session,
-                user_id=user.id,
-                issuer=get_presenton_oauth_issuer(),
-                method="POST",
-                path="/api/v3/files/upload",
-                files=upload_parts,
-            )
-        except PresentonCloudError as exc:
-            raise HTTPException(exc.status_code, exc.detail) from exc
-    if not response.is_success:
-        raise HTTPException(
-            response.status_code,
-            _cloud_error_detail(response, "Presenton cloud file upload failed"),
-        )
-    try:
-        cloud_files = response.json()
-    except ValueError as exc:
-        raise HTTPException(
-            502,
-            "Presenton cloud returned an invalid file upload response",
-        ) from exc
-    if not isinstance(cloud_files, list) or not all(
-        isinstance(path, str) for path in cloud_files
-    ):
-        raise HTTPException(
-            502,
-            "Presenton cloud returned an invalid file upload response",
-        )
-    return cloud_files
-
-
-async def _generate_presentation_with_presenton_cloud(
-    request: GeneratePresentationRequest,
-    sql_session: AsyncSession,
-    user: User,
-    *,
-    asynchronous: bool,
-) -> Any:
-    payload = _presenton_cloud_generation_payload(request)
-    cloud_files = await _upload_generation_files_to_presenton_cloud(
-        request,
-        sql_session,
-        user,
-    )
-    if cloud_files:
-        payload["files"] = cloud_files
-    path = "/api/v3/presentation/generate"
-    if asynchronous:
-        path += "/async"
-    try:
-        response = await request_presenton_cloud(
-            sql_session,
-            user_id=user.id,
-            issuer=get_presenton_oauth_issuer(),
-            method="POST",
-            path=path,
-            json=payload,
-        )
-    except PresentonCloudError as exc:
-        raise HTTPException(exc.status_code, exc.detail) from exc
-    if not response.is_success:
-        raise HTTPException(
-            response.status_code,
-            _cloud_error_detail(response, "Presenton cloud generation failed"),
-        )
-    try:
-        response_payload = response.json()
-        model = AsyncTaskModel if asynchronous else PresentationPathAndEditPath
-        return model.model_validate(response_payload)
-    except (ValueError, TypeError) as exc:
-        raise HTTPException(
-            502,
-            "Presenton cloud returned an invalid generation response",
-        ) from exc
 
 
 def _blank_presentation_slide_ui() -> dict[str, Any]:
@@ -2939,14 +2784,6 @@ async def generate_presentation_sync(
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     try:
-        cloud_user = await _presenton_cloud_user(request_http, sql_session)
-        if cloud_user is not None:
-            return await _generate_presentation_with_presenton_cloud(
-                request,
-                sql_session,
-                cloud_user,
-                asynchronous=False,
-            )
         (presentation_id,) = await check_if_api_request_is_valid(request, sql_session)
         return await generate_presentation_handler(
             request,
@@ -3005,14 +2842,6 @@ async def generate_presentation_async(
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     try:
-        cloud_user = await _presenton_cloud_user(request_http, sql_session)
-        if cloud_user is not None:
-            return await _generate_presentation_with_presenton_cloud(
-                request,
-                sql_session,
-                cloud_user,
-                asynchronous=True,
-            )
         (presentation_id,) = await check_if_api_request_is_valid(request, sql_session)
 
         async_status = AsyncTaskModel(
@@ -3047,44 +2876,15 @@ async def generate_presentation_async(
 
 @PRESENTATION_ROUTER.get("/status/{id}", response_model=AsyncTaskModel)
 async def check_async_presentation_generation_status(
-    request_http: Request = None,
     id: str = Path(description="ID of the presentation generation task"),
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     status = await sql_session.get(AsyncTaskModel, id)
-    if status:
-        return status
-
-    cloud_user = await _presenton_cloud_user(request_http, sql_session)
-    if cloud_user is None:
+    if not status:
         raise HTTPException(
             status_code=404, detail="No presentation generation task found"
         )
-    try:
-        response = await request_presenton_cloud(
-            sql_session,
-            user_id=cloud_user.id,
-            issuer=get_presenton_oauth_issuer(),
-            method="GET",
-            path=f"/api/v3/async-task/status/{id}",
-        )
-    except PresentonCloudError as exc:
-        raise HTTPException(exc.status_code, exc.detail) from exc
-    if not response.is_success:
-        raise HTTPException(
-            response.status_code,
-            _cloud_error_detail(
-                response,
-                "No Presenton cloud generation task found",
-            ),
-        )
-    try:
-        return AsyncTaskModel.model_validate(response.json())
-    except (ValueError, TypeError) as exc:
-        raise HTTPException(
-            502,
-            "Presenton cloud returned an invalid task response",
-        ) from exc
+    return status
 
 
 @PRESENTATION_ROUTER.post("/edit", response_model=PresentationPathAndEditPath)

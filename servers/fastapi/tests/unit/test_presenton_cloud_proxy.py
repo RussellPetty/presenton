@@ -1,0 +1,218 @@
+import asyncio
+import uuid
+from types import SimpleNamespace
+
+from starlette.requests import Request
+
+from services import presenton_cloud_proxy
+
+
+def _request(
+    path: str,
+    *,
+    query: str = "",
+    body: bytes = b"",
+    headers: list[tuple[bytes, bytes]] | None = None,
+) -> Request:
+    sent = False
+
+    async def receive():
+        nonlocal sent
+        if sent:
+            return {"type": "http.disconnect"}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    return Request(
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode(),
+            "query_string": query.encode(),
+            "headers": headers or [],
+            "client": ("127.0.0.1", 1234),
+            "server": ("localhost", 5001),
+        },
+        receive,
+    )
+
+
+def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
+    proxied_paths = (
+        "/api/v1/ppt/files/upload",
+        "/api/v1/ppt/files/decompose",
+        "/api/v1/ppt/presentation/create",
+        "/api/v1/ppt/outlines/stream/presentation-id",
+        "/api/v1/ppt/outlines/presentation-id",
+        "/api/v1/ppt/presentation/prepare",
+        "/api/v1/ppt/presentation/stream/presentation-id",
+        "/app_data/images/users/00000000-0000-0000-0000-000000000001/generated.png",
+        "/app_data/exports/users/00000000-0000-0000-0000-000000000001/generated.pptx",
+    )
+    for path in proxied_paths:
+        assert presenton_cloud_proxy.should_proxy_presenton_cloud(path)
+
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/codex/auth/status"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/auth/presenton/status"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/app_data/templates/default/template.pptx"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/static/icons/regular/chart.png"
+    )
+
+
+def test_cloud_private_assets_require_the_oauth_subject_namespace():
+    cloud_user_id = uuid.uuid4()
+    identity = SimpleNamespace(subject=str(cloud_user_id))
+
+    assert presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+        f"/app_data/images/users/{cloud_user_id}/generated.png",
+        identity,
+    )
+    assert not presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+        f"/app_data/images/users/{uuid.uuid4()}/generated.png",
+        identity,
+    )
+    assert not presenton_cloud_proxy._cloud_asset_belongs_to_identity(
+        "/app_data/images/generated.png",
+        identity,
+    )
+
+
+def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
+    captured = {}
+    identity = SimpleNamespace(
+        access_token_encrypted="encrypted-access",
+        refresh_token_encrypted="encrypted-refresh",
+        scopes="presenton:api profile:read",
+    )
+
+    class FakeUpstream:
+        def __init__(self):
+            self.status_code = 200
+            self.headers = {
+                "content-type": "text/event-stream",
+                "content-length": "999",
+                "set-cookie": "cloud_session=secret",
+                "x-cloud-request-id": "request-id",
+            }
+            self.closed = False
+
+        async def aiter_raw(self):
+            yield b'data: {"status":"running"}\n\n'
+            yield b'data: {"status":"complete"}\n\n'
+
+        async def aclose(self):
+            self.closed = True
+
+    class FakeClient:
+        closed = False
+
+        async def aclose(self):
+            self.closed = True
+
+    upstream = FakeUpstream()
+    client = FakeClient()
+
+    async def get_identity(_session, user_id, issuer):
+        captured["identity"] = (user_id, issuer)
+        return identity
+
+    async def open_response(_session, **kwargs):
+        captured.update(kwargs)
+        return client, upstream
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_identity", get_identity)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "open_presenton_cloud_response",
+        open_response,
+    )
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "get_presenton_oauth_issuer",
+        lambda: "https://api.presenton.test",
+    )
+
+    user_id = uuid.uuid4()
+    request = _request(
+        "/api/v1/ppt/presentation/create",
+        query="mode=smart",
+        body=b'{"prompt":"Build a deck"}',
+        headers=[
+            (b"authorization", b"Bearer local-session"),
+            (b"cookie", b"session=local-secret"),
+            (b"host", b"localhost:5001"),
+            (b"content-length", b"25"),
+            (b"content-type", b"application/json"),
+            (b"x-presenton-client", b"open-source"),
+        ],
+    )
+
+    async def exercise():
+        response = await presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            request,
+            SimpleNamespace(),
+            SimpleNamespace(id=user_id),
+        )
+        assert response is not None
+        chunks = [chunk async for chunk in response.body_iterator]
+        return response, b"".join(chunks)
+
+    response, body = asyncio.run(exercise())
+
+    assert body == (
+        b'data: {"status":"running"}\n\n'
+        b'data: {"status":"complete"}\n\n'
+    )
+    assert captured["identity"] == (user_id, "https://api.presenton.test")
+    assert captured["user_id"] == user_id
+    assert captured["issuer"] == "https://api.presenton.test"
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/api/v1/ppt/presentation/create"
+    assert captured["query_string"] == "mode=smart"
+    assert captured["content"] == b'{"prompt":"Build a deck"}'
+    assert captured["headers"] == {
+        "content-type": "application/json",
+        "x-presenton-client": "open-source",
+    }
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/event-stream"
+    assert response.headers["x-cloud-request-id"] == "request-id"
+    assert "content-length" not in response.headers
+    assert "set-cookie" not in response.headers
+    assert upstream.closed is True
+    assert client.closed is True
+
+
+def test_unlinked_request_stays_local(monkeypatch):
+    async def get_identity(_session, _user_id, _issuer):
+        return None
+
+    async def unexpected_open(*_args, **_kwargs):
+        raise AssertionError("Cloud request must not be opened for an unlinked user")
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_identity", get_identity)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "open_presenton_cloud_response",
+        unexpected_open,
+    )
+
+    response = asyncio.run(
+        presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request("/api/v1/ppt/presentation/create"),
+            SimpleNamespace(),
+            SimpleNamespace(id=uuid.uuid4()),
+        )
+    )
+
+    assert response is None

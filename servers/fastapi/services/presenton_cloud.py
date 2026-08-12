@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -228,45 +228,56 @@ async def get_valid_presenton_access_token(
     return await _refresh_access_token(session, identity)
 
 
-async def request_presenton_cloud(
+async def open_presenton_cloud_response(
     session: AsyncSession,
     *,
     user_id: uuid.UUID,
     issuer: str,
     method: str,
     path: str,
-    json: Any = None,
-    files: Any = None,
-) -> httpx.Response:
+    query_string: str = "",
+    headers: Mapping[str, str] | None = None,
+    content: bytes | None = None,
+) -> tuple[httpx.AsyncClient, httpx.Response]:
+    """Open a streaming cloud response while preserving the original API request."""
     access_token, _identity = await get_valid_presenton_access_token(
         session,
         user_id=user_id,
         issuer=issuer,
     )
+    url = f"{issuer}{path}"
+    if query_string:
+        url = f"{url}?{query_string}"
 
-    async def send(token: str) -> httpx.Response:
+    async def send(token: str) -> tuple[httpx.AsyncClient, httpx.Response]:
+        client = httpx.AsyncClient(
+            timeout=httpx.Timeout(15 * 60.0),
+            follow_redirects=False,
+        )
+        outbound_headers = dict(headers or {})
+        outbound_headers["Authorization"] = f"Bearer {token}"
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(15 * 60.0),
-                follow_redirects=False,
-            ) as client:
-                return await client.request(
-                    method,
-                    f"{issuer}{path}",
-                    headers={"Authorization": f"Bearer {token}"},
-                    json=json,
-                    files=files,
-                )
+            request = client.build_request(
+                method,
+                url,
+                headers=outbound_headers,
+                content=content,
+            )
+            response = await client.send(request, stream=True)
+            return client, response
         except httpx.HTTPError as exc:
+            await client.aclose()
             raise PresentonCloudError(
                 502,
                 "Could not connect to the Presenton cloud API",
             ) from exc
 
-    response = await send(access_token)
+    client, response = await send(access_token)
     if response.status_code != 401:
-        return response
+        return client, response
 
+    await response.aclose()
+    await client.aclose()
     refreshed_token, _identity = await get_valid_presenton_access_token(
         session,
         user_id=user_id,

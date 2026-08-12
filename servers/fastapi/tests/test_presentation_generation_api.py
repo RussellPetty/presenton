@@ -1,6 +1,6 @@
 import asyncio
-from types import SimpleNamespace
 import uuid
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -110,48 +110,6 @@ class TestPresentationGenerationAPI:
 
         assert response == response_payload
         mock_handler.assert_awaited_once()
-
-    def test_generate_presentation_uses_cloud_when_presenton_is_connected(self):
-        request = GeneratePresentationRequest(
-            content="Create a presentation with my Presenton account",
-            n_slides=6,
-            language="English",
-            export_as="pptx",
-            template="general",
-        )
-        response_payload = PresentationPathAndEditPath(
-            presentation_id=uuid.uuid4(),
-            path="https://api.presenton.test/generated.pptx",
-            edit_path="https://presenton.test/presentation?id=cloud",
-        )
-        cloud_user = SimpleNamespace(id=uuid.uuid4())
-
-        with (
-            patch(
-                "api.v1.ppt.endpoints.presentation._presenton_cloud_user",
-                new=AsyncMock(return_value=cloud_user),
-            ),
-            patch(
-                "api.v1.ppt.endpoints.presentation._generate_presentation_with_presenton_cloud",
-                new=AsyncMock(return_value=response_payload),
-            ) as cloud_generate,
-            patch(
-                "api.v1.ppt.endpoints.presentation.generate_presentation_handler",
-                new=AsyncMock(),
-            ) as local_generate,
-        ):
-            response = asyncio.run(
-                generate_presentation_sync(
-                    request_http=FakeRequest(),
-                    request=request,
-                    sql_session=FakeAsyncSession(),
-                )
-            )
-
-        assert response == response_payload
-        cloud_generate.assert_awaited_once()
-        assert cloud_generate.await_args.kwargs["asynchronous"] is False
-        local_generate.assert_not_awaited()
 
     def test_generate_presentation_async_enqueues_async_task(self):
         request = GeneratePresentationRequest(

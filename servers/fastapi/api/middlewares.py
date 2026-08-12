@@ -4,16 +4,17 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from api.v1.auth.assets import is_app_data_path_authorized
-from api.v1.auth.principal import resolve_request_principal
 from api.v1.auth.context import (
     reset_current_owner_id,
     reset_current_owner_is_admin,
     set_current_owner_id,
     set_current_owner_is_admin,
 )
+from api.v1.auth.principal import resolve_request_principal
 from api.v1.auth.users import get_jwt_strategy
 from models.sql.user import User
 from services.database import async_session_maker
+from services.presenton_cloud_proxy import maybe_proxy_presenton_cloud_request
 from utils.get_env import get_can_change_keys_env, is_disable_auth_enabled
 from utils.user_config import update_env_with_user_config
 
@@ -99,15 +100,6 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
                     status_code=403,
                     content={"detail": "Admin browser session required"},
                 )
-            if path.startswith("/app_data/") and not is_app_data_path_authorized(
-                path,
-                user_id=principal.user_id,
-                is_admin=principal.is_admin,
-            ):
-                return JSONResponse(
-                    status_code=404,
-                    content={"detail": "Asset not found"},
-                )
             request.state.auth_principal = principal
             request.state.current_user = user
             request.state.auth_username = principal.username
@@ -118,6 +110,25 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
             context_token = set_current_owner_id(principal.user_id)
             admin_context_token = set_current_owner_is_admin(principal.is_admin)
             try:
+                if principal.method == "jwt":
+                    cloud_response = await maybe_proxy_presenton_cloud_request(
+                        request,
+                        session,
+                        user,
+                    )
+                    if cloud_response is not None:
+                        return cloud_response
+                if path.startswith(
+                    "/app_data/"
+                ) and not is_app_data_path_authorized(
+                    path,
+                    user_id=principal.user_id,
+                    is_admin=principal.is_admin,
+                ):
+                    return JSONResponse(
+                        status_code=404,
+                        content={"detail": "Asset not found"},
+                    )
                 return await call_next(request)
             finally:
                 reset_current_owner_is_admin(admin_context_token)

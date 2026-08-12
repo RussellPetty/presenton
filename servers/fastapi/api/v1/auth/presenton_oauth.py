@@ -5,11 +5,11 @@ import secrets
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 
 from api.v1.auth.users import (
     PASSWORD_HELPER,
@@ -24,7 +24,6 @@ from services.database import get_async_session
 from services.presenton_cloud import (
     PresentonCloudError,
     has_cloud_credentials,
-    request_presenton_cloud,
     revoke_and_delete_presenton_identity,
     store_presenton_credentials,
 )
@@ -86,36 +85,6 @@ def _provider_error(payload: dict[str, Any], fallback: str) -> str:
     if isinstance(detail, str) and detail.strip():
         return detail
     return fallback
-
-
-def _cloud_response(response: httpx.Response) -> Response:
-    content_type = response.headers.get("content-type", "application/json")
-    return Response(
-        content=response.content,
-        status_code=response.status_code,
-        media_type=content_type.split(";", 1)[0],
-        headers=NO_STORE_HEADERS,
-    )
-
-
-async def _request_cloud_for_user(
-    session: AsyncSession,
-    user: User,
-    method: str,
-    path: str,
-    **kwargs: Any,
-) -> httpx.Response:
-    try:
-        return await request_presenton_cloud(
-            session,
-            user_id=user.id,
-            issuer=get_presenton_oauth_issuer(),
-            method=method,
-            path=path,
-            **kwargs,
-        )
-    except PresentonCloudError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 def _secure_request(request: Request) -> bool:
@@ -314,80 +283,6 @@ async def logout_presenton_account(
             provider_request=_provider_request,
         )
     return {"detail": "Disconnected from Presenton successfully"}
-
-
-@PRESENTON_OAUTH_ROUTER.post("/cloud/presentation/generate")
-async def generate_presentation_in_cloud(
-    body: dict[str, Any],
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
-):
-    response = await _request_cloud_for_user(
-        session,
-        current_user,
-        "POST",
-        "/api/v3/presentation/generate",
-        json=body,
-    )
-    return _cloud_response(response)
-
-
-@PRESENTON_OAUTH_ROUTER.post("/cloud/presentation/generate/async")
-async def generate_presentation_in_cloud_async(
-    body: dict[str, Any],
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
-):
-    response = await _request_cloud_for_user(
-        session,
-        current_user,
-        "POST",
-        "/api/v3/presentation/generate/async",
-        json=body,
-    )
-    return _cloud_response(response)
-
-
-@PRESENTON_OAUTH_ROUTER.get("/cloud/async-task/status/{task_id}")
-async def get_cloud_generation_status(
-    task_id: str,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
-):
-    response = await _request_cloud_for_user(
-        session,
-        current_user,
-        "GET",
-        f"/api/v3/async-task/status/{task_id}",
-    )
-    return _cloud_response(response)
-
-
-@PRESENTON_OAUTH_ROUTER.post("/cloud/files/upload")
-async def upload_files_to_presenton_cloud(
-    files: list[UploadFile] = File(...),
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
-):
-    upload_parts = [
-        (
-            "files",
-            (
-                uploaded.filename or "upload",
-                uploaded.file,
-                uploaded.content_type or "application/octet-stream",
-            ),
-        )
-        for uploaded in files
-    ]
-    response = await _request_cloud_for_user(
-        session,
-        current_user,
-        "POST",
-        "/api/v3/files/upload",
-        files=upload_parts,
-    )
-    return _cloud_response(response)
 
 
 @PRESENTON_OAUTH_ROUTER.post("/device/start")

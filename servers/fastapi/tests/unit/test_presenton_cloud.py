@@ -21,7 +21,7 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
 
     class FakeAsyncClient:
         def __init__(self, **_kwargs):
-            pass
+            self.closed = False
 
         async def __aenter__(self):
             return self
@@ -43,10 +43,30 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
                 },
             )
 
-        async def request(self, method, url, **kwargs):
-            requests.append((method, url, kwargs))
-            assert kwargs["headers"]["Authorization"] == "Bearer pt_access_rotated"
-            return httpx.Response(200, json={"presentation_id": "cloud-id"})
+        def build_request(self, method, url, **kwargs):
+            return httpx.Request(method, url, **kwargs)
+
+        async def send(self, request, *, stream):
+            requests.append(
+                (
+                    request.method,
+                    str(request.url),
+                    {
+                        "headers": request.headers,
+                        "content": request.content,
+                        "stream": stream,
+                    },
+                )
+            )
+            assert request.headers["Authorization"] == "Bearer pt_access_rotated"
+            return httpx.Response(
+                200,
+                json={"presentation_id": "cloud-id"},
+                request=request,
+            )
+
+        async def aclose(self):
+            self.closed = True
 
     monkeypatch.setattr(presenton_cloud.httpx, "AsyncClient", FakeAsyncClient)
 
@@ -91,15 +111,20 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
             session.add(stored)
             await session.commit()
 
-            response = await presenton_cloud.request_presenton_cloud(
+            client, response = await presenton_cloud.open_presenton_cloud_response(
                 session,
                 user_id=user.id,
                 issuer=identity.issuer,
                 method="POST",
-                path="/api/v3/presentation/generate",
-                json={"content": "Test cloud generation"},
+                path="/api/v1/ppt/presentation/create",
+                query_string="mode=smart",
+                headers={"Content-Type": "application/json"},
+                content=b'{"content":"Test cloud generation"}',
             )
             assert response.status_code == 200
+            assert await response.aread() == b'{"presentation_id":"cloud-id"}'
+            await response.aclose()
+            await client.aclose()
 
             refreshed = await session.scalar(select(PresentonOAuthIdentity))
             assert refreshed.access_token_encrypted != "pt_access_rotated"
@@ -114,5 +139,7 @@ def test_presenton_tokens_are_encrypted_refreshed_and_used_server_side(
     asyncio.run(run())
     assert [request[1] for request in requests] == [
         "https://accounts.presenton.test/oauth/token",
-        "https://accounts.presenton.test/api/v3/presentation/generate",
+        "https://accounts.presenton.test/api/v1/ppt/presentation/create?mode=smart",
     ]
+    assert requests[1][2]["content"] == b'{"content":"Test cloud generation"}'
+    assert requests[1][2]["stream"] is True
