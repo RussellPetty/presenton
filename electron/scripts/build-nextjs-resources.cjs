@@ -28,6 +28,7 @@ const build = spawnSync(npmCmd, ["run", "build"], {
   env: {
     ...process.env,
     PRESENTON_ELECTRON_BUILD: "true",
+    NEXT_PUBLIC_PRESENTON_ELECTRON_PLATFORM: process.platform,
   },
   stdio: "inherit",
   // Windows: cmd is required to run npm.cmd; without shell, spawnSync can throw EINVAL.

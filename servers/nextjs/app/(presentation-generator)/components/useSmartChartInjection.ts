@@ -39,7 +39,8 @@ export function useSmartChartInjection({
           .forEach((script) => script.remove());
 
         const rootId = JSON.stringify(instanceId);
-        container.querySelectorAll<HTMLScriptElement>("script").forEach((source) => {
+        const sourceDocument = new DOMParser().parseFromString(html, "text/html");
+        sourceDocument.querySelectorAll<HTMLScriptElement>("script").forEach((source) => {
           const sourceCode = source.textContent?.trim();
           if (!sourceCode) return;
 
