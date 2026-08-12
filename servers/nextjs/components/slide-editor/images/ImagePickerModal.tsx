@@ -387,6 +387,7 @@ export function ImagePickerModal({
         <DialogPrimitive.Content
           data-template-v2-floating-toolbar="true"
           data-inline-edit-ignore="true"
+          style={{ translate: "none" }}
           className="fixed left-1/2 top-1/2 z-[10051] h-[calc(100dvh-24px)] w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 font-syne text-[#191919] outline-none sm:h-[min(70vh,650px)] sm:min-h-[500px] sm:w-[min(calc(100vw-160px),977px)]"
           onPointerDown={(event) => event.stopPropagation()}
         >
