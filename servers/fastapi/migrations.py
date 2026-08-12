@@ -28,7 +28,11 @@ REVISION_ASYNC_TASKS = "a7d4c9e2f1b3"
 REVISION_ASYNC_TASK_STATUS_NORMALIZED = "b8e2f4a7c9d1"
 REVISION_MULTI_USER_AUTH = "c9f1a2b3d4e5"
 REVISION_USERNAME_PROVIDER_SETTINGS = "d0a2b4c6e8f1"
-REVISION_PRIMARY_ADMIN_SLOT = "f3a7c1d9e5b2"
+REVISION_PRIMARY_ADMIN_SLOT = "e1b3c5d7f9a2"
+REVISION_SMART_GENERATION = "f3a7c1d9e5b2"
+REVISION_PRESENTON_OAUTH_IDENTITY = "a4c6e8f0b2d4"
+REVISION_PRESENTON_OAUTH_CREDENTIALS = "b5d7f9a1c3e5"
+REVISION_HEAD = REVISION_PRESENTON_OAUTH_CREDENTIALS
 
 
 async def migrate_database_on_startup() -> None:
@@ -132,11 +136,21 @@ def _infer_revision_from_schema(
         for table in owned_tables
     )
     if "provider_settings" in tables and "user" in tables and ownership_ready:
-        return (
-            REVISION_PRIMARY_ADMIN_SLOT
-            if _has_column(inspector, "user", "admin_slot")
-            else REVISION_USERNAME_PROVIDER_SETTINGS
-        )
+        if "presenton_oauth_identity" in tables:
+            if _has_column(
+                inspector,
+                "presenton_oauth_identity",
+                "refresh_token_encrypted",
+            ):
+                return REVISION_PRESENTON_OAUTH_CREDENTIALS
+            return REVISION_PRESENTON_OAUTH_IDENTITY
+        if "presentations" in tables and _has_column(
+            inspector, "presentations", "generation_mode"
+        ):
+            return REVISION_SMART_GENERATION
+        if _has_column(inspector, "user", "admin_slot"):
+            return REVISION_PRIMARY_ADMIN_SLOT
+        return REVISION_USERNAME_PROVIDER_SETTINGS
     if "user" in tables and ownership_ready:
         return REVISION_MULTI_USER_AUTH
     if "template_v2" in tables:

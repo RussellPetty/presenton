@@ -33,6 +33,7 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/login",
         "/api/v1/auth/logout",
     }
+    _PUBLIC_AUTH_PREFIXES = ("/api/v1/auth/presenton/",)
     _PUBLIC_APP_DATA_PREFIXES = (
         "/app_data/fonts/",
         "/app_data/templates/",
@@ -40,6 +41,8 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
     _PROTECTED_NON_API_PATHS = {"/docs", "/openapi.json", "/redoc"}
 
     def _requires_auth(self, path: str) -> bool:
+        if any(path.startswith(prefix) for prefix in self._PUBLIC_AUTH_PREFIXES):
+            return False
         if path.startswith("/api/"):
             return True
         if any(path.startswith(prefix) for prefix in self._PUBLIC_APP_DATA_PREFIXES):
@@ -91,9 +94,7 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
                     and request.method == "POST"
                 )
             )
-            if admin_only and (
-                principal.method != "jwt" or not principal.is_admin
-            ):
+            if admin_only and (principal.method != "jwt" or not principal.is_admin):
                 return JSONResponse(
                     status_code=403,
                     content={"detail": "Admin browser session required"},
