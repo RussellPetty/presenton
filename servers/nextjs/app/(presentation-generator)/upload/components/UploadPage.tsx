@@ -91,6 +91,11 @@ const FILE_TYPE_IMAGE = new Set([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff
 const FILE_MIME_IMAGE = new Set(["image/jpeg", "image/png", "image/gif", "image/bmp", "image/tiff", "image/webp"]);
 const FILE_TYPE_PDF = new Set([".pdf"]);
 const FILE_TYPE_TEXT = new Set([".txt"]);
+const PRESENTON_CLOUD_POLL_INTERVAL_MS = 2000;
+const PRESENTON_CLOUD_MAX_POLLS = 900;
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 // Types for loading state
 interface LoadingState {
@@ -421,6 +426,92 @@ const UploadPage = () => {
   /**
    * Handles the presentation generation process
    */
+  const handlePresentonCloudGeneration = async (): Promise<boolean> => {
+    const status = await PresentationGenerationApi.getPresentonCloudStatus();
+    if (!status.linked || !status.cloud_generation_enabled) {
+      return false;
+    }
+
+    setLoadingState({
+      isLoading: true,
+      message: "Starting generation with Presenton cloud...",
+      showProgress: true,
+      duration: 120,
+      extra_info: "You can continue editing the result in your Presenton account.",
+    });
+
+    const cloudFiles = files.length
+      ? await PresentationGenerationApi.uploadPresentonCloudDocuments(files)
+      : [];
+    const communityContext = communityReference
+      ? [
+          communityReference.prompt,
+          communityReference.description,
+        ]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join("\n\n")
+      : "";
+    const instructions = [config.instructions?.trim(), communityContext]
+      .filter(Boolean)
+      .join("\n\n");
+    const cloudContent =
+      config.prompt.trim() ||
+      communityReference?.prompt?.trim() ||
+      communityReference?.description?.trim() ||
+      communityReference?.title?.trim() ||
+      null;
+    const mode = generationMode;
+    let task = await PresentationGenerationApi.startPresentonCloudGeneration({
+      content: cloudContent,
+      n_slides: parseLimitedSlideCount(config.slides),
+      instructions: instructions || null,
+      tone: config.tone,
+      verbosity: config.verbosity,
+      web_search: !!config.webSearch,
+      image_type: mode === "smart" ? "ai-generated" : "stock",
+      language:
+        config.language === LanguageType.Auto ? null : config.language,
+      include_table_of_contents: !!config.includeTableOfContents,
+      include_title_slide: !!config.includeTitleSlide,
+      files: cloudFiles.length ? cloudFiles : null,
+      export_as: "pptx",
+      generation_mode: mode,
+      standard_template:
+        mode === "standard" ? suggestedTemplate || "general" : null,
+    });
+
+    for (let poll = 0; poll < PRESENTON_CLOUD_MAX_POLLS; poll += 1) {
+      if (task.status === "completed") {
+        if (!task.data?.edit_path) {
+          throw new Error(
+            "Presenton cloud completed generation without an edit link."
+          );
+        }
+        trackEvent(MixpanelEvent.Navigation, {
+          from: pathname,
+          to: task.data.edit_path,
+          generation_provider: "presenton_cloud",
+          presentation_id: task.data.presentation_id,
+        });
+        window.location.assign(task.data.edit_path);
+        return true;
+      }
+      if (task.status === "error") {
+        throw new Error(
+          task.error?.detail || task.message || "Presenton cloud generation failed."
+        );
+      }
+
+      setLoadingState((current) => ({
+        ...current,
+        message: task.message || "Generating with Presenton cloud...",
+      }));
+      await wait(PRESENTON_CLOUD_POLL_INTERVAL_MS);
+      task = await PresentationGenerationApi.getPresentonCloudTask(task.id);
+    }
+    throw new Error("Presenton cloud generation timed out. Please try again.");
+  };
+
   const handleGeneratePresentation = async () => {
     if (!validateConfiguration()) return;
     const snapshot = getUploadSnapshotProps();
@@ -432,14 +523,18 @@ const UploadPage = () => {
       });
     }
 
-    const isStockProviderReady =
-      generationMode === "smart" || (await ensureStockImageProviderReady());
-    if (!isStockProviderReady) {
-      trackUploadValidationFailure("stock_image_provider_unreachable");
-      return;
-    }
-
     try {
+      if (await handlePresentonCloudGeneration()) {
+        return;
+      }
+
+      const isStockProviderReady =
+        generationMode === "smart" || (await ensureStockImageProviderReady());
+      if (!isStockProviderReady) {
+        trackUploadValidationFailure("stock_image_provider_unreachable");
+        return;
+      }
+
       const hasUploadedAssets = files.length > 0;
 
       if (hasUploadedAssets) {
