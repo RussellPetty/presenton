@@ -859,16 +859,29 @@ const PresentonMode = ({
         }
     };
 
-    const handlePresentonContinue = () => {
-        trackEvent(MixpanelEvent.Onboarding_Step_Continued, {
-            from_step: "text_provider",
-            to_step: "generation",
-            provider: "presenton_cloud",
-        });
-        trackEvent(MixpanelEvent.Onboarding_Completed, {
-            provider: "presenton_cloud",
-        });
-        router.push('/upload');
+    const handlePresentonContinue = async () => {
+        try {
+            setSavingConfig(true);
+            const presentonConfig = { ...llmConfig, LLM: "presenton" };
+            await handleSaveLLMConfig(presentonConfig);
+            setLlmConfig(presentonConfig);
+            trackEvent(MixpanelEvent.Onboarding_Step_Continued, {
+                from_step: "text_provider",
+                to_step: "generation",
+                provider: "presenton",
+            });
+            trackEvent(MixpanelEvent.Onboarding_Completed, {
+                provider: "presenton",
+            });
+            router.push('/upload');
+        } catch (error) {
+            notify.error(
+                "Could not select Presenton",
+                error instanceof Error ? error.message : "Please try again."
+            );
+        } finally {
+            setSavingConfig(false);
+        }
     };
 
     const selectedWebProvider = WEB_SEARCH_PROVIDER_OPTIONS.find(

@@ -1,24 +1,14 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from api.v1.auth.users import (
-    PASSWORD_HELPER,
-    get_current_admin,
-    get_jwt_strategy,
-    read_user_from_cookie,
-    serialize_user,
-)
-from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
+from api.v1.auth.users import get_current_admin, read_user_from_cookie
 from models.sql.user import User
 from services.database import get_async_session
 from services.presenton_cloud import (
@@ -28,12 +18,17 @@ from services.presenton_cloud import (
     revoke_and_clear_presenton_provider,
     store_presenton_credentials,
 )
+from services.provider_settings import get_provider_settings, save_provider_settings
 from utils.get_env import (
     get_presenton_oauth_client_id,
     get_presenton_oauth_issuer,
 )
+from utils.user_config import update_env_with_user_config
 
-PRESENTON_OAUTH_ROUTER = APIRouter(prefix="/presenton", tags=["Presenton Login"])
+PRESENTON_OAUTH_ROUTER = APIRouter(
+    prefix="/presenton",
+    tags=["Presenton Provider"],
+)
 DEVICE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code"
 NO_STORE_HEADERS = {"Cache-Control": "no-store", "Pragma": "no-cache"}
 
@@ -44,7 +39,6 @@ class PresentonDeviceStartRequest(BaseModel):
 
 class PresentonDevicePollRequest(BaseModel):
     device_code: str = Field(min_length=16, max_length=512)
-    link_current_user: bool = False
 
 
 class PresentonUserInfo(BaseModel):
@@ -88,145 +82,6 @@ def _provider_error(payload: dict[str, Any], fallback: str) -> str:
     return fallback
 
 
-def _secure_request(request: Request) -> bool:
-    return (
-        request.headers.get("x-forwarded-proto", "").lower() == "https"
-        or request.url.scheme == "https"
-    )
-
-
-def _set_session_cookie(response: JSONResponse, token: str, request: Request) -> None:
-    from api.v1.auth.config import SESSION_COOKIE_NAME, SESSION_TTL_SECONDS
-
-    response.set_cookie(
-        SESSION_COOKIE_NAME,
-        token,
-        max_age=SESSION_TTL_SECONDS,
-        httponly=True,
-        secure=_secure_request(request),
-        samesite="lax",
-        path="/",
-    )
-
-
-def _fallback_username(email: str, subject: str) -> str:
-    normalized_email = email.strip().casefold()
-    if normalized_email and not any(
-        character.isspace() for character in normalized_email
-    ):
-        return normalized_email[:128]
-    subject_digest = hashlib.sha256(subject.encode("utf-8")).hexdigest()[:12]
-    return f"presenton-{subject_digest}"
-
-
-async def _available_username(
-    session: AsyncSession,
-    email: str,
-    subject: str,
-) -> str:
-    preferred = _fallback_username(email, subject)
-    existing = await session.scalar(
-        select(User.id).where(func.lower(User.username) == preferred.casefold())
-    )
-    if existing is None:
-        return preferred
-
-    digest = hashlib.sha256(subject.encode("utf-8")).hexdigest()[:10]
-    local_part = preferred.split("@", 1)[0][:100].rstrip("-._") or "presenton"
-    candidate = f"{local_part}-presenton-{digest}"[:128]
-    suffix = 1
-    while await session.scalar(
-        select(User.id).where(func.lower(User.username) == candidate.casefold())
-    ):
-        suffix += 1
-        suffix_text = f"-{suffix}"
-        candidate = f"{local_part[: 128 - len(suffix_text)]}{suffix_text}"
-    return candidate
-
-
-async def _resolve_local_user(
-    session: AsyncSession,
-    issuer: str,
-    profile: PresentonUserInfo,
-    link_user: User | None = None,
-) -> User:
-    identity = await session.scalar(
-        select(PresentonOAuthIdentity).where(
-            PresentonOAuthIdentity.issuer == issuer,
-            PresentonOAuthIdentity.subject == profile.sub,
-        )
-    )
-    if identity is not None:
-        if link_user is not None and identity.user_id != link_user.id:
-            raise HTTPException(
-                status_code=409,
-                detail="This Presenton account is already linked to another local user",
-            )
-        user = await session.get(User, identity.user_id)
-        if user is None or not user.is_active:
-            raise HTTPException(
-                status_code=403, detail="This local account is disabled"
-            )
-        if identity.email != profile.email:
-            identity.email = profile.email
-            session.add(identity)
-            await session.commit()
-        return user
-
-    if link_user is not None:
-        existing_link = await session.scalar(
-            select(PresentonOAuthIdentity).where(
-                PresentonOAuthIdentity.user_id == link_user.id
-            )
-        )
-        if existing_link is not None:
-            raise HTTPException(
-                status_code=409,
-                detail="This local user is already linked to another Presenton account",
-            )
-        if not link_user.is_active:
-            raise HTTPException(
-                status_code=403, detail="This local account is disabled"
-            )
-        session.add(
-            PresentonOAuthIdentity(
-                user_id=link_user.id,
-                issuer=issuer,
-                subject=profile.sub,
-                email=profile.email,
-            )
-        )
-        await session.commit()
-        return link_user
-
-    is_first_user = (
-        int(await session.scalar(select(func.count()).select_from(User)) or 0) == 0
-    )
-    username = await _available_username(session, profile.email, profile.sub)
-    user = User(
-        username=username,
-        hashed_password=PASSWORD_HELPER.hash(secrets.token_urlsafe(48)),
-        is_active=True,
-        is_verified=True,
-        is_superuser=is_first_user,
-        admin_slot="primary" if is_first_user else None,
-        auth_version=1,
-    )
-    session.add(user)
-    await session.flush()
-    session.add(
-        PresentonOAuthIdentity(
-            user_id=user.id,
-            issuer=issuer,
-            subject=profile.sub,
-            email=profile.email,
-        )
-    )
-    await session.commit()
-    await session.refresh(user)
-    return user
-
-
 async def _best_effort_revoke(issuer: str, refresh_token: str | None) -> None:
     if not refresh_token:
         return
@@ -241,7 +96,7 @@ async def _best_effort_revoke(issuer: str, refresh_token: str | None) -> None:
 
 
 @PRESENTON_OAUTH_ROUTER.get("/status")
-async def presenton_login_status(
+async def presenton_provider_status(
     session: AsyncSession = Depends(get_async_session),
     current_user: User | None = Depends(read_user_from_cookie),
 ):
@@ -256,7 +111,6 @@ async def presenton_login_status(
         "managed_by_admin": True,
         "can_manage": can_manage,
         "linked": linked,
-        "identity_linked": provider is not None,
         "cloud_generation_enabled": linked,
         "email": provider.email if provider is not None and can_manage else None,
         "scopes": sorted((provider.scopes or "").split())
@@ -278,11 +132,18 @@ async def logout_presenton_account(
             provider,
             provider_request=_provider_request,
         )
+    settings = await get_provider_settings(session)
+    if settings.get("LLM") == "presenton":
+        await save_provider_settings(session, {"LLM": "openai"})
+        update_env_with_user_config()
     return {"detail": "Disconnected from Presenton successfully"}
 
 
 @PRESENTON_OAUTH_ROUTER.post("/device/start")
-async def start_presenton_device_login(body: PresentonDeviceStartRequest):
+async def start_presenton_provider_connection(
+    body: PresentonDeviceStartRequest,
+    _current_admin: User = Depends(get_current_admin),
+):
     issuer, client_id = _oauth_config()
     try:
         response = await _provider_request(
@@ -304,7 +165,7 @@ async def start_presenton_device_login(body: PresentonDeviceStartRequest):
     if not response.is_success:
         raise HTTPException(
             status_code=502 if response.status_code >= 500 else response.status_code,
-            detail=_provider_error(payload, "Could not start Presenton login"),
+            detail=_provider_error(payload, "Could not connect Presenton Cloud"),
         )
     required = {
         "device_code",
@@ -323,15 +184,11 @@ async def start_presenton_device_login(body: PresentonDeviceStartRequest):
 
 
 @PRESENTON_OAUTH_ROUTER.post("/device/poll")
-async def poll_presenton_device_login(
+async def poll_presenton_provider_connection(
     body: PresentonDevicePollRequest,
-    request: Request,
     session: AsyncSession = Depends(get_async_session),
-    current_user: User | None = Depends(read_user_from_cookie),
+    _current_admin: User = Depends(get_current_admin),
 ):
-    if body.link_current_user and current_user is not None and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     issuer, client_id = _oauth_config()
     try:
         token_response = await _provider_request(
@@ -360,7 +217,7 @@ async def poll_presenton_device_login(
             )
         raise HTTPException(
             status_code=400 if token_response.status_code < 500 else 502,
-            detail=_provider_error(token_payload, "Presenton login failed"),
+            detail=_provider_error(token_payload, "Presenton connection failed"),
         )
 
     access_token = token_payload.get("access_token")
@@ -405,49 +262,31 @@ async def poll_presenton_device_login(
                 status_code=502,
                 detail="Presenton returned an invalid user profile",
             ) from exc
-
-        if body.link_current_user and current_user is None:
-            raise HTTPException(
-                status_code=401,
-                detail="A local session is required to link a Presenton account",
+        try:
+            await store_presenton_credentials(
+                session,
+                issuer=issuer,
+                subject=profile.sub,
+                email=profile.email,
+                access_token=access_token,
+                refresh_token=refresh_token_value,
+                scope=granted_scope,
+                expires_in=expires_in_value,
             )
-        user = await _resolve_local_user(
-            session,
-            issuer,
-            profile,
-            link_user=current_user if body.link_current_user else None,
-        )
-        if user.is_superuser:
-            try:
-                await store_presenton_credentials(
-                    session,
-                    issuer=issuer,
-                    subject=profile.sub,
-                    email=profile.email,
-                    access_token=access_token,
-                    refresh_token=refresh_token_value,
-                    scope=granted_scope,
-                    expires_in=expires_in_value,
-                )
-            except PresentonCloudError as exc:
-                raise HTTPException(
-                    status_code=exc.status_code,
-                    detail=exc.detail,
-                ) from exc
-            credentials_stored = True
-        token = await get_jwt_strategy().write_token(user)
-        response = JSONResponse(
+        except PresentonCloudError as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=exc.detail,
+            ) from exc
+        credentials_stored = True
+        return JSONResponse(
             {
                 "status": "authorized",
-                "configured": True,
-                "authenticated": True,
-                **serialize_user(user),
-                "provider": "presenton",
+                "connected": True,
+                "email": profile.email,
             },
             headers=NO_STORE_HEADERS,
         )
-        _set_session_cookie(response, token, request)
-        return response
     finally:
         if not credentials_stored:
             await _best_effort_revoke(issuer, refresh_token_value)

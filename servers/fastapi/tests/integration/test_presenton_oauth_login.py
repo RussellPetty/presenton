@@ -7,10 +7,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from api.v1.auth import presenton_oauth
-from api.v1.auth.config import SESSION_COOKIE_NAME
 from api.v1.auth.router import API_V1_AUTH_ROUTER
+from api.v1.auth.users import PASSWORD_HELPER
 from models.sql.presenton_cloud_provider import PresentonCloudProvider
-from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
+from models.sql.provider_settings import ProviderSettings
 from models.sql.user import User
 from services.database import get_async_session
 
@@ -22,8 +22,8 @@ def _build_client(tmp_path) -> tuple[TestClient, object, object]:
     async def create_tables():
         async with engine.begin() as connection:
             await connection.run_sync(User.__table__.create)
-            await connection.run_sync(PresentonOAuthIdentity.__table__.create)
             await connection.run_sync(PresentonCloudProvider.__table__.create)
+            await connection.run_sync(ProviderSettings.__table__.create)
 
     asyncio.run(create_tables())
 
@@ -41,48 +41,45 @@ def _response(status_code: int, payload: dict) -> httpx.Response:
     return httpx.Response(status_code, json=payload)
 
 
-def test_presenton_login_uses_builtin_public_client_without_configuration(
-    monkeypatch, tmp_path
-):
+def _login_admin(client: TestClient) -> None:
+    setup = client.post(
+        "/api/v1/auth/setup",
+        json={"username": "local-admin", "password": "secret123"},
+    )
+    assert setup.status_code == 200
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "local-admin", "password": "secret123"},
+    )
+    assert login.status_code == 200
+
+
+def test_presenton_provider_connection_requires_local_admin(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     client, engine, _session_maker = _build_client(tmp_path)
 
-    async def provider_request(_method, url, **kwargs):
-        assert url.endswith("/oauth/device_authorization")
-        assert kwargs["data"]["client_id"] == "ptc_presenton_open_source"
-        return _response(
-            200,
-            {
-                "device_code": "device-code-secret-12345",
-                "user_code": "BCDF-GHJK",
-                "verification_uri": "https://presenton.test/device",
-                "verification_uri_complete": "https://presenton.test/device?user_code=BCDF-GHJK",
-                "expires_in": 900,
-                "interval": 5,
-            },
-        )
-
-    monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
-    assert client.get("/api/v1/auth/presenton/status").json()["enabled"] is True
-    response = client.post(
+    assert client.post(
         "/api/v1/auth/presenton/device/start",
         json={"device_name": "Test device"},
-    )
-    assert response.status_code == 200
+    ).status_code == 401
+    assert client.post(
+        "/api/v1/auth/presenton/device/poll",
+        json={"device_code": "device-code-secret-12345"},
+    ).status_code == 401
+    assert client.post("/api/v1/auth/presenton/logout").status_code == 401
     asyncio.run(engine.dispose())
 
 
-def test_presenton_device_login_creates_local_session_and_reuses_identity(
+def test_admin_connects_global_provider_without_replacing_local_login(
     monkeypatch, tmp_path
 ):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     client, engine, session_maker = _build_client(tmp_path)
-
-    token_round = 0
+    _login_admin(client)
 
     async def provider_request(method, url, **kwargs):
-        nonlocal token_round
         if url.endswith("/oauth/device_authorization"):
+            assert kwargs["data"]["client_id"] == "ptc_presenton_open_source"
             assert kwargs["data"]["scope"] == "presenton:api profile:read"
             return _response(
                 200,
@@ -96,13 +93,11 @@ def test_presenton_device_login_creates_local_session_and_reuses_identity(
                 },
             )
         if url.endswith("/oauth/token"):
-            token_round += 1
             return _response(
                 200,
                 {
-                    "access_token": f"pt_access_{token_round}",
-                    "refresh_token": f"pt_refresh_{token_round}",
-                    "token_type": "Bearer",
+                    "access_token": "pt_access_provider",
+                    "refresh_token": "pt_refresh_provider",
                     "scope": "presenton:api profile:read",
                     "expires_in": 3600,
                 },
@@ -111,85 +106,62 @@ def test_presenton_device_login_creates_local_session_and_reuses_identity(
             return _response(
                 200,
                 {
-                    "sub": "hosted-user-123",
-                    "email": "person@example.com",
-                    "name": "Presenton User",
+                    "sub": "hosted-provider-owner",
+                    "email": "provider@example.com",
                 },
             )
-        if url.endswith("/oauth/revoke"):
-            assert kwargs["data"]["token"].startswith("pt_refresh_")
-            return _response(200, {})
         raise AssertionError(f"Unexpected provider URL: {method} {url}")
 
     monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
-
     started = client.post(
         "/api/v1/auth/presenton/device/start",
         json={"device_name": "Test device"},
     )
-    assert started.status_code == 200
-    assert started.json()["user_code"] == "BCDF-GHJK"
-
-    first_login = client.post(
+    connected = client.post(
         "/api/v1/auth/presenton/device/poll",
         json={"device_code": "device-code-secret-12345"},
     )
-    assert first_login.status_code == 200
-    assert first_login.json()["provider"] == "presenton"
-    assert first_login.json()["username"] == "person@example.com"
-    assert first_login.json()["role"] == "admin"
-    assert SESSION_COOKIE_NAME in first_login.cookies
-    assert "HttpOnly" in first_login.headers["set-cookie"]
 
-    client.cookies.clear()
-    second_login = client.post(
-        "/api/v1/auth/presenton/device/poll",
-        json={"device_code": "another-device-code-67890"},
-    )
-    assert second_login.status_code == 200
-    assert second_login.json()["username"] == "person@example.com"
+    assert started.status_code == 200
+    assert connected.status_code == 200
+    assert connected.json() == {
+        "status": "authorized",
+        "connected": True,
+        "email": "provider@example.com",
+    }
+    local_auth = client.get("/api/v1/auth/status").json()
+    assert local_auth["authenticated"] is True
+    assert local_auth["username"] == "local-admin"
 
-    async def counts():
+    status = client.get("/api/v1/auth/presenton/status").json()
+    assert status["linked"] is True
+    assert status["can_manage"] is True
+    assert status["email"] == "provider@example.com"
+
+    async def rows():
         async with session_maker() as session:
-            users = int(
+            user_count = int(
                 await session.scalar(select(func.count()).select_from(User)) or 0
             )
-            identities = int(
-                await session.scalar(
-                    select(func.count()).select_from(PresentonOAuthIdentity)
-                )
-                or 0
-            )
-            identity = await session.scalar(select(PresentonOAuthIdentity))
             provider = await session.scalar(select(PresentonCloudProvider))
-            return users, identities, identity, provider
+            return user_count, provider
 
-    users, identities, identity, provider = asyncio.run(counts())
-    assert (users, identities) == (1, 1)
-    assert identity.access_token_encrypted is None
-    assert identity.refresh_token_encrypted is None
-    assert identity.scopes is None
-    assert provider.subject == "hosted-user-123"
-    assert provider.email == "person@example.com"
-    assert provider.access_token_encrypted != "pt_access_2"
-    assert provider.refresh_token_encrypted != "pt_refresh_2"
-    assert provider.scopes == "presenton:api profile:read"
+    user_count, provider = asyncio.run(rows())
+    assert user_count == 1
+    assert provider.subject == "hosted-provider-owner"
+    assert provider.access_token_encrypted != "pt_access_provider"
+    assert provider.refresh_token_encrypted != "pt_refresh_provider"
     asyncio.run(engine.dispose())
 
 
-def test_presenton_device_login_reports_pending_authorization(monkeypatch, tmp_path):
+def test_admin_provider_poll_reports_pending_authorization(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     client, engine, _session_maker = _build_client(tmp_path)
+    _login_admin(client)
 
     async def provider_request(_method, url, **_kwargs):
         assert url.endswith("/oauth/token")
-        return _response(
-            400,
-            {
-                "error": "authorization_pending",
-                "error_description": "Waiting for approval",
-            },
-        )
+        return _response(400, {"error": "authorization_pending"})
 
     monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
     response = client.post(
@@ -202,115 +174,62 @@ def test_presenton_device_login_reports_pending_authorization(monkeypatch, tmp_p
         "status": "pending",
         "error": "authorization_pending",
     }
-    assert SESSION_COOKIE_NAME not in response.cookies
     asyncio.run(engine.dispose())
 
 
-def test_onboarding_links_presenton_identity_to_existing_admin(monkeypatch, tmp_path):
+def test_admin_can_disconnect_global_provider(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     client, engine, session_maker = _build_client(tmp_path)
+    _login_admin(client)
 
-    setup = client.post(
-        "/api/v1/auth/setup",
-        json={"username": "local-admin", "password": "secret123"},
-    )
-    assert setup.status_code == 200
-    login = client.post(
-        "/api/v1/auth/login",
-        json={"username": "local-admin", "password": "secret123"},
-    )
-    assert login.status_code == 200
+    async def seed_provider():
+        async with session_maker() as session:
+            session.add(ProviderSettings(id=1, config={"LLM": "presenton"}))
+            await session.commit()
+            await presenton_oauth.store_presenton_credentials(
+                session,
+                issuer="https://presenton-enterprise.fly.dev",
+                subject="hosted-provider-owner",
+                email="provider@example.com",
+                access_token="pt_access_provider",
+                refresh_token="pt_refresh_provider",
+                scope="presenton:api profile:read",
+                expires_in=3600,
+            )
 
-    async def provider_request(_method, url, **_kwargs):
-        if url.endswith("/oauth/token"):
-            return _response(
-                200,
-                {
-                    "access_token": "pt_access_onboarding",
-                    "refresh_token": "pt_refresh_onboarding",
-                    "scope": "presenton:api profile:read",
-                    "expires_in": 3600,
-                },
-            )
-        if url.endswith("/oauth/userinfo"):
-            return _response(
-                200,
-                {
-                    "sub": "hosted-onboarding-user",
-                    "email": "hosted@example.com",
-                },
-            )
-        if url.endswith("/oauth/revoke"):
-            return _response(200, {})
-        raise AssertionError(f"Unexpected provider URL: {url}")
+    asyncio.run(seed_provider())
+
+    async def provider_request(_method, url, **kwargs):
+        assert url.endswith("/oauth/revoke")
+        assert kwargs["data"]["token"] == "pt_refresh_provider"
+        return _response(200, {})
 
     monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
-    linked = client.post(
-        "/api/v1/auth/presenton/device/poll",
-        json={
-            "device_code": "onboarding-device-code-12345",
-            "link_current_user": True,
-        },
-    )
+    response = client.post("/api/v1/auth/presenton/logout")
 
-    assert linked.status_code == 200
-    assert linked.json()["username"] == "local-admin"
-    assert linked.json()["role"] == "admin"
-    status = client.get("/api/v1/auth/presenton/status")
-    assert status.status_code == 200
-    assert status.json()["linked"] is True
-    assert status.json()["cloud_generation_enabled"] is True
-    assert status.json()["email"] == "hosted@example.com"
+    assert response.status_code == 200
+    assert client.get("/api/v1/auth/presenton/status").json()["linked"] is False
 
-    logged_out = client.post("/api/v1/auth/presenton/logout")
-    assert logged_out.status_code == 200
-    assert logged_out.json() == {"detail": "Disconnected from Presenton successfully"}
-    disconnected_status = client.get("/api/v1/auth/presenton/status")
-    assert disconnected_status.status_code == 200
-    assert disconnected_status.json()["linked"] is False
-    assert disconnected_status.json()["email"] is None
-    local_status = client.get("/api/v1/auth/status")
-    assert local_status.json()["authenticated"] is True
-
-    async def counts():
+    async def selected_provider():
         async with session_maker() as session:
-            users = int(
-                await session.scalar(select(func.count()).select_from(User)) or 0
-            )
-            identities = int(
-                await session.scalar(
-                    select(func.count()).select_from(PresentonOAuthIdentity)
-                )
-                or 0
-            )
-            providers = int(
-                await session.scalar(
-                    select(func.count()).select_from(PresentonCloudProvider)
-                )
-                or 0
-            )
-            return users, identities, providers
+            settings = await session.get(ProviderSettings, 1)
+            return settings.config["LLM"]
 
-    assert asyncio.run(counts()) == (1, 1, 0)
+    assert asyncio.run(selected_provider()) == "openai"
     asyncio.run(engine.dispose())
 
 
-def test_regular_user_cannot_change_the_global_presenton_provider(
-    monkeypatch, tmp_path
-):
+def test_regular_user_cannot_manage_global_provider(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
     client, engine, session_maker = _build_client(tmp_path)
-    client.post(
-        "/api/v1/auth/setup",
-        json={"username": "admin", "password": "secret123"},
-    )
+    _login_admin(client)
 
     async def create_member():
         async with session_maker() as session:
             session.add(
                 User(
                     username="member",
-                    hashed_password=presenton_oauth.PASSWORD_HELPER.hash("member123"),
+                    hashed_password=PASSWORD_HELPER.hash("member123"),
                     is_active=True,
                     is_verified=True,
                     is_superuser=False,
@@ -320,33 +239,23 @@ def test_regular_user_cannot_change_the_global_presenton_provider(
             await session.commit()
 
     asyncio.run(create_member())
-    login = client.post(
+    client.cookies.clear()
+    assert client.post(
         "/api/v1/auth/login",
         json={"username": "member", "password": "member123"},
-    )
-    assert login.status_code == 200
+    ).status_code == 200
 
-    async def unexpected_provider_request(*_args, **_kwargs):
-        raise AssertionError("A regular user must be rejected before OAuth polling")
-
-    monkeypatch.setattr(
-        presenton_oauth,
-        "_provider_request",
-        unexpected_provider_request,
-    )
-    linked = client.post(
+    assert client.post(
+        "/api/v1/auth/presenton/device/start",
+        json={"device_name": "Test device"},
+    ).status_code == 403
+    assert client.post(
         "/api/v1/auth/presenton/device/poll",
-        json={
-            "device_code": "member-device-code-12345",
-            "link_current_user": True,
-        },
-    )
-    disconnected = client.post("/api/v1/auth/presenton/logout")
-    status = client.get("/api/v1/auth/presenton/status")
-
-    assert linked.status_code == 403
-    assert disconnected.status_code == 403
-    assert status.json()["can_manage"] is False
-    assert status.json()["email"] is None
-    assert status.json()["scopes"] == []
+        json={"device_code": "member-device-code-12345"},
+    ).status_code == 403
+    assert client.post("/api/v1/auth/presenton/logout").status_code == 403
+    status = client.get("/api/v1/auth/presenton/status").json()
+    assert status["can_manage"] is False
+    assert status["email"] is None
+    assert status["scopes"] == []
     asyncio.run(engine.dispose())

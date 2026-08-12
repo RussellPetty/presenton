@@ -495,27 +495,26 @@ Usernames must contain at least 3 characters, and new passwords must contain at 
 | **AUTH_OVERRIDE_FROM_ENV**=[true/false] | Replace the primary administrator's credentials from the environment on the next startup. Use this for a deployment-managed credential rotation. |
 | **RESET_AUTH**=[true/false] | Recover access to the existing primary administrator without replacing the account or its data. |
 
-##### Login with Presenton
+##### Presenton Cloud provider
 
-Self-hosted deployments can let users sign in with their hosted Presenton account.
-No OAuth client registration, client secret, or environment configuration is
-required. Official builds use Presenton's built-in public device-flow client.
+Presenton Cloud is an optional, installation-wide generation provider. It is not an
+authentication method for the self-hosted instance. Create or sign in to the local
+administrator account first, then connect Presenton from provider onboarding.
 
-The browser displays a short device code and opens the hosted Presenton approval
-page. After approval, the self-hosted backend verifies the hosted profile and issues
-its normal local HttpOnly session cookie. The delegated access and rotating refresh
-tokens are encrypted at rest with the deployment auth secret and are never exposed
-to the browser. While the account is connected, presentation generation and document
-uploads use Presenton's cloud API and the hosted user's credits; disconnecting revokes
-the cloud grant and deletes the stored credentials. Without a connected account, the
-existing local generation pipeline is unchanged. The first account on a new deployment
-becomes the primary administrator; later hosted accounts are created as regular local
-users. Local username/password login remains available. During first-run provider
-onboarding, an existing local administrator can also link a hosted Presenton account
-without changing the local user or workspace.
+Only the local administrator can connect, replace, or disconnect the provider. The
+browser displays a short device code and opens the hosted Presenton approval page.
+After approval, the delegated access and rotating refresh tokens are encrypted at rest
+and stored as one global provider credential; they are never returned to the browser or
+stored per local user.
 
-The official cloud URL and first-party client ID are built into the app; users do
-not configure an OAuth issuer, client ID, or client secret.
+Selecting Presenton as the text provider saves `LLM=presenton`. Presentation generation
+and document uploads then use the Presenton Cloud API and its token. Connecting the
+provider alone does not change generation: when another provider is selected, the
+existing local generation pipeline remains unchanged. Disconnecting revokes and removes
+the global credentials and deselects Presenton.
+
+No OAuth client registration, client secret, or environment configuration is required.
+Official builds contain the cloud URL and first-party public device-flow client ID.
 
 To rotate credentials from the environment:
 

@@ -16,6 +16,7 @@ from services.presenton_cloud import (
     has_cloud_credentials,
     open_presenton_cloud_response,
 )
+from services.provider_settings import get_provider_settings
 from utils.get_env import get_presenton_oauth_issuer
 
 CLOUD_PPT_PATH_PREFIXES = (
@@ -105,10 +106,19 @@ async def maybe_proxy_presenton_cloud_request(
     if user is None or not should_proxy_presenton_cloud(request.url.path):
         return None
 
+    settings = await get_provider_settings(session)
+    if settings.get("LLM") != "presenton":
+        return None
+
     issuer = get_presenton_oauth_issuer()
     provider = await get_presenton_provider(session, issuer)
     if not has_cloud_credentials(provider):
-        return None
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Presenton is selected but the global provider is not connected"
+            },
+        )
     assert provider is not None
     if not _cloud_asset_belongs_to_provider(request.url.path, provider):
         return None

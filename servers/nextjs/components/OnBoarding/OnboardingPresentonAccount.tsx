@@ -210,7 +210,6 @@ export default function OnboardingPresentonAccount({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               device_code: flow.deviceCode,
-              link_current_user: true,
             }),
           },
         );
@@ -229,7 +228,7 @@ export default function OnboardingPresentonAccount({
         }
         if (!response.ok) {
           throw new Error(
-            getErrorMessage(payload, "Could not link your Presenton account."),
+            getErrorMessage(payload, "Could not connect Presenton Cloud."),
           );
         }
 
@@ -238,8 +237,8 @@ export default function OnboardingPresentonAccount({
         approvalWindowRef.current = null;
         await loadStatus();
         notify.success(
-          "Presenton account connected",
-          "Your hosted account is now linked to this workspace.",
+          "Presenton Cloud connected",
+          "Presenton is now available as a workspace provider.",
         );
       } catch (error) {
         setFlow(null);
@@ -345,7 +344,7 @@ export default function OnboardingPresentonAccount({
             ) : (
               <Link2 className="h-4 w-4" />
             )}
-            {isStarting ? "Connecting…" : "Login with Presenton"}
+            {isStarting ? "Connecting…" : "Connect Presenton"}
           </button>
         </div>
       ) : !status.linked ? (

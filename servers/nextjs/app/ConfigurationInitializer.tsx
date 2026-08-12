@@ -127,7 +127,6 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
 
       dispatch(setLLMConfig(llmConfig));
 
-      const isValid = hasValidLLMConfig(llmConfig);
       let hasPresentonCloud = false;
       try {
         const response = await fetch(
@@ -141,6 +140,8 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
       } catch (error) {
         console.error('Failed to fetch Presenton cloud status:', error);
       }
+      const isValid = hasValidLLMConfig(llmConfig) &&
+        (llmConfig.LLM !== 'presenton' || hasPresentonCloud);
       if (route.startsWith('/pdf-maker')) {
         setIsLoading(false);
         return;
@@ -182,13 +183,6 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
             return;
           }
         }
-        if (route === '/') {
-          router.push('/upload');
-          setLoadingToFalseAfterNavigatingTo('/upload');
-        } else {
-          setIsLoading(false);
-        }
-      } else if (hasPresentonCloud) {
         if (route === '/') {
           router.push('/upload');
           setLoadingToFalseAfterNavigatingTo('/upload');

@@ -26,9 +26,9 @@ def test_other_app_data_prefixes_still_require_auth():
     assert middleware._requires_auth("/app_data/exports/deck.pdf") is True
 
 
-def test_presenton_device_login_endpoints_do_not_require_a_local_session():
+def test_presenton_provider_endpoints_require_a_local_session():
     middleware = SessionAuthMiddleware(app=None)
 
-    assert middleware._requires_auth("/api/v1/auth/presenton/status") is False
-    assert middleware._requires_auth("/api/v1/auth/presenton/device/start") is False
-    assert middleware._requires_auth("/api/v1/auth/presenton/device/poll") is False
+    assert middleware._requires_auth("/api/v1/auth/presenton/status") is True
+    assert middleware._requires_auth("/api/v1/auth/presenton/device/start") is True
+    assert middleware._requires_auth("/api/v1/auth/presenton/device/poll") is True

@@ -127,11 +127,15 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
         captured["provider_issuer"] = issuer
         return provider
 
+    async def get_settings(_session):
+        return {"LLM": "presenton"}
+
     async def open_response(_session, **kwargs):
         captured.update(kwargs)
         return client, upstream
 
     monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
     monkeypatch.setattr(
         presenton_cloud_proxy,
         "open_presenton_cloud_response",
@@ -194,7 +198,10 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     assert client.closed is True
 
 
-def test_unlinked_request_stays_local(monkeypatch):
+def test_selected_but_disconnected_provider_returns_clear_error(monkeypatch):
+    async def get_settings(_session):
+        return {"LLM": "presenton"}
+
     async def get_provider(_session, _issuer):
         return None
 
@@ -202,10 +209,39 @@ def test_unlinked_request_stays_local(monkeypatch):
         raise AssertionError("Cloud request must not be opened for an unlinked user")
 
     monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
     monkeypatch.setattr(
         presenton_cloud_proxy,
         "open_presenton_cloud_response",
         unexpected_open,
+    )
+
+    response = asyncio.run(
+        presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request("/api/v1/ppt/presentation/create"),
+            SimpleNamespace(),
+            SimpleNamespace(id=uuid.uuid4()),
+        )
+    )
+
+    assert response.status_code == 503
+    assert response.body == (
+        b'{"detail":"Presenton is selected but the global provider is not connected"}'
+    )
+
+
+def test_connected_provider_stays_local_when_not_selected(monkeypatch):
+    async def get_settings(_session):
+        return {"LLM": "openai"}
+
+    async def unexpected_provider(*_args, **_kwargs):
+        raise AssertionError("Provider credentials must not be read when unselected")
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "get_presenton_provider",
+        unexpected_provider,
     )
 
     response = asyncio.run(
