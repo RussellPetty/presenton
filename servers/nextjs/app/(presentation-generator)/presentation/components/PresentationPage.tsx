@@ -175,6 +175,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const slidesLength = presentationData?.slides?.length ?? 0;
   const isSmartPresentation =
     searchParams.get("type") === "smart" ||
+    presentationData?.type === "smart" ||
     presentationData?.generation_mode === "smart";
   const isTemplateV2Presentation =
     presentationData?.version === "v2-standard" ||

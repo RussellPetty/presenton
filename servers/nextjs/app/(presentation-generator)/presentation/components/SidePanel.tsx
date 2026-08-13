@@ -81,6 +81,7 @@ const SidePanel = ({
     : lastSlideLayoutGroup || lastSlideLayoutTemplateId;
   const isTemplateFree = isTemplateFreePresentation(presentationData);
   const isSmartPresentation =
+    presentationData?.type === "smart" ||
     presentationData?.generation_mode === "smart" ||
     presentationData?.slides?.some(
       (slide: any) =>

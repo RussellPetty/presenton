@@ -42,7 +42,9 @@ export const PresentationCard = ({
   const [isDuplicating, setIsDuplicating] = React.useState(false);
   const isUnsupported = presentation?.version === "v1-standard";
   const presentationType =
-    presentation?.generation_mode === "smart" ? "smart" : "standard";
+    presentation?.type === "smart" || presentation?.generation_mode === "smart"
+      ? "smart"
+      : "standard";
 
   const handlePreview = (e: React.MouseEvent) => {
     e.preventDefault();

@@ -13,6 +13,7 @@ import { store } from "@/store/store";
 export type BlankPresentationResponse = {
   id: string;
   version: PresentationVersion;
+  type: "standard";
   title: string | null;
   n_slides: number;
   language: string;
@@ -140,7 +141,12 @@ export class PresentationGenerationApi {
         response,
         "Failed to create presentation"
       );
-      if (!usePresentonSmartEndpoint) return result;
+      if (!usePresentonSmartEndpoint) {
+        return {
+          ...result,
+          type: generation_mode,
+        };
+      }
 
       if (!result || typeof result.presentation_id !== "string") {
         throw new Error("Smart presentation response did not include an id");
@@ -150,6 +156,7 @@ export class PresentationGenerationApi {
         id: result.presentation_id,
         version: "v2-standard",
         generation_mode: "smart",
+        type: "smart",
       };
     } catch (error) {
       console.error("error in presentation creation", error);
