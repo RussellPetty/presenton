@@ -36,9 +36,6 @@ from models.sql.provider_settings import ProviderSettings  # noqa: F401, E402
 from models.sql.presenton_cloud_provider import (  # noqa: F401, E402
     PresentonCloudProvider,
 )
-from models.sql.presenton_oauth_identity import (  # noqa: F401, E402
-    PresentonOAuthIdentity,
-)
 
 alembic_config = context.config
 

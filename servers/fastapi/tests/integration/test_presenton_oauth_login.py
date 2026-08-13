@@ -154,8 +154,6 @@ def test_admin_connects_global_provider_without_replacing_local_login(
     assert user_count == 1
     assert provider.subject == "hosted-provider-owner"
     assert provider.access_token_encrypted != "user.jwt.signature"
-    assert provider.refresh_token_encrypted is None
-    assert provider.scopes is None
     asyncio.run(engine.dispose())
 
 

@@ -13,8 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.auth.config import get_or_create_auth_secret
 from models.sql.presenton_cloud_provider import PresentonCloudProvider
-from models.sql.presenton_oauth_identity import PresentonOAuthIdentity
-from models.sql.user import User
 from utils.datetime_utils import get_current_utc_datetime
 
 GLOBAL_PROVIDER_ID = 1
@@ -59,8 +57,6 @@ def has_cloud_credentials(provider: PresentonCloudProvider | None) -> bool:
     if (
         not provider
         or not provider.access_token_encrypted
-        or provider.refresh_token_encrypted is not None
-        or provider.scopes is not None
     ):
         return False
     if provider.token_expires_at is None:
@@ -110,69 +106,12 @@ async def store_presenton_credentials(
     provider.subject = subject
     provider.email = email
     provider.access_token_encrypted = _encrypt_token(access_token)
-    provider.refresh_token_encrypted = None
     provider.token_expires_at = get_current_utc_datetime() + timedelta(
         seconds=max(1, expires_in)
     )
-    provider.scopes = None
     session.add(provider)
     await session.commit()
     await session.refresh(provider)
-    return provider
-
-
-async def migrate_legacy_presenton_credentials(
-    session: AsyncSession,
-    issuer: str,
-) -> PresentonCloudProvider | None:
-    """Move the primary admin's old per-user credentials into the singleton."""
-    provider = await get_presenton_provider(session, issuer)
-    identity_rows = (
-        await session.execute(
-            select(PresentonOAuthIdentity, User)
-            .join(User, User.id == PresentonOAuthIdentity.user_id)
-            .where(PresentonOAuthIdentity.issuer == issuer)
-            .order_by(User.is_superuser.desc(), PresentonOAuthIdentity.created_at)
-        )
-    ).all()
-    identities = [identity for identity, _user in identity_rows]
-    if provider is None:
-        admin_identity = next(
-            (
-                identity
-                for identity, user in identity_rows
-                if user.is_superuser
-                if identity.access_token_encrypted
-                and identity.token_expires_at is not None
-            ),
-            None,
-        )
-        if admin_identity is not None:
-            provider = PresentonCloudProvider(
-                id=GLOBAL_PROVIDER_ID,
-                issuer=admin_identity.issuer,
-                subject=admin_identity.subject,
-                email=admin_identity.email,
-                access_token_encrypted=admin_identity.access_token_encrypted,
-                refresh_token_encrypted=admin_identity.refresh_token_encrypted,
-                token_expires_at=admin_identity.token_expires_at,
-                scopes=admin_identity.scopes,
-            )
-            session.add(provider)
-
-    changed = provider is not None
-    for identity in identities:
-        if identity.access_token_encrypted or identity.refresh_token_encrypted:
-            identity.access_token_encrypted = None
-            identity.refresh_token_encrypted = None
-            identity.token_expires_at = None
-            identity.scopes = None
-            session.add(identity)
-            changed = True
-    if changed:
-        await session.commit()
-        if provider is not None:
-            await session.refresh(provider)
     return provider
 
 

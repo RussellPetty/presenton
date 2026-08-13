@@ -30,8 +30,6 @@ REVISION_MULTI_USER_AUTH = "c9f1a2b3d4e5"
 REVISION_USERNAME_PROVIDER_SETTINGS = "d0a2b4c6e8f1"
 REVISION_PRIMARY_ADMIN_SLOT = "e1b3c5d7f9a2"
 REVISION_SMART_GENERATION = "f3a7c1d9e5b2"
-REVISION_PRESENTON_OAUTH_IDENTITY = "a4c6e8f0b2d4"
-REVISION_PRESENTON_OAUTH_CREDENTIALS = "b5d7f9a1c3e5"
 REVISION_PRESENTON_CLOUD_PROVIDER = "c6e8f1a3b5d7"
 REVISION_SMART_MODE_BACKFILL = "d2f4a6b8c0e1"
 REVISION_HEAD = REVISION_SMART_MODE_BACKFILL
@@ -140,14 +138,6 @@ def _infer_revision_from_schema(
     if "provider_settings" in tables and "user" in tables and ownership_ready:
         if "presenton_cloud_provider" in tables:
             return REVISION_PRESENTON_CLOUD_PROVIDER
-        if "presenton_oauth_identity" in tables:
-            if _has_column(
-                inspector,
-                "presenton_oauth_identity",
-                "refresh_token_encrypted",
-            ):
-                return REVISION_PRESENTON_OAUTH_CREDENTIALS
-            return REVISION_PRESENTON_OAUTH_IDENTITY
         if "presentations" in tables and _has_column(
             inspector, "presentations", "generation_mode"
         ):

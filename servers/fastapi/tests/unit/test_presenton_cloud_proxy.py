@@ -124,8 +124,6 @@ def test_cloud_template_task_list_is_forwarded_to_v3(monkeypatch):
     provider = SimpleNamespace(
         subject=str(uuid.uuid4()),
         access_token_encrypted="encrypted-access",
-        refresh_token_encrypted=None,
-        scopes=None,
         token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
     )
 
@@ -221,8 +219,6 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     provider = SimpleNamespace(
         subject=str(uuid.uuid4()),
         access_token_encrypted="encrypted-access",
-        refresh_token_encrypted=None,
-        scopes=None,
         token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
     )
 
@@ -371,8 +367,6 @@ def test_cloud_create_is_saved_locally_before_response(monkeypatch):
         return SimpleNamespace(
             subject=str(owner_id),
             access_token_encrypted="encrypted-access",
-            refresh_token_encrypted=None,
-            scopes=None,
             token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
         )
 
@@ -444,8 +438,6 @@ def test_smart_create_is_adapted_to_cloud_v2(monkeypatch):
         return SimpleNamespace(
             subject=str(owner_id),
             access_token_encrypted="encrypted-access",
-            refresh_token_encrypted=None,
-            scopes=None,
             token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
         )
 
@@ -515,8 +507,6 @@ def test_native_smart_create_keeps_cloud_v2_response(monkeypatch):
         return SimpleNamespace(
             subject=str(owner_id),
             access_token_encrypted="encrypted-access",
-            refresh_token_encrypted=None,
-            scopes=None,
             token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
         )
 
@@ -617,8 +607,6 @@ def test_cloud_chat_compatibility_path_maps_to_v3(monkeypatch):
         return SimpleNamespace(
             subject=str(owner_id),
             access_token_encrypted="encrypted-access",
-            refresh_token_encrypted=None,
-            scopes=None,
             token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
         )
 
