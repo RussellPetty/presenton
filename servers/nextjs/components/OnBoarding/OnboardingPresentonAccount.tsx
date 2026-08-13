@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Cloud,
+  Copy,
   ExternalLink,
   Link2,
   Loader2,
@@ -199,6 +200,16 @@ export default function OnboardingPresentonAccount({
     }
   };
 
+  const copyDeviceCode = async () => {
+    if (!flow) return;
+    try {
+      await navigator.clipboard.writeText(flow.userCode);
+      notify.success("Code copied", "Paste it in the Presenton approval page.");
+    } catch {
+      notify.error("Could not copy code", "Select and copy the code manually.");
+    }
+  };
+
   useEffect(() => {
     if (!flow) return;
 
@@ -274,8 +285,11 @@ export default function OnboardingPresentonAccount({
     }
 
     return (
-      <section aria-label="Presenton Cloud connection" className="font-syne">
-        <div className="overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-white">
+      <section
+        aria-label="Presenton Cloud connection"
+        className="relative isolate font-syne"
+      >
+        <div className="relative z-10 overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-white">
           <button
             type="button"
             onClick={() => {
@@ -286,20 +300,18 @@ export default function OnboardingPresentonAccount({
             disabled={
               status.linked || !status.canManage || Boolean(flow) || isStarting
             }
-            className="flex min-h-[82px] w-full items-center gap-3 p-[15px] text-left transition-colors enabled:hover:bg-[#FAFAFC] disabled:cursor-default"
+            className="flex min-h-[78px] w-full items-center gap-2 p-5 text-left transition-colors enabled:hover:bg-[#FAFAFC] disabled:cursor-default"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#EDEEEF] bg-white">
-              <Image
-                src="/providers/presenton.png"
-                alt=""
-                width={28}
-                height={28}
-                className="h-7 w-7 object-contain"
-              />
-            </span>
+            <Image
+              src="/providers/presenton.png"
+              alt=""
+              width={39}
+              height={39}
+              className="h-[39px] w-[39px] shrink-0 object-contain"
+            />
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
-                <span className="text-[14px] font-medium leading-5 text-[#191919]">
+                <span className="text-[16px] font-medium leading-normal tracking-[-0.32px] text-[#191919]">
                   Connect Presenton Cloud
                 </span>
                 {status.linked ? (
@@ -308,7 +320,7 @@ export default function OnboardingPresentonAccount({
                   </span>
                 ) : null}
               </span>
-              <span className="mt-1 block truncate text-[12px] leading-4 text-[#5F6062]">
+              <span className="mt-0.5 block truncate text-[14px] font-normal leading-normal text-[#4C4C4C]">
                 {status.linked
                   ? status.email || "Presenton Cloud is ready for this workspace."
                   : status.canManage
@@ -317,9 +329,9 @@ export default function OnboardingPresentonAccount({
               </span>
             </span>
             {isStarting ? (
-              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#4C4C4C]" />
-            ) : !status.linked && status.canManage && !flow ? (
-              <ArrowRight className="h-5 w-5 shrink-0 text-[#4C4C4C]" />
+              <Loader2 className="h-[22px] w-[22px] shrink-0 animate-spin text-[#4C4C4C]" />
+            ) : !status.linked && status.canManage ? (
+              <ArrowRight className="h-[22px] w-[22px] shrink-0 text-[#4C4C4C]" />
             ) : null}
           </button>
 
@@ -358,26 +370,64 @@ export default function OnboardingPresentonAccount({
         </div>
 
         {flow ? (
-          <div className="mt-[10px] rounded-[12px] border border-[#EDEEEF] bg-[#FAFAFF] p-[18px] font-manrope">
-            <p className="text-[13px] font-medium leading-5 text-[#4C4C4C]">
-              Approve this code in the Presenton window
-            </p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <span className="font-mono text-[18px] font-semibold tracking-[0.18em] text-[#4D436D]">
-                {flow.userCode}
-              </span>
+          <div className="relative z-0 -mt-[10px] rounded-b-[12px] border border-[#EDEEEF] bg-white px-5 pb-5 pt-[30px]">
+            <div className="flex items-end justify-between gap-3">
+              <p className="min-w-0 truncate font-manrope text-[14px] font-normal leading-normal tracking-[-0.14px] text-[#333333]">
+                Approve this code in the Presenton window
+              </p>
               <a
                 href={flow.verificationUri}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#7A5AF8] hover:text-[#5F3BD0]"
+                className="inline-flex shrink-0 items-end gap-0.5 text-[12px] font-normal leading-normal tracking-[-0.36px] text-[#7A5AF8] transition-colors hover:text-[#5F3BD0]"
               >
-                Open approval page <ExternalLink className="h-3.5 w-3.5" />
+                Approval Page <ExternalLink className="h-3 w-3" />
               </a>
             </div>
-            <div className="mt-3 flex items-center gap-2 text-[12px] text-[#7A7384]">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Waiting for authorization…
+            <div className="mt-3 flex h-[50px] items-center gap-2.5 rounded-[6px] border border-[#F6F6F9] bg-[#F9FAFB] p-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-[9px]">
+                <div
+                  className="flex items-center font-manrope text-[14px] font-semibold leading-normal tracking-[0.7px] text-[#333333]"
+                  aria-label={`Authorization code ${flow.userCode}`}
+                >
+                  {flow.userCode
+                    .replace(/[^A-Z0-9]/gi, "")
+                    .slice(0, 4)
+                    .split("")
+                    .map((character, index) => (
+                      <span
+                        key={`first-${index}`}
+                        className="flex h-[30px] min-w-[24px] items-center justify-center rounded-[8px] px-1.5"
+                      >
+                        {character}
+                      </span>
+                    ))}
+                  <span aria-hidden="true" className="mx-[3px] text-[12px]">
+                    •
+                  </span>
+                  {flow.userCode
+                    .replace(/[^A-Z0-9]/gi, "")
+                    .slice(4, 8)
+                    .split("")
+                    .map((character, index) => (
+                      <span
+                        key={`second-${index}`}
+                        className="flex h-[30px] min-w-[24px] items-center justify-center rounded-[8px] px-1.5"
+                      >
+                        {character}
+                      </span>
+                    ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => void copyDeviceCode()}
+                aria-label="Copy authorization code"
+                title="Copy authorization code"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-[#333333] transition-colors hover:bg-[#EDEEEF]"
+              >
+                <Copy className="h-4 w-4" strokeWidth={1.8} />
+              </button>
             </div>
           </div>
         ) : null}
