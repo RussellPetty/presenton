@@ -75,11 +75,9 @@ def test_cloud_generation_is_mirrored_into_the_local_database(monkeypatch, tmp_p
                 "slides": [
                     {
                         "id": str(slide_id),
+                        "presentation_id": str(presentation_id),
                         "index": 0,
-                        "layout_group": "smart-html",
-                        "layout": "smart-html",
-                        "content": {"title": "Launch Plan"},
-                        "html_content": "<section>Launch Plan</section>",
+                        "html": "<section>Launch Plan</section>",
                     }
                 ],
             },

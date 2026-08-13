@@ -45,7 +45,9 @@ async def persist_cloud_presentation_created(
     request_payload: dict[str, Any],
     cloud_payload: dict[str, Any],
 ) -> None:
-    presentation_id = _uuid(cloud_payload.get("id"))
+    presentation_id = _uuid(
+        cloud_payload.get("id") or cloud_payload.get("presentation_id")
+    )
     if presentation_id is None:
         logger.warning("Cloud create response did not include a valid presentation id")
         return
@@ -162,12 +164,16 @@ async def persist_cloud_presentation_complete(
             if not isinstance(value, dict):
                 continue
             slide_id = _uuid(value.get("id")) or uuid.uuid4()
-            html_content = _optional_text(value.get("html_content"))
+            html_content = _optional_text(
+                value.get("html_content") or value.get("html")
+            )
             slides.append(
                 SlideModel(
                     id=slide_id,
                     owner_id=owner_id,
-                    presentation=presentation_id,
+                    presentation=_uuid(value.get("presentation"))
+                    or _uuid(value.get("presentation_id"))
+                    or presentation_id,
                     layout_group=_text(
                         value.get("layout_group"),
                         "smart-html" if html_content else "cloud",
@@ -193,3 +199,27 @@ async def persist_cloud_presentation_complete(
         session.add(presentation)
         session.add_all(slides)
         await session.commit()
+
+
+async def get_local_presentation_generation_mode(
+    owner_id: uuid.UUID,
+    presentation_id: uuid.UUID,
+) -> str | None:
+    async with async_session_maker() as session:
+        presentation = await session.get(PresentationModel, presentation_id)
+        if presentation is None or presentation.owner_id != owner_id:
+            return None
+        return (
+            "smart" if presentation.generation_mode == "smart" else "standard"
+        )
+
+
+async def get_local_slide_presentation_id(
+    owner_id: uuid.UUID,
+    slide_id: uuid.UUID,
+) -> uuid.UUID | None:
+    async with async_session_maker() as session:
+        slide = await session.get(SlideModel, slide_id)
+        if slide is None or slide.owner_id != owner_id:
+            return None
+        return slide.presentation
