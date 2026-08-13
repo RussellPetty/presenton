@@ -19,18 +19,17 @@ from services.presenton_cloud import (
 from services.provider_settings import get_provider_settings
 from utils.get_env import get_presenton_oauth_issuer
 
-CLOUD_PPT_PATH_PREFIXES = (
-    "/api/v1/ppt/files/",
-    "/api/v1/ppt/outlines/",
-    "/api/v1/ppt/presentation/",
-    "/api/v1/ppt/slide/",
-    "/api/v1/ppt/images/",
-    "/api/v1/ppt/icons/",
-    "/api/v1/ppt/themes/",
-    "/api/v1/ppt/theme/",
-    "/api/v1/ppt/chat/",
-    "/api/v1/ppt/template/",
-    "/api/v1/ppt/community/",
+CLOUD_GENERATION_PATHS = frozenset(
+    {
+        "/api/v1/ppt/files/upload",
+        "/api/v1/ppt/files/decompose",
+        "/api/v1/ppt/presentation/create",
+        "/api/v1/ppt/presentation/prepare",
+    }
+)
+CLOUD_GENERATION_PATH_PREFIXES = (
+    "/api/v1/ppt/outlines/stream/",
+    "/api/v1/ppt/presentation/stream/",
 )
 CLOUD_PRIVATE_ASSET_PATH_PREFIXES = (
     "/app_data/images/",
@@ -62,8 +61,11 @@ _RESPONSE_HEADERS_TO_DROP = _HOP_BY_HOP_HEADERS | {
 
 
 def should_proxy_presenton_cloud(path: str) -> bool:
-    return path.startswith(
-        CLOUD_PPT_PATH_PREFIXES + CLOUD_PRIVATE_ASSET_PATH_PREFIXES
+    return (
+        path in CLOUD_GENERATION_PATHS
+        or path.startswith(
+            CLOUD_GENERATION_PATH_PREFIXES + CLOUD_PRIVATE_ASSET_PATH_PREFIXES
+        )
     )
 
 

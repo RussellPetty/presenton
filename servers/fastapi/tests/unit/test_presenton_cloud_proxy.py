@@ -48,7 +48,6 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
         "/api/v1/ppt/files/decompose",
         "/api/v1/ppt/presentation/create",
         "/api/v1/ppt/outlines/stream/presentation-id",
-        "/api/v1/ppt/outlines/presentation-id",
         "/api/v1/ppt/presentation/prepare",
         "/api/v1/ppt/presentation/stream/presentation-id",
         "/app_data/images/users/00000000-0000-0000-0000-000000000001/generated.png",
@@ -62,6 +61,24 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
     )
     assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
         "/api/v1/auth/presenton/status"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/presentation/all"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/presentation/presentation-id"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/presentation/create/blank"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/outlines/presentation-id"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/slide/edit"
+    )
+    assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
+        "/api/v1/ppt/images/generate"
     )
     assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
         "/app_data/templates/default/template.pptx"
