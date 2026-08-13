@@ -95,7 +95,9 @@ export const usePresentationStreaming = (
   stream: string | null,
   setLoading: (loading: boolean) => void,
   setError: (error: boolean) => void,
-  fetchUserSlides: () => void,
+  fetchUserSlides: (options?: {
+    clearHistory?: boolean;
+  }) => void | Promise<unknown>,
   options: {
     preloadPresentationData?: boolean;
     generationMode?: "standard" | "smart";
@@ -284,7 +286,7 @@ export const usePresentationStreaming = (
         )
       );
 
-      eventSource.addEventListener("response", (event) => {
+      eventSource.addEventListener("response", async (event) => {
         let data: any;
         try {
           data = JSON.parse(event.data);
@@ -448,15 +450,49 @@ export const usePresentationStreaming = (
 
           case "complete":
             try {
-              dispatch(
-                setPresentationData(
-                  mergePresentationPreservingTemplateData(
-                    normalizeBackendAssetUrls(data.presentation) as PresentationData
+              const hasCompletePresentation =
+                data.presentation &&
+                typeof data.presentation === "object" &&
+                !Array.isArray(data.presentation);
+              let completedPresentation: unknown = hasCompletePresentation
+                ? data.presentation
+                : null;
+
+              if (hasCompletePresentation) {
+                dispatch(
+                  setPresentationData(
+                    mergePresentationPreservingTemplateData(
+                      normalizeBackendAssetUrls(
+                        data.presentation
+                      ) as PresentationData
+                    )
                   )
-                )
-              );
-              trackTemplateV2StreamCompleted(data.presentation);
-              trackSmartModeGenerationCompleted(data.presentation);
+                );
+              } else if (
+                isSmartMode &&
+                typeof data.presentation_id === "string" &&
+                data.presentation_id === presentationId
+              ) {
+                // Smart v2 completes with only the presentation id. The local
+                // proxy mirrors the finished cloud deck before forwarding this
+                // event, so load that persisted presentation for the editor.
+                const fetchedPresentation = await fetchUserSlides({
+                  clearHistory: false,
+                });
+                if (!fetchedPresentation) {
+                  throw new Error("Completed presentation could not be loaded");
+                }
+                completedPresentation = fetchedPresentation;
+              } else {
+                throw new Error("Completion event did not contain a presentation");
+              }
+
+              if (!completedPresentation) {
+                throw new Error("Completed presentation could not be loaded");
+              }
+
+              trackTemplateV2StreamCompleted(completedPresentation);
+              trackSmartModeGenerationCompleted(completedPresentation);
               dispatch(setStreaming(false));
               setLoading(false);
               isClosed = true;
@@ -468,9 +504,10 @@ export const usePresentationStreaming = (
               const newUrl = new URL(window.location.href);
               newUrl.searchParams.delete("stream");
               window.history.replaceState({}, "", newUrl.toString());
-            } catch {
+            } catch (error) {
+              console.error("Could not finalize presentation stream:", error);
               if (!scheduleRetry("failed to parse complete payload")) {
-                finalizeFailure("Failed to parse final presentation payload.");
+                finalizeFailure("Failed to load the completed presentation.");
               }
             }
             accumulatedChunks = "";
