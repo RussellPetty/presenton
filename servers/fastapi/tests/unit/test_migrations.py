@@ -334,6 +334,83 @@ def test_async_task_status_migration_maps_processing_to_pending(tmp_path):
         engine.dispose()
 
 
+def test_smart_mode_backfill_repairs_html_presentations(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'smart-mode-backfill.db'}"
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE presentations (
+                        id TEXT PRIMARY KEY,
+                        generation_mode VARCHAR NOT NULL
+                    )
+                    """
+                )
+            )
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE slides (
+                        id TEXT PRIMARY KEY,
+                        presentation TEXT NOT NULL,
+                        html_content TEXT
+                    )
+                    """
+                )
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO presentations (id, generation_mode)
+                    VALUES
+                        ('smart-deck', 'standard'),
+                        ('standard-deck', 'standard')
+                    """
+                )
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO slides (id, presentation, html_content)
+                    VALUES
+                        ('smart-slide', 'smart-deck', '<section>Smart</section>'),
+                        ('standard-slide', 'standard-deck', NULL)
+                    """
+                )
+            )
+            connection.execute(
+                text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)")
+            )
+            connection.execute(
+                text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+                {"revision": migrations.REVISION_PRESENTON_CLOUD_PROVIDER},
+            )
+
+        command.upgrade(_alembic_config(database_url), "head")
+
+        with engine.connect() as connection:
+            version = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+            modes = dict(
+                connection.execute(
+                    text(
+                        "SELECT id, generation_mode FROM presentations ORDER BY id"
+                    )
+                ).all()
+            )
+
+        assert version == migrations.REVISION_HEAD
+        assert modes == {
+            "smart-deck": "smart",
+            "standard-deck": "standard",
+        }
+    finally:
+        engine.dispose()
+
+
 def test_unversioned_database_with_async_tasks_stamps_before_status_cleanup(
     tmp_path, monkeypatch
 ):

@@ -75,6 +75,7 @@ async def persist_cloud_presentation_created(
                     presentation_id,
                 )
                 return
+            presentation.generation_mode = generation_mode
         else:
             presentation = PresentationModel(
                 id=presentation_id,
@@ -115,12 +116,30 @@ async def persist_cloud_presentation_created(
 async def persist_cloud_presentation_complete(
     owner_id: uuid.UUID,
     cloud_payload: dict[str, Any],
+    generation_mode: str | None = None,
 ) -> None:
     presentation_id = _uuid(cloud_payload.get("id"))
     slides_payload = cloud_payload.get("slides")
     if presentation_id is None or not isinstance(slides_payload, list):
         logger.warning("Cloud completion payload is missing presentation data")
         return
+
+    payload_mode = cloud_payload.get("type") or cloud_payload.get(
+        "generation_mode"
+    )
+    if payload_mode not in {"standard", "smart"}:
+        payload_mode = generation_mode
+    if payload_mode not in {"standard", "smart"}:
+        payload_mode = (
+            "smart"
+            if any(
+                isinstance(slide, dict)
+                and isinstance(slide.get("html_content") or slide.get("html"), str)
+                and bool((slide.get("html_content") or slide.get("html")).strip())
+                for slide in slides_payload
+            )
+            else "standard"
+        )
 
     async with async_session_maker() as session:
         presentation = await session.get(PresentationModel, presentation_id)
@@ -138,8 +157,10 @@ async def persist_cloud_presentation_complete(
                 content=_text(cloud_payload.get("content")),
                 n_slides=len(slides_payload),
                 language=_text(cloud_payload.get("language")),
-                generation_mode="standard",
+                generation_mode=payload_mode,
             )
+
+        presentation.generation_mode = payload_mode
 
         presentation.content = _text(
             cloud_payload.get("content"), presentation.content

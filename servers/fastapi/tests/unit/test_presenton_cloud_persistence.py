@@ -62,6 +62,9 @@ def test_cloud_generation_is_mirrored_into_the_local_database(monkeypatch, tmp_p
             assert created is not None
             assert created.owner_id == owner_id
             assert created.generation_mode == "smart"
+            created.generation_mode = "standard"
+            session.add(created)
+            await session.commit()
 
         await presenton_cloud_persistence.persist_cloud_presentation_complete(
             owner_id,
@@ -81,6 +84,7 @@ def test_cloud_generation_is_mirrored_into_the_local_database(monkeypatch, tmp_p
                     }
                 ],
             },
+            generation_mode="smart",
         )
 
         async with session_maker() as session:
@@ -100,6 +104,30 @@ def test_cloud_generation_is_mirrored_into_the_local_database(monkeypatch, tmp_p
             assert slides[0].id == slide_id
             assert slides[0].owner_id == owner_id
             assert slides[0].html_content == "<section>Launch Plan</section>"
+
+        # A Smart retry must repair an existing row that was previously saved
+        # with the legacy default mode.
+        async with session_maker() as session:
+            completed = await session.get(PresentationModel, presentation_id)
+            assert completed is not None
+            completed.generation_mode = "standard"
+            session.add(completed)
+            await session.commit()
+
+        await presenton_cloud_persistence.persist_cloud_presentation_created(
+            owner_id,
+            {
+                "content": "Build a launch plan",
+                "n_slides": 1,
+                "generation_mode": "smart",
+            },
+            {"presentation_id": str(presentation_id)},
+        )
+
+        async with session_maker() as session:
+            repaired = await session.get(PresentationModel, presentation_id)
+            assert repaired is not None
+            assert repaired.generation_mode == "smart"
 
         await engine.dispose()
 

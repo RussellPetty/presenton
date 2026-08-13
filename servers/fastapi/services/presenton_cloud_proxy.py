@@ -281,7 +281,11 @@ async def _sync_cloud_presentation(
             presentation_id=presentation_id,
             generation_mode=generation_mode,
         )
-        await persist_cloud_presentation_complete(owner_id, presentation)
+        await persist_cloud_presentation_complete(
+            owner_id,
+            presentation,
+            generation_mode=generation_mode,
+        )
     except PresentonCloudError as exc:
         logger.warning(
             "Could not mirror cloud presentation %s locally: %s",
@@ -590,6 +594,7 @@ async def maybe_proxy_presenton_cloud_request(
                             await persist_cloud_presentation_complete(
                                 user.id,
                                 presentation,
+                                generation_mode=generation_mode,
                             )
                             synced_on_complete = True
                         elif presentation_id is not None and (
