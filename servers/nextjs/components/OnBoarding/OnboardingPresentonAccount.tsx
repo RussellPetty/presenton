@@ -263,6 +263,128 @@ export default function OnboardingPresentonAccount({
     return () => window.clearTimeout(timeout);
   }, [flow, loadStatus, pollAttempt, pollDelay]);
 
+  if (variant === "onboarding") {
+    if (isLoading) {
+      return (
+        <section
+          aria-label="Loading Presenton account connection"
+          className="h-[82px] animate-pulse rounded-[12px] border border-[#EDEEEF] bg-[#FAFAFC]"
+        />
+      );
+    }
+
+    return (
+      <section aria-label="Presenton Cloud connection" className="font-syne">
+        <div className="overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-white">
+          <button
+            type="button"
+            onClick={() => {
+              if (!status.linked && status.canManage && !flow) {
+                void startLink();
+              }
+            }}
+            disabled={
+              status.linked || !status.canManage || Boolean(flow) || isStarting
+            }
+            className="flex min-h-[82px] w-full items-center gap-3 p-[15px] text-left transition-colors enabled:hover:bg-[#FAFAFC] disabled:cursor-default"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#EDEEEF] bg-white">
+              <Image
+                src="/providers/presenton.png"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 object-contain"
+              />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-[14px] font-medium leading-5 text-[#191919]">
+                  Connect Presenton Cloud
+                </span>
+                {status.linked ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#E9F8EF] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#238553]">
+                    <CheckCircle2 className="h-3 w-3" /> Connected
+                  </span>
+                ) : null}
+              </span>
+              <span className="mt-1 block truncate text-[12px] leading-4 text-[#5F6062]">
+                {status.linked
+                  ? status.email || "Presenton Cloud is ready for this workspace."
+                  : status.canManage
+                    ? "Enable cloud presentation generation for your workspace."
+                    : "A workspace administrator must connect Presenton Cloud."}
+              </span>
+            </span>
+            {isStarting ? (
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#4C4C4C]" />
+            ) : !status.linked && status.canManage && !flow ? (
+              <ArrowRight className="h-5 w-5 shrink-0 text-[#4C4C4C]" />
+            ) : null}
+          </button>
+
+          {status.linked ? (
+            <div className="flex items-center justify-between gap-3 border-t border-[#EDEEEF] px-[15px] py-3">
+              {onContinue ? (
+                <button
+                  type="button"
+                  onClick={onContinue}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-4 text-[11px] font-semibold text-white transition hover:bg-[#6D46E6]"
+                >
+                  Continue with Presenton
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <span />
+              )}
+              {status.canManage ? (
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  disabled={isLoggingOut}
+                  title="Disconnect Presenton Cloud"
+                  aria-label="Disconnect Presenton Cloud"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#EDEEEF] text-[#4C4C4C] transition hover:bg-[#F7F6F9] disabled:opacity-50"
+                >
+                  {isLoggingOut ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        {flow ? (
+          <div className="mt-[10px] rounded-[12px] border border-[#EDEEEF] bg-[#FAFAFF] p-[18px] font-manrope">
+            <p className="text-[13px] font-medium leading-5 text-[#4C4C4C]">
+              Approve this code in the Presenton window
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="font-mono text-[18px] font-semibold tracking-[0.18em] text-[#4D436D]">
+                {flow.userCode}
+              </span>
+              <a
+                href={flow.verificationUriComplete}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#7A5AF8] hover:text-[#5F3BD0]"
+              >
+                Open approval page <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-[12px] text-[#7A7384]">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Waiting for authorization…
+            </div>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
   if (isLoading) {
     return (
       <section
@@ -329,20 +451,8 @@ export default function OnboardingPresentonAccount({
       {status.linked ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E0F8] bg-white/55 px-6 py-4">
           <p className="text-xs text-[#6B647A]">
-            {variant === "settings"
-              ? "Presenton is connected and can be selected as the text provider."
-              : "Your account is ready to generate presentations."}
+            Presenton is connected and can be selected as the text provider.
           </p>
-          {variant === "onboarding" && onContinue ? (
-            <button
-              type="button"
-              onClick={onContinue}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-5 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(124,81,248,0.2)] transition hover:bg-[#6941D9]"
-            >
-              Continue to generation
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          ) : null}
         </div>
       ) : !flow && status.canManage ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E0F8] bg-white/55 px-6 py-4">
