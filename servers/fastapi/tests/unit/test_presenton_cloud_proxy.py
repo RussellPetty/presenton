@@ -524,3 +524,33 @@ def test_connected_provider_stays_local_when_not_selected(monkeypatch):
     )
 
     assert response is None
+
+
+def test_cloud_only_template_request_never_falls_back_to_local(monkeypatch):
+    async def get_settings(_session):
+        return {"LLM": "openai"}
+
+    async def unexpected_provider(*_args, **_kwargs):
+        raise AssertionError("Local templates must not satisfy a cloud-only request")
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "get_presenton_provider",
+        unexpected_provider,
+    )
+
+    response = asyncio.run(
+        presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request(
+                "/api/v1/ppt/template/all",
+                method="GET",
+                query="page_size=100&presenton_cloud_only=true",
+            ),
+            SimpleNamespace(),
+            SimpleNamespace(id=uuid.uuid4()),
+        )
+    )
+
+    assert response.status_code == 409
+    assert b"Presenton cloud templates" in response.body

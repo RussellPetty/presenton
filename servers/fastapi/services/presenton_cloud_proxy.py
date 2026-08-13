@@ -394,6 +394,16 @@ async def maybe_proxy_presenton_cloud_request(
 
     settings = await get_provider_settings(session)
     if settings.get("LLM") != "presenton":
+        if _query_value(request.url.query, "presenton_cloud_only") == "true":
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "detail": (
+                        "Presenton cloud templates were requested but "
+                        "Presenton is not selected"
+                    )
+                },
+            )
         return None
 
     issuer = get_presenton_oauth_issuer()

@@ -51,8 +51,10 @@ function filterTemplatesWithLayouts(templates: TemplateListItem[]) {
 
 export function useTemplateSummaries({
   includeProcessingTemplateTasks = false,
+  presentonCloudOnly = false,
 }: {
   includeProcessingTemplateTasks?: boolean;
+  presentonCloudOnly?: boolean;
 } = {}) {
   const [templates, setTemplates] = useState<TemplateListItem[]>([]);
   const [processingTemplateTasks, setProcessingTemplateTasks] = useState<
@@ -81,8 +83,8 @@ export function useTemplateSummaries({
 
     const loadTemplateSummaries = async () => {
       const [defaultResponse, customResponse] = await Promise.all([
-        TemplateService.getTemplateSummaries(true),
-        TemplateService.getTemplateSummaries(false),
+        TemplateService.getTemplateSummaries(true, { presentonCloudOnly }),
+        TemplateService.getTemplateSummaries(false, { presentonCloudOnly }),
       ]);
       return [
         ...filterTemplatesWithLayouts(defaultResponse.items ?? []),
@@ -148,7 +150,7 @@ export function useTemplateSummaries({
         clearInterval(intervalId);
       }
     };
-  }, [includeProcessingTemplateTasks]);
+  }, [includeProcessingTemplateTasks, presentonCloudOnly]);
 
   const { defaultTemplates, customTemplates } = useMemo(
     () => splitTemplatesByDefault(templates),
