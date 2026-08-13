@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import AsyncIterator
 
@@ -15,6 +16,10 @@ from services.presenton_cloud import (
     get_presenton_provider,
     has_cloud_credentials,
     open_presenton_cloud_response,
+)
+from services.presenton_cloud_persistence import (
+    persist_cloud_presentation_complete,
+    persist_cloud_presentation_created,
 )
 from services.provider_settings import get_provider_settings
 from utils.get_env import get_presenton_oauth_issuer
@@ -100,6 +105,33 @@ def _forward_response_headers(headers) -> dict[str, str]:
     }
 
 
+def _json_object(value: bytes) -> dict | None:
+    try:
+        payload = json.loads(value)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _complete_presentations_from_sse(buffer: bytearray) -> list[dict]:
+    presentations: list[dict] = []
+    while True:
+        boundary = buffer.find(b"\n\n")
+        if boundary == -1:
+            break
+        frame = bytes(buffer[:boundary]).replace(b"\r\n", b"\n")
+        del buffer[: boundary + 2]
+        data = b"\n".join(
+            line[6:] for line in frame.splitlines() if line.startswith(b"data: ")
+        )
+        payload = _json_object(data)
+        if payload and payload.get("type") == "complete":
+            presentation = payload.get("presentation")
+            if isinstance(presentation, dict):
+                presentations.append(presentation)
+    return presentations
+
+
 async def maybe_proxy_presenton_cloud_request(
     request: Request,
     session: AsyncSession,
@@ -138,9 +170,45 @@ async def maybe_proxy_presenton_cloud_request(
     except PresentonCloudError as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
+    is_success = 200 <= upstream.status_code < 300
+    if request.url.path == "/api/v1/ppt/presentation/create":
+        try:
+            response_body = await upstream.aread()
+            if is_success:
+                request_payload = _json_object(await request.body())
+                cloud_payload = _json_object(response_body)
+                if request_payload is not None and cloud_payload is not None:
+                    await persist_cloud_presentation_created(
+                        user.id,
+                        request_payload,
+                        cloud_payload,
+                    )
+            return Response(
+                content=response_body,
+                status_code=upstream.status_code,
+                headers=_forward_response_headers(upstream.headers),
+            )
+        finally:
+            await upstream.aclose()
+            await client.aclose()
+
+    sse_buffer = bytearray()
+
     async def stream_body() -> AsyncIterator[bytes]:
         try:
             async for chunk in upstream.aiter_raw():
+                if (
+                    is_success
+                    and request.url.path.startswith(
+                        "/api/v1/ppt/presentation/stream/"
+                    )
+                ):
+                    sse_buffer.extend(chunk)
+                    for presentation in _complete_presentations_from_sse(sse_buffer):
+                        await persist_cloud_presentation_complete(
+                            user.id,
+                            presentation,
+                        )
                 yield chunk
         finally:
             await upstream.aclose()

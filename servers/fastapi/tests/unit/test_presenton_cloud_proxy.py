@@ -88,6 +88,24 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
     )
 
 
+def test_complete_presentation_is_extracted_from_split_sse_frames():
+    buffer = bytearray(
+        b'event: response\ndata: {"type":"complete","presentation":{"id":"'
+    )
+    assert presenton_cloud_proxy._complete_presentations_from_sse(buffer) == []
+
+    buffer.extend(
+        b'00000000-0000-0000-0000-000000000001","slides":[]}}\n\n'
+    )
+    assert presenton_cloud_proxy._complete_presentations_from_sse(buffer) == [
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "slides": [],
+        }
+    ]
+    assert buffer == bytearray()
+
+
 def test_cloud_private_assets_require_the_oauth_subject_namespace():
     cloud_user_id = uuid.uuid4()
     provider = SimpleNamespace(subject=str(cloud_user_id))
@@ -169,7 +187,7 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
 
     user_id = uuid.uuid4()
     request = _request(
-        "/api/v1/ppt/presentation/create",
+        "/api/v1/ppt/presentation/stream/presentation-id",
         query="mode=smart",
         body=b'{"prompt":"Build a deck"}',
         headers=[
@@ -202,7 +220,7 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     assert "user_id" not in captured
     assert captured["issuer"] == "https://api.presenton.test"
     assert captured["method"] == "POST"
-    assert captured["path"] == "/api/v1/ppt/presentation/create"
+    assert captured["path"] == "/api/v1/ppt/presentation/stream/presentation-id"
     assert captured["query_string"] == "mode=smart"
     assert captured["content"] == b'{"prompt":"Build a deck"}'
     assert captured["headers"] == {
@@ -216,6 +234,80 @@ def test_linked_request_is_forwarded_with_body_query_and_stream(monkeypatch):
     assert "set-cookie" not in response.headers
     assert upstream.closed is True
     assert client.closed is True
+
+
+def test_cloud_create_is_saved_locally_before_response(monkeypatch):
+    owner_id = uuid.uuid4()
+    presentation_id = uuid.uuid4()
+    captured = {}
+
+    class FakeUpstream:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+
+        async def aread(self):
+            return (
+                b'{"id":"'
+                + str(presentation_id).encode()
+                + b'","content":"Build a deck","n_slides":5,"language":"English"}'
+            )
+
+        async def aclose(self):
+            captured["upstream_closed"] = True
+
+    class FakeClient:
+        async def aclose(self):
+            captured["client_closed"] = True
+
+    async def get_settings(_session):
+        return {"LLM": "presenton"}
+
+    async def get_provider(_session, _issuer):
+        return SimpleNamespace(
+            subject=str(owner_id),
+            access_token_encrypted="encrypted-access",
+            refresh_token_encrypted=None,
+            scopes=None,
+            token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
+        )
+
+    async def open_response(_session, **_kwargs):
+        return FakeClient(), FakeUpstream()
+
+    async def persist(owner, request_payload, cloud_payload):
+        captured["persisted"] = (owner, request_payload, cloud_payload)
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "open_presenton_cloud_response",
+        open_response,
+    )
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "persist_cloud_presentation_created",
+        persist,
+    )
+
+    response = asyncio.run(
+        presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request(
+                "/api/v1/ppt/presentation/create",
+                body=b'{"content":"Build a deck","n_slides":5,"generation_mode":"smart"}',
+                headers=[(b"content-type", b"application/json")],
+            ),
+            SimpleNamespace(),
+            SimpleNamespace(id=owner_id),
+        )
+    )
+
+    assert response.status_code == 200
+    assert captured["persisted"][0] == owner_id
+    assert captured["persisted"][1]["generation_mode"] == "smart"
+    assert captured["persisted"][2]["id"] == str(presentation_id)
+    assert captured["upstream_closed"] is True
+    assert captured["client_closed"] is True
 
 
 def test_selected_but_disconnected_provider_returns_clear_error(monkeypatch):
