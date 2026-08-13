@@ -811,6 +811,10 @@ const PresentonMode = ({
 
     const handleContinue = async () => {
         if (providerStep === 1) {
+            if (llmConfig.LLM === "presenton") {
+                await handlePresentonContinue();
+                return;
+            }
             if (await validateTextProvider()) {
                 trackEvent(MixpanelEvent.Onboarding_Step_Continued, {
                     from_step: "text_provider",
@@ -862,6 +866,23 @@ const PresentonMode = ({
     const handlePresentonContinue = async () => {
         try {
             setSavingConfig(true);
+            const statusResponse = await fetch(
+                getApiUrl("/api/v1/auth/presenton/status"),
+                {
+                    credentials: "include",
+                    cache: "no-store",
+                }
+            );
+            const statusPayload = statusResponse.ok
+                ? await statusResponse.json() as { linked?: boolean }
+                : null;
+            if (!statusPayload?.linked) {
+                notify.warning(
+                    "Connect Presenton first",
+                    "Sign in to Presenton Cloud before continuing."
+                );
+                return;
+            }
             const presentonConfig = { ...llmConfig, LLM: "presenton" };
             await handleSaveLLMConfig(presentonConfig);
             setLlmConfig(presentonConfig);
@@ -1788,7 +1809,9 @@ const PresentonMode = ({
                     onClick={handleContinue}
                     className='border font-syne border-[#EDEEEF] bg-[#7C51F8]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
                     {providerStep === 1
-                        ? "Continue to image provider"
+                        ? llmConfig.LLM === "presenton"
+                            ? "Continue with Presenton"
+                            : "Continue to image provider"
                         : providerStep === 2
                             ? llmConfig.DISABLE_IMAGE_GENERATION ? "Disable image generation & Continue" : "Continue to web search"
                             : llmConfig.WEB_GROUNDING ? "Save & Finish" : "Disable web search & Finish"}
