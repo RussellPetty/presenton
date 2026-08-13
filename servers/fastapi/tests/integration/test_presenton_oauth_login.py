@@ -115,6 +115,12 @@ def test_admin_connects_global_provider_without_replacing_local_login(
         "/api/v1/auth/presenton/device/start",
         json={"device_name": "Test device"},
     )
+    assert started.json()["verification_uri"] == "https://presenton.test/device"
+    assert (
+        started.json()["verification_uri_complete"]
+        == "https://presenton.test/device"
+    )
+    assert "user_code" not in started.json()["verification_uri_complete"]
     connected = client.post(
         "/api/v1/auth/presenton/device/poll",
         json={"device_code": "device-code-secret-12345"},

@@ -176,7 +176,17 @@ async def start_presenton_provider_connection(
             status_code=502,
             detail="Presenton returned an invalid device authorization response",
         )
-    return JSONResponse(payload, headers=NO_STORE_HEADERS)
+    # Always send the browser to the plain approval page. The user enters the
+    # displayed code there, keeping it out of URLs, browser history, and logs.
+    verification_uri = str(payload["verification_uri"])
+    return JSONResponse(
+        {
+            **payload,
+            "verification_uri": verification_uri,
+            "verification_uri_complete": verification_uri,
+        },
+        headers=NO_STORE_HEADERS,
+    )
 
 
 @PRESENTON_OAUTH_ROUTER.post("/device/poll")

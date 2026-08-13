@@ -29,7 +29,7 @@ type PresentonStatusResponse = Partial<PresentonStatus> & {
 type DeviceFlow = {
   deviceCode: string;
   userCode: string;
-  verificationUriComplete: string;
+  verificationUri: string;
   expiresAt: number;
 };
 
@@ -143,13 +143,13 @@ export default function OnboardingPresentonAccount({
       const nextFlow: DeviceFlow = {
         deviceCode: String(responseData.device_code),
         userCode: String(responseData.user_code),
-        verificationUriComplete: String(responseData.verification_uri_complete),
+        verificationUri: String(responseData.verification_uri),
         expiresAt: Date.now() + expiresIn * 1000,
       };
       setFlow(nextFlow);
       setPollDelay(interval);
       setPollAttempt(0);
-      approvalWindow?.location.replace(nextFlow.verificationUriComplete);
+      approvalWindow?.location.replace(nextFlow.verificationUri);
     } catch (error) {
       approvalWindow?.close();
       notify.error(
@@ -367,7 +367,7 @@ export default function OnboardingPresentonAccount({
                 {flow.userCode}
               </span>
               <a
-                href={flow.verificationUriComplete}
+                href={flow.verificationUri}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#7A5AF8] hover:text-[#5F3BD0]"
@@ -490,7 +490,7 @@ export default function OnboardingPresentonAccount({
               {flow.userCode}
             </span>
             <a
-              href={flow.verificationUriComplete}
+              href={flow.verificationUri}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6d46e6] hover:text-[#5835c2]"
