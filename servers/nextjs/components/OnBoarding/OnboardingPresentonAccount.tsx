@@ -58,7 +58,7 @@ export default function OnboardingPresentonAccount({
   variant = "onboarding",
   onStatusChange,
 }: {
-  onContinue?: () => void;
+  onContinue?: () => void | Promise<void>;
   variant?: "onboarding" | "settings";
   onStatusChange?: (status: PresentonStatus) => void;
 }) {
@@ -70,6 +70,11 @@ export default function OnboardingPresentonAccount({
   const [pollDelay, setPollDelay] = useState(5);
   const [pollAttempt, setPollAttempt] = useState(0);
   const approvalWindowRef = useRef<Window | null>(null);
+  const onContinueRef = useRef(onContinue);
+
+  useEffect(() => {
+    onContinueRef.current = onContinue;
+  }, [onContinue]);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -262,6 +267,9 @@ export default function OnboardingPresentonAccount({
           "Presenton Cloud connected",
           "Presenton is now available as a workspace provider.",
         );
+        if (variant === "onboarding") {
+          await onContinueRef.current?.();
+        }
       } catch (error) {
         setFlow(null);
         notify.error(
@@ -272,7 +280,7 @@ export default function OnboardingPresentonAccount({
     }, pollDelay * 1000);
 
     return () => window.clearTimeout(timeout);
-  }, [flow, loadStatus, pollAttempt, pollDelay]);
+  }, [flow, loadStatus, pollAttempt, pollDelay, variant]);
 
   if (variant === "onboarding") {
     if (isLoading) {
@@ -340,7 +348,7 @@ export default function OnboardingPresentonAccount({
               {onContinue ? (
                 <button
                   type="button"
-                  onClick={onContinue}
+                  onClick={() => void onContinue()}
                   className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-4 text-[11px] font-semibold text-white transition hover:bg-[#6D46E6]"
                 >
                   Continue with Presenton
