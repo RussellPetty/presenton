@@ -48,12 +48,19 @@ CLOUD_EDIT_PATHS = frozenset(
         "/api/v1/ppt/presentation/slide_update",
     }
 )
+CLOUD_SMART_PATHS = frozenset(
+    {
+        "/api/v2/ppt/presentation/generate-html/init",
+        "/api/v2/ppt/presentation/update",
+    }
+)
 CLOUD_API_PATH_PREFIXES = (
     "/api/v1/ppt/outlines/",
     "/api/v1/ppt/presentation/stream/",
     "/api/v1/ppt/template/",
     "/api/v1/ppt/community/presentations",
     "/api/v1/ppt/chat/",
+    "/api/v2/ppt/presentation/stream/",
 )
 CLOUD_PRIVATE_ASSET_PATH_PREFIXES = (
     "/app_data/images/",
@@ -92,6 +99,7 @@ def should_proxy_presenton_cloud(path: str) -> bool:
     return (
         path in CLOUD_GENERATION_PATHS
         or path in CLOUD_EDIT_PATHS
+        or path in CLOUD_SMART_PATHS
         or path.startswith(
             CLOUD_API_PATH_PREFIXES + CLOUD_PRIVATE_ASSET_PATH_PREFIXES
         )
@@ -292,6 +300,9 @@ async def _resolve_presentation_context(
     presentation_id: uuid.UUID | None = None
     generation_mode = "standard"
 
+    if path == "/api/v2/ppt/presentation/generate-html/init":
+        return None, "smart"
+
     if path == "/api/v1/ppt/presentation/create":
         if payload and payload.get("generation_mode") == "smart":
             generation_mode = "smart"
@@ -316,6 +327,7 @@ async def _resolve_presentation_context(
 
     if presentation_id is None and (
         path.startswith("/api/v1/ppt/presentation/stream/")
+        or path.startswith("/api/v2/ppt/presentation/stream/")
         or path.startswith("/api/v1/ppt/outlines/")
     ):
         presentation_id = _uuid(path.rsplit("/", 1)[-1])
@@ -323,7 +335,9 @@ async def _resolve_presentation_context(
     requested_type = (payload or {}).get("presentation_type") or _query_value(
         query_string, "presentation_type"
     )
-    if requested_type == "smart":
+    if path.startswith("/api/v2/ppt/presentation/stream/"):
+        generation_mode = "smart"
+    elif requested_type == "smart":
         generation_mode = "smart"
     elif presentation_id is not None:
         generation_mode = (
@@ -498,8 +512,18 @@ async def maybe_proxy_presenton_cloud_request(
 
     is_success = 200 <= upstream.status_code < 300
     is_chat_stream = path.endswith("/chat/message/stream")
+    is_presentation_stream = path.startswith(
+        (
+            "/api/v1/ppt/presentation/stream/",
+            "/api/v2/ppt/presentation/stream/",
+        )
+    )
+    is_create = path in {
+        "/api/v1/ppt/presentation/create",
+        "/api/v2/ppt/presentation/generate-html/init",
+    }
     should_buffer = (
-        path == "/api/v1/ppt/presentation/create"
+        is_create
         or path in CLOUD_EDIT_PATHS
         or (path.startswith("/api/v1/ppt/chat/") and not is_chat_stream)
     )
@@ -507,8 +531,12 @@ async def maybe_proxy_presenton_cloud_request(
         try:
             response_body = await upstream.aread()
             response_payload = _json_object(response_body)
-            if is_success and path == "/api/v1/ppt/presentation/create":
-                if generation_mode == "smart" and response_payload is not None:
+            if is_success and is_create:
+                if (
+                    path == "/api/v1/ppt/presentation/create"
+                    and generation_mode == "smart"
+                    and response_payload is not None
+                ):
                     smart_id = response_payload.get("presentation_id")
                     response_payload = {
                         **(request_payload or {}),
@@ -552,8 +580,7 @@ async def maybe_proxy_presenton_cloud_request(
         try:
             async for chunk in upstream.aiter_raw():
                 if is_success and (
-                    path.startswith("/api/v1/ppt/presentation/stream/")
-                    or is_chat_stream
+                    is_presentation_stream or is_chat_stream
                 ):
                     sse_buffer.extend(chunk)
                     for payload in _complete_payloads_from_sse(sse_buffer):

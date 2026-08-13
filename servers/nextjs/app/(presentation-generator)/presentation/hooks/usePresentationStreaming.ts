@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   clearPresentationData,
   setPresentationData,
@@ -12,6 +12,7 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { getApiUrl, normalizeBackendAssetUrls } from "@/utils/api";
 import { store } from "@/store/store";
+import type { RootState } from "@/store/store";
 import {
   isChatGptAuthRequiredMessage,
   requestChatGptReauth,
@@ -104,6 +105,10 @@ export const usePresentationStreaming = (
   const previousSlidesLength = useRef(0);
   const preloadPresentationData = Boolean(options.preloadPresentationData);
   const isSmartMode = options.generationMode === "smart";
+  const usePresentonSmartEndpoint = useSelector(
+    (state: RootState) =>
+      isSmartMode && state.userConfig.llm_config.LLM === "presenton"
+  );
 
   useEffect(() => {
     if (!stream) {
@@ -272,7 +277,11 @@ export const usePresentationStreaming = (
     const openStream = () => {
       closeEventSource();
       eventSource = new EventSource(
-        getApiUrl(`/api/v1/ppt/presentation/stream/${presentationId}`)
+        getApiUrl(
+          usePresentonSmartEndpoint
+            ? `/api/v2/ppt/presentation/stream/${presentationId}`
+            : `/api/v1/ppt/presentation/stream/${presentationId}`
+        )
       );
 
       eventSource.addEventListener("response", (event) => {
@@ -554,5 +563,6 @@ export const usePresentationStreaming = (
     preloadPresentationData,
     isSmartMode,
     options.generationMode,
+    usePresentonSmartEndpoint,
   ]);
 };
