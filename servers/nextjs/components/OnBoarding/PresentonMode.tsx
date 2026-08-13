@@ -1045,18 +1045,16 @@ const PresentonMode = ({
     );
 
     return (
-        <div className={cn('w-full font-syne pb-10', providerStep === 1 ? 'max-w-[520px]' : 'max-w-[660px]')}>
-            <p className='mb-5 inline-flex h-5 w-fit items-center rounded-[50px] border border-[#EDEEEF] px-2.5 font-syne text-[10px] font-medium leading-4 text-[#7A5AF8]'>
-                {providerStep === 1 ? "SETUP" : "PRESENTON"}
-            </p>
+        <div className='w-full max-w-[660px] font-syne pb-10'>
+            <p className='px-2.5 py-0.5 w-fit text-[#7A5AF8] rounded-[50px]  border border-[#EDEEEF] text-[10px] font-medium mb-5 font-syne'>PRESENTON</p>
             <div className=''>
 
-                <h2 className={cn('text-black', providerStep === 1 ? 'text-[26px] font-semibold leading-[31px]' : 'mb-4 font-unbounded text-[26px] font-normal')}>
-                    {providerStep === 1 ? "Choose How to Want to Create" : providerStep === 2 ? "Choose your image provider" : "Configure web search"}
+                <h2 className='mb-4 text-black text-[26px] font-normal font-unbounded '>
+                    {providerStep === 1 ? "Choose how you want to create" : providerStep === 2 ? "Choose your image provider" : "Configure web search"}
                 </h2>
-                <p className={cn('font-syne font-normal text-[#4C4C4C]', providerStep === 1 ? 'mt-3 text-[18px] leading-[22px]' : 'text-xl')}>
+                <p className='text-[#000000CC] text-xl font-normal font-syne'>
                     {providerStep === 1
-                        ? "Use your Presenton account, or configure your own AI Provider."
+                        ? "Use your Presenton account, or configure your own AI providers."
                         : providerStep === 2
                             ? "Choose how Presenton creates visuals, or continue without image generation."
                             : "Add current web context to presentations, or continue with web search disabled."}
@@ -1064,59 +1062,74 @@ const PresentonMode = ({
             </div>
 
             {providerStep === 1 ? (
-                <div className="mt-12">
+                <div className="mt-10">
                     <OnboardingPresentonAccount onContinue={handlePresentonContinue} />
-                    <div className="my-5 flex items-center gap-3" aria-hidden="true">
-                        <div className="h-px flex-1 bg-[#EDEEEF]" />
-                        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#938D9B]">
-                            Or
+                    <div className="my-8 flex items-center gap-4" aria-hidden="true">
+                        <div className="h-px flex-1 bg-[#E8E6EC]" />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#938D9B]">
+                            Or configure your own providers
                         </span>
-                        <div className="h-px flex-1 bg-[#EDEEEF]" />
+                        <div className="h-px flex-1 bg-[#E8E6EC]" />
                     </div>
                 </div>
             ) : null}
 
-            {providerStep !== 1 ? <div className={cn(
+            <div className={cn(
                 'flex items-center gap-2 bg-[#F0F3F9B2] rounded-[8px] px-6 py-2.5',
                 providerStep === 1 ? 'mb-6' : 'my-[54px]'
             )}>
                 <Info className='w-4 h-4 shrink-0 fill-[#003399] stroke-white' />
                 <p className='text-sm text-[#5F6062] font-medium'>Your own provider keys and local generation setup stay on this machine.</p>
-            </div> : null}
+            </div>
 
             {providerStep === 1 && <>
             {/* Text Provider */}
-            <div>
-                <p className="mb-[15px] font-manrope text-[16px] font-medium leading-[22px] text-[#191919]">
-                    How should Presenton generate text?
-                </p>
+            <div className='p-3 border border-[#EDEEEF] rounded-[11px] bg-white '>
+                <div className="flex items-center gap-[24.3px]  mb-[42px]">
+                    <div className='w-[74px] h-[74px] rounded-[4px] pt-[16.8px] pr-[17.15px] pb-[17.2px] pl-[16.85px] flex items-center justify-center'
+                        style={{ backgroundColor: '#4C55541A' }}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <path d="M20 6.6665V33.3332" stroke="#4C5554" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M6.66666 11.6665V8.33317C6.66666 7.89114 6.84225 7.46722 7.15481 7.15466C7.46737 6.8421 7.8913 6.6665 8.33332 6.6665H31.6667C32.1087 6.6665 32.5326 6.8421 32.8452 7.15466C33.1577 7.46722 33.3333 7.89114 33.3333 8.33317V11.6665" stroke="#4C5554" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M15 33.3335H25" stroke="#4C5554" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </div>
+                    <div className='w-full'>
+
+                        <h3 className="text-xl font-normal text-[#191919] pb-1.5">Text Generation Settings</h3>
+                        <p className=" text-sm  text-gray-500">
+                            Choosing where text content comes from
+                        </p>
+                    </div>
+                </div>
                 <Tabs
                     value={textProviderTab}
                     onValueChange={handleTextProviderTabChange}
                     className="w-full"
                 >
-                    <TabsList className="grid h-[44px] w-full grid-cols-3 gap-[10px] bg-transparent p-0">
-                        <TabsTrigger value="chatgpt" className="h-[44px] gap-2 rounded-[8px] border border-[#EDEEEF] bg-white px-3 text-[12px] font-medium text-[#5F6062] shadow-none transition-all hover:bg-[#FAFAFC] hover:text-[#191919] data-[state=active]:border-[#C7D7FE] data-[state=active]:bg-[#FAFAFF] data-[state=active]:text-[#191919] data-[state=active]:shadow-none">
+                    <TabsList className="grid h-14 w-full grid-cols-3 rounded-[10px] border border-[#EDEEEF] bg-[#F6F6F9] p-1 shadow-inner shadow-black/[0.02]">
+                        <TabsTrigger value="chatgpt" className="h-12 gap-2 rounded-[8px] border border-transparent px-4 text-sm font-semibold text-[#5F6062] transition-all hover:text-[#191919] data-[state=active]:border-[#D9D6FE] data-[state=active]:bg-white data-[state=active]:text-[#191919] data-[state=active]:shadow-[0_8px_24px_rgba(16,19,35,0.08)]">
                             <Image src="/providers/openai.png" alt="" width={16} height={16} className="object-contain" />
                             ChatGPT
                         </TabsTrigger>
-                        <TabsTrigger value="local" className="h-[44px] gap-2 rounded-[8px] border border-[#EDEEEF] bg-white px-3 text-[12px] font-medium text-[#5F6062] shadow-none transition-all hover:bg-[#FAFAFC] hover:text-[#191919] data-[state=active]:border-[#C7D7FE] data-[state=active]:bg-[#FAFAFF] data-[state=active]:text-[#191919] data-[state=active]:shadow-none">
+                        <TabsTrigger value="local" className="h-12 gap-2 rounded-[8px] border border-transparent px-4 text-sm font-semibold text-[#5F6062] transition-all hover:text-[#191919] data-[state=active]:border-[#D9D6FE] data-[state=active]:bg-white data-[state=active]:text-[#191919] data-[state=active]:shadow-[0_8px_24px_rgba(16,19,35,0.08)]">
                             <Laptop className="h-4 w-4" />
-                            <span>Local<span className="hidden sm:inline"> Providers</span></span>
+                            Local
                         </TabsTrigger>
-                        <TabsTrigger value="other" className="h-[44px] gap-2 rounded-[8px] border border-[#EDEEEF] bg-white px-3 text-[12px] font-medium text-[#5F6062] shadow-none transition-all hover:bg-[#FAFAFC] hover:text-[#191919] data-[state=active]:border-[#C7D7FE] data-[state=active]:bg-[#FAFAFF] data-[state=active]:text-[#191919] data-[state=active]:shadow-none">
+                        <TabsTrigger value="other" className="h-12 gap-2 rounded-[8px] border border-transparent px-4 text-sm font-semibold text-[#5F6062] transition-all hover:text-[#191919] data-[state=active]:border-[#D9D6FE] data-[state=active]:bg-white data-[state=active]:text-[#191919] data-[state=active]:shadow-[0_8px_24px_rgba(16,19,35,0.08)]">
                             <Blocks className="h-4 w-4" />
-                            <span>AI<span className="hidden sm:inline"> Providers</span></span>
+                            AI Providers
                         </TabsTrigger>
                     </TabsList>
-                    <p className="sr-only">
+                    <p className="mt-3 text-xs leading-relaxed text-gray-500">
                         {textProviderTab === "chatgpt"
                             ? "Connect your ChatGPT account and choose a supported model."
                             : textProviderTab === "local"
                                 ? "Run models on your machine with Ollama or LM Studio."
                                 : "Connect hosted AI providers using an API key or custom endpoint."}
                     </p>
-                    <TabsContent value="chatgpt" className="mt-[15px]">
+                    <TabsContent value="chatgpt" className="mt-6">
                         <CodexConfig
                             codexModel={llmConfig.CODEX_MODEL || ''}
                             onInputChange={(value, field) => {
@@ -1154,7 +1167,7 @@ const PresentonMode = ({
                             </div>
                         )}
                     </TabsContent>
-                    <TabsContent value="local" className="mt-[15px]">
+                    <TabsContent value="local" className="mt-6">
                         <div className="grid grid-cols-2 gap-3">
                             {LOCAL_PROVIDERS.map((value) => {
                                 const provider = LLM_PROVIDERS[value];
@@ -1180,7 +1193,7 @@ const PresentonMode = ({
                             })}
                         </div>
                     </TabsContent>
-                    <TabsContent value="other" className="mt-[15px]">
+                    <TabsContent value="other" className="mt-6">
                 <div className="flex w-full max-w-[300px] flex-col items-start gap-4">
                     <div className="flex w-full flex-col justify-start">
 
@@ -1592,24 +1605,6 @@ const PresentonMode = ({
                 </div>
             </div>
             </>}
-            {providerStep === 1 ? (
-                <div className="mt-5">
-                    <button
-                        type="button"
-                        disabled={savingConfig}
-                        onClick={handleContinue}
-                        className="h-[44px] w-full rounded-[58px] bg-[#7C51F8] px-5 text-[12px] font-semibold text-white transition hover:bg-[#6D46E6] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {savingConfig ? "Saving…" : "Continue"}
-                    </button>
-                    <div className="mt-4 flex min-h-[42px] items-center gap-2 rounded-[8px] bg-[#F0F3F9B2] px-4 py-2.5">
-                        <Info className="h-4 w-4 shrink-0 fill-[#003399] stroke-white" />
-                        <p className="font-manrope text-[12px] font-medium leading-4 text-[#5F6062]">
-                            Your own provider key and local generation setup stays on the machine.
-                        </p>
-                    </div>
-                </div>
-            ) : null}
             {providerStep === 2 && <>
             {/* Image Provider */}
             <div className={`p-3 border border-[#EDEEEF] rounded-[11px] relative mt-5 bg-white ${llmConfig.DISABLE_IMAGE_GENERATION ? "bg-[#F9FAFB]" : ""}`}>
@@ -1779,7 +1774,7 @@ const PresentonMode = ({
                 </div>
             )}
 
-            {providerStep > 1 ? <div className='fixed bottom-16 mr-8  max-w-[1440px]  right-16 flex justify-end items-center gap-2.5 '>
+            <div className='fixed bottom-16 mr-8  max-w-[1440px]  right-16 flex justify-end items-center gap-2.5 '>
                 {providerStep > 1 && (
                     <button
                         onClick={handleBack}
@@ -1792,11 +1787,13 @@ const PresentonMode = ({
                     disabled={savingConfig}
                     onClick={handleContinue}
                     className='border font-syne border-[#EDEEEF] bg-[#7C51F8]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
-                    {providerStep === 2
+                    {providerStep === 1
+                        ? "Continue to image provider"
+                        : providerStep === 2
                             ? llmConfig.DISABLE_IMAGE_GENERATION ? "Disable image generation & Continue" : "Continue to web search"
                             : llmConfig.WEB_GROUNDING ? "Save & Finish" : "Disable web search & Finish"}
                 </button>
-            </div> : null}
+            </div>
         </div>
     )
 }
