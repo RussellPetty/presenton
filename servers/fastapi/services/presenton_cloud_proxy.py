@@ -55,6 +55,7 @@ CLOUD_SMART_PATHS = frozenset(
     }
 )
 CLOUD_API_PATH_PREFIXES = (
+    "/api/v1/async-tasks",
     "/api/v1/ppt/outlines/",
     "/api/v1/ppt/presentation/stream/",
     "/api/v1/ppt/template/",
@@ -70,7 +71,6 @@ CLOUD_PRIVATE_ASSET_PATH_PREFIXES = (
     "/app_data/pptx-to-json/",
 )
 _READ_ONLY_CLOUD_PREFIXES = (
-    "/api/v1/ppt/template/",
     "/api/v1/ppt/community/presentations",
 )
 _HOP_BY_HOP_HEADERS = {
@@ -449,7 +449,13 @@ async def maybe_proxy_presenton_cloud_request(
     upstream_path = path
     upstream_method = request.method
     upstream_body = request_body
-    if path.startswith("/api/v1/ppt/chat/"):
+    if path.startswith("/api/v1/async-tasks"):
+        upstream_path = path.replace(
+            "/api/v1/async-tasks",
+            "/api/v3/async-task",
+            1,
+        )
+    elif path.startswith("/api/v1/ppt/chat/"):
         upstream_path = path.replace("/api/v1/ppt/chat/", "/api/v3/chat/", 1)
     elif path.startswith("/api/v1/ppt/community/presentations"):
         upstream_path = path.replace(

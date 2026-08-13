@@ -53,6 +53,11 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
         "/api/v1/ppt/presentation/prepare",
         "/api/v1/ppt/presentation/stream/presentation-id",
         "/api/v1/ppt/template/all",
+        "/api/v1/ppt/template/fonts-upload-and-slides-preview",
+        "/api/v1/ppt/template/async",
+        "/api/v1/ppt/template/layouts/create",
+        "/api/v1/ppt/template/generate-blocks",
+        "/api/v1/async-tasks",
         "/api/v1/ppt/community/presentations",
         "/api/v1/ppt/slide/edit",
         "/api/v1/ppt/presentation/update",
@@ -94,6 +99,85 @@ def test_proxy_path_selection_covers_standard_and_smart_generation_flows():
     assert not presenton_cloud_proxy.should_proxy_presenton_cloud(
         "/static/icons/regular/chart.png"
     )
+
+
+def test_cloud_template_generation_supports_mutations_and_task_tracking():
+    assert presenton_cloud_proxy._request_method_is_supported(
+        "/api/v1/ppt/template/fonts-upload-and-slides-preview", "POST"
+    )
+    assert presenton_cloud_proxy._request_method_is_supported(
+        "/api/v1/ppt/template/async", "POST"
+    )
+    assert presenton_cloud_proxy._request_method_is_supported(
+        "/api/v1/ppt/template/template-id/layouts", "PATCH"
+    )
+    assert presenton_cloud_proxy._request_method_is_supported(
+        "/api/v1/ppt/template/template-id", "DELETE"
+    )
+    assert not presenton_cloud_proxy._request_method_is_supported(
+        "/api/v1/ppt/community/presentations", "POST"
+    )
+
+
+def test_cloud_template_task_list_is_forwarded_to_v3(monkeypatch):
+    captured = {}
+    provider = SimpleNamespace(
+        subject=str(uuid.uuid4()),
+        access_token_encrypted="encrypted-access",
+        refresh_token_encrypted=None,
+        scopes=None,
+        token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
+    )
+
+    class FakeUpstream:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+
+        async def aiter_raw(self):
+            yield b"[]"
+
+        async def aclose(self):
+            pass
+
+    class FakeClient:
+        async def aclose(self):
+            pass
+
+    async def get_settings(_session):
+        return {"LLM": "presenton"}
+
+    async def get_provider(_session, _issuer):
+        return provider
+
+    async def open_response(_session, **kwargs):
+        captured.update(kwargs)
+        return FakeClient(), FakeUpstream()
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
+    monkeypatch.setattr(
+        presenton_cloud_proxy,
+        "open_presenton_cloud_response",
+        open_response,
+    )
+
+    async def exercise():
+        response = await presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request(
+                "/api/v1/async-tasks",
+                method="GET",
+                query="type=template.create&status=pending",
+            ),
+            SimpleNamespace(),
+            SimpleNamespace(id=uuid.uuid4()),
+        )
+        assert response is not None
+        return b"".join([chunk async for chunk in response.body_iterator])
+
+    assert asyncio.run(exercise()) == b"[]"
+    assert captured["method"] == "GET"
+    assert captured["path"] == "/api/v3/async-task"
+    assert captured["query_string"] == "type=template.create&status=pending"
 
 
 def test_complete_presentation_is_extracted_from_split_sse_frames():
