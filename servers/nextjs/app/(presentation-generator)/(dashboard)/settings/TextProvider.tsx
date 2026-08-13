@@ -37,6 +37,7 @@ import VertexAzureManualFields from "@/components/VertexAzureManualFields";
 import BedrockManualFields from "@/components/BedrockManualFields";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import OllamaConfig from "@/components/OllamaConfig";
+import OnboardingPresentonAccount from "@/components/OnBoarding/OnboardingPresentonAccount";
 
 interface OpenAIConfigProps {
   onInputChange: (value: string | boolean, field: string) => void;
@@ -558,13 +559,17 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
             </div>
             <div
               className={`relative flex min-w-0 flex-col  justify-end ${
-                selectedProvider === "codex"
+                selectedProvider === "presenton"
+                  ? "w-full max-w-[520px] items-stretch"
+                  : selectedProvider === "codex"
                   ? "items-end w-[262px]  max-w-full shrink-0"
                   : "items-end w-[282px]  shrink-0 max-w-full"
               }`}
             >
               <div className="flex flex-col justify-start w-full ">
-                {selectedProvider === "ollama" ? (
+                {selectedProvider === "presenton" ? (
+                  <OnboardingPresentonAccount variant="settings" />
+                ) : selectedProvider === "ollama" ? (
                   <div className="w-full">
                     <OllamaConfig
                       ollamaModel={llmConfig.OLLAMA_MODEL || ""}
@@ -774,6 +779,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                 )}
               </div>
               {!isManualModelProvider &&
+                selectedProvider !== "presenton" &&
                 selectedProvider !== "codex" &&
                 selectedProvider !== "ollama" &&
                 !currentModel &&
@@ -814,6 +820,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
           </div>
           {/* Model Selection - only show if models are available */}
           {!isManualModelProvider &&
+          selectedProvider !== "presenton" &&
           selectedProvider !== "codex" &&
           selectedProvider !== "ollama" &&
           (currentModel || (modelsChecked && modelOptions.length > 0)) ? (
@@ -952,7 +959,10 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
         </div>
       </div>
       {/* Show message if no models found */}
-      {selectedProvider !== "ollama" && modelsChecked && availableModels.length === 0 && (
+      {selectedProvider !== "presenton" &&
+        selectedProvider !== "ollama" &&
+        modelsChecked &&
+        availableModels.length === 0 && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
             No models found. Please make sure your provider credentials are

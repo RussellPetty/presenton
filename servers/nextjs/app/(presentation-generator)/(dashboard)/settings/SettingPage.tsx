@@ -147,6 +147,22 @@ const SettingsPage = () => {
       return false;
     }
   };
+  const checkPresentonAuthStatus = async () => {
+    try {
+      const response = await fetch(
+        getApiUrl("/api/v1/auth/presenton/status"),
+        {
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+      if (!response.ok) return false;
+      const data = (await response.json()) as { linked?: boolean };
+      return data.linked === true;
+    } catch {
+      return false;
+    }
+  };
   const handleSaveConfig = async () => {
 
     if (llmConfig.LLM === 'codex') {
@@ -156,6 +172,17 @@ const SettingsPage = () => {
           message: "Please sign in to ChatGPT again from Settings.",
           source: "settings-save",
         });
+        return;
+      }
+    }
+    if (llmConfig.LLM === "presenton") {
+      const isConnected = await checkPresentonAuthStatus();
+      if (!isConnected) {
+        notify.warning(
+          "Connect Presenton first",
+          "Sign in to Presenton Cloud before selecting it as the text provider."
+        );
+        setSelectedProvider("text-provider");
         return;
       }
     }
@@ -240,7 +267,9 @@ const SettingsPage = () => {
   const textProviderLabel =
     LLM_PROVIDERS[textProviderKey]?.label || textProviderKey;
   const selectedTextModel =
-    textProviderKey === "openai"
+    textProviderKey === "presenton"
+      ? ""
+      : textProviderKey === "openai"
       ? llmConfig.OPENAI_MODEL
       : textProviderKey === "deepseek"
         ? llmConfig.DEEPSEEK_MODEL

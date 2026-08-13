@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { notify } from "@/components/ui/sonner";
 import { getApiUrl } from "@/utils/api";
 
-type PresentonStatus = {
+export type PresentonStatus = {
   enabled: boolean;
   linked: boolean;
   email: string | null;
@@ -54,8 +54,12 @@ function getErrorMessage(payload: unknown, fallback: string): string {
 
 export default function OnboardingPresentonAccount({
   onContinue,
+  variant = "onboarding",
+  onStatusChange,
 }: {
-  onContinue: () => void;
+  onContinue?: () => void;
+  variant?: "onboarding" | "settings";
+  onStatusChange?: (status: PresentonStatus) => void;
 }) {
   const [status, setStatus] = useState<PresentonStatus>(initialStatus);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,16 +79,18 @@ export default function OnboardingPresentonAccount({
       });
       if (!response.ok) return;
       const payload = (await response.json()) as PresentonStatusResponse;
-      setStatus({
+      const nextStatus = {
         enabled: Boolean(payload.enabled),
         linked: Boolean(payload.linked),
         email: typeof payload.email === "string" ? payload.email : null,
         canManage: Boolean(payload.canManage ?? payload.can_manage),
-      });
+      };
+      setStatus(nextStatus);
+      onStatusChange?.(nextStatus);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [onStatusChange]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadStatus(), 0);
@@ -116,7 +122,12 @@ export default function OnboardingPresentonAccount({
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_name: "Presenton onboarding" }),
+          body: JSON.stringify({
+            device_name:
+              variant === "settings"
+                ? "Presenton settings"
+                : "Presenton onboarding",
+          }),
         },
       );
       const payload: unknown = await response.json().catch(() => ({}));
@@ -277,7 +288,9 @@ export default function OnboardingPresentonAccount({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-[#191919]">
-                Create with Presenton Cloud
+                {variant === "settings"
+                  ? "Presenton Cloud account"
+                  : "Create with Presenton Cloud"}
               </h2>
               {status.linked ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#E6F8ED] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#238553]">
@@ -316,16 +329,20 @@ export default function OnboardingPresentonAccount({
       {status.linked ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E0F8] bg-white/55 px-6 py-4">
           <p className="text-xs text-[#6B647A]">
-            Your account is ready to generate presentations.
+            {variant === "settings"
+              ? "Presenton is connected and can be selected as the text provider."
+              : "Your account is ready to generate presentations."}
           </p>
-          <button
-            type="button"
-            onClick={onContinue}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-5 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(124,81,248,0.2)] transition hover:bg-[#6941D9]"
-          >
-            Continue to generation
-            <ArrowRight className="h-4 w-4" />
-          </button>
+          {variant === "onboarding" && onContinue ? (
+            <button
+              type="button"
+              onClick={onContinue}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7C51F8] px-5 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(124,81,248,0.2)] transition hover:bg-[#6941D9]"
+            >
+              Continue to generation
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
       ) : !flow && status.canManage ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E0F8] bg-white/55 px-6 py-4">
