@@ -31,6 +31,12 @@ export default function GenerationModeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         hideDefaultClose
+        style={{
+          position: "fixed",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
         className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-[850px] gap-0 overflow-y-auto border border-[#EDEEEF] bg-white p-0 sm:rounded-[40px]"
       >
         <div className="sticky top-0 z-10 border-b border-[#EDEEEF] bg-[#F9FAFB] px-4 py-4 sm:px-8">
