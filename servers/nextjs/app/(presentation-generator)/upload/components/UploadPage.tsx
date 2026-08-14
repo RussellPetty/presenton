@@ -670,7 +670,7 @@ const UploadPage = () => {
           }
         />
 
-        {generationMode === "standard" && (
+        {/* {generationMode === "standard" && (
           <section
             className="pt-1"
             aria-labelledby="standard-prompt-starters"
@@ -730,7 +730,7 @@ const UploadPage = () => {
               })}
             </div>
           </section>
-        )}
+        )} */}
       </div>
 
       {generationMode === "smart" && (

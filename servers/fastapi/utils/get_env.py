@@ -1,6 +1,6 @@
 import os
 
-DEFAULT_PRESENTON_OAUTH_ISSUER = "https://presenton-enterprise.fly.dev"
+DEFAULT_PRESENTON_OAUTH_ISSUER = "https://api.presenton.ai"
 DEFAULT_PRESENTON_OAUTH_CLIENT_ID = "ptc_presenton_open_source"
 
 

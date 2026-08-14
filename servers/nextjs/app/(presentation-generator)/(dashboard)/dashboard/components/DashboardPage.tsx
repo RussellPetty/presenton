@@ -164,6 +164,7 @@ const ListViewIcon = () => (
 
 const sortPresentationsNewestFirst = (presentations: PresentationResponse[]) =>
   [...presentations].sort((a, b) => {
+    
     const createdAtA = Date.parse(a.created_at);
     const createdAtB = Date.parse(b.created_at);
 
