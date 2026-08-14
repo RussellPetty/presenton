@@ -574,7 +574,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
             <div
               className={`relative flex min-w-0 flex-col  justify-end ${
                 selectedProvider === "presenton"
-                  ? "w-[440px] max-w-full shrink-0 items-stretch pt-[28px]"
+                  ? "w-[440px] max-w-full shrink-0 items-stretch"
                   : selectedProvider === "codex"
                   ? "items-end w-[262px]  max-w-full shrink-0"
                   : "items-end w-[282px]  shrink-0 max-w-full"
