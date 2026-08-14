@@ -28,12 +28,18 @@ import {
   clampSlideCountValue,
   MAX_NUMBER_OF_SLIDES,
 } from "@/utils/presentationLimits";
+import { Button } from "@/components/ui/button";
+import GenerationModeDialog, {
+  type GenerationMode,
+} from "./GenerationModeDialog";
 
 // Types
 interface ConfigurationSelectsProps {
   config: PresentationConfig;
   onConfigChange: (key: keyof PresentationConfig, value: any) => void;
   compact?: boolean;
+  mode?: GenerationMode;
+  onModeChange?: (mode: GenerationMode) => void;
 }
 
 type SlideOption =
@@ -374,9 +380,13 @@ export function ConfigurationSelects({
   config,
   onConfigChange,
   compact = false,
+  mode,
+  onModeChange,
 }: ConfigurationSelectsProps) {
   const [openSlides, setOpenSlides] = useState(false);
   const [openLanguage, setOpenLanguage] = useState(false);
+  const [modeDialogOpen, setModeDialogOpen] = useState(false);
+  const showMode = Boolean(mode && onModeChange);
 
   return (
     <div
@@ -385,6 +395,19 @@ export function ConfigurationSelects({
         compact ? "gap-3" : "gap-4 min-[1800px]:gap-5"
       )}
     >
+      {showMode ? (
+        <Button
+          type="button"
+          onClick={() => setModeDialogOpen(true)}
+          className={cn(
+            "rounded-full border border-[#EDEEEF] bg-white px-4 py-1 font-syne text-sm font-medium text-[#101323] hover:bg-white",
+            compact ? "h-[34px] shadow-none" : "h-[38px] shadow-sm"
+          )}
+        >
+          {mode === "standard" ? "Standard" : "Smart"}
+          <ChevronUp className="h-4 w-4" />
+        </Button>
+      ) : null}
       <SlideCountSelect
         value={config.slides}
         onValueChange={(value) => onConfigChange("slides", value)}
@@ -404,6 +427,13 @@ export function ConfigurationSelects({
         onConfigChange={onConfigChange}
         compact={compact}
       />
+      {showMode ? (
+        <GenerationModeDialog
+          open={modeDialogOpen}
+          onOpenChange={setModeDialogOpen}
+          onSelect={(nextMode) => onModeChange?.(nextMode)}
+        />
+      ) : null}
     </div>
   );
 }

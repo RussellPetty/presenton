@@ -635,30 +635,12 @@ const UploadPage = () => {
       >
         <div className="flex min-h-[34px] w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <div
-              className="inline-flex items-center rounded-lg border border-[#EDEEEF] bg-white p-1 font-syne"
-              role="tablist"
-              aria-label="Generation mode"
-            >
-              {(["smart", "standard"] as GenerationMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  role="tab"
-                  aria-selected={generationMode === mode}
-                  onClick={() => handleGenerationModeChange(mode)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium capitalize leading-6 text-[#191919] transition-colors ${
-                    generationMode === mode ? "bg-[#F6F6F9]" : "hover:bg-[#FAFAFC]"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
             <CurrentConfig webSearchEnabled={config.webSearch} />
           </div>
           <ConfigurationSelects
             compact
+            mode={generationMode}
+            onModeChange={handleGenerationModeChange}
             config={config}
             onConfigChange={handleConfigChange}
           />
