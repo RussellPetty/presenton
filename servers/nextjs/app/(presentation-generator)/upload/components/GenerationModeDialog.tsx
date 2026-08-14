@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
@@ -28,25 +23,42 @@ export default function GenerationModeDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        hideDefaultClose
-        style={{
-          position: "fixed",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-        className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-[850px] gap-0 overflow-y-auto border border-[#EDEEEF] bg-white p-0 sm:rounded-[40px]"
-      >
-        <div className="sticky top-0 z-10 border-b border-[#EDEEEF] bg-[#F9FAFB] px-4 py-4 sm:px-8">
-          <DialogTitle className="text-xl font-medium tracking-[-0.2px] text-[#808080]">
-            Select Mode
-          </DialogTitle>
-          <DialogClose className="absolute right-4 top-5 sm:right-8">
-            <X className="h-5 w-5 text-[#808080]" />
-          </DialogClose>
-        </div>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#101828]/45 backdrop-blur-[2px]" />
+        <div
+          className="p-2"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <DialogPrimitive.Content
+            className="relative overflow-y-auto rounded-[24px] border border-[#EDEEEF] bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.24)] sm:rounded-[40px]"
+            style={{
+              width: "calc(100% - 1rem)",
+              maxWidth: "850px",
+              maxHeight: "calc(100dvh - 1rem)",
+              pointerEvents: "auto",
+            }}
+          >
+            <DialogPrimitive.Description className="sr-only">
+              Choose Standard mode for fixed layouts or Smart mode for adaptive
+              layouts.
+            </DialogPrimitive.Description>
+            <div className="sticky top-0 z-10 border-b border-[#EDEEEF] bg-[#F9FAFB] px-4 py-4 sm:px-8">
+              <DialogPrimitive.Title className="text-xl font-medium tracking-[-0.2px] text-[#808080]">
+                Select Mode
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Close className="absolute right-4 top-5 sm:right-8">
+                <X className="h-5 w-5 text-[#808080]" />
+              </DialogPrimitive.Close>
+            </div>
 
         <div className="p-3 sm:p-5">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -123,7 +135,9 @@ export default function GenerationModeDialog({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+          </DialogPrimitive.Content>
+        </div>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
