@@ -38,6 +38,7 @@ import BedrockManualFields from "@/components/BedrockManualFields";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import OllamaConfig from "@/components/OllamaConfig";
 import OnboardingPresentonAccount from "@/components/OnBoarding/OnboardingPresentonAccount";
+import Image from "next/image";
 
 interface OpenAIConfigProps {
   onInputChange: (value: string | boolean, field: string) => void;
@@ -490,6 +491,15 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                       className="w-[222px] h-12 px-4 py-4 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors hover:border-gray-400 justify-between"
                     >
                       <div className="flex gap-3 items-center">
+                        {selectedProviderMeta?.icon ? (
+                          <Image
+                            src={selectedProviderMeta.icon}
+                            alt=""
+                            width={22}
+                            height={22}
+                            className="h-[22px] w-[22px] rounded-[5px] object-contain"
+                          />
+                        ) : null}
                         <span className="text-sm font-medium text-gray-900">
                           {llmConfig.LLM
                             ? LLM_PROVIDERS[llmConfig.LLM]?.label ||
@@ -497,7 +507,11 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                             : "Select text provider"}
                         </span>
                       </div>
-                      <ChevronUp className="w-4 h-4 text-gray-500" />
+                      {openProviderSelect ? (
+                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
@@ -560,7 +574,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
             <div
               className={`relative flex min-w-0 flex-col  justify-end ${
                 selectedProvider === "presenton"
-                  ? "w-full max-w-[520px] items-stretch"
+                  ? "w-[440px] max-w-full shrink-0 items-stretch pt-[28px]"
                   : selectedProvider === "codex"
                   ? "items-end w-[262px]  max-w-full shrink-0"
                   : "items-end w-[282px]  shrink-0 max-w-full"

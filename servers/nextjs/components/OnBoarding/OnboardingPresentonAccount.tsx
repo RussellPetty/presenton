@@ -305,7 +305,9 @@ export default function OnboardingPresentonAccount({
             disabled={
               status.linked || !status.canManage || Boolean(flow) || isStarting
             }
-            className="flex min-h-[78px] w-full items-center gap-2 p-5 text-left transition-colors enabled:hover:bg-[#FAFAFC] disabled:cursor-default"
+            className={`flex min-h-[78px] w-full items-center gap-3 p-5 text-left transition-colors enabled:hover:bg-[#FAFAFC] disabled:cursor-default ${
+              variant === "settings" && status.linked ? "pr-[76px]" : ""
+            }`}
           >
             <Image
               src="/providers/presenton.png"
@@ -340,7 +342,24 @@ export default function OnboardingPresentonAccount({
             ) : null}
           </button>
 
-          {status.linked ? (
+          {status.linked && variant === "settings" && status.canManage ? (
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              disabled={isLoggingOut}
+              title="Disconnect Presenton Cloud"
+              aria-label="Disconnect Presenton Cloud"
+              className="absolute right-5 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#EDEEEF] bg-white text-[#4C4C4C] shadow-[0_3px_10px_rgba(16,24,40,0.04)] transition hover:border-[#DDD9E8] hover:bg-[#F7F6F9] disabled:opacity-50"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </button>
+          ) : null}
+
+          {status.linked && variant === "onboarding" ? (
             <div className="flex items-center justify-between gap-3 border-t border-[#EDEEEF] px-[15px] py-3">
               {onContinue ? (
                 <button
@@ -433,6 +452,14 @@ export default function OnboardingPresentonAccount({
               >
                 <Copy className="h-4 w-4" strokeWidth={1.8} />
               </button>
+            </div>
+            <div
+              className="mt-3 flex items-center gap-2 font-manrope text-[12px] text-[#77727F]"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#7A5AF8]" />
+              Waiting for authorization…
             </div>
           </div>
         ) : null}
