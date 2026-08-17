@@ -112,6 +112,7 @@ export enum MixpanelEvent {
   Settings_Tab_Switched = 'Settings Tab Switched',
   Settings_Provider_Selected = 'Settings Provider Selected',
   Settings_Model_Selected = 'Settings Model Selected',
+  Usage_Analytics_Disabled = 'Usage Analytics Disabled',
   PresentationPage_Refresh_Page_Button_Clicked = 'Presentation Page Refresh Page Button Clicked',
   ImageEditor_GetPreviousGeneratedImages_API_Call = 'Image Editor Get Previous Generated Images API Call',
   ImageEditor_GenerateImage_API_Call = 'Image Editor Generate Image API Call',
