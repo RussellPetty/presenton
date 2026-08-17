@@ -13,6 +13,7 @@ from models.sql.presenton_cloud_provider import PresentonCloudProvider
 from models.sql.provider_settings import ProviderSettings
 from models.sql.user import User
 from services.database import get_async_session
+from utils.get_env import get_presenton_oauth_issuer
 
 
 def _build_client(tmp_path) -> tuple[TestClient, object, object]:
@@ -191,7 +192,7 @@ def test_admin_can_disconnect_global_provider(monkeypatch, tmp_path):
             await session.commit()
             await presenton_oauth.store_presenton_credentials(
                 session,
-                issuer="https://presenton-enterprise.fly.dev",
+                issuer=get_presenton_oauth_issuer(),
                 subject="hosted-provider-owner",
                 email="provider@example.com",
                 access_token="user.jwt.signature",
