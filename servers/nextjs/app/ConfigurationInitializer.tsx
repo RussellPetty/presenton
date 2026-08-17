@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { setCanChangeKeys, setLLMConfig } from '@/store/slices/userConfig';
 import { hasValidLLMConfig, normalizeLLMConfig } from '@/utils/storeHelpers';
 import { usePathname, useRouter } from 'next/navigation';
@@ -61,7 +60,57 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
   // Fetch user config state
   useEffect(() => {
     fetchUserConfigState();
+    // Configuration bootstrap runs once. Presenton is revalidated separately
+    // below whenever the user navigates to another application route.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (
+      route === '/' ||
+      isSettingsRoute ||
+      route.startsWith('/pdf-maker')
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    let presentonSelected = false;
+    const revalidatePresentonConnection = async () => {
+      try {
+        const configResponse = await fetch('/api/user-config', {
+          cache: 'no-store',
+        });
+        if (!configResponse.ok) return;
+
+        const config = normalizeLLMConfig(await configResponse.json());
+        presentonSelected = config.LLM === 'presenton';
+        if (!presentonSelected) return;
+
+        const statusResponse = await fetch(
+          getApiUrl('/api/v1/auth/presenton/status'),
+          { cache: 'no-store', credentials: 'include' }
+        );
+        const status = statusResponse.ok
+          ? await statusResponse.json() as { linked?: boolean }
+          : null;
+
+        if (!cancelled && !status?.linked) {
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Failed to revalidate Presenton connection:', error);
+        if (!cancelled && presentonSelected) {
+          router.push('/');
+        }
+      }
+    };
+
+    void revalidatePresentonConnection();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSettingsRoute, route, router]);
 
   useEffect(() => {
     if (!shouldShowStartupSplash) {
@@ -127,7 +176,21 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
 
       dispatch(setLLMConfig(llmConfig));
 
-      const isValid = hasValidLLMConfig(llmConfig);
+      let hasPresentonCloud = false;
+      try {
+        const response = await fetch(
+          getApiUrl('/api/v1/auth/presenton/status'),
+          { cache: 'no-store', credentials: 'include' }
+        );
+        if (response.ok) {
+          const status = await response.json();
+          hasPresentonCloud = Boolean(status.linked);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Presenton cloud status:', error);
+      }
+      const isValid = hasValidLLMConfig(llmConfig) &&
+        (llmConfig.LLM !== 'presenton' || hasPresentonCloud);
       if (route.startsWith('/pdf-maker')) {
         setIsLoading(false);
         return;
@@ -175,7 +238,13 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
         } else {
           setIsLoading(false);
         }
-      } else if (route !== '/' && !(isSettingsRoute && llmConfig.LLM === 'codex')) {
+      } else if (
+        route !== '/' &&
+        !(
+          isSettingsRoute &&
+          (llmConfig.LLM === 'codex' || llmConfig.LLM === 'presenton')
+        )
+      ) {
         router.push('/');
         setLoadingToFalseAfterNavigatingTo('/');
       } else {
