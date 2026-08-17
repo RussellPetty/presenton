@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from api.v1.auth.users import get_current_admin, read_user_from_cookie
+from api.v1.auth.users import read_user_from_cookie
 from models.sql.user import User
 from services.database import get_async_session
 from services.presenton_cloud import (
@@ -22,6 +22,7 @@ from services.provider_settings import get_provider_settings, save_provider_sett
 from utils.get_env import (
     get_presenton_oauth_client_id,
     get_presenton_oauth_issuer,
+    is_disable_auth_enabled,
 )
 from utils.user_config import update_env_with_user_config
 
@@ -50,6 +51,27 @@ class PresentonUserInfo(BaseModel):
 
 def _oauth_config() -> tuple[str, str]:
     return get_presenton_oauth_issuer(), get_presenton_oauth_client_id()
+
+
+def _can_manage_provider(current_user: User | None) -> bool:
+    # Electron is intentionally started with DISABLE_AUTH=true and is treated as
+    # an administrator everywhere else in the local auth API. Keep the cloud
+    # provider controls consistent with that single-user desktop runtime.
+    return is_disable_auth_enabled() or bool(
+        current_user and current_user.is_superuser
+    )
+
+
+async def require_presenton_manager(
+    current_user: User | None = Depends(read_user_from_cookie),
+) -> User | None:
+    if is_disable_auth_enabled():
+        return None
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 
 async def _provider_request(
@@ -103,7 +125,7 @@ async def presenton_provider_status(
     issuer = get_presenton_oauth_issuer()
     provider = await get_presenton_provider(session, issuer)
     linked = has_cloud_credentials(provider)
-    can_manage = bool(current_user and current_user.is_superuser)
+    can_manage = _can_manage_provider(current_user)
     return {
         "enabled": True,
         "issuer": issuer,
@@ -119,7 +141,7 @@ async def presenton_provider_status(
 @PRESENTON_OAUTH_ROUTER.post("/logout")
 async def logout_presenton_account(
     session: AsyncSession = Depends(get_async_session),
-    _current_admin: User = Depends(get_current_admin),
+    _current_manager: User | None = Depends(require_presenton_manager),
 ):
     issuer = get_presenton_oauth_issuer()
     provider = await get_presenton_provider(session, issuer)
@@ -139,7 +161,7 @@ async def logout_presenton_account(
 @PRESENTON_OAUTH_ROUTER.post("/device/start")
 async def start_presenton_provider_connection(
     body: PresentonDeviceStartRequest,
-    _current_admin: User = Depends(get_current_admin),
+    _current_manager: User | None = Depends(require_presenton_manager),
 ):
     issuer, client_id = _oauth_config()
     try:
@@ -193,7 +215,7 @@ async def start_presenton_provider_connection(
 async def poll_presenton_provider_connection(
     body: PresentonDevicePollRequest,
     session: AsyncSession = Depends(get_async_session),
-    _current_admin: User = Depends(get_current_admin),
+    _current_manager: User | None = Depends(require_presenton_manager),
 ):
     issuer, client_id = _oauth_config()
     try:

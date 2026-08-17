@@ -41,7 +41,7 @@ def _string_list(value: Any) -> list[str] | None:
 
 
 async def persist_cloud_presentation_created(
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     request_payload: dict[str, Any],
     cloud_payload: dict[str, Any],
 ) -> None:
@@ -114,7 +114,7 @@ async def persist_cloud_presentation_created(
 
 
 async def persist_cloud_presentation_complete(
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     cloud_payload: dict[str, Any],
     generation_mode: str | None = None,
 ) -> None:
@@ -223,7 +223,7 @@ async def persist_cloud_presentation_complete(
 
 
 async def get_local_presentation_generation_mode(
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     presentation_id: uuid.UUID,
 ) -> str | None:
     async with async_session_maker() as session:
@@ -236,7 +236,7 @@ async def get_local_presentation_generation_mode(
 
 
 async def get_local_slide_presentation_id(
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     slide_id: uuid.UUID,
 ) -> uuid.UUID | None:
     async with async_session_maker() as session:
