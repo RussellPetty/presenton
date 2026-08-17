@@ -14,7 +14,10 @@ const Modal = ({
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-6 z-50 w-[600px] max-w-[90vw]">
+      <div
+        className="fixed left-1/2 top-1/2 z-50 w-[600px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6"
+        style={{ translate: "none" }}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button

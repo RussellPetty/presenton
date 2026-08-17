@@ -252,6 +252,18 @@ Run Presenton directly in your browser — no installation, no setup required. S
 
 #
 
+### 🏢 Presenton Enterprise
+
+Deploy and manage Presenton across your organization with versioned Helm charts for Kubernetes, detailed audit logs, and a centralized admin console. Enterprise authentication supports SSO and automated user provisioning through OAuth, OIDC, and SCIM.
+
+<p align="center">
+  <a href="https://presenton.ai/enterprise">
+    <img src="./readme_assets/images/readme_Enterprise.png" alt="Presenton Enterprise features: Helm chart deployment, audit logs, centralized administration, and enterprise SSO and provisioning" />
+  </a>
+</p>
+
+#
+
 ### ⚡ Running Presenton
 
   <p>
