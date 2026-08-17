@@ -100,7 +100,7 @@ const DashboardSidebar = () => {
             <div className="border-t border-[#E1E1E5] pt-5 font-syne">
                   <Link
                     href="/settings"
-                    target="_blank"
+                  
                     className="flex flex-col items-center gap-2 transition-colors"
                 >
                     <Settings className="h-4 w-4" />
