@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { notify } from "@/components/ui/sonner";
 import { getApiUrl } from "@/utils/api";
+import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 
 export type PresentonStatus = {
   enabled: boolean;
@@ -107,6 +108,10 @@ export default function OnboardingPresentonAccount({
 
   const startLink = async () => {
     if (isStarting) return;
+    trackEvent(MixpanelEvent.Provider_Login_Clicked, {
+      provider: "presenton",
+      source: variant,
+    });
     setIsStarting(true);
 
     const approvalWindow = window.open(
@@ -167,6 +172,10 @@ export default function OnboardingPresentonAccount({
 
   const signOut = async () => {
     if (isLoggingOut) return;
+    trackEvent(MixpanelEvent.Provider_Logout_Clicked, {
+      provider: "presenton",
+      source: variant,
+    });
     setIsLoggingOut(true);
     try {
       const response = await fetch(
@@ -182,6 +191,11 @@ export default function OnboardingPresentonAccount({
           getErrorMessage(payload, "Could not disconnect Presenton."),
         );
       }
+
+      trackEvent(MixpanelEvent.Provider_Connection_Deleted, {
+        provider: "presenton",
+        source: variant,
+      });
 
       setFlow(null);
       approvalWindowRef.current?.close();
@@ -256,6 +270,12 @@ export default function OnboardingPresentonAccount({
             getErrorMessage(payload, "Could not connect Presenton Cloud."),
           );
         }
+
+        trackEvent(MixpanelEvent.Provider_Connection_Completed, {
+          provider: "presenton",
+          source: variant,
+          method: "device_flow",
+        });
 
         setFlow(null);
         approvalWindowRef.current?.close();

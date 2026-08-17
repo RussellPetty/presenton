@@ -24,6 +24,11 @@ export enum MixpanelEvent {
   Onboarding_Web_Search_Toggled = 'Onboarding Web Search Toggled',
   Onboarding_Web_Search_Provider_Selected = 'Onboarding Web Search Provider Selected',
 
+  Provider_Login_Clicked = 'Provider Login Clicked',
+  Provider_Connection_Completed = 'Provider Connection Completed',
+  Provider_Logout_Clicked = 'Provider Logout Clicked',
+  Provider_Connection_Deleted = 'Provider Connection Deleted',
+
   Codex_SignIn_API_Call = 'Codex Sign In API Call',
   Codex_SignIn_Completed = 'Codex Sign In Completed',
   Codex_SignIn_Failed = 'Codex Sign In Failed',
