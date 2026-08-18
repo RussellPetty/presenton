@@ -103,7 +103,9 @@ export enum MixpanelEvent {
   Presentation_Slide_Deleted = 'Presentation Slide Deleted',
   Presentation_Theme_Changed = 'Presentation Theme Changed',
   Presentation_Theme_Reset = 'Presentation Theme Reset',
+  Presentation_Export_Started = 'Presentation Export Started',
   Presentation_Export_Completed = 'Presentation Export Completed',
+  Presentation_Export_Failed = 'Presentation Export Failed',
   Presentation_Regenerated = 'Presentation Regenerated',
 
   Presentation_Stream_API_Call = 'Presentation Stream API Call',
