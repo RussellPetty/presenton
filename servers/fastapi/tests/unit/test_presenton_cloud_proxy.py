@@ -410,6 +410,68 @@ def test_cloud_create_is_saved_locally_before_response(monkeypatch):
     assert captured["client_closed"] is True
 
 
+def test_auth_disabled_cloud_create_uses_unowned_desktop_rows(monkeypatch):
+    presentation_id = uuid.uuid4()
+    captured = {}
+
+    class FakeUpstream:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+
+        async def aread(self):
+            return json.dumps({"id": str(presentation_id)}).encode()
+
+        async def aclose(self):
+            pass
+
+    class FakeClient:
+        async def aclose(self):
+            pass
+
+    async def get_settings(_session):
+        return {"LLM": "presenton"}
+
+    async def get_provider(_session, _issuer):
+        return SimpleNamespace(
+            subject=str(uuid.uuid4()),
+            access_token_encrypted="encrypted-access",
+            token_expires_at=get_current_utc_datetime() + timedelta(hours=1),
+        )
+
+    async def open_response(_session, **_kwargs):
+        return FakeClient(), FakeUpstream()
+
+    async def persist(owner, request_payload, cloud_payload):
+        captured["persisted"] = (owner, request_payload, cloud_payload)
+
+    monkeypatch.setattr(presenton_cloud_proxy, "get_provider_settings", get_settings)
+    monkeypatch.setattr(presenton_cloud_proxy, "get_presenton_provider", get_provider)
+    monkeypatch.setattr(
+        presenton_cloud_proxy, "open_presenton_cloud_response", open_response
+    )
+    monkeypatch.setattr(
+        presenton_cloud_proxy, "persist_cloud_presentation_created", persist
+    )
+
+    response = asyncio.run(
+        presenton_cloud_proxy.maybe_proxy_presenton_cloud_request(
+            _request(
+                "/api/v1/ppt/presentation/create",
+                body=b'{"content":"Build a desktop deck","n_slides":3}',
+                headers=[(b"content-type", b"application/json")],
+            ),
+            SimpleNamespace(),
+            None,
+            allow_unowned=True,
+        )
+    )
+
+    assert response.status_code == 200
+    assert captured["persisted"][0] is None
+    assert captured["persisted"][1]["content"] == "Build a desktop deck"
+    assert captured["persisted"][2]["id"] == str(presentation_id)
+
+
 def test_smart_create_is_adapted_to_cloud_v2(monkeypatch):
     owner_id = uuid.uuid4()
     presentation_id = uuid.uuid4()

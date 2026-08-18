@@ -114,10 +114,12 @@ export default function OnboardingPresentonAccount({
     });
     setIsStarting(true);
 
-    const approvalWindow = window.open(
-      "about:blank",
-      "_blank",
-    );
+    // Electron denies child windows and sends http(s) targets to the system
+    // browser. Do not ask it to open the unsupported about:blank placeholder.
+    const isElectron = Boolean(window.electron);
+    const approvalWindow = isElectron
+      ? null
+      : window.open("about:blank", "_blank");
     approvalWindowRef.current = approvalWindow;
     if (approvalWindow) {
       approvalWindow.opener = null;
@@ -158,7 +160,15 @@ export default function OnboardingPresentonAccount({
       setFlow(nextFlow);
       setPollDelay(interval);
       setPollAttempt(0);
-      approvalWindow?.location.replace(nextFlow.verificationUri);
+      if (approvalWindow) {
+        approvalWindow.location.replace(nextFlow.verificationUri);
+      } else if (isElectron) {
+        window.open(
+          nextFlow.verificationUri,
+          "_blank",
+          "noopener,noreferrer",
+        );
+      }
     } catch (error) {
       approvalWindow?.close();
       notify.error(

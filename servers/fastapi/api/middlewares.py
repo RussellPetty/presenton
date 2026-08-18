@@ -54,6 +54,18 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         if is_disable_auth_enabled():
+            # Electron uses the auth-disabled, single-user runtime. It still
+            # needs the Presenton Cloud provider proxy when that provider is
+            # selected; desktop-owned rows use the existing nullable owner_id.
+            async with async_session_maker() as session:
+                cloud_response = await maybe_proxy_presenton_cloud_request(
+                    request,
+                    session,
+                    None,
+                    allow_unowned=True,
+                )
+                if cloud_response is not None:
+                    return cloud_response
             return await call_next(request)
 
         path = request.url.path

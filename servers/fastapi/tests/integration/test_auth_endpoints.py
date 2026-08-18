@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from api.v1.admin.router import API_V1_ADMIN_ROUTER
+from api.v1.auth.config import SESSION_COOKIE_NAME
 from api.v1.auth.router import API_V1_AUTH_ROUTER
 from api.v1.auth.rate_limit import LOGIN_RATE_LIMITER, login_rate_limit_key
 from api.v1.auth.users import PASSWORD_HELPER
@@ -15,7 +16,7 @@ from models.sql.provider_settings import ProviderSettings
 from models.sql.user import User
 from services.database import get_async_session
 from services.presenton_cloud import store_presenton_credentials
-from api.v1.auth.config import SESSION_COOKIE_NAME
+from utils.get_env import get_presenton_oauth_issuer
 
 
 def _build_client(tmp_path) -> tuple[TestClient, object]:
@@ -213,7 +214,7 @@ def test_admin_provider_settings_include_safe_global_presenton_status(
         async with session_maker() as session:
             await store_presenton_credentials(
                 session,
-                issuer="https://presenton-enterprise.fly.dev",
+                issuer=get_presenton_oauth_issuer(),
                 subject="cloud-admin",
                 email="cloud-admin@example.com",
                 access_token="user.jwt.signature",

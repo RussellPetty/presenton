@@ -270,7 +270,7 @@ async def _sync_cloud_presentation(
     session: AsyncSession,
     *,
     issuer: str,
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     presentation_id: uuid.UUID,
     generation_mode: str,
 ) -> None:
@@ -296,7 +296,7 @@ async def _sync_cloud_presentation(
 
 async def _resolve_presentation_context(
     *,
-    owner_id: uuid.UUID,
+    owner_id: uuid.UUID | None,
     path: str,
     query_string: str,
     payload: dict[str, Any] | None,
@@ -401,14 +401,18 @@ async def maybe_proxy_presenton_cloud_request(
     request: Request,
     session: AsyncSession,
     user: User | None,
+    *,
+    allow_unowned: bool = False,
 ) -> Response | None:
     path = request.url.path
     if (
-        user is None
+        (user is None and not allow_unowned)
         or not should_proxy_presenton_cloud(path)
         or not _request_method_is_supported(path, request.method)
     ):
         return None
+
+    owner_id = user.id if user is not None else None
 
     settings = await get_provider_settings(session)
     if settings.get("LLM") != "presenton":
@@ -440,7 +444,7 @@ async def maybe_proxy_presenton_cloud_request(
     request_body = await request.body()
     request_payload = _json_object(request_body)
     presentation_id, generation_mode = await _resolve_presentation_context(
-        owner_id=user.id,
+        owner_id=owner_id,
         path=path,
         query_string=request.url.query,
         payload=request_payload,
@@ -559,7 +563,7 @@ async def maybe_proxy_presenton_cloud_request(
                     response_body = json.dumps(response_payload).encode("utf-8")
                 if request_payload is not None and response_payload is not None:
                     await persist_cloud_presentation_created(
-                        user.id,
+                        owner_id,
                         request_payload,
                         response_payload,
                     )
@@ -569,7 +573,7 @@ async def maybe_proxy_presenton_cloud_request(
                 await _sync_cloud_presentation(
                     session,
                     issuer=issuer,
-                    owner_id=user.id,
+                    owner_id=owner_id,
                     presentation_id=presentation_id,
                     generation_mode=generation_mode,
                 )
@@ -598,7 +602,7 @@ async def maybe_proxy_presenton_cloud_request(
                         presentation = payload.get("presentation")
                         if isinstance(presentation, dict):
                             await persist_cloud_presentation_complete(
-                                user.id,
+                                owner_id,
                                 presentation,
                                 generation_mode=generation_mode,
                             )
@@ -610,7 +614,7 @@ async def maybe_proxy_presenton_cloud_request(
                                 await _sync_cloud_presentation(
                                     sync_session,
                                     issuer=issuer,
-                                    owner_id=user.id,
+                                    owner_id=owner_id,
                                     presentation_id=presentation_id,
                                     generation_mode=generation_mode,
                                 )
@@ -629,7 +633,7 @@ async def maybe_proxy_presenton_cloud_request(
                     await _sync_cloud_presentation(
                         sync_session,
                         issuer=issuer,
-                        owner_id=user.id,
+                        owner_id=owner_id,
                         presentation_id=presentation_id,
                         generation_mode=generation_mode,
                     )

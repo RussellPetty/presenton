@@ -13,6 +13,7 @@ from models.sql.presenton_cloud_provider import PresentonCloudProvider
 from models.sql.provider_settings import ProviderSettings
 from models.sql.user import User
 from services.database import get_async_session
+from utils.get_env import get_presenton_oauth_issuer
 
 
 def _build_client(tmp_path) -> tuple[TestClient, object, object]:
@@ -67,6 +68,70 @@ def test_presenton_provider_connection_requires_local_admin(monkeypatch, tmp_pat
         json={"device_code": "device-code-secret-12345"},
     ).status_code == 401
     assert client.post("/api/v1/auth/presenton/logout").status_code == 401
+    asyncio.run(engine.dispose())
+
+
+def test_auth_disabled_runtime_can_manage_presenton_provider(monkeypatch, tmp_path):
+    monkeypatch.setenv("DISABLE_AUTH", "true")
+    monkeypatch.setenv("USER_CONFIG_PATH", str(tmp_path / "userConfig.json"))
+    client, engine, _session_maker = _build_client(tmp_path)
+
+    status = client.get("/api/v1/auth/presenton/status")
+    assert status.status_code == 200
+    assert status.json()["can_manage"] is True
+
+    async def provider_request(_method, url, **_kwargs):
+        if url.endswith("/oauth/device_authorization"):
+            return _response(
+                200,
+                {
+                    "device_code": "device-code-secret-12345",
+                    "user_code": "BCDF-GHJK",
+                    "verification_uri": "https://presenton.test/device",
+                    "verification_uri_complete": "https://presenton.test/device",
+                    "expires_in": 900,
+                    "interval": 5,
+                },
+            )
+        if url.endswith("/oauth/token"):
+            return _response(
+                200,
+                {
+                    "access_token": "desktop.jwt.signature",
+                    "expires_in": 3600,
+                },
+            )
+        if url.endswith("/oauth/userinfo"):
+            return _response(
+                200,
+                {
+                    "sub": "desktop-provider-owner",
+                    "email": "desktop@example.com",
+                },
+            )
+        if url.endswith("/oauth/revoke"):
+            return _response(200, {})
+        raise AssertionError(f"Unexpected provider URL: {url}")
+
+    monkeypatch.setattr(presenton_oauth, "_provider_request", provider_request)
+    started = client.post(
+        "/api/v1/auth/presenton/device/start",
+        json={"device_name": "Presenton desktop"},
+    )
+    assert started.status_code == 200
+    assert started.json()["verification_uri"] == "https://presenton.test/device"
+
+    connected = client.post(
+        "/api/v1/auth/presenton/device/poll",
+        json={"device_code": "device-code-secret-12345"},
+    )
+    assert connected.status_code == 200
+    status = client.get("/api/v1/auth/presenton/status").json()
+    assert status["linked"] is True
+    assert status["email"] == "desktop@example.com"
+
+    assert client.post("/api/v1/auth/presenton/logout").status_code == 200
+    assert client.get("/api/v1/auth/presenton/status").json()["linked"] is False
     asyncio.run(engine.dispose())
 
 
@@ -191,7 +256,7 @@ def test_admin_can_disconnect_global_provider(monkeypatch, tmp_path):
             await session.commit()
             await presenton_oauth.store_presenton_credentials(
                 session,
-                issuer="https://presenton-enterprise.fly.dev",
+                issuer=get_presenton_oauth_issuer(),
                 subject="hosted-provider-owner",
                 email="provider@example.com",
                 access_token="user.jwt.signature",
