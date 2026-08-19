@@ -476,3 +476,33 @@ def get_internal_api_secret_env():
     given user. See api/v1/auth/principal.py."""
     value = os.getenv("INTERNAL_API_SECRET")
     return value.strip() if value and value.strip() else None
+
+
+# ---------------------------------------------------------------------------
+# Object storage. Railway containers have ephemeral disk, so exports/images/
+# fonts are offloaded to Supabase Storage and served via short-lived signed
+# URLs. See services/object_storage.py.
+# ---------------------------------------------------------------------------
+def get_storage_backend_env() -> str:
+    """'local' (default, filesystem under APP_DATA_DIRECTORY) or 'supabase'
+    (Supabase Storage). Gates services/object_storage.py."""
+    return (os.getenv("STORAGE_BACKEND") or "local").strip().lower()
+
+
+def is_supabase_storage_enabled() -> bool:
+    return get_storage_backend_env() == "supabase"
+
+
+def get_supabase_url_env():
+    value = os.getenv("SUPABASE_URL")
+    return value.strip().rstrip("/") if value and value.strip() else None
+
+
+def get_supabase_service_role_key_env():
+    value = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    return value.strip() if value and value.strip() else None
+
+
+def get_supabase_storage_bucket_env() -> str:
+    value = os.getenv("SUPABASE_STORAGE_BUCKET")
+    return value.strip() if value and value.strip() else "presentations"
