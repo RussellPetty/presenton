@@ -126,18 +126,20 @@ Still open, deliberately:
 
 ## Known gaps
 
-1. **The template library does not come across.** `V1ContentRender.tsx:215`
-   returns a blank white div for any non-TemplateV2 slide, and upstream ships
-   no V1→V2 converter (`scripts/convert-template.mjs` normalizes
+1. **The template library does not come across** (accepted: V2-only). The
+   *render* half is what is gone — `V1ContentRender.tsx:215` returns a blank
+   white div for any non-TemplateV2 slide — while `get_layout_by_name.py` and
+   `presentation_layout.py` do survive. Upstream ships no V1→V2 converter (`scripts/convert-template.mjs` normalizes
    already-V2-shaped JSON). Our 193 `.tsx` layouts across 13 families are not
    portable; this branch has upstream's 8 V2 families. Families with no
    equivalent: `neo-general`, `neo-modern`, `neo-standard`, `neo-swift`,
    `Code`, `Education`, `pitch-deck`, `ProductOverview`, `Report`.
-2. **Brand theming is not reimplemented.** `utils/brand_theme.py` and the
-   per-slide logo badge were built on V1 React templates. On V2 a slide is a
-   konva element tree, so this needs designing rather than porting.
-3. **The chat assistant's branding/partner enforcement** is not re-applied;
-   upstream rewrote chat around V2 "smart" tools.
+2. **Brand theming is not reimplemented yet.** Smaller than first assessed:
+   upstream already ships `generate_color_palette()` and themes already carry
+   `logo_url` and `company_name`, and `set_presentation_theme(custom_theme=...)`
+   already builds and saves a theme. What remains is mapping a user's brand
+   colours onto `THEME_COLOR_KEYS` and calling it — not the rewrite originally
+   described.
 4. **Auto-provisioning is unbounded.** Any valid token from an allow-listed
    issuer creates a User row. `CLERK_ISSUER` currently includes a
    `*.clerk.accounts.dev` dev instance that permits open signup — review that
