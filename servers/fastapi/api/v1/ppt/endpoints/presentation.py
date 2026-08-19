@@ -113,6 +113,8 @@ from utils.llm_calls.generate_smart_presentation import (
     generate_smart_presentation,
     resolve_smart_slide_count,
 )
+from services.chat.memory_layer import PresentationChatMemoryLayer
+from utils.brand_theme import build_brand_theme_payload
 from utils.llm_json_compat import parse_llm_json
 import uuid
 
@@ -1418,6 +1420,57 @@ async def delete_presentation(
 
     await sql_session.delete(presentation)
     await sql_session.commit()
+
+
+class ApplyBrandingRequest(BaseModel):
+    """Branding forwarded by the embedding app, same shape the chat route takes."""
+
+    branding: dict[str, Any]
+
+
+@PRESENTATION_ROUTER.post("/{id}/apply-branding")
+async def apply_presentation_branding(
+    id: uuid.UUID,
+    body: ApplyBrandingRequest,
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Re-skin a deck to the user's brand without going through the assistant.
+
+    The chat tool `applyUserBranding` does the same thing conversationally; this
+    is the deterministic entry point the MCP agent uses, so "apply my branding"
+    does not depend on the model choosing to call a tool.
+    """
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found")
+
+    payload = build_brand_theme_payload(body.branding)
+    if not payload:
+        raise HTTPException(
+            422,
+            "No usable brand colours in the supplied branding.",
+        )
+
+    memory = PresentationChatMemoryLayer(
+        sql_session,
+        id,
+        presentation_type=(
+            "smart" if presentation.generation_mode == "smart" else "standard"
+        ),
+    )
+    result = await memory.set_presentation_theme(
+        custom_theme=payload,
+        theme_query=payload["name"],
+        save_custom_theme=True,
+    )
+    return {
+        **(result if isinstance(result, dict) else {"applied": bool(result)}),
+        "brand": {
+            "logo_url": payload.get("logo_url"),
+            "company_name": payload.get("company_name"),
+            "font": payload["data"]["fonts"]["textFont"]["name"],
+        },
+    }
 
 
 @PRESENTATION_ROUTER.post("/{id}/duplicate", response_model=PresentationWithSlides)

@@ -35,6 +35,7 @@ from services.chat.schemas import (
     UpdateSlideElementInput,
     WebSearchInput,
 )
+from utils.brand_theme import build_brand_theme_payload
 from services.chat.branding_assets import (
     apply_brand_assets_to_content,
     sanitize_brand,
@@ -122,6 +123,7 @@ class ChatTools:
             "createComponent": self._add_slide_component,
             "updateComponent": self._update_component,
             "deleteComponent": self._delete_slide_component,
+            "applyUserBranding": self._apply_user_branding,
             "getBrandingProfiles": self._get_branding_profiles,
             "getMyImages": self._get_my_images,
             "webSearch": self._web_search,
@@ -358,6 +360,21 @@ class ChatTools:
                     "or callout) from a rendered slide by componentId."
                 ),
                 schema=DeleteSlideComponentInput,
+                strict=False,
+            ),
+            Tool(
+                name="applyUserBranding",
+                description=(
+                    "Re-skin the whole deck to the signed-in user's saved brand in one "
+                    "step: a full palette generated from their brand colours, their "
+                    "font, and their logo and company name on the theme. Pulls the "
+                    "user's branding automatically and takes no arguments. Use it when "
+                    "the user asks to apply their branding, brand colours, logo or "
+                    "company look ('make this match my brand', 'add my logo and "
+                    "colours'). Deterministic - prefer it over hand-composing a custom "
+                    "theme with setPresentationTheme."
+                ),
+                schema=NoArgsInput,
                 strict=False,
             ),
             Tool(
@@ -812,6 +829,31 @@ class ChatTools:
             "message": f"Generated {len(generated_assets)} asset(s).",
         }
 
+
+    async def _apply_user_branding(self, _: dict[str, Any]) -> dict[str, Any]:
+        payload = build_brand_theme_payload(self._branding)
+        if not payload:
+            return {
+                "applied": False,
+                "message": (
+                    "No brand colours were provided for this session, so there is "
+                    "nothing to apply. Ask the user to set their brand colours in "
+                    "their profile settings."
+                ),
+            }
+
+        result = await self._memory.set_presentation_theme(
+            custom_theme=payload,
+            theme_query=payload["name"],
+            save_custom_theme=True,
+        )
+        if isinstance(result, dict):
+            result.setdefault("brand", {
+                "logo_url": payload.get("logo_url"),
+                "company_name": payload.get("company_name"),
+                "font": payload["data"]["fonts"]["textFont"]["name"],
+            })
+        return result
 
     async def _get_branding_profiles(self, _: dict[str, Any]) -> dict[str, Any]:
         user_profile = sanitize_brand(self._branding)

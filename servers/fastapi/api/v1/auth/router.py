@@ -11,6 +11,8 @@ from api.v1.auth.assets import is_app_data_path_authorized
 from api.v1.auth.rate_limit import LOGIN_RATE_LIMITER, login_rate_limit_key
 from api.v1.auth.principal import CLERK_USERNAME_PREFIX, resolve_request_principal
 from api.v1.auth.users import (
+    EXPORT_SESSION_TTL_SECONDS,
+    get_export_jwt_strategy,
     PASSWORD_HELPER,
     get_jwt_strategy,
     read_user_from_cookie,
@@ -272,3 +274,30 @@ async def logout(request: Request):
         path="/",
     )
     return response
+
+
+@API_V1_AUTH_ROUTER.post("/export-session")
+async def mint_export_session(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Mint a short-lived session cookie for the caller's own export render.
+
+    The headless exporter loads /pdf-maker in a browser, which cannot replay a
+    bearer token, so it authenticates with a cookie. FastAPI-initiated exports
+    get one from the middleware; exports started from the Next.js route have no
+    cookie to forward under Clerk, and without this the render fetches
+    unauthenticated and silently produces a blank deck.
+
+    The token is scoped to the caller's own account, carries no admin, and lives
+    for EXPORT_SESSION_TTL_SECONDS.
+    """
+    principal, user = await resolve_request_principal(request, session)
+    if principal is None or user is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    token = await get_export_jwt_strategy().write_token(user)
+    return {
+        "cookie": f"{SESSION_COOKIE_NAME}={token}",
+        "expires_in": EXPORT_SESSION_TTL_SECONDS,
+    }

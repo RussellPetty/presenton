@@ -113,6 +113,7 @@ def test_chat_tools_expose_only_v2_tool_names():
         # Re-added for the embedded build: the assistant has to be able to read
         # the user's real branding and their own images, and to look up
         # time-sensitive facts (rates, stats) that are not in the deck.
+        "applyUserBranding",
         "getBrandingProfiles",
         "getMyImages",
         "webSearch",

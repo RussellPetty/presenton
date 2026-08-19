@@ -83,6 +83,47 @@ async function moveExportIntoOwnerDirectory(
   return destination;
 }
 
+
+/**
+ * Obtain a session cookie for the headless export render.
+ *
+ * The renderer loads /pdf-maker in a browser, which cannot replay a bearer
+ * token, so it authenticates with a cookie. Under Clerk the caller sends a
+ * bearer and has no cookie to forward, and without one the render fetches the
+ * deck unauthenticated and silently exports a blank shell rather than failing.
+ */
+async function resolveExportCookie(req: Request): Promise<string> {
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  if (cookieHeader) return cookieHeader;
+
+  const authorization = req.headers.get("authorization") ?? "";
+  if (!authorization) return "";
+
+  const base = (
+    process.env.FAST_API_INTERNAL_URL?.trim() ||
+    process.env.NEXT_PUBLIC_FAST_API?.trim() ||
+    "http://127.0.0.1:8000"
+  ).replace(/\/+$/, "");
+
+  try {
+    const headers: Record<string, string> = { authorization };
+    // Preserve impersonation so the render reads the deck as its owner.
+    const actAs = req.headers.get("x-presenton-user-id");
+    if (actAs) headers["x-presenton-user-id"] = actAs;
+
+    const response = await fetch(`${base}/api/v1/auth/export-session`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+    });
+    if (!response.ok) return "";
+    const data = (await response.json()) as { cookie?: unknown };
+    return typeof data.cookie === "string" ? data.cookie : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function POST(req: NextRequest) {
   const auth = await authStatusForRequest(req);
   if (!auth.authenticated) {
@@ -107,7 +148,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { format, id, title } = body;
-  const cookieHeader = req.headers.get("cookie") ?? "";
+  const cookieHeader = await resolveExportCookie(req);
 
   if (typeof id !== "string" || !id.trim()) {
     return NextResponse.json(
