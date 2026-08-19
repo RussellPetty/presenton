@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 from typing import List
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query, Header
@@ -20,6 +21,8 @@ from enums.image_provider import ImageProvider
 import os
 import uuid
 from utils.file_utils import get_file_name_with_random_uuid
+from api.v1.auth.context import get_current_owner_id
+from utils.get_env import is_supabase_storage_enabled
 
 IMAGES_ROUTER = APIRouter(prefix="/images", tags=["Images"])
 
@@ -174,10 +177,43 @@ async def generate_image(
     if not isinstance(image, ImageAsset):
         return normalize_slide_asset_url(image) if isinstance(image, str) else image
 
+    # Railway containers have ephemeral disk, so a generated image written to
+    # local storage disappears on the next deploy and every deck referencing it
+    # renders a broken slot. Offload to the bucket and keep the remote URL.
+    image.path = await offload_image_when_remote(image.path)
+
     sql_session.add(image)
     await sql_session.commit()
 
     return filesystem_image_path_to_app_data_url(image.path)
+
+
+async def offload_image_when_remote(path: str) -> str:
+    """Move a locally written image into object storage when it is enabled.
+
+    Returns the storage URL, or the original path unchanged in local mode. The
+    object is keyed by the request's owner, taken from the same ContextVar that
+    scopes every query, so one tenant's uploads never land under another's
+    prefix.
+    """
+    if not is_supabase_storage_enabled():
+        return path
+
+    owner_id = get_current_owner_id()
+    if not owner_id:
+        return path
+
+    from services.object_storage import offload_local_image
+
+    try:
+        return await offload_local_image(path, str(owner_id))
+    except Exception:
+        # A storage blip should not lose the image the user just made: keep the
+        # local copy and let the next deploy be the thing that notices.
+        logging.getLogger(__name__).exception(
+            "Image offload failed; keeping local path %s", path
+        )
+        return path
 
 
 def _image_asset_api_dict(asset: ImageAsset) -> dict:
@@ -220,6 +256,7 @@ async def upload_image(
         with open(image_path, "wb") as f:
             f.write(content)
 
+        image_path = await offload_image_when_remote(image_path)
         image_asset = ImageAsset(path=image_path, is_uploaded=True)
 
         sql_session.add(image_asset)

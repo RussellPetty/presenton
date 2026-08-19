@@ -1,3 +1,5 @@
+import logging
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -13,6 +15,7 @@ from utils.font_uploads import (
     list_font_uploads,
     persist_upload_file,
 )
+from utils.get_env import is_supabase_storage_enabled
 
 
 FONTS_ROUTER = APIRouter(prefix="/fonts", tags=["fonts"])
@@ -66,6 +69,11 @@ async def upload_font(
             raise HTTPException(status_code=400, detail="No file name provided")
 
         font_upload, _font_path = await persist_upload_file(font_file)
+        # Fonts live on local disk because the renderer loads them from there,
+        # but that disk is ephemeral on Railway. Mirror the file into object
+        # storage so a deploy does not silently strip a user's brand font; the
+        # startup sync in api/lifespan.py restores it locally.
+        await mirror_font_to_object_storage(_font_path)
         font_info = await font_upload_to_info(font_upload)
         font_name = _font_display_name(font_info)
 
@@ -84,6 +92,45 @@ async def upload_font(
         raise HTTPException(
             status_code=500, detail=f"Error uploading font: {exc}"
         ) from exc
+
+
+FONT_STORAGE_PREFIX = "fonts"
+
+
+async def mirror_font_to_object_storage(font_path: str) -> None:
+    """Copy an uploaded font into the bucket. No-op in local mode."""
+    if not is_supabase_storage_enabled() or not font_path:
+        return
+    try:
+        from services import object_storage
+
+        key = f"{FONT_STORAGE_PREFIX}/{os.path.basename(font_path)}"
+        await object_storage.upload_file(key, font_path, "font/ttf")
+    except Exception:
+        # The font is already on local disk and usable right now; failing the
+        # upload here would reject a request that otherwise succeeded.
+        logging.getLogger(__name__).exception(
+            "Font mirror to object storage failed for %s", font_path
+        )
+
+
+async def restore_fonts_from_object_storage(fonts_directory: str) -> int:
+    """Pull bucket-held fonts back onto local disk. Returns files restored.
+
+    Called on startup: the renderer only reads local files, so without this a
+    redeploy loses every uploaded font even though the bytes are safe remotely.
+    """
+    if not is_supabase_storage_enabled():
+        return 0
+    try:
+        from services import object_storage
+
+        return await object_storage.sync_prefix_to_dir(
+            FONT_STORAGE_PREFIX, fonts_directory
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("Font restore from object storage failed")
+        return 0
 
 
 @FONTS_ROUTER.get("/list", response_model=FontListResponse)

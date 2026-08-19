@@ -65,6 +65,17 @@ async def app_lifespan(_: FastAPI):
     async with async_session_maker() as session:
         await migrate_provider_settings_from_file(session)
     await import_default_templates_on_startup()
+    # Uploaded fonts live on ephemeral disk but the renderer only reads local
+    # files, so pull any bucket-held fonts back before serving traffic.
+    try:
+        from api.v1.ppt.endpoints.fonts import restore_fonts_from_object_storage
+        from utils.font_uploads import get_fonts_directory
+
+        restored = await restore_fonts_from_object_storage(get_fonts_directory())
+        if restored:
+            logging.getLogger(__name__).info("Restored %d font(s) from storage", restored)
+    except Exception:
+        logging.getLogger(__name__).exception("Font restore skipped")
     if get_can_change_keys_env() != "false":
         update_env_with_user_config()
     await check_llm_and_image_provider_api_or_model_availability()
