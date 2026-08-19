@@ -159,8 +159,8 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     Set<string>
   >(() => new Set());
   const [isMobileAssistantOpen, setIsMobileAssistantOpen] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [error, setError] = useState(false);
-  const slidesScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const mobileAssistantTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileAssistantCloseRef = useRef<HTMLButtonElement | null>(null);
   const templateV2EditorLoadedKeyRef = useRef<string | null>(null);
@@ -246,8 +246,6 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     isPresentMode,
     stream,
     currentSlide: presentSlideFromUrl,
-    scrollToSlide,
-    handleSlideClick,
     toggleFullscreen,
     handlePresentExit,
     handleSlideChange,
@@ -313,22 +311,10 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   }, [loading, stream]);
 
   useEffect(() => {
-    if (!isStreaming) return;
-
-    const scrollContainer = slidesScrollContainerRef.current;
-    if (!scrollContainer) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      if (slidesLength <= 1) {
-        scrollContainer.scrollTo({ top: 0, behavior: "auto" });
-        return;
-      }
-
-      scrollToSlide(slidesLength - 1, 2, "smooth");
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [isStreaming, scrollToSlide, slidesLength]);
+    if (isStreaming && slidesLength > 0) {
+      setSelectedSlide(slidesLength - 1);
+    }
+  }, [isStreaming, slidesLength]);
 
   useEffect(() => {
     trackEvent(MixpanelEvent.Presentation_Editor_Viewed, {
@@ -383,9 +369,16 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     handleSlideChange(newSlide, presentationData);
   };
 
+  const navigateEditorToSlide = useCallback(
+    (index: number) => {
+      setSelectedSlide(index);
+    },
+    [],
+  );
+
   const handleEditorSlideNavigation = useCallback(
     (index: number, options?: SlideAddedOptions) => {
-      handleSlideClick(index);
+      navigateEditorToSlide(index);
       if (!options?.promptOverlayKind || !options.promptOverlaySlideId) {
         return;
       }
@@ -405,7 +398,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
         });
       }
     },
-    [handleSlideClick],
+    [navigateEditorToSlide],
   );
 
   const dismissBlankPromptOverlay = useCallback((slideId: unknown) => {
@@ -484,6 +477,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   );
 
   const totalSlides = presentationData?.slides?.length ?? 0;
+  const activeSlideIndex =
+    totalSlides > 0
+      ? Math.min(Math.max(selectedSlide, 0), totalSlides - 1)
+      : 0;
+  const activeEditorSlide = presentationData?.slides?.[activeSlideIndex];
   // Mutation traces normally identify the exact slide. Fall back to the slide
   // the user is viewing so an active edit never happens without feedback.
   const updatingSlideIndex = isChatMutating
@@ -510,7 +508,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
       totalSlides - 1
     );
     if (clampedIndex !== selectedSlide) {
-      handleSlideClick(clampedIndex);
+      navigateEditorToSlide(clampedIndex);
     }
   }, [
     isFollowModeEnabled,
@@ -519,7 +517,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     agentFocusedSlide,
     agentFocusEventId,
     selectedSlide,
-    handleSlideClick,
+    navigateEditorToSlide,
   ]);
 
   useEffect(() => {
@@ -701,75 +699,49 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               loading={loading}
             />
           </div>
-          <div className="w-full min-w-0 h-full flex-1 pt-[18px] max-md:ml-6 max-xl:mr-6">
-            <div
-              ref={slidesScrollContainerRef}
-              data-presentation-slides-scroll-container="true"
-              className="font-inter h-full overflow-y-auto hide-scrollbar scroll-pt-[18px]"
-            >
-              <div className="w-full max-w-[1280px] min-h-full mx-auto flex flex-col items-center pb-8">
-                {!presentationData ||
-                  loading ||
-                  !presentationData?.slides ||
-                  presentationData?.slides.length === 0 ? (
-                  <div className="relative w-full h-[calc(100vh-120px)] mx-auto hide-scrollbar">
-                    <div className="">
-                      {Array.from({ length: 2 }).map((_, index) => (
-                        <Skeleton
-                          key={index}
-                          className="aspect-video bg-gray-400 my-4 w-full mx-auto "
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {presentationData &&
-                      presentationData.slides &&
-                      presentationData.slides.length > 0 &&
-                      presentationData.slides.map(
-                        (slide: any, index: number) => (
-                          <SlideContent
-                            key={
-                              slide.id ??
-                              `${slide.type ?? "slide"}-${slide.index ?? index}`
-                            }
-                            slide={slide}
-                            index={index}
-                            selected={selectedSlide === index}
-                            presentationId={presentation_id}
-                            onSlideActive={setSelectedSlide}
-                            onSlideAdded={handleEditorSlideNavigation}
-                            theme={presentationData?.theme}
-                            fonts={presentationData?.fonts}
-                            editingDisabled={editingDisabled}
-                            isStreaming={isStreaming}
-                            showBlankPromptOverlay={
-                              typeof slide?.id === "string" &&
-                              blankPromptSlideIds.has(slide.id)
-                            }
-                            onBlankPromptOverlayDismiss={() =>
-                              dismissBlankPromptOverlay(slide?.id)
-                            }
-                            showTemplatePromptOverlay={
-                              typeof slide?.id === "string" &&
-                              templatePromptSlideIds.has(slide.id)
-                            }
-                            onTemplatePromptOverlayDismiss={() =>
-                              dismissTemplatePromptOverlay(slide?.id)
-                            }
-                            isChatEditing={
-                              updatingSlideIndex !== null &&
-                              index === updatingSlideIndex
-                            }
-                          />
-                          // <div></div>
-                        )
-                      )}
-                  </>
-                )}
+          <div className="h-full min-w-0 flex-1 px-3 pb-3 pt-[18px] md:px-0 max-md:ml-3">
+            {!presentationData ||
+            loading ||
+            !presentationData?.slides ||
+            presentationData.slides.length === 0 ? (
+              <div className="flex h-full min-h-0 w-full items-center justify-center">
+                <Skeleton className="aspect-video w-full max-w-[1280px] bg-gray-400" />
               </div>
-            </div>
+            ) : (
+              <div className="mx-auto h-full min-h-0 w-full">
+                <SlideContent
+                  slide={activeEditorSlide}
+                  index={activeSlideIndex}
+                  selected
+                  fitToContainer
+                  presentationId={presentation_id}
+                  onSlideActive={setSelectedSlide}
+                  onSlideAdded={handleEditorSlideNavigation}
+                  theme={presentationData.theme}
+                  fonts={presentationData.fonts}
+                  editingDisabled={editingDisabled}
+                  isStreaming={isStreaming}
+                  showBlankPromptOverlay={
+                    typeof activeEditorSlide?.id === "string" &&
+                    blankPromptSlideIds.has(activeEditorSlide.id)
+                  }
+                  onBlankPromptOverlayDismiss={() =>
+                    dismissBlankPromptOverlay(activeEditorSlide?.id)
+                  }
+                  showTemplatePromptOverlay={
+                    typeof activeEditorSlide?.id === "string" &&
+                    templatePromptSlideIds.has(activeEditorSlide.id)
+                  }
+                  onTemplatePromptOverlayDismiss={() =>
+                    dismissTemplatePromptOverlay(activeEditorSlide?.id)
+                  }
+                  isChatEditing={
+                    updatingSlideIndex !== null &&
+                    activeSlideIndex === updatingSlideIndex
+                  }
+                />
+              </div>
+            )}
           </div>
           <button
             ref={mobileAssistantTriggerRef}
@@ -803,10 +775,11 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
             aria-label={isMobileAssistantOpen ? "AI Assistant" : undefined}
             aria-modal={isMobileAssistantOpen ? true : undefined}
             className={cn(
-              "h-screen w-[calc(100vw-16px)] max-w-[375px] shrink-0 flex-col bg-white shadow-[-12px_0_32px_rgba(16,24,40,0.18)] xl:static xl:z-auto xl:flex xl:h-full xl:w-[375px] xl:max-w-none xl:self-start xl:shadow-none",
+              "h-screen w-[calc(100vw-16px)] max-w-[375px] shrink-0 flex-col bg-white shadow-[-12px_0_32px_rgba(16,24,40,0.18)] transition-[width] duration-200 xl:static xl:z-auto xl:h-full xl:max-w-none xl:self-start xl:shadow-none",
+              isRightPanelOpen ? "xl:w-[375px]" : "xl:w-[70px]",
               isMobileAssistantOpen
                 ? "fixed inset-y-0 right-0 z-[70] flex"
-                : "hidden"
+                : "hidden xl:flex"
             )}
           >
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#EDEEEF] px-4 xl:hidden">
@@ -837,6 +810,8 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
                 onFollowModeChange={setIsFollowModeEnabled}
                 onAgentSlideFocus={handleAgentSlideFocus}
                 editingDisabled={editingDisabled}
+                panelOpen={isMobileAssistantOpen || isRightPanelOpen}
+                onPanelOpenChange={setIsRightPanelOpen}
               />
             </div>
           </div>

@@ -102,6 +102,14 @@ import {
 import { TemplateV2SelectionTransformers } from "@/components/slide-editor/selection/SelectionTransformers";
 import { useFontLoadState } from "@/components/slide-editor/surface/fontLoading";
 import {
+  MAX_ALIGNMENT_SCENE_PIXEL_RATIO,
+  MAX_BACKGROUND_SCENE_PIXEL_RATIO,
+  MIN_ALIGNMENT_SCENE_PIXEL_RATIO,
+  MIN_BACKGROUND_SCENE_PIXEL_RATIO,
+  calculateContentScenePixelRatio,
+  calculateScenePixelRatio,
+} from "@/components/slide-editor/surface/pixelRatio";
+import {
   createAlignmentSnapTargets,
   snapBoxToAlignmentGuides,
   type AlignmentGuide,
@@ -212,24 +220,11 @@ function canEditVectorPointsForSelection(ui: RawUi, selection: ElementSelection)
   return elements.length === 1;
 }
 
-const MIN_EDITING_SCENE_PIXEL_RATIO = 1;
-const MAX_EDITING_SCENE_PIXEL_RATIO = 2;
-
-function syncEditingScenePixelRatio(
+function syncScenePixelRatio(
   layer: Konva.Layer | null,
-  displayScale: number,
+  pixelRatio: number,
 ) {
   if (!layer || typeof window === "undefined") return;
-  const safeDisplayScale = Number.isFinite(displayScale)
-    ? Math.max(0, displayScale)
-    : 1;
-  const pixelRatio = Math.min(
-    MAX_EDITING_SCENE_PIXEL_RATIO,
-    Math.max(
-      MIN_EDITING_SCENE_PIXEL_RATIO,
-      (window.devicePixelRatio || 1) * safeDisplayScale,
-    ),
-  );
   const canvas = layer.getCanvas();
   if (Math.abs(canvas.getPixelRatio() - pixelRatio) < 0.01) return;
   canvas.setPixelRatio(pixelRatio);
@@ -724,21 +719,47 @@ function TemplateV2KonvaSlideComponent({
   useEffect(() => {
     if (!isRenderActive || !fontLoadState.ready) return;
     contentLayerRef.current?.batchDraw();
-  }, [fontLoadState.ready, fontLoadState.revision, isRenderActive]);
+  }, [
+    fontLoadState.ready,
+    fontLoadState.revision,
+    isRenderActive,
+  ]);
 
   useEffect(() => {
-    if (!isEditMode || !isRenderActive || typeof window === "undefined") {
+    if (!isRenderActive || typeof window === "undefined") {
       return;
     }
     const refreshPixelRatio = () => {
-      syncEditingScenePixelRatio(backgroundLayerRef.current, displayScale);
-      syncEditingScenePixelRatio(contentLayerRef.current, displayScale);
-      syncEditingScenePixelRatio(alignmentGuideLayerRef.current, displayScale);
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      const navigatorWithMemory = window.navigator as Navigator & {
+        deviceMemory?: number;
+      };
+      const contentPixelRatio = calculateContentScenePixelRatio({
+        devicePixelRatio,
+        displayScale,
+        deviceMemory: navigatorWithMemory.deviceMemory,
+        hardwareConcurrency: navigatorWithMemory.hardwareConcurrency,
+      });
+      const backgroundPixelRatio = calculateScenePixelRatio({
+        devicePixelRatio,
+        displayScale,
+        minimum: MIN_BACKGROUND_SCENE_PIXEL_RATIO,
+        maximum: MAX_BACKGROUND_SCENE_PIXEL_RATIO,
+      });
+      const alignmentPixelRatio = calculateScenePixelRatio({
+        devicePixelRatio,
+        displayScale,
+        minimum: MIN_ALIGNMENT_SCENE_PIXEL_RATIO,
+        maximum: MAX_ALIGNMENT_SCENE_PIXEL_RATIO,
+      });
+      syncScenePixelRatio(backgroundLayerRef.current, backgroundPixelRatio);
+      syncScenePixelRatio(contentLayerRef.current, contentPixelRatio);
+      syncScenePixelRatio(alignmentGuideLayerRef.current, alignmentPixelRatio);
     };
     refreshPixelRatio();
     window.addEventListener("resize", refreshPixelRatio);
     return () => window.removeEventListener("resize", refreshPixelRatio);
-  }, [displayScale, isEditMode, isRenderActive]);
+  }, [displayScale, isRenderActive]);
 
   useEffect(() => {
     selectedComponentIndexesRef.current = selectedComponentIndexes;
