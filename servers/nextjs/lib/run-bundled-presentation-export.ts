@@ -63,6 +63,16 @@ function bundledConverterPath(exportRoot: string): string {
       return path.join(exportRoot, "py", "convert-linux-arm64");
     }
   }
+  // macOS is developer-workstation only; production images are Linux. Without
+  // this, exports cannot be exercised locally at all.
+  if (process.platform === "darwin") {
+    if (process.arch === "arm64") {
+      return path.join(exportRoot, "py", "convert-darwin-arm64");
+    }
+    if (process.arch === "x64") {
+      return path.join(exportRoot, "py", "convert-darwin-x64");
+    }
+  }
   throw new Error(
     `No bundled export converter for ${process.platform}/${process.arch}. Set BUILT_PYTHON_MODULE_PATH.`
   );

@@ -86,12 +86,43 @@ def _bearer_token(request: Request) -> str | None:
     return token.strip() if token and token.strip() else None
 
 
+async def _session_cookie_principal(
+    request: Request, session: AsyncSession
+) -> tuple[AuthPrincipal | None, User | None]:
+    """Authenticate the app's own session cookie.
+
+    In Clerk mode this is not a user-facing login path: the only issuer of this
+    cookie is the server itself, minting a short-lived token so the headless
+    export renderer can fetch the deck it is rendering as the deck's owner. The
+    JWT is signed with the instance secret and pinned to the user's
+    auth_version, so it is not forgeable from outside."""
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not cookie_token:
+        return None, None
+    user_db = UsernameUserDatabase(session)
+    user = await get_jwt_strategy().read_token(cookie_token, UserManager(user_db))
+    if user is None:
+        return None, None
+    return (
+        AuthPrincipal(
+            user_id=user.id,
+            username=user.username,
+            is_admin=user.is_superuser,
+            method="jwt",
+        ),
+        user,
+    )
+
+
 async def _resolve_clerk_principal(
     request: Request, session: AsyncSession
 ) -> tuple[AuthPrincipal | None, User | None]:
     token = _bearer_token(request)
     if not token:
-        return None, None
+        # No bearer: the only remaining caller is the export renderer carrying a
+        # server-minted session cookie. Checked last so a stale cookie can never
+        # outrank the embedder's token.
+        return await _session_cookie_principal(request, session)
 
     internal_secret = get_internal_api_secret_env()
     if internal_secret and secrets.compare_digest(token, internal_secret):
@@ -113,7 +144,7 @@ async def _resolve_clerk_principal(
             user,
         )
 
-    clerk_sub = verify_clerk_token(token)
+    clerk_sub = verify_clerk_token(token) if token else None
     if not clerk_sub:
         return None, None
     if clerk_sub == INTERNAL_SERVICE_SUBJECT:

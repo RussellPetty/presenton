@@ -122,7 +122,14 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
             request.state.auth_principal = principal
             request.state.current_user = user
             request.state.auth_username = principal.username
-            if principal.method == "api_key" and user is not None:
+            if user is not None and (
+                principal.method == "api_key" or is_clerk_auth_enabled()
+            ):
+                # The headless export renderer loads /pdf-maker in a browser and
+                # has no way to replay a bearer token, so it authenticates with a
+                # server-minted session cookie scoped to this owner. In Clerk
+                # mode there is never an incoming cookie to forward, so mint one
+                # for every request or exports render an empty deck.
                 request.state.internal_session_token = (
                     await get_jwt_strategy().write_token(user)
                 )

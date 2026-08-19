@@ -37,24 +37,46 @@ const forceDownload = cliArgs.has("--force");
 const checkOnly = cliArgs.has("--check-only");
 const allowVersionOverride = cliArgs.has("--allow-version-override");
 
-function resolveLinuxAssetName() {
+function resolveExportPlatform() {
+  const explicit = (process.env.EXPORT_RUNTIME_PLATFORM || "").toLowerCase();
+  if (explicit) return explicit;
+  // The Docker build runs on Linux, so this keeps producing the Linux asset for
+  // every image build; it only differs when a developer syncs on a workstation.
+  if (process.platform === "darwin") return "macos";
+  if (process.platform === "win32") return "windows";
+  return "linux";
+}
+
+function resolveExportAssetName() {
+  const platform = resolveExportPlatform();
   const arch = (
     process.env.EXPORT_RUNTIME_ARCH ||
     process.env.TARGETARCH ||
     process.arch
   ).toLowerCase();
+  const is64 = arch === "amd64" || arch === "x64";
+  const isArm = arch === "arm64" || arch === "aarch64";
 
-  if (arch === "amd64" || arch === "x64") {
-    return "export-Linux-X64.zip";
-  }
-  if (arch === "arm64" || arch === "aarch64") {
-    return "export-Linux-ARM64.zip";
+  if (platform === "macos") {
+    if (is64) return "export-macOS-X64.zip";
+    if (isArm) return "export-macOS-ARM64.zip";
+    throw new Error(`Unsupported macOS export arch: ${arch}`);
   }
 
+  if (platform === "windows") {
+    if (is64) return "export-Windows-X64.zip";
+    throw new Error(`Unsupported Windows export arch: ${arch}`);
+  }
+
+  if (is64) return "export-Linux-X64.zip";
+  if (isArm) return "export-Linux-ARM64.zip";
   throw new Error(`Unsupported Linux export arch: ${arch}`);
 }
 
-const linuxAssetName = resolveLinuxAssetName();
+const exportAssetName = resolveExportAssetName();
+// Retained under the original name so the rest of this script (and anything
+// reading the manifest) keeps working unchanged.
+const linuxAssetName = exportAssetName;
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -187,18 +209,17 @@ function ensureCurrentConverterLink(converterPath) {
 }
 
 function getConverterCandidates(baseDir = targetPyDir) {
-  if (linuxAssetName === "export-Linux-ARM64.zip") {
-    return [
-      path.join(baseDir, "convert-linux-arm64"),
-      path.join(baseDir, "convert"),
-    ];
-  }
-
-  return [
-    path.join(baseDir, "convert-linux-x64"),
-    path.join(baseDir, "convert-linux-amd64"),
-    path.join(baseDir, "convert"),
-  ];
+  // The bundled converter is named after the platform/arch it was built for;
+  // "convert" is the generic fallback used by some release archives.
+  const byAsset = {
+    "export-Linux-ARM64.zip": ["convert-linux-arm64"],
+    "export-Linux-X64.zip": ["convert-linux-x64", "convert-linux-amd64"],
+    "export-macOS-ARM64.zip": ["convert-macos-arm64", "convert-darwin-arm64"],
+    "export-macOS-X64.zip": ["convert-macos-x64", "convert-darwin-x64"],
+    "export-Windows-X64.zip": ["convert-windows-x64.exe", "convert.exe"],
+  };
+  const names = byAsset[exportAssetName] || ["convert-linux-x64"];
+  return [...names, "convert"].map((name) => path.join(baseDir, name));
 }
 
 function hasRuntimeBundle(baseDir) {

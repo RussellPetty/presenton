@@ -25,6 +25,7 @@ from api.v1.auth.config import (
     get_legacy_admin_credentials,
     persist_admin_credentials,
 )
+from utils.get_env import is_clerk_auth_enabled
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,13 @@ def _validate_new_environment_username(username: str) -> None:
 
 async def bootstrap_database_admin() -> None:
     """Migrate the old single-admin account or initialize it from environment."""
+    if is_clerk_auth_enabled():
+        # Clerk mode has no local administrator: every account is provisioned
+        # from the embedder's token, and there is no legacy single-user data to
+        # take ownership of. Without this the second boot fails, because the
+        # auto-provisioned Clerk users satisfy "accounts exist" while no row is
+        # ever a superuser.
+        return
     async with async_session_maker() as session:
         admin = await session.scalar(
             select(User).where(User.is_superuser.is_(True)).limit(1)
