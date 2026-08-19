@@ -151,7 +151,9 @@ async def _resolve_clerk_principal(
             AuthPrincipal(
                 user_id=user.id,
                 username=user.username,
-                is_admin=True,
+                # Acting as a specific user must not confer more than that user
+                # has; only the unimpersonated service account is administrative.
+                is_admin=not impersonated,
                 method="jwt",
             ),
             user,
