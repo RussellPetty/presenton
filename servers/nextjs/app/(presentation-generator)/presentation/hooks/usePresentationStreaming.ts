@@ -22,6 +22,7 @@ import {
   mergeSlidesPreservingResolvedAssets,
 } from "../utils/streamAssetMerge";
 import { isTemplateV2Slide } from "../../_shared/blank-slide";
+import { withSseToken } from "@/utils/clerkToken";
 
 const MAX_STREAM_RETRIES = 3;
 const STREAM_RETRY_DELAY_MS = 1_000;
@@ -279,10 +280,12 @@ export const usePresentationStreaming = (
     const openStream = () => {
       closeEventSource();
       eventSource = new EventSource(
-        getApiUrl(
-          usePresentonSmartEndpoint
-            ? `/api/v2/ppt/presentation/stream/${presentationId}`
-            : `/api/v1/ppt/presentation/stream/${presentationId}`
+        withSseToken(
+          getApiUrl(
+            usePresentonSmartEndpoint
+              ? `/api/v2/ppt/presentation/stream/${presentationId}`
+              : `/api/v1/ppt/presentation/stream/${presentationId}`
+          )
         )
       );
 

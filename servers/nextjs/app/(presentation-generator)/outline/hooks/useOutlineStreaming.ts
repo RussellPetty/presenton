@@ -6,6 +6,7 @@ import { jsonrepair } from "jsonrepair";
 import { RootState } from "@/store/store";
 import { getApiUrl } from "@/utils/api";
 import { limitOutlines } from "@/utils/presentationLimits";
+import { withSseToken } from "@/utils/clerkToken";
 import {
   isChatGptAuthRequiredMessage,
   requestChatGptReauth,
@@ -105,7 +106,9 @@ export const useOutlineStreaming = (
     const openStream = () => {
       closeEventSource();
       eventSource = new EventSource(
-        getApiUrl(`/api/v1/ppt/outlines/stream/${presentationId}`)
+        withSseToken(
+          getApiUrl(`/api/v1/ppt/outlines/stream/${presentationId}`)
+        )
       );
 
       eventSource.addEventListener("response", (event) => {

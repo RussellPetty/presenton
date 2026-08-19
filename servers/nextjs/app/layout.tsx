@@ -5,6 +5,7 @@ import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
+import ClerkAuthBridge from "@/components/ClerkAuthBridge";
 import { Toaster } from "@/components/ui/sonner";
 import TailwindBrowserRuntime from "@/components/runtime/TailwindBrowserRuntime";
 const inter = localFont({
@@ -95,6 +96,7 @@ export default function RootLayout({
         className={`${inter.variable} ${syne.variable} ${manrope.variable} ${unbounded.variable} antialiased`}
       >
         <Providers>
+          <ClerkAuthBridge />
           <MixpanelInitializer>
 
             {children}

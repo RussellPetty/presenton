@@ -1,0 +1,330 @@
+"use client";
+
+/**
+ * Clerk auth bridge for the embedded (broker-marketplace) deployment.
+ *
+ * The broker renders Presenton in an iframe with `?embed=clerk` (and optional
+ * `?parentOrigin=https://app.broker...`) and posts the Clerk JWT in via
+ * window.postMessage. This module receives/refreshes that token and exposes it
+ * so every FastAPI call can send `Authorization: Bearer <token>`.
+ *
+ * Standalone / DISABLE_AUTH deployments do NOT set `?embed=clerk`, so the bridge
+ * is a no-op and `getToken()` resolves to null — callers then send no bearer and
+ * rely on same-origin / disabled-auth, exactly as before. Real security is the
+ * server-side JWT verification; the postMessage origin check is defense-in-depth.
+ */
+
+export type PresentonBranding = {
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  logoUrl?: string;
+  companyName?: string;
+  fontHeading?: string;
+  fontBody?: string;
+  // Full profile fields used by the slide assistant ("add my logo/headshot/NMLS").
+  // Optional and forward-compatible: extra keys from the parent are preserved as-is.
+  fullName?: string;
+  company?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  nmls?: string;
+  companyNmls?: string;
+  license?: string;
+  disclaimer?: string;
+  headshotUrl?: string;
+  meetingLink?: string;
+  website?: string;
+  socialLinks?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+/** A connected realtor's branding profile forwarded by the parent app. */
+export type PresentonPartner = {
+  id?: string;
+  name?: string;
+  type?: string;
+  [key: string]: unknown;
+};
+
+export type PresentonPrefill = {
+  content?: string; // source text (e.g. a research report) to prefill generation
+  title?: string;
+};
+
+const EMBED_FLAG_KEY = "presenton_embed_clerk";
+const PARENT_ORIGIN_KEY = "presenton_parent_origin";
+
+let _token: string | null = null;
+let _expEpochMs: number | null = null;
+let _initialized = false;
+let _branding: PresentonBranding | null = null;
+let _brandingHandler: ((b: PresentonBranding) => void) | null = null;
+let _partners: PresentonPartner[] | null = null;
+let _prefill: PresentonPrefill | null = null;
+let _prefillHandler: ((p: PresentonPrefill) => void) | null = null;
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+const _waiters: Array<(t: string | null) => void> = [];
+
+function readSearchParam(name: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return new URLSearchParams(window.location.search).get(name);
+  } catch {
+    return null;
+  }
+}
+
+/** True when running embedded under Clerk auth (sticky across reloads). */
+export function isEmbedClerkMode(): boolean {
+  if (typeof window === "undefined") return false;
+  if (readSearchParam("embed") === "clerk") {
+    try {
+      window.sessionStorage.setItem(EMBED_FLAG_KEY, "1");
+      const po = readSearchParam("parentOrigin");
+      if (po) window.sessionStorage.setItem(PARENT_ORIGIN_KEY, po);
+    } catch {
+      /* sessionStorage may be unavailable; URL param still drives this load */
+    }
+    return true;
+  }
+  try {
+    return window.sessionStorage.getItem(EMBED_FLAG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function parentOrigin(): string | null {
+  const fromUrl = readSearchParam("parentOrigin");
+  if (fromUrl) return fromUrl;
+  try {
+    return window.sessionStorage.getItem(PARENT_ORIGIN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function decodeExpEpochMs(jwt: string): number | null {
+  try {
+    const part = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(part));
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function tokenValid(): boolean {
+  return !!_token && (_expEpochMs == null || _expEpochMs - Date.now() > 5000);
+}
+
+function postToParent(message: unknown) {
+  if (typeof window === "undefined" || window.parent === window) return;
+  try {
+    window.parent.postMessage(message, parentOrigin() || "*");
+  } catch {
+    /* ignore */
+  }
+}
+
+function scheduleRefresh() {
+  if (typeof window === "undefined" || _expEpochMs == null) return;
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  const delay = Math.max(5000, _expEpochMs - Date.now() - 60000); // ~60s before expiry
+  _refreshTimer = setTimeout(() => postToParent({ type: "presenton-token-request" }), delay);
+}
+
+function setToken(token: string, expiresAtEpochSec?: number) {
+  _token = token;
+  _expEpochMs = expiresAtEpochSec ? expiresAtEpochSec * 1000 : decodeExpEpochMs(token);
+  while (_waiters.length) {
+    const w = _waiters.shift();
+    if (w) w(token);
+  }
+  scheduleRefresh();
+}
+
+/** Register a callback for branding pushed by the parent (idempotent-friendly). */
+export function onBranding(handler: (b: PresentonBranding) => void) {
+  _brandingHandler = handler;
+  if (_branding) handler(_branding);
+}
+
+/** Latest branding pushed by the parent (sync; null until the first auth message). */
+export function getBranding(): PresentonBranding | null {
+  return _branding;
+}
+
+/** Connected realtors' branding profiles pushed by the parent (sync; null until set). */
+export function getPartners(): PresentonPartner[] | null {
+  return _partners;
+}
+
+function _setPrefill(p: PresentonPrefill) {
+  const content = typeof p.content === "string" ? p.content : undefined;
+  const title = typeof p.title === "string" ? p.title : undefined;
+  if (!content && !title) return;
+  _prefill = { content, title };
+  if (_prefillHandler) _prefillHandler(_prefill);
+}
+
+/** Source text/title the parent wants generation prefilled with (e.g. a research report). */
+export function getPrefill(): PresentonPrefill | null {
+  return _prefill;
+}
+
+/** Register a callback for prefill content pushed by the parent. */
+export function onPrefill(handler: (p: PresentonPrefill) => void) {
+  _prefillHandler = handler;
+  if (_prefill) handler(_prefill);
+}
+
+/**
+ * Attach the Clerk bearer to same-origin API calls.
+ *
+ * Upstream's getHeader() is synchronous and authenticates with a session
+ * cookie, and there are ~40 call sites. Rewriting them all to await a token
+ * would be broad and easy to get subtly wrong: one missed `await` sends
+ * "[object Promise]" as the headers and fails at runtime, not at build time.
+ * Patching fetch once covers every caller — including the ones that never used
+ * getHeader — and is the only place that has to know about the token at all.
+ *
+ * Deliberately narrow: embed mode only, same-origin API paths only, and never
+ * overrides an Authorization header a caller already set.
+ */
+function installFetchAuthInterceptor() {
+  if (typeof window === "undefined") return;
+  const original = window.fetch;
+  if ((original as any).__presentonClerkPatched) return;
+
+  const patched: typeof window.fetch = async (input, init) => {
+    let url: string;
+    try {
+      url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+    } catch {
+      return original(input as any, init);
+    }
+
+    let isApi = false;
+    try {
+      const resolved = new URL(url, window.location.href);
+      isApi =
+        resolved.origin === window.location.origin &&
+        resolved.pathname.startsWith("/api/");
+    } catch {
+      isApi = false;
+    }
+    if (!isApi) return original(input as any, init);
+
+    const headers = new Headers(
+      init?.headers ?? (input instanceof Request ? input.headers : undefined)
+    );
+    if (headers.has("Authorization")) return original(input as any, init);
+
+    const token = await getToken();
+    if (!token) return original(input as any, init);
+    headers.set("Authorization", `Bearer ${token}`);
+
+    if (input instanceof Request && !init) {
+      return original(new Request(input, { headers }));
+    }
+    return original(input as any, { ...(init ?? {}), headers });
+  };
+
+  (patched as any).__presentonClerkPatched = true;
+  window.fetch = patched;
+}
+
+/** Start listening for the parent's Clerk token. No-op when not embedded. */
+export function initClerkAuthBridge() {
+  if (_initialized || typeof window === "undefined") return;
+  _initialized = true;
+  if (!isEmbedClerkMode()) return;
+
+  installFetchAuthInterceptor();
+
+  window.addEventListener("message", (event: MessageEvent) => {
+    const expected = parentOrigin();
+    if (expected && event.origin !== expected) return; // origin allow-list
+    if (event.source && event.source !== window.parent) return; // only the embedding parent
+    const data = event.data as
+      | { type?: string; token?: unknown; expiresAt?: unknown; branding?: unknown }
+      | null;
+    if (!data || typeof data !== "object") return;
+    if (data.type === "presenton-auth" && typeof data.token === "string") {
+      setToken(
+        data.token,
+        typeof data.expiresAt === "number" ? data.expiresAt : undefined
+      );
+      if (data.branding && typeof data.branding === "object") {
+        _branding = data.branding as PresentonBranding;
+        if (_brandingHandler) _brandingHandler(_branding);
+      }
+      const partners = (data as { partners?: unknown }).partners;
+      if (Array.isArray(partners)) {
+        _partners = partners.filter(
+          (p): p is PresentonPartner => !!p && typeof p === "object"
+        );
+      }
+      if ((data as any).prefill && typeof (data as any).prefill === "object") {
+        _setPrefill((data as any).prefill as PresentonPrefill);
+      }
+    }
+    if (data.type === "presenton-prefill") {
+      _setPrefill(data as unknown as PresentonPrefill);
+    }
+  });
+
+  postToParent({ type: "presenton-ready" }); // ask the parent to send the token
+}
+
+/** Current token if valid, else null (for EventSource URLs that can't send headers). */
+export function getTokenSync(): string | null {
+  return tokenValid() ? _token : null;
+}
+
+/**
+ * Resolve the current Clerk token. Returns null immediately when not embedded
+ * (standalone) so callers attach no Authorization header. When embedded, returns
+ * a valid token, waiting (bounded) for the parent to deliver one.
+ */
+export async function getToken(): Promise<string | null> {
+  if (typeof window === "undefined" || !isEmbedClerkMode()) return null;
+  if (tokenValid()) return _token;
+  postToParent({ type: "presenton-token-request" });
+  return new Promise<string | null>((resolve) => {
+    let settled = false;
+    const done = (t: string | null) => {
+      if (!settled) {
+        settled = true;
+        resolve(t);
+      }
+    };
+    _waiters.push(done);
+    setTimeout(() => done(_token), 8000); // don't hang forever if the parent is silent
+  });
+}
+
+/**
+ * Append the Clerk token to a streaming URL.
+ *
+ * EventSource cannot set request headers, so the fetch interceptor above never
+ * sees these connections. The backend accepts `?token=` for exactly this case
+ * (see api/v1/auth/principal.py). Applied only at the two SSE call sites rather
+ * than inside getApiUrl(), so the token does not end up in the query string —
+ * and therefore in server logs — of every ordinary request.
+ */
+export function withSseToken(url: string): string {
+  if (typeof window === "undefined" || !isEmbedClerkMode()) return url;
+  const token = getTokenSync();
+  if (!token) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}token=${encodeURIComponent(token)}`;
+}
