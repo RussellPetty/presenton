@@ -1,6 +1,5 @@
 "use client";
 
-import { useLayoutEffect, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 interface SplashLoaderProps {
@@ -8,79 +7,29 @@ interface SplashLoaderProps {
   className?: string;
 }
 
-export const SPLASH_MIN_DURATION_MS = 3000;
-
-const SPLASH_ANIMATION_MS = 2600;
-
-let splashSessionStartedAt: number | null = null;
-let splashMaskReadyPromise: Promise<void> | null = null;
-
-function markSplashSessionStart(): number {
-  if (splashSessionStartedAt === null) {
-    splashSessionStartedAt = Date.now();
-  }
-  return splashSessionStartedAt;
-}
-
-function getSplashAnimationDelayMs(): number {
-  const elapsed = Date.now() - markSplashSessionStart();
-  return -Math.min(elapsed, SPLASH_ANIMATION_MS);
-}
+// Was 3000: a deliberate minimum so the brand animation could play out. With
+// no animation left, holding content back for three seconds inside an iframe
+// just looks like the host app is stuck.
+export const SPLASH_MIN_DURATION_MS = 0;
 
 export function SplashLoader({
   message = "Preparing your workspace",
   className,
 }: SplashLoaderProps) {
-  const [animationDelayMs, setAnimationDelayMs] = useState(0);
-
-  useLayoutEffect(() => {
-    setAnimationDelayMs(getSplashAnimationDelayMs());
-
-  }, []);
-
-  const containerStyle: CSSProperties = {
-    position: "fixed",
-    inset: 0,
-    zIndex: 2147483000,
-    display: "flex",
-    minHeight: "100vh",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    background: "#ffffff",
-  };
-
-  const surfaceStyle: CSSProperties = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    width: "142vmax",
-    height: "142vmax",
-    borderRadius: "50%",
-    background: "#7a5af8",
-    transform: "translate3d(-50%, -50%, 0) scale(0.001)",
-    animation: `app-splash-surface-grow ${SPLASH_ANIMATION_MS}ms linear ${animationDelayMs}ms both`,
-    willChange: "transform",
-    backfaceVisibility: "hidden",
-  };
-
-
-
+  // Was a full-screen purple disc that grew over the whole viewport. Inside an
+  // iframe that reads as the host app hanging, and it is upstream's brand
+  // colour besides, so this is now a quiet neutral placeholder.
   return (
     <main
       aria-busy="true"
       aria-label={message}
-      className={cn("app-splash-loader", className)}
+      className={cn(
+        "flex min-h-[200px] w-full items-center justify-center bg-white",
+        className
+      )}
       role="status"
-      style={containerStyle}
     >
-      <div
-        className="app-splash-surface"
-        aria-hidden="true"
-        style={surfaceStyle}
-      />
-      {/* White-label: the upstream wordmark used to be masked in here. The
-          embedding app owns the branding, so the splash is just the surface. */}
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-500" />
     </main>
   );
 }

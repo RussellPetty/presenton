@@ -12,6 +12,9 @@ import {
 import { notify } from "@/components/ui/sonner";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { isEmbedClerkMode } from "@/utils/clerkToken";
+import Home from "@/components/Home";
+import { ConfigurationInitializer } from "@/app/ConfigurationInitializer";
 
 type AuthStatus = {
   configured: boolean;
@@ -28,6 +31,16 @@ const initialStatus: AuthStatus = {
 };
 
 export default function AuthGate() {
+  // Embedded under Clerk the browser holds a bearer token, not a session
+  // cookie, so the cookie-based status check always reports "not signed in" and
+  // this gate would show a username/password form that cannot work — /setup and
+  // /login are disabled in Clerk mode. The embed flag only exists client-side
+  // (?embed=clerk / sessionStorage), so the server component upstream cannot
+  // make this decision and it has to happen here, after mount.
+  //
+  // Default to not-mounted so SSR and the first client render agree.
+  const [mounted, setMounted] = useState(false);
+  const [embedMode, setEmbedMode] = useState(false);
   const [status, setStatus] = useState<AuthStatus>(initialStatus);
   const [isLoading, setIsLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -44,6 +57,16 @@ export default function AuthGate() {
     }, SPLASH_MIN_DURATION_MS);
 
     return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    if (isEmbedClerkMode()) {
+      // FastAPI enforces auth on every call via the bearer token, so skipping
+      // this gate does not skip authentication — it only skips a login UI that
+      // has no valid credentials to accept.
+      setEmbedMode(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -322,12 +345,15 @@ export default function AuthGate() {
     }
   };
 
-  if (
-    isLoading ||
-    isRedirecting ||
-    status.authenticated ||
-    !hasMetSplashDuration
-  ) {
+  if (mounted && embedMode) {
+    return (
+      <ConfigurationInitializer>
+        <Home />
+      </ConfigurationInitializer>
+    );
+  }
+
+  if (isLoading || isRedirecting || status.authenticated) {
     return <SplashLoader message="Preparing your workspace..." />;
   }
 
