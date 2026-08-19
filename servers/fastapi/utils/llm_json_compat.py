@@ -127,3 +127,19 @@ def install_tolerant_json_parsing() -> None:
     OpenAIClient._final_content = _tolerant_final_content  # type: ignore[method-assign]
     _installed = True
     LOGGER.info("Installed tolerant JSON parsing for OpenAI-compatible providers")
+
+
+def parse_llm_json(text: str) -> Any:
+    """Parse JSON produced by a model, tolerating both malformed JSON and prose.
+
+    `dirtyjson` repairs malformed JSON (trailing commas, unquoted keys) but
+    still fails on a leading sentence, which is exactly what an agent-CLI
+    provider emits. Try the repairing parser first, then fall back to
+    recovering the first balanced JSON value.
+    """
+    try:
+        import dirtyjson
+
+        return dirtyjson.loads(text)
+    except Exception:
+        return loads_tolerant(text)

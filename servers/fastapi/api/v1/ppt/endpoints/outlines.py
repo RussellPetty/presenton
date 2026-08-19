@@ -36,6 +36,7 @@ from utils.llm_calls.generate_presentation_outlines import (
 )
 from utils.sse import safe_sse_stream
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
+from utils.llm_json_compat import parse_llm_json
 
 OUTLINES_ROUTER = APIRouter(prefix="/outlines", tags=["Outlines"])
 LOGGER = logging.getLogger(__name__)
@@ -206,7 +207,7 @@ async def stream_outlines(
 
         try:
             presentation_outlines_json = dict(
-                dirtyjson.loads(presentation_outlines_text)
+                parse_llm_json(presentation_outlines_text)
             )
         except Exception as e:
             traceback.print_exc()

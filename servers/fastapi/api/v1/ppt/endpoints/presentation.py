@@ -113,6 +113,7 @@ from utils.llm_calls.generate_smart_presentation import (
     generate_smart_presentation,
     resolve_smart_slide_count,
 )
+from utils.llm_json_compat import parse_llm_json
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -2447,7 +2448,7 @@ async def generate_presentation_handler(
 
             try:
                 presentation_outlines_json = dict(
-                    dirtyjson.loads(presentation_outlines_text)
+                    parse_llm_json(presentation_outlines_text)
                 )
             except Exception:
                 traceback.print_exc()

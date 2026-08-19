@@ -506,3 +506,19 @@ def get_supabase_service_role_key_env():
 def get_supabase_storage_bucket_env() -> str:
     value = os.getenv("SUPABASE_STORAGE_BUCKET")
     return value.strip() if value and value.strip() else "presentations"
+
+
+def get_gemini_image_model_env() -> str:
+    """Gemini image model used by the gemini_flash provider.
+
+    Upstream pins gemini-2.5-flash-image. Design Studio generates its imagery
+    with gemini-3.1-flash-image, so decks match the rest of the product by
+    default and the pin stays overridable per environment.
+    """
+    value = os.getenv("GEMINI_IMAGE_MODEL")
+    return value.strip() if value and value.strip() else "gemini-3.1-flash-image"
+
+
+def get_nanobanana_image_model_env() -> str:
+    value = os.getenv("NANOBANANA_IMAGE_MODEL")
+    return value.strip() if value and value.strip() else "gemini-3-pro-image"

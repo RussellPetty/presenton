@@ -26,6 +26,10 @@ from utils.get_env import (
 from utils.get_env import get_pixabay_api_key_env
 from utils.get_env import get_comfyui_url_env
 from utils.get_env import get_comfyui_workflow_env
+from utils.get_env import (
+    get_gemini_image_model_env,
+    get_nanobanana_image_model_env,
+)
 from utils.image_provider import (
     is_gpt_image_1_5_selected,
     is_image_generation_disabled,
@@ -327,17 +331,17 @@ class ImageGenerationService:
     async def generate_image_gemini_flash(
         self, prompt: str, output_directory: str
     ) -> str:
-        """Generate image using Gemini Flash (gemini-2.5-flash-image)."""
+        """Generate an image with the configured Gemini image model."""
         return await self._generate_image_google(
-            prompt, output_directory, "gemini-2.5-flash-image"
+            prompt, output_directory, get_gemini_image_model_env()
         )
 
     async def generate_image_nanobanana_pro(
         self, prompt: str, output_directory: str
     ) -> str:
-        """Generate image using NanoBanana Pro (gemini-3-pro-image-preview)."""
+        """Generate an image with the configured NanoBanana Pro model."""
         return await self._generate_image_google(
-            prompt, output_directory, "gemini-3-pro-image-preview"
+            prompt, output_directory, get_nanobanana_image_model_env()
         )
 
     async def get_image_from_pexels(
