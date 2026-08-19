@@ -15,6 +15,8 @@ import {
   Bookmark,
   ChartNoAxesGantt,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsRight,
   Circle,
   Cloud,
@@ -96,6 +98,8 @@ import { isTemplateFreePresentation } from "../../_shared/blank-slide";
 type PresentationActionsProps = React.ComponentProps<typeof Chat> & {
   editingDisabled?: boolean;
   presentationData?: unknown;
+  panelOpen?: boolean;
+  onPanelOpenChange?: (open: boolean) => void;
 };
 
 type ActionId =
@@ -1198,17 +1202,34 @@ function ActionsSidebar({
   activeAction,
   aiOnly = false,
   blocksUnavailable = false,
+  panelOpen,
+  onPanelOpenChange,
   onActionSelect,
 }: {
   activeAction: ActionId;
   aiOnly?: boolean;
   blocksUnavailable?: boolean;
+  panelOpen: boolean;
+  onPanelOpenChange: (open: boolean) => void;
   onActionSelect: (action: ActionId) => void;
 }) {
   return (
-    <aside className="flex h-full w-[70px] shrink-0 flex-col items-center gap-5 px-[6px] py-2">
+    <aside className="ml-auto flex h-full w-[70px] shrink-0 flex-col items-center gap-3 border-l border-[#EDEEEF] px-[6px] py-2">
+      <button
+        type="button"
+        aria-label={panelOpen ? "Close tools panel" : "Open tools panel"}
+        aria-expanded={panelOpen}
+        onClick={() => onPanelOpenChange(!panelOpen)}
+        className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[#E6E6EC] bg-white text-[#667085] shadow-sm transition hover:bg-[#F6F6F9] hover:text-[#101323] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] xl:flex"
+      >
+        {panelOpen ? (
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
       <div
-        className="flex w-full shrink-0 flex-col items-center gap-5 rounded-[10px] py-7"
+        className="flex w-full shrink-0 flex-col items-center gap-5 rounded-[10px] py-5"
         style={{
           background: "rgba(244, 243, 255, 0.60)",
         }}
@@ -1273,7 +1294,13 @@ function ActionsPanel({
   activeAction: ActionId;
   aiOnly?: boolean;
   blocksUnavailable?: boolean;
-  chatProps: Omit<PresentationActionsProps, "editingDisabled" | "presentationData">;
+  chatProps: Omit<
+    PresentationActionsProps,
+    | "editingDisabled"
+    | "presentationData"
+    | "panelOpen"
+    | "onPanelOpenChange"
+  >;
   editingDisabled?: boolean;
   onBlockSelect: (block: TemplateBlock) => void;
   onChartItemSelect: (item: PaletteItem) => void;
@@ -1372,7 +1399,13 @@ function templateV2TargetKey(
 }
 
 const PresentationActions = (props: PresentationActionsProps) => {
-  const { editingDisabled = false, presentationData, ...chatProps } = props;
+  const {
+    editingDisabled = false,
+    presentationData,
+    panelOpen = true,
+    onPanelOpenChange = () => undefined,
+    ...chatProps
+  } = props;
   const aiOnly = props.presentationType === "smart";
   const blocksUnavailable = isTemplateFreePresentation(presentationData);
   const [{ activeAction }, dispatchUiState] = useReducer(
@@ -1630,44 +1663,49 @@ const PresentationActions = (props: PresentationActionsProps) => {
       variant: "template-v2",
     });
     dispatchUiState({ type: "selectAction", activeAction });
+    onPanelOpenChange(true);
   };
 
   return (
     <div
       data-inline-edit-ignore="true"
-      className="flex h-full w-full overflow-hidden bg-white pl-[6px] text-[clamp(12px,0.82vw,14px)]"
+      className="flex h-full w-full overflow-hidden bg-white text-[clamp(12px,0.82vw,14px)]"
     >
+      {panelOpen ? (
+        <ActionsPanel
+          activeAction={activeAction}
+          aiOnly={aiOnly}
+          blocksUnavailable={blocksUnavailable}
+          chatProps={{
+            ...chatProps,
+            currentSlide: chatSlide,
+            selectedTemplateV2Target,
+            onClearChatSlideReference:
+              typeof chatProps.currentSlide === "number"
+                ? () => setHiddenSlideReference(chatProps.currentSlide!)
+                : undefined,
+            onClearChatTargetReference: targetReferenceKey
+              ? () => setHiddenTargetReferenceKey(targetReferenceKey)
+              : undefined,
+          }}
+          editingDisabled={editingDisabled}
+          onBlockSelect={handleBlockSelect}
+          onChartItemSelect={handleChartItemSelect}
+          onElementItemSelect={handleElementItemSelect}
+          onImageItemSelect={handleImageItemSelect}
+          onTableItemSelect={handleTableItemSelect}
+          onTextItemSelect={handleTextItemSelect}
+          presentationData={presentationData}
+          presentationId={props.presentationId}
+        />
+      ) : null}
       <ActionsSidebar
         activeAction={activeAction}
         aiOnly={aiOnly}
         blocksUnavailable={blocksUnavailable}
+        panelOpen={panelOpen}
+        onPanelOpenChange={onPanelOpenChange}
         onActionSelect={handleActionSelect}
-      />
-      <ActionsPanel
-        activeAction={activeAction}
-        aiOnly={aiOnly}
-        blocksUnavailable={blocksUnavailable}
-        chatProps={{
-          ...chatProps,
-          currentSlide: chatSlide,
-          selectedTemplateV2Target,
-          onClearChatSlideReference:
-            typeof chatProps.currentSlide === "number"
-              ? () => setHiddenSlideReference(chatProps.currentSlide!)
-              : undefined,
-          onClearChatTargetReference: targetReferenceKey
-            ? () => setHiddenTargetReferenceKey(targetReferenceKey)
-            : undefined,
-        }}
-        editingDisabled={editingDisabled}
-        onBlockSelect={handleBlockSelect}
-        onChartItemSelect={handleChartItemSelect}
-        onElementItemSelect={handleElementItemSelect}
-        onImageItemSelect={handleImageItemSelect}
-        onTableItemSelect={handleTableItemSelect}
-        onTextItemSelect={handleTextItemSelect}
-        presentationData={presentationData}
-        presentationId={props.presentationId}
       />
     </div>
   );
