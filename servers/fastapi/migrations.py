@@ -7,7 +7,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 
 from utils.db_utils import get_database_url_and_connect_args, to_sync_sqlalchemy_url
-from utils.get_env import get_migrate_database_on_startup_env
+from utils.get_env import get_db_schema_env, get_migrate_database_on_startup_env
 
 
 LEGACY_BASELINE_REVISION = "00b3c27a13bc"
@@ -33,6 +33,18 @@ REVISION_SMART_GENERATION = "f3a7c1d9e5b2"
 REVISION_PRESENTON_CLOUD_PROVIDER = "c6e8f1a3b5d7"
 REVISION_SMART_MODE_BACKFILL = "d2f4a6b8c0e1"
 REVISION_HEAD = REVISION_SMART_MODE_BACKFILL
+
+
+def _sync_connect_args(database_url: str) -> dict:
+    """psycopg connect args pinning search_path to DB_SCHEMA.
+
+    Without this the legacy/orphan-revision inspectors below look at `public`,
+    which on a shared Supabase project holds another app's tables entirely.
+    """
+    schema = get_db_schema_env()
+    if schema and "postgresql" in database_url:
+        return {"options": f"-c search_path={schema},public"}
+    return {}
 
 
 async def migrate_database_on_startup() -> None:
@@ -86,7 +98,7 @@ def _repair_orphan_alembic_revision(config: Config, database_url: str) -> None:
         return
     head = heads[0]
 
-    engine = create_engine(database_url)
+    engine = create_engine(database_url, connect_args=_sync_connect_args(database_url))
     try:
         with engine.begin() as connection:
             inspector = inspect(connection)
@@ -267,7 +279,7 @@ def _stamp_legacy_database_if_needed(config: Config, database_url: str) -> None:
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
     head = heads[0] if len(heads) == 1 else script.get_base()
-    engine = create_engine(database_url)
+    engine = create_engine(database_url, connect_args=_sync_connect_args(database_url))
     try:
         with engine.connect() as connection:
             inspector = inspect(connection)
@@ -305,7 +317,7 @@ def _is_unversioned_populated_database(database_url: str) -> bool:
         "provider_settings",
         "presenton_cloud_provider",
     }
-    engine = create_engine(database_url)
+    engine = create_engine(database_url, connect_args=_sync_connect_args(database_url))
     try:
         with engine.connect() as connection:
             inspector = inspect(connection)

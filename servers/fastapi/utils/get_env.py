@@ -14,6 +14,18 @@ def get_can_change_keys_env():
     return os.getenv("CAN_CHANGE_KEYS")
 
 
+def get_db_schema_env():
+    """Optional Postgres schema that all tables live in.
+
+    Set this (e.g. DB_SCHEMA=presenton_v2) to isolate these tables when sharing a
+    Postgres database with another app — as we do, on one Supabase project. The
+    schema must already exist, because the least-privilege role Supabase hands
+    out cannot CREATE SCHEMA. Ignored for SQLite.
+    """
+    value = os.getenv("DB_SCHEMA")
+    return value.strip() if value and value.strip() else None
+
+
 def get_database_url_env():
     return os.getenv("DATABASE_URL")
 

@@ -3,6 +3,7 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
+from sqlalchemy import text
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
@@ -87,11 +88,35 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+    from utils.get_env import get_db_schema_env
+
+    schema = get_db_schema_env()
     with connectable.connect() as connection:
+        if schema:
+            try:
+                connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+                connection.commit()
+            except Exception as exc:  # noqa: BLE001
+                # Expected on Supabase: the schema is pre-created and the
+                # least-privilege app role cannot CREATE SCHEMA. Roll back so the
+                # aborted transaction does not poison the SET below, which would
+                # otherwise fail with "current transaction is aborted".
+                connection.rollback()
+                print(
+                    f"[alembic] could not ensure schema '{schema}' "
+                    f"(assuming it pre-exists): {exc}"
+                )
+            # Unqualified DDL, and alembic_version itself, must land in our
+            # schema rather than public.
+            connection.execute(text(f'SET search_path TO "{schema}", public'))
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            version_table_schema=schema,
+            include_schemas=bool(schema),
         )
         with context.begin_transaction():
             context.run_migrations()
