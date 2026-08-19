@@ -10,6 +10,7 @@ DISABLE_AUTH deployments that never call into Clerk verification.
 """
 
 import threading
+import time
 from typing import Optional
 
 from utils.get_env import (
@@ -23,6 +24,16 @@ from utils.get_env import (
 _jwk_clients: dict[str, object] = {}
 _jwk_clients_lock = threading.Lock()
 
+# PyJWKClient refetches the whole JWKS whenever a `kid` misses, and a miss is
+# never remembered. Unauthenticated callers choose the `kid`, so without a
+# negative cache a trickle of junk tokens turns into one upstream fetch each —
+# on a single-worker uvicorn that is enough to stall the event loop, and a slow
+# or unreachable JWKS host makes each one cost the full timeout.
+_JWKS_TIMEOUT_SECONDS = 5
+_UNKNOWN_KID_TTL_SECONDS = 300
+_unknown_kids: dict[tuple[str, str], float] = {}
+_unknown_kids_lock = threading.Lock()
+
 
 def _client_for(jwks_url: str):
     client = _jwk_clients.get(jwks_url)
@@ -33,9 +44,34 @@ def _client_for(jwks_url: str):
         if client is None:
             from jwt import PyJWKClient
 
-            client = PyJWKClient(jwks_url, cache_keys=True)
+            client = PyJWKClient(
+                jwks_url, cache_keys=True, timeout=_JWKS_TIMEOUT_SECONDS
+            )
             _jwk_clients[jwks_url] = client
     return client
+
+
+def _kid_recently_unknown(jwks_url: str, kid: str) -> bool:
+    with _unknown_kids_lock:
+        expires_at = _unknown_kids.get((jwks_url, kid))
+        if expires_at is None:
+            return False
+        if expires_at <= time.monotonic():
+            _unknown_kids.pop((jwks_url, kid), None)
+            return False
+        return True
+
+
+def _remember_unknown_kid(jwks_url: str, kid: str) -> None:
+    now = time.monotonic()
+    with _unknown_kids_lock:
+        # Opportunistically drop expired entries so a long-running process
+        # cannot accumulate one entry per attacker-chosen kid forever.
+        if len(_unknown_kids) > 1024:
+            for key, expires_at in list(_unknown_kids.items()):
+                if expires_at <= now:
+                    _unknown_kids.pop(key, None)
+        _unknown_kids[(jwks_url, kid)] = now + _UNKNOWN_KID_TTL_SECONDS
 
 
 def _jwks_url_for(iss: str) -> str:
@@ -69,8 +105,24 @@ def verify_clerk_token(token: Optional[str]) -> Optional[str]:
         return None
     iss = iss.rstrip("/")
 
+    jwks_url = _jwks_url_for(iss)
     try:
-        signing_key = _client_for(_jwks_url_for(iss)).get_signing_key_from_jwt(token)
+        kid = jwt.get_unverified_header(token).get("kid")
+    except Exception:
+        return None
+    if not isinstance(kid, str) or not kid:
+        return None
+    if _kid_recently_unknown(jwks_url, kid):
+        # Already looked this one up and the issuer did not have it; refuse
+        # without hitting the network again.
+        return None
+
+    try:
+        try:
+            signing_key = _client_for(jwks_url).get_signing_key_from_jwt(token)
+        except Exception:
+            _remember_unknown_kid(jwks_url, kid)
+            raise
 
         options = {"require": ["exp", "sub"]}
         decode_kwargs = {

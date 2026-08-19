@@ -104,11 +104,18 @@ async def _session_cookie_principal(
 ) -> tuple[AuthPrincipal | None, User | None]:
     """Authenticate the app's own session cookie.
 
-    In Clerk mode this is not a user-facing login path: the only issuer of this
-    cookie is the server itself, minting a short-lived token so the headless
-    export renderer can fetch the deck it is rendering as the deck's owner. The
-    JWT is signed with the instance secret and pinned to the user's
-    auth_version, so it is not forgeable from outside."""
+    In Clerk mode this is not a user-facing login path. The only legitimate
+    issuer is the server itself, minting a token so the headless export renderer
+    can fetch the deck it is rendering as that deck's owner.
+
+    Two restrictions keep it from becoming a second, weaker way in:
+
+    * only Clerk-provisioned accounts are accepted, so a local account that
+      predates the switch to Clerk mode (or is created by any future code path)
+      can never authenticate here; and
+    * it never carries admin, so even a mis-provisioned superuser row cannot
+      reach the admin-gated routes through a cookie.
+    """
     cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
     if not cookie_token:
         return None, None
@@ -116,11 +123,13 @@ async def _session_cookie_principal(
     user = await get_jwt_strategy().read_token(cookie_token, UserManager(user_db))
     if user is None:
         return None, None
+    if not user.username.startswith(CLERK_USERNAME_PREFIX):
+        return None, None
     return (
         AuthPrincipal(
             user_id=user.id,
             username=user.username,
-            is_admin=user.is_superuser,
+            is_admin=False,
             method="jwt",
         ),
         user,

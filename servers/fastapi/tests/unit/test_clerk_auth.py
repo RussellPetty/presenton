@@ -92,6 +92,7 @@ def clerk_env(monkeypatch, signing_key):
     # Only the trusted issuer's JWKS exists; anything else 404s the same way a
     # real unknown instance would.
     monkeypatch.setattr(clerk_auth, "_jwk_clients", {})
+    monkeypatch.setattr(clerk_auth, "_unknown_kids", {})
     monkeypatch.setitem(
         clerk_auth.__dict__, "_client_for", lambda url: _StubJWKClient(url)
     )
@@ -183,3 +184,46 @@ def test_multiple_issuers_are_supported(monkeypatch, signing_key):
     monkeypatch.setenv("CLERK_ISSUER", f"{UNTRUSTED_ISSUER},{ISSUER}")
     token = _sign(signing_key, _claims())
     assert clerk_auth.verify_clerk_token(token) == "user_2abcdefghijklmnop"
+
+
+def test_unknown_kid_is_negative_cached(monkeypatch, signing_key):
+    """An unknown `kid` must not cause a JWKS fetch on every attempt.
+
+    PyJWKClient refetches the whole key set on a miss and never remembers it,
+    and the `kid` is attacker-chosen, so without this a stream of junk tokens
+    becomes a stream of upstream requests on a single-worker server."""
+    fetches = {"count": 0}
+
+    class _CountingClient:
+        def __init__(self, url, **kwargs):
+            self.url = url
+
+        def get_signing_key_from_jwt(self, token):
+            fetches["count"] += 1
+            raise jwt.PyJWKClientError("no matching key")
+
+    monkeypatch.setitem(
+        clerk_auth.__dict__, "_client_for", lambda url: _CountingClient(url)
+    )
+
+    token = _sign(signing_key, _claims(), kid="attacker-chosen-kid")
+    for _ in range(5):
+        assert clerk_auth.verify_clerk_token(token) is None
+
+    assert fetches["count"] == 1, (
+        f"expected one JWKS lookup, got {fetches['count']}"
+    )
+
+
+def test_negative_cache_expires(monkeypatch, signing_key):
+    monkeypatch.setattr(clerk_auth, "_UNKNOWN_KID_TTL_SECONDS", 0)
+    token = _sign(signing_key, _claims(), kid="transient-kid")
+    assert clerk_auth.verify_clerk_token(token) is None
+    # TTL of zero means the entry is already stale, so a later real rotation of
+    # the issuer's keys is picked up rather than being cached as broken.
+    assert clerk_auth._kid_recently_unknown("https://x/jwks.json", "transient-kid") is False
+
+
+def test_token_without_kid_is_rejected(signing_key):
+    token = jwt.encode(_claims(), signing_key, algorithm="RS256")
+    assert clerk_auth.verify_clerk_token(token) is None

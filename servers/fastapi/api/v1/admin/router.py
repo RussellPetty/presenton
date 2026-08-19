@@ -18,6 +18,7 @@ from api.v1.auth.users import (
     read_user_from_cookie,
     serialize_user,
 )
+from api.v1.auth.principal import CLERK_USERNAME_PREFIX
 from models.sql.user import User
 from models.sql.key_value import KeyValueSqlModel
 from services.database import get_async_session
@@ -106,6 +107,13 @@ async def create_user(
     session: AsyncSession = Depends(get_async_session),
 ):
     username = body.username.strip()
+    if username.lower().startswith(CLERK_USERNAME_PREFIX):
+        # Reserved for externally provisioned identities: a local account under
+        # this name would be silently adopted by the matching Clerk subject.
+        raise HTTPException(
+            status_code=422,
+            detail="Username may not start with a reserved prefix",
+        )
     if len(username) < 3:
         raise HTTPException(
             status_code=422,

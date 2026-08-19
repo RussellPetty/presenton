@@ -50,6 +50,7 @@ from services.mem0_presentation_memory_service import (
 )
 from utils.dict_utils import deep_update
 from utils.export_utils import export_presentation
+from utils.get_env import is_clerk_auth_enabled
 from utils.llm_calls.generate_presentation_outlines import (
     generate_ppt_outline,
     get_messages as get_outline_messages,
@@ -1307,13 +1308,22 @@ async def _resolve_prepare_layout(
 
 
 def _build_export_cookie_header(request: Request) -> Optional[str]:
+    internal_session_token = getattr(
+        request.state, "internal_session_token", None
+    )
+    if is_clerk_auth_enabled():
+        # Identity came from the bearer token, so any inbound Cookie header is
+        # unrelated to it — an analytics cookie would crowd out the credential
+        # the renderer needs, and a stale session cookie would render as the
+        # wrong owner. Only the freshly minted, owner-scoped token is valid.
+        if isinstance(internal_session_token, str) and internal_session_token:
+            return f"{SESSION_COOKIE_NAME}={internal_session_token}"
+        return None
+
     cookie_header = (request.headers.get("cookie") or "").strip()
     if cookie_header:
         return cookie_header
 
-    internal_session_token = getattr(
-        request.state, "internal_session_token", None
-    )
     if isinstance(internal_session_token, str) and internal_session_token:
         return f"{SESSION_COOKIE_NAME}={internal_session_token}"
 

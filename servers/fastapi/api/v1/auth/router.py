@@ -9,7 +9,7 @@ from starlette.responses import JSONResponse
 from api.v1.auth.schemas import AuthCredentialsRequest, LoginCredentialsRequest
 from api.v1.auth.assets import is_app_data_path_authorized
 from api.v1.auth.rate_limit import LOGIN_RATE_LIMITER, login_rate_limit_key
-from api.v1.auth.principal import resolve_request_principal
+from api.v1.auth.principal import CLERK_USERNAME_PREFIX, resolve_request_principal
 from api.v1.auth.users import (
     PASSWORD_HELPER,
     get_jwt_strategy,
@@ -18,7 +18,7 @@ from api.v1.auth.users import (
 )
 from models.sql.user import User
 from services.database import get_async_session
-from utils.get_env import is_disable_auth_enabled
+from utils.get_env import is_clerk_auth_enabled, is_disable_auth_enabled
 from api.v1.auth.config import (
     SESSION_COOKIE_NAME,
     SESSION_TTL_SECONDS,
@@ -35,6 +35,33 @@ API_V1_AUTH_ROUTER.include_router(PRESENTON_OAUTH_ROUTER)
 
 def normalize_username(username: str) -> str:
     return username.strip()
+
+
+def _reject_local_accounts_in_clerk_mode() -> None:
+    """Clerk mode has no local accounts, so these routes must not exist.
+
+    Left reachable, /setup on a fresh database lets an unauthenticated caller
+    create the first account as a superuser, and /login then mints a session
+    cookie for it. Identity comes exclusively from the embedder's token here.
+    """
+    if is_clerk_auth_enabled():
+        raise HTTPException(
+            status_code=404, detail="Not found"
+        )
+
+
+def _reject_reserved_username(username: str) -> None:
+    """`clerk:` is reserved for externally provisioned identities.
+
+    Without this a local account can be created under the name a Clerk subject
+    will later resolve to, and that subject is then silently bound to the
+    pre-existing row — inheriting its data and any privileges it holds.
+    """
+    if username.lower().startswith(CLERK_USERNAME_PREFIX):
+        raise HTTPException(
+            status_code=422,
+            detail="Username may not start with a reserved prefix",
+        )
 
 
 async def _account_count(session: AsyncSession) -> int:
@@ -136,10 +163,12 @@ async def setup_credentials(
     request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
+    _reject_local_accounts_in_clerk_mode()
     if await _account_count(session):
         raise HTTPException(status_code=409, detail="Credentials already configured")
 
     username = normalize_username(body.username)
+    _reject_reserved_username(username)
     if len(username) < 3:
         raise HTTPException(
             status_code=422,
@@ -181,6 +210,7 @@ async def login(
     request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
+    _reject_local_accounts_in_clerk_mode()
     if not await _account_count(session):
         raise HTTPException(status_code=428, detail="Login setup is required")
     username = normalize_username(body.username)
