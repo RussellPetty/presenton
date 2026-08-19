@@ -134,12 +134,12 @@ Still open, deliberately:
    portable; this branch has upstream's 8 V2 families. Families with no
    equivalent: `neo-general`, `neo-modern`, `neo-standard`, `neo-swift`,
    `Code`, `Education`, `pitch-deck`, `ProductOverview`, `Report`.
-2. **Brand theming is not reimplemented yet.** Smaller than first assessed:
-   upstream already ships `generate_color_palette()` and themes already carry
-   `logo_url` and `company_name`, and `set_presentation_theme(custom_theme=...)`
-   already builds and saves a theme. What remains is mapping a user's brand
-   colours onto `THEME_COLOR_KEYS` and calling it — not the rewrite originally
-   described.
+2. **Mobile UI was not ported — upstream superseded it.** Our old commit added
+   a Slides/Assistant toggle because the 3-column editor cut the assistant off
+   on phones. Upstream now ships a floating trigger plus a slide-in assistant
+   drawer (`xl:hidden`, `fixed inset-y-0 right-0`), which solves the same
+   problem better; porting ours would fight it. Not visually verified on a
+   device — the editor needs a Clerk session to reach.
 4. **Auto-provisioning is unbounded.** Any valid token from an allow-listed
    issuer creates a User row. `CLERK_ISSUER` currently includes a
    `*.clerk.accounts.dev` dev instance that permits open signup — review that
