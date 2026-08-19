@@ -87,12 +87,20 @@ export async function getServerAuthStatus(): Promise<AuthStatus> {
   }
 }
 
+/** AUTH_MODE=clerk: identity arrives as a bearer token posted into the iframe
+ *  after mount, so a server component has nothing to check. Enforcement happens
+ *  on the data calls, which do carry the bearer — a server-side redirect here
+ *  just bounces the embed to `/` forever. */
+function isClerkAuthMode(): boolean {
+  return process.env.AUTH_MODE?.trim().toLowerCase() === "clerk";
+}
+
 /**
  * If credentials are not configured yet, send the user to `/` (setup in AuthGate).
  * If configured but not signed in, send to login with a query flag the client turns into a toast.
  */
 export async function requireAppSession() {
-  if (isAuthDisabled()) {
+  if (isAuthDisabled() || isClerkAuthMode()) {
     return;
   }
   const s = await getServerAuthStatus();
@@ -108,7 +116,7 @@ export async function requireAppSession() {
 }
 
 export async function requireAdminSession() {
-  if (isAuthDisabled()) {
+  if (isAuthDisabled() || isClerkAuthMode()) {
     return;
   }
   const status = await getServerAuthStatus();
