@@ -11,7 +11,7 @@ from api.v1.auth.context import (
     set_current_owner_is_admin,
 )
 from api.v1.auth.principal import resolve_request_principal
-from api.v1.auth.users import get_jwt_strategy
+from api.v1.auth.users import get_export_jwt_strategy
 from models.sql.user import User
 from services.database import async_session_maker
 from services.presenton_cloud_proxy import maybe_proxy_presenton_cloud_request
@@ -131,7 +131,7 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
                 # mode there is never an incoming cookie to forward, so mint one
                 # for every request or exports render an empty deck.
                 request.state.internal_session_token = (
-                    await get_jwt_strategy().write_token(user)
+                    await get_export_jwt_strategy().write_token(user)
                 )
             context_token = set_current_owner_id(principal.user_id)
             admin_context_token = set_current_owner_is_admin(principal.is_admin)

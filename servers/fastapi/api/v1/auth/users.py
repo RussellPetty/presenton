@@ -180,6 +180,22 @@ def get_jwt_strategy() -> VersionedJWTStrategy:
     )
 
 
+# A render finishes in seconds, so the credential handed to the headless
+# exporter has no reason to outlive it. It travels in a URL fragment that the
+# export page itself can read, which means any script that runs on that page —
+# including anything smuggled through a slide's html_content — can steal it. A
+# full 30-day session there would stay replayable long after the Clerk session
+# that created it was revoked.
+EXPORT_SESSION_TTL_SECONDS = 15 * 60
+
+
+def get_export_jwt_strategy() -> VersionedJWTStrategy:
+    return VersionedJWTStrategy(
+        secret=get_or_create_auth_secret(),
+        lifetime_seconds=EXPORT_SESSION_TTL_SECONDS,
+    )
+
+
 # The explicit login router uses dynamic Secure-cookie handling, but keeping a
 # FastAPI Users backend centralizes the package's account/auth abstractions.
 COOKIE_TRANSPORT = CookieTransport(
