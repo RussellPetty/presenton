@@ -17,6 +17,7 @@ from utils.model_availability import (
 )
 from utils.user_config import update_env_with_user_config
 from api.v1.auth.bootstrap import bootstrap_database_admin
+from utils.llm_json_compat import install_tolerant_json_parsing
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ async def app_lifespan(_: FastAPI):
     """
     _configure_application_logging()
     os.makedirs(get_app_data_directory_env(), exist_ok=True)
+    install_tolerant_json_parsing()
     await migrate_database_on_startup()
     await create_db_and_tables()
     await bootstrap_database_admin()

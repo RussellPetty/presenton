@@ -35,6 +35,7 @@ from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
+from utils.llm_rate_limit import run_llm_call
 from utils.llm_utils import (
     extract_text,
     get_generate_kwargs,
@@ -383,13 +384,16 @@ class PresentationChatService:
 
         for _ in range(MAX_TOOL_ROUNDS):
             try:
-                response = await asyncio.to_thread(
-                    client.generate,
-                    **get_generate_kwargs(
-                        model=model,
-                        messages=messages,
-                        tools=tools,
+                response = await run_llm_call(
+                    lambda: asyncio.to_thread(
+                        client.generate,
+                        **get_generate_kwargs(
+                            model=model,
+                            messages=messages,
+                            tools=tools,
+                        ),
                     ),
+                    label="chat.tool_round",
                 )
             except Exception as exc:
                 raise handle_llm_client_exceptions(exc)
@@ -438,12 +442,15 @@ class PresentationChatService:
         messages: list[Message],
     ) -> str | None:
         try:
-            response = await asyncio.to_thread(
-                client.generate,
-                **get_generate_kwargs(
-                    model=model,
-                    messages=messages,
+            response = await run_llm_call(
+                lambda: asyncio.to_thread(
+                    client.generate,
+                    **get_generate_kwargs(
+                        model=model,
+                        messages=messages,
+                    ),
                 ),
+                label="chat.summarize",
             )
         except Exception:
             LOGGER.warning("Final no-tool synthesis call failed", exc_info=True)

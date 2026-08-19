@@ -11,6 +11,7 @@ from time import perf_counter
 from typing import Any, Callable
 
 from llmai import get_client
+from utils.llm_rate_limit import cap_parallelism, run_llm_call_sync
 from llmai.shared import (
     AssistantMessage,
     ImageContentPart,
@@ -41,7 +42,10 @@ from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
 
 DEFAULT_VALIDATION_RETRIES = 5
-MAX_PARALLEL_SLIDE_LAYOUTS = 10
+# Upstream fans every slide out at once. Against a small self-hosted gateway
+# that caps concurrent requests, that is an instant 429 for most of the batch,
+# so LLM_MAX_CONCURRENCY (when set) clamps the fan-out width.
+MAX_PARALLEL_SLIDE_LAYOUTS = cap_parallelism(10)
 MAX_PREVIEW_SLIDE_CALLS = 2
 CONTENT_IMAGE_PLACEHOLDER_URL = "/static/images/replaceable_template_image.png"
 CONTENT_ICON_PLACEHOLDER_URL = "/static/icons/placeholder.svg"
@@ -1123,7 +1127,10 @@ def _generate_preview_candidate(
                         ),
                     }
                 )
-            response = client.generate(**generate_kwargs)
+            response = run_llm_call_sync(
+                lambda: client.generate(**generate_kwargs),
+                label="v2.preview_candidate",
+            )
             tool_call = None
             if preview_tool_available:
                 tool_call = next(
@@ -1344,15 +1351,18 @@ def _generate_with_validation_retries(
             len(attempt_messages),
         )
         try:
-            response = client.generate(
-                model=model,
-                messages=attempt_messages,
-                response_format=JSONSchemaResponse(
-                    name=response_name,
-                    strict=False,
-                    json_schema=output_model,
+            response = run_llm_call_sync(
+                lambda: client.generate(
+                    model=model,
+                    messages=attempt_messages,
+                    response_format=JSONSchemaResponse(
+                        name=response_name,
+                        strict=False,
+                        json_schema=output_model,
+                    ),
+                    max_tokens=max_tokens,
                 ),
-                max_tokens=max_tokens,
+                label="v2.slide_layout",
             )
         except Exception as exc:
             last_error = exc

@@ -5,6 +5,7 @@ from llmai import get_client
 from llmai.shared import SystemMessage, UserMessage
 from utils.llm_config import get_llm_config
 from utils.llm_client_error_handler import handle_llm_client_exceptions
+from utils.llm_rate_limit import run_llm_call
 from utils.llm_utils import extract_text, get_generate_kwargs
 from utils.llm_provider import get_model
 
@@ -65,17 +66,20 @@ async def get_edited_slide_html(
 
     client = get_client(config=get_llm_config())
     try:
-        response = await asyncio.to_thread(
-            client.generate,
-            **get_generate_kwargs(
-                model=model,
-                messages=[
-                    SystemMessage(content=system_prompt),
-                    UserMessage(
-                        content=get_user_prompt(prompt, html, memory_context)
-                    ),
-                ],
+        response = await run_llm_call(
+            lambda: asyncio.to_thread(
+                client.generate,
+                **get_generate_kwargs(
+                    model=model,
+                    messages=[
+                        SystemMessage(content=system_prompt),
+                        UserMessage(
+                            content=get_user_prompt(prompt, html, memory_context)
+                        ),
+                    ],
+                ),
             ),
+            label="edit_slide_html",
         )
         response_text = extract_text(response.content)
         if response_text is None:

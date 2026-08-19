@@ -304,13 +304,31 @@ async def check_llm_and_image_provider_api_or_model_availability():
                 raise Exception("CUSTOM_MODEL must be provided")
             if not custom_llm_url:
                 raise Exception("CUSTOM_LLM_URL must be provided")
-            available_models = await list_available_openai_compatible_models(
-                custom_llm_url, get_custom_llm_api_key_env() or "null"
-            )
-            print("-" * 50)
-            print("Available models: ", available_models)
-            if custom_model not in available_models:
-                raise Exception(f"Model {custom_model} is not available")
+            try:
+                available_models = await list_available_openai_compatible_models(
+                    custom_llm_url, get_custom_llm_api_key_env() or "null"
+                )
+            except Exception as exc:  # noqa: BLE001
+                # A self-hosted gateway can be briefly unreachable at boot.
+                # Refusing to start then turns a transient upstream blip into a
+                # crash-looping deploy, so warn and let generation report it.
+                print(
+                    f"WARNING: could not list models at {custom_llm_url} "
+                    f"({exc}); continuing without the availability check."
+                )
+                available_models = []
+
+            if available_models:
+                print("-" * 50)
+                print("Available models: ", available_models)
+                if custom_model not in available_models:
+                    # Some OpenAI-compatible providers serve models through the
+                    # completions API that their /models endpoint omits, so an
+                    # absence here is not proof the model is unusable.
+                    print(
+                        f"WARNING: custom model '{custom_model}' is not in the "
+                        f"provider's /models list; proceeding anyway."
+                    )
 
         if not skip_image_validation:
             _check_image_provider_configuration()

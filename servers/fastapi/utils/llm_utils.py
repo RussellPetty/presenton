@@ -21,6 +21,7 @@ from llmai.shared import (
 )
 
 from utils.llm_config import get_extra_body
+from utils.llm_rate_limit import acquire_llm_slot, run_llm_call
 from utils.schema_utils import get_schema_validation_errors
 
 LOGGER = logging.getLogger(__name__)
@@ -72,7 +73,10 @@ async def _generate_structured_content(
     **kwargs: Any,
 ) -> Optional[dict]:
     if disconnect_checker is None and text_chunk_callback is None:
-        response = await asyncio.to_thread(client.generate, **kwargs)
+        response = await run_llm_call(
+            lambda: asyncio.to_thread(client.generate, **kwargs),
+            label="generate_structured",
+        )
         return extract_structured_content(response.content)
 
     completion_content: Any = None
@@ -441,6 +445,24 @@ def message_content_to_text(content: Sequence[Any] | str | None) -> Optional[str
 
 
 async def stream_generate_events(
+    client: Any,
+    *,
+    disconnect_checker: Optional[DisconnectChecker] = None,
+    **kwargs,
+) -> AsyncGenerator[Any, None]:
+    # A stream occupies a provider connection for its whole life, so it holds a
+    # concurrency slot until it finishes rather than only while starting.
+    slot = await acquire_llm_slot()
+    try:
+        async for event in _stream_generate_events(
+            client, disconnect_checker=disconnect_checker, **kwargs
+        ):
+            yield event
+    finally:
+        await slot.release()
+
+
+async def _stream_generate_events(
     client: Any,
     *,
     disconnect_checker: Optional[DisconnectChecker] = None,
