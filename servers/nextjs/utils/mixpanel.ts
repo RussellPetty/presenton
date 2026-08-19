@@ -1,8 +1,17 @@
 'use client';
 
-import mixpanel from 'mixpanel-browser';
-
-const MIXPANEL_TOKEN = 'd726e8bea8ec147f4c7720060cb2e6d1';
+/**
+ * Telemetry is intentionally disabled in this build.
+ *
+ * Upstream ships a hardcoded Mixpanel project token belonging to Presenton, so
+ * every event described user behaviour to a third party and gave us nothing
+ * back. Broker Marketplace already measures tool usage at the app layer.
+ *
+ * The event enum and the call signatures are kept so the ~75 existing call
+ * sites still compile and still describe intent. If we ever want in-tool
+ * product analytics, point the bodies below at our own PostHog project and
+ * every call site starts reporting without being touched.
+ */
 
 export enum MixpanelEvent {
   PageView = 'Page View',
@@ -210,150 +219,26 @@ export enum MixpanelEvent {
 
 export type MixpanelProps = Record<string, unknown>;
 
-declare global {
-  interface Window {
-    __mixpanel_initialized?: boolean;
-    __mixpanel_telemetry_enabled?: boolean;
-  }
-}
+export function initMixpanel(): void {}
 
-function canUseMixpanel(): boolean {
-  return typeof window !== 'undefined' && Boolean(MIXPANEL_TOKEN);
-}
+export function track(_eventName: string, _props?: Record<string, unknown>): void {}
 
-let trackingCheckPromise: Promise<boolean> | null = null;
+export function trackEvent(_event: MixpanelEvent, _props?: MixpanelProps): void {}
 
-async function ensureTelemetryStatus(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  if (typeof window.__mixpanel_telemetry_enabled === 'boolean') {
-    return window.__mixpanel_telemetry_enabled;
-  }
-  if (!trackingCheckPromise) {
-    trackingCheckPromise = (async () => {
-      try {
-        const res = await fetch('/api/telemetry-status');
-        if (!res.ok) throw new Error(`telemetry-status returned ${res.status}`);
-        const data = await res.json();
-        const enabled = Boolean(data?.telemetryEnabled);
-        window.__mixpanel_telemetry_enabled = enabled;
-        return enabled;
-      } catch {
-        // If the API call fails, default to enabling tracking
-        window.__mixpanel_telemetry_enabled = true;
-        return true;
-      }
-    })();
-  }
-  return trackingCheckPromise;
-}
-
-export function initMixpanel(): void {
-  if (!canUseMixpanel()) return;
-  if (window.__mixpanel_initialized) return;
-  // Ensure telemetry is allowed before initializing
-  void ensureTelemetryStatus().then((enabled) => {
-    if (!enabled) return;
-    if (window.__mixpanel_initialized) return;
-    initializeMixpanelNow();
-  });
-}
-
-function initializeMixpanelNow(): void {
-  if (window.__mixpanel_initialized) return;
-  mixpanel.init(MIXPANEL_TOKEN as string, {
-    track_pageview: false,
-    autocapture: false,
-    api_host: 'https://api-eu.mixpanel.com',
-    record_sessions_percent: 100,
-    record_mask_text_selector: '',
-    record_block_selector: '',
-    record_collect_fonts: true,
-    record_canvas: true,
-  });
-  const appVersion = window.env?.APP_VERSION;
-  if (appVersion) {
-    mixpanel.register({ app_version: appVersion });
-  }
-  mixpanel.identify(mixpanel.get_distinct_id());
-  window.__mixpanel_initialized = true;
-}
-
-export function track(eventName: string, props?: Record<string, unknown>): void {
-  if (!canUseMixpanel()) return;
-  if (typeof window !== 'undefined' && window.__mixpanel_telemetry_enabled === false) {
-    return;
-  }
-  if (!window.__mixpanel_initialized) {
-    void ensureTelemetryStatus().then((enabled) => {
-      if (!enabled) return;
-      initializeMixpanelNow();
-      mixpanel.track(eventName, props);
-    });
-    return;
-  }
-  mixpanel.track(eventName, props);
-}
-
-export function trackEvent(event: MixpanelEvent, props?: MixpanelProps): void {
-  track(event, props);
-}
-
-/**
- * Sends an event at a navigation/download boundary without leaving it in the
- * normal request batch. Await this before triggering the boundary action.
- */
 export async function trackEventImmediately(
-  event: MixpanelEvent,
-  props?: MixpanelProps
-): Promise<void> {
-  if (!canUseMixpanel()) return;
-  const enabled = await ensureTelemetryStatus();
-  if (!enabled) return;
-  initializeMixpanelNow();
-  mixpanel.track(event, props, { transport: 'sendBeacon' });
-}
+  _event: MixpanelEvent,
+  _props?: MixpanelProps
+): Promise<void> {}
 
 export function getDistinctId(): string | undefined {
-  if (!canUseMixpanel()) return undefined;
-  if (typeof window !== 'undefined' && window.__mixpanel_telemetry_enabled === false) {
-    return undefined;
-  }
-  if (!window.__mixpanel_initialized) {
-    initMixpanel();
-    return undefined;
-  }
-  if (!window.__mixpanel_initialized) return undefined;
-  return mixpanel.get_distinct_id();
+  return undefined;
 }
 
-export function identifyAnonymous(): void {
-  if (!canUseMixpanel()) return;
-  if (typeof window !== 'undefined' && window.__mixpanel_telemetry_enabled === false) {
-    return;
-  }
-  if (!window.__mixpanel_initialized) {
-    initMixpanel();
-    return;
-  }
-  mixpanel.identify(mixpanel.get_distinct_id());
-}
+export function identifyAnonymous(): void {}
 
-export function resetTelemetryCache(): void {
-  trackingCheckPromise = null;
-  if (typeof window !== 'undefined') {
-    delete window.__mixpanel_telemetry_enabled;
-  }
-}
+export function resetTelemetryCache(): void {}
 
-export function setTelemetryEnabled(enabled: boolean): void {
-  if (typeof window !== 'undefined') {
-    window.__mixpanel_telemetry_enabled = enabled;
-  }
-  trackingCheckPromise = null;
-  if (enabled && !window?.__mixpanel_initialized) {
-    initMixpanel();
-  }
-}
+export function setTelemetryEnabled(_enabled: boolean): void {}
 
 export default {
   initMixpanel,
