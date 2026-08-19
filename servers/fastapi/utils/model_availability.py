@@ -103,6 +103,17 @@ def _check_image_provider_configuration() -> None:
             raise Exception("COMFYUI_WORKFLOW must be provided")
 
 
+def _strip_google_model_prefix(model: str) -> str:
+    """`models/gemini-3.1-flash-lite` -> `gemini-3.1-flash-lite`."""
+    model = (model or "").strip()
+    return model[len("models/") :] if model.startswith("models/") else model
+
+
+def _google_model_is_listed(model: str, available_models: list[str]) -> bool:
+    target = _strip_google_model_prefix(model)
+    return any(_strip_google_model_prefix(m) == target for m in available_models)
+
+
 async def check_llm_and_image_provider_api_or_model_availability():
     can_change_keys = get_can_change_keys_env() != "false"
     skip_image_validation = is_image_generation_disabled()
@@ -128,7 +139,10 @@ async def check_llm_and_image_provider_api_or_model_availability():
             google_model = get_google_model_env()
             if google_model:
                 available_models = await list_available_google_models(google_api_key)
-                if google_model not in available_models:
+                # The Google API returns fully-qualified names ("models/gemini-x")
+                # while GOOGLE_MODEL is configured bare ("gemini-x"), so compare
+                # both sides prefix-normalized or every model looks unavailable.
+                if not _google_model_is_listed(google_model, available_models):
                     print("-" * 50)
                     print("Available models: ", available_models)
                     raise Exception(f"Model {google_model} is not available")
