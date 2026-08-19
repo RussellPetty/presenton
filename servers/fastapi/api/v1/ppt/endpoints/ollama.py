@@ -7,6 +7,18 @@ from models.ollama_model_metadata import OllamaModelMetadata
 from models.ollama_model_status import OllamaModelStatus
 from utils.ollama import list_available_ollama_models, pull_ollama_model, get_ollama_library_models
 
+SSE_HEADERS = {
+    # nginx buffers proxied responses by default, which holds SSE events until
+    # the stream ends — so a generation that takes minutes looks like a dead
+    # connection, the browser reconnects, and it never finishes. This tells
+    # nginx to stream this response through untouched. Every local test hit
+    # FastAPI directly on :8000 with no proxy in front, which is why this only
+    # showed up in production.
+    "X-Accel-Buffering": "no",
+    "Cache-Control": "no-cache, no-transform",
+}
+
+
 OLLAMA_ROUTER = APIRouter(prefix="/ollama", tags=["Ollama"])
 
 
@@ -33,4 +45,5 @@ async def pull_model(model_name: str, ollama_url: str | None = None):
     return StreamingResponse(
         pull_ollama_model(model_name, ollama_url),
         media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )

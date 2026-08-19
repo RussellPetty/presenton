@@ -118,6 +118,18 @@ from utils.brand_theme import build_brand_theme_payload
 from utils.llm_json_compat import parse_llm_json
 import uuid
 
+SSE_HEADERS = {
+    # nginx buffers proxied responses by default, which holds SSE events until
+    # the stream ends — so a generation that takes minutes looks like a dead
+    # connection, the browser reconnects, and it never finishes. This tells
+    # nginx to stream this response through untouched. Every local test hit
+    # FastAPI directly on :8000 with no proxy in front, which is why this only
+    # showed up in production.
+    "X-Accel-Buffering": "no",
+    "Cache-Control": "no-cache, no-transform",
+}
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -1977,6 +1989,7 @@ async def _stream_smart_presentation(
             on_error=rollback_stream_session,
         ),
         media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )
 
 
@@ -2220,6 +2233,7 @@ async def stream_presentation(
             on_error=rollback_stream_session,
         ),
         media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )
 
 

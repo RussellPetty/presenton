@@ -24,6 +24,18 @@ from services.chat import ChatTurnResult, PresentationChatService
 from services.chat.conversation_store import ChatConversationStore
 from services.database import get_async_session
 
+SSE_HEADERS = {
+    # nginx buffers proxied responses by default, which holds SSE events until
+    # the stream ends — so a generation that takes minutes looks like a dead
+    # connection, the browser reconnects, and it never finishes. This tells
+    # nginx to stream this response through untouched. Every local test hit
+    # FastAPI directly on :8000 with no proxy in front, which is why this only
+    # showed up in production.
+    "X-Accel-Buffering": "no",
+    "Cache-Control": "no-cache, no-transform",
+}
+
+
 
 CHAT_ROUTER = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -168,4 +180,8 @@ async def chat_message_stream(
         except HTTPException as exc:
             yield SSEErrorResponse(detail=exc.detail).to_string()
 
-    return StreamingResponse(inner(), media_type="text/event-stream")
+    return StreamingResponse(
+        inner(),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )

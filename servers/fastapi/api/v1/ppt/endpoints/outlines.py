@@ -38,6 +38,18 @@ from utils.sse import safe_sse_stream
 from utils.web_search import get_selected_web_search_provider, get_web_search_route
 from utils.llm_json_compat import parse_llm_json
 
+SSE_HEADERS = {
+    # nginx buffers proxied responses by default, which holds SSE events until
+    # the stream ends — so a generation that takes minutes looks like a dead
+    # connection, the browser reconnects, and it never finishes. This tells
+    # nginx to stream this response through untouched. Every local test hit
+    # FastAPI directly on :8000 with no proxy in front, which is why this only
+    # showed up in production.
+    "X-Accel-Buffering": "no",
+    "Cache-Control": "no-cache, no-transform",
+}
+
+
 OUTLINES_ROUTER = APIRouter(prefix="/outlines", tags=["Outlines"])
 LOGGER = logging.getLogger(__name__)
 
@@ -271,4 +283,5 @@ async def stream_outlines(
             on_error=rollback_stream_session,
         ),
         media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )
