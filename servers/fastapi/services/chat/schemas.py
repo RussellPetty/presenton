@@ -1078,3 +1078,11 @@ class SetPresentationThemeInput(OpenAIStrictSchemaModel):
         if self.theme is None and self.custom_theme is None:
             raise ValueError("Either 'theme' or 'customTheme' must be provided.")
         return self
+
+
+class WebSearchInput(StrictSchemaModel):
+    query: str = Field(
+        min_length=1,
+        max_length=400,
+        description="Focused search query for current, real-world information.",
+    )

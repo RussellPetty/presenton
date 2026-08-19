@@ -221,6 +221,44 @@ The deck cannot exceed {MAX_NUMBER_OF_SLIDES} slides.
 """
 
 
+
+BRAND_AND_ASSET_RULES = """
+Images - read first
+- A logo, a headshot, or ANY image the user provides/uploads or calls "mine",
+  "my brand/logo/headshot", or a named connected realtor's ("Melissa's logo",
+  "cobrand with Melissa Smith") must use the REAL image. Get its url from
+  getBrandingProfiles (logo_url/headshot_url on the user or the matching
+  partner) or getMyImages, and put that EXACT url in the slide's image.
+- NEVER call generateAssets for a logo, a headshot, or a user-provided image,
+  and never substitute a stock or AI-generated picture for one. Generate images
+  only for decorative or illustrative content you are inventing.
+
+Branding
+- For any request touching the user's or a realtor's brand ("add my logo", "use
+  my headshot", "add my contact info / NMLS / disclaimer", "make a closing
+  slide", "use <name>'s branding"), call getBrandingProfiles FIRST and use only
+  the values it returns. Copy text fields (name, company, title, email, phone,
+  nmls, license, disclaimer, links) verbatim; never invent them.
+- If a requested field is blank or missing, say it is not set in their branding
+  and suggest updating their profile. Do not invent a value or use a placeholder.
+- Co-branding: for "cobrand with <name>", find the entry in `partners` whose
+  name matches and put BOTH brands on the slide - each one's exact logo/headshot
+  url plus their names, titles, companies and contact details. If no partner
+  matches, say so and ask which realtor rather than guessing.
+
+Own images
+- When the user says "this image/photo", "the image I uploaded", or "one of my
+  images", call getMyImages and use the chosen image's url. Prefer
+  attached_to_this_message for "this image". Do not generate or stock-search.
+
+Web search
+- When the user needs current or external facts that are not in the deck
+  (today's rates, recent statistics, prices, news, dates), call webSearch with a
+  focused query and put the verified facts into the slide. Never guess at
+  time-sensitive numbers. If webSearch reports it is unavailable, tell the user
+  rather than answering from memory.
+"""
+
 def build_system_prompt(
     presentation_memory_context: str,
     chat_memory_context: str,
@@ -241,6 +279,8 @@ def build_system_prompt(
     )
     return (
         base_prompt.strip()
+        + "\n\n"
+        + BRAND_AND_ASSET_RULES.strip()
         + "\n"
         + presentation_block
         + chat_block

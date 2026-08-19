@@ -80,6 +80,9 @@ class PresentationChatService:
         conversation_id: uuid.UUID | None,
         chat_mode: ChatToolMode = "presentation",
         presentation_type: Literal["standard", "smart"] = "standard",
+        branding: dict[str, Any] | None = None,
+        partners: list[dict[str, Any]] | None = None,
+        uploaded_images: list[dict[str, Any]] | None = None,
     ):
         self._sql_session = sql_session
         self._presentation_id = presentation_id
@@ -92,7 +95,16 @@ class PresentationChatService:
             presentation_id,
             presentation_type=presentation_type,
         )
-        self._tools = ChatTools(self._memory, mode=chat_mode)
+        self._branding = branding
+        self._partners = partners or []
+        self._uploaded_images = uploaded_images or []
+        self._tools = ChatTools(
+            self._memory,
+            mode=chat_mode,
+            branding=branding,
+            partners=partners,
+            uploaded_images=uploaded_images,
+        )
 
     async def generate_reply(
         self,

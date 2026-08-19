@@ -33,6 +33,11 @@ from services.chat.schemas import (
     UpdateSlideComponentInput,
     UpdateOutlineInput,
     UpdateSlideElementInput,
+    WebSearchInput,
+)
+from services.chat.branding_assets import (
+    apply_brand_assets_to_content,
+    sanitize_brand,
 )
 from services.chat.presentation_context_store import PresentationContextStore
 
@@ -80,11 +85,18 @@ class ChatTools:
         self,
         memory: PresentationContextStore,
         mode: ChatToolMode = "presentation",
+        branding: dict[str, Any] | None = None,
+        partners: list[dict[str, Any]] | None = None,
+        uploaded_images: list[dict[str, Any]] | None = None,
     ):
         self._memory = memory
         self._mode = mode
         self._turn_user_message = ""
         self._generated_assets: list[dict[str, Any]] = []
+        # Branding context supplied per-request by the embedding app.
+        self._branding = branding
+        self._partners = partners or []
+        self._uploaded_images = uploaded_images or []
         self._tool_handlers: dict[str, ToolHandler] = {
             "addOutline": self._add_outline,
             "updateOutline": self._update_outline,
@@ -110,6 +122,9 @@ class ChatTools:
             "createComponent": self._add_slide_component,
             "updateComponent": self._update_component,
             "deleteComponent": self._delete_slide_component,
+            "getBrandingProfiles": self._get_branding_profiles,
+            "getMyImages": self._get_my_images,
+            "webSearch": self._web_search,
             "getPresentationTheme": self._get_presentation_theme_catalog,
             "setPresentationTheme": self._set_presentation_theme,
         }
@@ -343,6 +358,46 @@ class ChatTools:
                     "or callout) from a rendered slide by componentId."
                 ),
                 schema=DeleteSlideComponentInput,
+                strict=False,
+            ),
+            Tool(
+                name="getBrandingProfiles",
+                description=(
+                    "Get the user's saved branding plus their connected realtors' branding "
+                    "(real values to put ON slides): full name, company, title, email, phone, "
+                    "NMLS/company NMLS, license, logo image URL, headshot image URL, disclaimer, "
+                    "meeting link, website, social links, and brand colors. "
+                    "Call this whenever the user references their own or a partner's brand - e.g. "
+                    "'add my logo', 'use my headshot', 'put my contact info / NMLS / disclaimer on "
+                    "a closing slide', or 'use <realtor name>'s branding'. "
+                    "Use the returned logo/headshot URLs as image values and the text fields "
+                    "verbatim; never invent contact details or NMLS numbers."
+                ),
+                schema=NoArgsInput,
+                strict=False,
+            ),
+            Tool(
+                name="getMyImages",
+                description=(
+                    "List the user's own images available to place on slides: images attached to "
+                    "the current message plus their uploaded/generated image library. Call this "
+                    "when the user says 'use this image/photo', 'the image I uploaded', 'add my "
+                    "photo', or 'use one of my images'. Set the target slide image to the chosen "
+                    "image's url - do NOT generate or stock-search when the user wants their own."
+                ),
+                schema=NoArgsInput,
+                strict=False,
+            ),
+            Tool(
+                name="webSearch",
+                description=(
+                    "Search the web for current, real-world information not in the deck - recent "
+                    "mortgage/market rates, statistics, news, prices, dates, or facts. Returns a "
+                    "concise, grounded answer. Use it whenever the user asks for up-to-date or "
+                    "external information, then put the verified facts into slide content. Do not "
+                    "guess at time-sensitive numbers."
+                ),
+                schema=WebSearchInput,
                 strict=False,
             ),
             Tool(
@@ -757,6 +812,147 @@ class ChatTools:
             "message": f"Generated {len(generated_assets)} asset(s).",
         }
 
+
+    async def _get_branding_profiles(self, _: dict[str, Any]) -> dict[str, Any]:
+        user_profile = sanitize_brand(self._branding)
+        partner_profiles: list[dict[str, Any]] = []
+        for partner in self._partners or []:
+            sanitized = sanitize_brand(partner)
+            if sanitized:
+                partner_profiles.append(sanitized)
+
+        if not user_profile and not partner_profiles:
+            return {
+                "found": False,
+                "message": (
+                    "No branding was provided for this session. Ask the user to set their "
+                    "branding in their profile settings, then try again."
+                ),
+                "user": None,
+                "partners": [],
+            }
+
+        return {
+            "found": True,
+            "user": user_profile,
+            "partners": partner_profiles,
+            "message": (
+                "Use these real values on slides: put logo_url/headshot_url into image fields "
+                "and the text fields (name, company, title, email, phone, nmls, disclaimer, "
+                "etc.) verbatim. Do not invent or alter contact details, NMLS, license, or "
+                "disclaimers."
+            ),
+        }
+
+    async def _get_my_images(self, _: dict[str, Any]) -> dict[str, Any]:
+        attached: list[dict[str, Any]] = []
+        for item in self._uploaded_images or []:
+            if not isinstance(item, dict):
+                continue
+            url = item.get("url") or item.get("file_url")
+            if isinstance(url, str) and url.strip():
+                entry: dict[str, Any] = {"url": url.strip()}
+                name = item.get("name")
+                if isinstance(name, str) and name.strip():
+                    entry["name"] = name.strip()
+                attached.append(entry)
+
+        library: list[dict[str, Any]] = []
+        session = getattr(self._memory, "_sql_session", None)
+        if session is not None:
+            try:
+                from sqlmodel import select
+
+                from models.sql.image_asset import ImageAsset
+                from utils.asset_directory_utils import (
+                    filesystem_image_path_to_app_data_url,
+                )
+
+                # No explicit owner filter: every SELECT is already scoped to the
+                # request's owner by the do_orm_execute event in services/database.py.
+                result = await session.scalars(
+                    select(ImageAsset)
+                    .order_by(ImageAsset.created_at.desc())
+                    .limit(30)
+                )
+                for asset in result:
+                    library.append(
+                        {
+                            "url": filesystem_image_path_to_app_data_url(asset.path),
+                            "kind": "uploaded" if asset.is_uploaded else "generated",
+                            "id": str(asset.id),
+                        }
+                    )
+            except Exception:
+                LOGGER.exception("getMyImages: library lookup failed")
+
+        return {
+            "attached_to_this_message": attached,
+            "library": library,
+            "count": len(attached) + len(library),
+            "message": (
+                "Place a chosen image by setting the slide image to its url. When the user "
+                "says 'this image', prefer attached_to_this_message."
+            ),
+        }
+
+    async def _web_search(self, args: dict[str, Any]) -> dict[str, Any]:
+        payload = WebSearchInput(**args)
+        # Run an isolated, search-grounded generation with no function tools: the
+        # built-in search tool does not reliably coexist with our function tools
+        # in one request.
+        from llmai import WebSearchTool, get_client
+        from llmai.shared import SystemMessage, UserMessage
+
+        from utils.llm_config import get_llm_config
+        from utils.llm_provider import get_model
+        from utils.llm_rate_limit import run_llm_call
+        from utils.llm_utils import extract_text
+
+        client = get_client(config=get_llm_config())
+        model = get_model()
+
+        def _run() -> Any:
+            return client.generate(
+                model=model,
+                messages=[
+                    SystemMessage(
+                        content=(
+                            "You are a web research assistant. Search for current, factual "
+                            "information. Be concise; include key numbers, dates, and the "
+                            "source site(s)."
+                        )
+                    ),
+                    UserMessage(content=payload.query),
+                ],
+                tools=[WebSearchTool()],
+            )
+
+        try:
+            response = await run_llm_call(
+                lambda: asyncio.to_thread(_run), label="chat.web_search"
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Not every provider exposes a built-in search tool. Report that
+            # plainly rather than letting the model present a guess as grounded.
+            LOGGER.warning("webSearch unavailable: %s", str(exc)[:200])
+            return {
+                "query": payload.query,
+                "answer": "",
+                "error": (
+                    "Web search is not available with the configured model. Say so "
+                    "instead of guessing at time-sensitive facts."
+                ),
+            }
+
+        answer = (extract_text(response.content) or "").strip()
+        if len(answer) > 4000:
+            answer = answer[:4000] + "..."
+        return {
+            "query": payload.query,
+            "answer": answer or "No results found.",
+        }
+
     async def _save_slide(self, args: dict[str, Any]) -> dict[str, Any]:
         if self._memory.presentation_type == "smart":
             payload = SaveSmartSlideInput(**args)
@@ -782,6 +978,17 @@ class ChatTools:
             raise ValueError("'content' must be a JSON object.")
 
         content_payload = json.loads(json.dumps(content_parsed, ensure_ascii=False))
+        # The model reliably ignores prompt instructions here: asked for the
+        # user's real logo it still writes an image prompt, and the asset
+        # processor then generates a stock picture over the top. Pinning the URL
+        # and dropping the prompt after validation is what actually makes the
+        # real logo/headshot survive. See services/chat/branding_assets.py.
+        apply_brand_assets_to_content(
+            content_payload,
+            self._branding,
+            self._partners,
+            self._uploaded_images,
+        )
         return await self._memory.save_slide(
             content=content_payload,
             layout_id=payload.layout_id,

@@ -112,6 +112,9 @@ async def chat_message(
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
         presentation_type=payload.presentation_type,
+        branding=payload.branding,
+        partners=payload.partners,
+        uploaded_images=payload.uploaded_images,
     )
     result = await service.generate_reply(payload.message, payload.attachments)
     return ChatMessageResponse(
@@ -131,6 +134,9 @@ async def chat_message_stream(
         presentation_id=payload.presentation_id,
         conversation_id=payload.conversation_id,
         presentation_type=payload.presentation_type,
+        branding=payload.branding,
+        partners=payload.partners,
+        uploaded_images=payload.uploaded_images,
     )
 
     async def inner():

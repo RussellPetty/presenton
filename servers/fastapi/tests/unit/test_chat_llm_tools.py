@@ -56,7 +56,7 @@ def test_build_chat_llm_tools_returns_only_function_tools(
         (LLMProvider.GOOGLE, "auto"),
     ],
 )
-def test_chat_tool_definitions_do_not_expose_web_search(
+def test_chat_tool_definitions_expose_web_search(
     monkeypatch,
     provider,
     web_search_provider,
@@ -67,13 +67,17 @@ def test_chat_tool_definitions_do_not_expose_web_search(
 
     tools = ChatTools(Mock()).get_tool_definitions()
 
-    assert not any(tool.name == "webSearch" for tool in tools)
+    assert any(tool.name == "webSearch" for tool in tools)
 
 
-def test_chat_tool_handler_rejects_web_search():
+def test_chat_tool_handler_exposes_web_search():
+    """Upstream removed webSearch because a provider's built-in search tool does
+    not reliably coexist with function tools in one request. We need it back for
+    time-sensitive facts, and _web_search sidesteps that by running its own
+    isolated generation with no function tools attached."""
     chat_tools = ChatTools(Mock())
 
-    assert "webSearch" not in chat_tools._tool_handlers
+    assert "webSearch" in chat_tools._tool_handlers
 
 
 def test_chat_tool_parse_args_repairs_fenced_jsonish_payload():
@@ -106,6 +110,12 @@ def test_chat_tools_expose_only_v2_tool_names():
         "createComponent",
         "updateComponent",
         "deleteComponent",
+        # Re-added for the embedded build: the assistant has to be able to read
+        # the user's real branding and their own images, and to look up
+        # time-sensitive facts (rates, stats) that are not in the deck.
+        "getBrandingProfiles",
+        "getMyImages",
+        "webSearch",
         "getPresentationTheme",
         "setPresentationTheme",
         "generateAssets",

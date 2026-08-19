@@ -1,5 +1,5 @@
 import uuid
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,6 +19,18 @@ class ChatMessageRequest(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
     conversation_id: Optional[uuid.UUID] = None
     attachments: list[ChatAttachment] = Field(default_factory=list, max_length=8)
+    # Branding context forwarded per-request by the embedding app so the
+    # assistant can place the user's real logo/headshot/contact/NMLS/disclaimer.
+    # Sent per request rather than stored, because the embedder owns this data
+    # and it can change between messages.
+    branding: Optional[dict[str, Any]] = None
+    # The user's connected realtors, so a deck can be co-branded by name.
+    partners: Optional[list[dict[str, Any]]] = Field(default=None, max_length=50)
+    # Images attached to THIS message (already uploaded, so hosted URLs) that the
+    # assistant may place on slides.
+    uploaded_images: Optional[list[dict[str, Any]]] = Field(
+        default=None, max_length=20
+    )
 
     model_config = ConfigDict(extra="forbid")
 
