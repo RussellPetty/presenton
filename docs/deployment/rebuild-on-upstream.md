@@ -62,6 +62,43 @@ Local SQLite + Clerk mode, both servers running:
   downloads and the local copy is removed
 - 634 backend unit tests pass; `tsc --noEmit` clean
 
+
+## Model + image configuration
+
+Text and imagery both run through the Cursor-subscription proxy
+(`llm.broker-marketplace.com`), so there is one gateway and one bill.
+
+```bash
+# text
+LLM=custom
+CUSTOM_LLM_URL=https://llm.broker-marketplace.com/v1
+CUSTOM_LLM_API_KEY=<sk-cursor-...>
+CUSTOM_MODEL=cursor-grok-4.6-low
+
+# imagery, same gateway via its OpenAI-compatible images endpoint
+IMAGE_PROVIDER=openai_compatible
+OPENAI_COMPAT_IMAGE_BASE_URL=https://llm.broker-marketplace.com/v1
+OPENAI_COMPAT_IMAGE_API_KEY=<sk-cursor-...>
+OPENAI_COMPAT_IMAGE_MODEL=cursor-grok-4.6-low
+
+# the gateway caps concurrent requests (a 5th in-flight call gets 429) and
+# presenton fans a whole batch of slides out at once
+LLM_MAX_CONCURRENCY=3
+LLM_RATE_LIMIT_MAX_RETRIES=4
+```
+
+Two things about this gateway are worth knowing before changing the model:
+
+- It wraps `cursor-agent`, so `response_format=json_schema` is a strong hint
+  rather than a guarantee — the model narrates before its JSON. That is handled
+  by `utils/llm_json_compat.py`; do not remove it when switching providers.
+- Image generation returns 1536x1024 PNGs regardless of the requested `size`,
+  which makes exports noticeably larger than with stock photography.
+
+`gemini_flash` / `nanobanana_pro` remain configured and working as fallbacks
+(`GEMINI_IMAGE_MODEL`, `NANOBANANA_IMAGE_MODEL`), defaulting to current models
+rather than upstream's two-generations-old pin.
+
 ## Adversarial review
 
 An adversarial security review of this branch (Codex, gpt-5.6-sol, max
