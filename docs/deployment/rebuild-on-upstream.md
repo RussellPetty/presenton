@@ -62,6 +62,31 @@ Local SQLite + Clerk mode, both servers running:
   downloads and the local copy is removed
 - 634 backend unit tests pass; `tsc --noEmit` clean
 
+## Adversarial review
+
+An adversarial security review of this branch (Codex, gpt-5.6-sol, max
+reasoning) found ten issues. Everything critical and high is fixed and
+re-verified; see the commit log for each. The headline one was reproduced end
+to end before fixing: on a fresh Clerk-mode database, `/api/v1/auth/setup` was
+still reachable and its only guard is "no accounts exist yet", so an
+unauthenticated caller could create the first account as a superuser, log in,
+and use the resulting cookie against `/api/v1/admin/users` — and by naming that
+account `clerk:<victim-sub>`, pre-bind a Clerk identity onto it.
+
+Still open, deliberately:
+
+- **Unsanitized `html_content` on the export page.** Upstream renders it
+  without sanitizing, so a slide can run script inside the headless exporter.
+  We bounded the damage by cutting the export credential's life to 15 minutes,
+  but this wants DOMPurify plus a CSP on `/pdf-maker`.
+- **No per-tenant quotas or rate limits.** `/derive` spawns a browser and a
+  converter per call with no semaphore, and deleting a presentation does not
+  delete its stored exports.
+- **SQLite provisioning can surface `SQLITE_BUSY`** as a 500 under concurrent
+  first requests. The Postgres path (rollback, re-read) is sound, and
+  production is Postgres.
+- **Password hashing runs on the event loop** during first-sight provisioning.
+
 ## Known gaps
 
 1. **The template library does not come across.** `V1ContentRender.tsx:215`
