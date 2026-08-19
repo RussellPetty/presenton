@@ -1,15 +1,24 @@
 from dataclasses import dataclass
 from typing import Literal
+import secrets
 import uuid
 
 from fastapi import HTTPException, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.auth.users import UsernameUserDatabase, UserManager, get_jwt_strategy
+from api.v1.auth.users import (
+    PASSWORD_HELPER,
+    UsernameUserDatabase,
+    UserManager,
+    get_jwt_strategy,
+)
 from models.sql.access_token import AccessToken
 from models.sql.user import User
 from api.v1.auth.config import SESSION_COOKIE_NAME
+from utils.clerk_auth import verify_clerk_token
+from utils.get_env import get_internal_api_secret_env, is_clerk_auth_enabled
 
 
 @dataclass(frozen=True)
@@ -20,9 +29,119 @@ class AuthPrincipal:
     method: Literal["jwt", "api_key"]
 
 
+# Clerk-backed accounts are namespaced so a Clerk subject can never bind to a
+# locally created username (which could be a superuser). The prefix is not a
+# valid local username, so the two spaces cannot overlap.
+CLERK_USERNAME_PREFIX = "clerk:"
+INTERNAL_SERVICE_SUBJECT = "__internal_service__"
+
+
+def _clerk_username(clerk_sub: str) -> str:
+    return f"{CLERK_USERNAME_PREFIX}{clerk_sub.strip()}"
+
+
+async def _find_or_create_clerk_user(
+    session: AsyncSession, clerk_sub: str
+) -> User | None:
+    """Map a Clerk subject onto a User row so owner_id scoping applies unchanged.
+
+    Auto-provisions on first sight. The password is random and unusable: these
+    accounts are never reachable through the username/password login route."""
+    username = _clerk_username(clerk_sub)
+    if len(username) > 128:
+        return None
+
+    statement = select(User).where(User.username == username)
+    user = (await session.execute(statement)).unique().scalar_one_or_none()
+    if user is not None:
+        return user if user.is_active else None
+
+    user = User(
+        username=username,
+        hashed_password=PASSWORD_HELPER.hash(secrets.token_urlsafe(32)),
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    session.add(user)
+    try:
+        await session.commit()
+    except IntegrityError:
+        # Concurrent first-request for the same subject; re-read the winner.
+        await session.rollback()
+        user = (await session.execute(statement)).unique().scalar_one_or_none()
+        return user if user is not None and user.is_active else None
+    await session.refresh(user)
+    return user
+
+
+def _bearer_token(request: Request) -> str | None:
+    authorization = request.headers.get("Authorization", "")
+    if authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        return token or None
+    # SSE clients (EventSource) cannot set headers, so streaming endpoints pass
+    # the token as a query parameter instead.
+    token = request.query_params.get("token")
+    return token.strip() if token and token.strip() else None
+
+
+async def _resolve_clerk_principal(
+    request: Request, session: AsyncSession
+) -> tuple[AuthPrincipal | None, User | None]:
+    token = _bearer_token(request)
+    if not token:
+        return None, None
+
+    internal_secret = get_internal_api_secret_env()
+    if internal_secret and secrets.compare_digest(token, internal_secret):
+        # Trusted service-to-service call (export renderer, MCP). It may act as
+        # a specific user via X-Presenton-User-Id; otherwise it gets its own
+        # isolated service account.
+        impersonated = (request.headers.get("X-Presenton-User-Id") or "").strip()
+        subject = impersonated or INTERNAL_SERVICE_SUBJECT
+        user = await _find_or_create_clerk_user(session, subject)
+        if user is None:
+            return None, None
+        return (
+            AuthPrincipal(
+                user_id=user.id,
+                username=user.username,
+                is_admin=True,
+                method="jwt",
+            ),
+            user,
+        )
+
+    clerk_sub = verify_clerk_token(token)
+    if not clerk_sub:
+        return None, None
+    if clerk_sub == INTERNAL_SERVICE_SUBJECT:
+        # A real Clerk subject can never be this literal; refuse defensively so
+        # a forged token can never land on the privileged service account.
+        return None, None
+    user = await _find_or_create_clerk_user(session, clerk_sub)
+    if user is None:
+        return None, None
+    return (
+        AuthPrincipal(
+            user_id=user.id,
+            username=user.username,
+            is_admin=False,
+            method="jwt",
+        ),
+        user,
+    )
+
+
 async def resolve_request_principal(
     request: Request, session: AsyncSession
 ) -> tuple[AuthPrincipal | None, User | None]:
+    if is_clerk_auth_enabled():
+        # Clerk mode is exclusive: the local cookie/api-key paths stay off so a
+        # stale session cookie can never outrank the embedder's token.
+        return await _resolve_clerk_principal(request, session)
+
     cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
     if cookie_token:
         user_db = UsernameUserDatabase(session)

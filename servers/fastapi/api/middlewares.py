@@ -15,7 +15,11 @@ from api.v1.auth.users import get_jwt_strategy
 from models.sql.user import User
 from services.database import async_session_maker
 from services.presenton_cloud_proxy import maybe_proxy_presenton_cloud_request
-from utils.get_env import get_can_change_keys_env, is_disable_auth_enabled
+from utils.get_env import (
+    get_can_change_keys_env,
+    is_clerk_auth_enabled,
+    is_disable_auth_enabled,
+)
 from utils.user_config import update_env_with_user_config
 
 
@@ -77,17 +81,20 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         async with async_session_maker() as session:
-            configured = bool(
-                await session.scalar(select(func.count()).select_from(User))
-            )
-            if not configured:
-                return JSONResponse(
-                    status_code=428,
-                    content={
-                        "detail": "Login setup is required",
-                        "setup_required": True,
-                    },
+            if not is_clerk_auth_enabled():
+                # Clerk mode auto-provisions accounts from the embedder's token,
+                # so there is no local setup step to gate on.
+                configured = bool(
+                    await session.scalar(select(func.count()).select_from(User))
                 )
+                if not configured:
+                    return JSONResponse(
+                        status_code=428,
+                        content={
+                            "detail": "Login setup is required",
+                            "setup_required": True,
+                        },
+                    )
             principal, user = await resolve_request_principal(request, session)
             if principal is None:
                 return JSONResponse(
@@ -122,7 +129,9 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
             context_token = set_current_owner_id(principal.user_id)
             admin_context_token = set_current_owner_is_admin(principal.is_admin)
             try:
-                if principal.method == "jwt":
+                if principal.method == "jwt" and not is_clerk_auth_enabled():
+                    # Presenton Cloud is upstream's hosted offering; the
+                    # white-label embed never proxies user work off-box.
                     cloud_response = await maybe_proxy_presenton_cloud_request(
                         request,
                         session,

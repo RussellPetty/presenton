@@ -418,3 +418,61 @@ def get_openai_compat_image_api_key_env():
 
 def get_openai_compat_image_model_env():
     return os.getenv("OPENAI_COMPAT_IMAGE_MODEL")
+
+
+# ---------------------------------------------------------------------------
+# Clerk auth (AUTH_MODE=clerk) — Broker Marketplace iframe embedding.
+# Upstream ships username/password accounts via fastapi-users; we additionally
+# accept Clerk-issued RS256 JWTs and map each `sub` onto a User row so the
+# existing owner_id scoping applies unchanged. See utils/clerk_auth.py.
+# ---------------------------------------------------------------------------
+def get_auth_mode_env():
+    return os.getenv("AUTH_MODE")
+
+
+def is_clerk_auth_enabled() -> bool:
+    return (get_auth_mode_env() or "").strip().lower() == "clerk"
+
+
+def get_clerk_issuers() -> list[str]:
+    """Allow-list of trusted Clerk issuers (comma-separated CLERK_ISSUER).
+
+    Supports embedding from multiple Clerk instances (e.g. a dev instance for the
+    local broker app and a prod custom-domain instance). Each token is verified
+    against the JWKS of its own `iss`, but only if `iss` is in this list."""
+    raw = os.getenv("CLERK_ISSUER") or ""
+    return [i.strip() for i in raw.split(",") if i.strip()]
+
+
+def get_clerk_issuer_env():
+    """First configured Clerk issuer (back-compat). Prefer get_clerk_issuers()."""
+    issuers = get_clerk_issuers()
+    return issuers[0] if issuers else None
+
+
+def get_clerk_jwks_url_env():
+    """Explicit JWKS URL; defaults to {CLERK_ISSUER}/.well-known/jwks.json when unset."""
+    value = os.getenv("CLERK_JWKS_URL")
+    return value.strip() if value and value.strip() else None
+
+
+def get_clerk_audience_env():
+    value = os.getenv("CLERK_AUDIENCE")
+    return value.strip() if value and value.strip() else None
+
+
+def get_clerk_authorized_parties_env():
+    """Optional allow-list of `azp` values (comma-separated), or None."""
+    raw = os.getenv("CLERK_AUTHORIZED_PARTIES")
+    if not raw:
+        return None
+    parties = [p.strip() for p in raw.split(",") if p.strip()]
+    return parties or None
+
+
+def get_internal_api_secret_env():
+    """Shared secret for trusted service-to-service calls (MCP, export renderer)
+    that carry no Clerk user token. Paired with X-Presenton-User-Id to act as a
+    given user. See api/v1/auth/principal.py."""
+    value = os.getenv("INTERNAL_API_SECRET")
+    return value.strip() if value and value.strip() else None
