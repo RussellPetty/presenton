@@ -70,3 +70,24 @@ test("active slide can scale above its authored size to fill the viewport", asyn
     /if \(fitToContainer\)[\s\S]*?return Math\.min\(sx, sy, 1\);/,
   );
 });
+
+test("desktop editor centers and dismisses its navigation introduction", async () => {
+  const presentationPageSource = await readFile(presentationPageUrl, "utf8");
+
+  assert.match(presentationPageSource, /presenton:editor-navigation-hint:v1/);
+  assert.match(presentationPageSource, /Navigate with/);
+  assert.match(presentationPageSource, /or the left thumbnails/);
+  assert.match(presentationPageSource, /Dismiss navigation hint/);
+  assert.match(
+    presentationPageSource,
+    /style=\{\{ left: "50%", transform: "translateX\(-50%\)" \}\}/,
+  );
+  assert.match(
+    presentationPageSource,
+    /window\.setTimeout\(dismissNavigationHint, 15_000\)/,
+  );
+  assert.match(
+    presentationPageSource,
+    /navigationHintSlideRef\.current === selectedSlide[\s\S]*?return;[\s\S]*?dismissNavigationHint\(\)/,
+  );
+});

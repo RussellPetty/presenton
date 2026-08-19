@@ -19,7 +19,7 @@ import SlideContent from "./SlideContent";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { AlertCircle, Sparkles, X } from "lucide-react";
+import { AlertCircle, Keyboard, Sparkles, X } from "lucide-react";
 import {
   usePresentationStreaming,
   usePresentationData,
@@ -128,6 +128,9 @@ const IDLE_LOADING_STATE: LoadingState = {
   extra_info: "",
 };
 
+const NAVIGATION_HINT_STORAGE_KEY = "presenton:editor-navigation-hint:v1";
+const NAVIGATION_HINT_KEYS = ["←", "↑", "↓", "→"];
+
 const PresentationPage: React.FC<PresentationPageProps> = ({
   presentation_id,
 }) => {
@@ -161,10 +164,13 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   >(() => new Set());
   const [isMobileAssistantOpen, setIsMobileAssistantOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  const [showNavigationHint, setShowNavigationHint] = useState(false);
   const [error, setError] = useState(false);
   const mobileAssistantTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileAssistantCloseRef = useRef<HTMLButtonElement | null>(null);
   const templateV2EditorLoadedKeyRef = useRef<string | null>(null);
+  const navigationHintShownRef = useRef(false);
+  const navigationHintSlideRef = useRef<number | null>(null);
   const router = useRouter();
   const shouldPreloadTemplateV2Presentation =
     searchParams.get("editor") === "v2" || searchParams.get("type") === "smart";
@@ -316,6 +322,56 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
       setSelectedSlide(slidesLength - 1);
     }
   }, [isStreaming, slidesLength]);
+
+  const dismissNavigationHint = useCallback(() => {
+    setShowNavigationHint(false);
+    navigationHintSlideRef.current = null;
+    try {
+      window.localStorage.setItem(NAVIGATION_HINT_STORAGE_KEY, "seen");
+    } catch {
+      // The hint can still be dismissed when storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (
+      isPresentMode ||
+      loading ||
+      isStreaming ||
+      slidesLength <= 1 ||
+      navigationHintShownRef.current ||
+      !window.matchMedia("(min-width: 768px)").matches
+    ) {
+      return;
+    }
+
+    try {
+      if (window.localStorage.getItem(NAVIGATION_HINT_STORAGE_KEY)) return;
+    } catch {
+      // Show the hint for this visit when storage is unavailable.
+    }
+
+    navigationHintShownRef.current = true;
+    navigationHintSlideRef.current = selectedSlide;
+    setShowNavigationHint(true);
+  }, [isPresentMode, isStreaming, loading, selectedSlide, slidesLength]);
+
+  useEffect(() => {
+    if (!showNavigationHint) return;
+    const timer = window.setTimeout(dismissNavigationHint, 15_000);
+    return () => window.clearTimeout(timer);
+  }, [dismissNavigationHint, showNavigationHint]);
+
+  useEffect(() => {
+    if (
+      !showNavigationHint ||
+      navigationHintSlideRef.current === null ||
+      navigationHintSlideRef.current === selectedSlide
+    ) {
+      return;
+    }
+    dismissNavigationHint();
+  }, [dismissNavigationHint, selectedSlide, showNavigationHint]);
 
   useEffect(() => {
     trackEvent(MixpanelEvent.Presentation_Editor_Viewed, {
@@ -738,7 +794,42 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               loading={loading}
             />
           </div>
-          <div className="h-full min-w-0 flex-1 px-3 pb-3 pt-[18px] md:px-0 max-md:ml-3">
+          <div className="relative h-full min-w-0 flex-1 px-3 pb-3 pt-[18px] md:px-0 max-md:ml-3">
+            {showNavigationHint ? (
+              <div
+                className="pointer-events-none fixed top-[72px] z-[95] hidden items-center gap-3 rounded-full border border-[#E1E3E9] bg-white/95 py-2 pl-3 pr-2 font-syne text-[13px] text-[#344054] shadow-[0_8px_24px_rgba(16,24,40,0.14)] backdrop-blur md:flex"
+                role="status"
+                style={{ left: "50%", transform: "translateX(-50%)" }}
+              >
+                <Keyboard
+                  className="h-4 w-4 text-[#6847F4]"
+                  aria-hidden="true"
+                />
+                <span>Navigate with</span>
+                <span
+                  className="flex items-center gap-1"
+                  aria-label="arrow keys"
+                >
+                  {NAVIGATION_HINT_KEYS.map((key) => (
+                    <kbd
+                      key={key}
+                      className="flex h-6 min-w-6 items-center justify-center rounded-[6px] border border-[#D9DCE3] bg-[#F8F8FA] px-1 text-[12px] font-medium text-[#101323] shadow-[0_1px_1px_rgba(16,24,40,0.06)]"
+                    >
+                      {key}
+                    </kbd>
+                  ))}
+                </span>
+                <span>or the left thumbnails</span>
+                <button
+                  type="button"
+                  aria-label="Dismiss navigation hint"
+                  onClick={dismissNavigationHint}
+                  className="pointer-events-auto ml-1 flex h-7 w-7 items-center justify-center rounded-full text-[#667085] transition hover:bg-[#F0F1F4] hover:text-[#101323] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
             {!presentationData ||
             loading ||
             !presentationData?.slides ||
