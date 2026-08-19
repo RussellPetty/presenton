@@ -2,6 +2,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { PencilIcon, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
+import { ImprovePromptButton } from "@/components/ImprovePromptButton";
 
 interface PromptReference {
   id: string;
@@ -75,9 +76,12 @@ export function PromptInput({
           <PencilIcon className="h-3.5 w-3.5 text-[#191919]" strokeWidth={1.75} />
         </span>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
-          <p className="text-sm font-normal leading-normal text-[#333333]">
-            {isCommunityStart ? "Create from community" : "Write prompt"}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-normal leading-normal text-[#333333]">
+              {isCommunityStart ? "Create from community" : "Write prompt"}
+            </p>
+            <ImprovePromptButton prompt={value} onImproved={onChange} />
+          </div>
           <Textarea
             value={value}
             autoFocus

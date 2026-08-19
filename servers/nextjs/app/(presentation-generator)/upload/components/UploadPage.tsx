@@ -38,6 +38,7 @@ import {
   CommunityPresentationApi,
   type CommunityPresentation,
 } from "../../services/api/community";
+import { onPrefill } from "@/utils/clerkToken";
 
 type GenerationMode = "smart" | "standard";
 
@@ -158,6 +159,17 @@ const UploadPage = () => {
     includeTitleSlide: false,
     webSearch: false,
   });
+
+  // Embedded from another tool (e.g. Research AI): the parent posts the source
+  // text over the Clerk bridge, so the user lands here with their report already
+  // in the box instead of having to paste it across.
+  useEffect(() => {
+    onPrefill((prefill) => {
+      if (typeof prefill.content === "string" && prefill.content.trim()) {
+        setConfig((current) => ({ ...current, prompt: prefill.content as string }));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
