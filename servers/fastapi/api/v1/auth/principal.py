@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal
+import re
 import secrets
 import uuid
 
@@ -75,13 +76,25 @@ async def _find_or_create_clerk_user(
     return user
 
 
+# EventSource cannot set request headers, so the streaming endpoints — and only
+# those — accept the token in the query string. Keeping this narrow matters: a
+# query parameter is recorded by access logs, proxies and browser history in a
+# way an Authorization header is not, so it must not be a general-purpose way to
+# authenticate every endpoint.
+_SSE_PATH_RE = re.compile(r"^/api/v\d+/ppt/(?:outlines|presentation)/stream/[^/]+/?$")
+
+
+def _token_in_query_allowed(request: Request) -> bool:
+    return bool(_SSE_PATH_RE.match(request.url.path))
+
+
 def _bearer_token(request: Request) -> str | None:
     authorization = request.headers.get("Authorization", "")
     if authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
         return token or None
-    # SSE clients (EventSource) cannot set headers, so streaming endpoints pass
-    # the token as a query parameter instead.
+    if not _token_in_query_allowed(request):
+        return None
     token = request.query_params.get("token")
     return token.strip() if token and token.strip() else None
 
