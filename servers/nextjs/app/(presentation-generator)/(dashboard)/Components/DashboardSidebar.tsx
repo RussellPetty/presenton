@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, HelpCircle, UsersRound } from "lucide-react";
+import { LayoutDashboard, Star, Brain, UsersRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -12,14 +12,11 @@ export const defaultNavItems = [
     { key: "templates" as const, label: "Standard", icon: Star },
     { key: "designs" as const, label: "Smart", icon: Brain },
     { key: "community" as const, label: "Community", icon: UsersRound },
-
-
-
 ];
-export const BelongingNavItems = [
-    { key: "settings" as const, label: "Settings", icon: Settings },
-    
-]
+
+// Settings is not reachable in the embed (provider keys come from env), so the
+// nav array is empty rather than removed — DashboardNav still imports it.
+export const BelongingNavItems: { key: string; label: string; icon: unknown }[] = [];
 
 const DashboardSidebar = () => {
     const pathname = usePathname();
@@ -32,9 +29,9 @@ const DashboardSidebar = () => {
             <div>
 
                 <Link href={`/dashboard`} className="flex items-center  pb-6 border-b border-[#E1E1E5]   gap-2    ">
-                    <div className="bg-[#7C51F8] rounded-full cursor-pointer p-1 flex justify-center items-center mx-auto">
-                        <img src="/logo-with-bg.png" alt="Presenton logo" className="h-[40px] object-contain w-full" />
-                    </div>
+                    {/* White-label: no upstream logo. The embedding app supplies
+                        the branding, so this is a neutral spacer. */}
+                    <div className="h-[40px] w-full" aria-hidden="true" />
                 </Link>
                 <nav className="pt-6 font-syne" aria-label="Dashboard sections">
                     <div className="  space-y-6">
@@ -68,16 +65,7 @@ const DashboardSidebar = () => {
                                 <span className="text-[11px] text-slate-800">Templates</span>
                             </div>
                         </Link>
-                        <Link
-                            prefetch={false}
-                            href="/community"
-                            className="flex flex-col items-center gap-2 text-center transition-colors"
-                            aria-label="Community"
-                            title="Community"
-                        >
-                            <UsersRound className={`h-4 w-4 ${pathname === "/community" ? "text-[#5146E5]" : "text-slate-600"}`} />
-                            <span className="text-[11px] text-slate-800">Community</span>
-                        </Link>
+                        {/* Community is Presenton Cloud's gallery; not part of the embed. */}
                         {/* <Link
                             prefetch={false}
                             href={`/theme`}
@@ -97,24 +85,8 @@ const DashboardSidebar = () => {
                 </nav>
             </div>
 
-            <div className="border-t border-[#E1E1E5] pt-5 font-syne">
-                  <Link
-                    href="/settings"
-                    className="flex flex-col items-center gap-2 transition-colors"
-                >
-                    <Settings className="h-4 w-4" />
-                    <span className="text-[11px] text-slate-800">Settings</span>
-                </Link>
-                <div className="py-2"/>
-                <Link
-                    href="https://docs.presenton.ai/help"
-                    target="_blank"
-                    className="flex flex-col items-center gap-2 transition-colors"
-                >
-                    <HelpCircle className="h-4 w-4" />
-                    <span className="text-[11px] text-slate-800">Help</span>
-                </Link>
-            </div>
+            {/* Settings (provider keys come from env, CAN_CHANGE_KEYS=false) and
+                Help (docs.presenton.ai) are both removed from the embed. */}
 
         </aside>
     );

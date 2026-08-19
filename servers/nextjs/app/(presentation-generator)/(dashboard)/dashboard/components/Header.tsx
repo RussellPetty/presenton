@@ -44,11 +44,7 @@ const Header = () => {
         <div className="flex items-center justify-between py-1">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/dashboard" })}>
-              <img
-                src="/logo-with-bg.png"
-                alt="Presentation logo"
-                className="h-[40px] w-[40px]"
-              />
+              {/* White-label: upstream logo removed; the embedding app owns branding. */}
             </Link>
           </div>
           <div className="flex items-center">

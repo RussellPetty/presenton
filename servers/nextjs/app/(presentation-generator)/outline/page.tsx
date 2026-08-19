@@ -1,25 +1,13 @@
 import React from "react";
 import { Metadata } from "next";
 import OutlinePage from "./components/OutlinePage";
+import { pageTitle } from "@/lib/branding";
 
 export const metadata: Metadata = {
-  title: "Outline Presentation",
-  description: "Customize and organize your presentation outline. Drag and drop slides, add charts, and generate your presentation with ease.",
-  alternates: {
-    canonical: "https://presenton.ai/create"
-  },
-  keywords: [
-    "presentation generator",
-    "AI presentations",
-    "data visualization",
-    "automatic presentation maker",
-    "professional slides",
-    "data-driven presentations",
-    "document to presentation",
-    "presentation automation",
-    "smart presentation tool",
-    "business presentations"
-  ]
+  // White-label embed: no upstream canonical/OG/Twitter metadata. This runs in
+  // an iframe and is never indexed or shared as its own page.
+  title: pageTitle("Outline"),
+  robots: { index: false, follow: false },
 };
 
 const page = () => {

@@ -1,19 +1,18 @@
-import React from 'react'
-import SettingPage from './SettingPage'
-import UserAccountSettings from './UserAccountSettings'
-import { getServerAuthStatus } from '@/utils/serverAuth'
-import { getSettingsView } from '@/utils/settingsAccess'
+import { redirect } from "next/navigation";
+
+import { pageTitle } from "@/lib/branding";
 
 export const metadata = {
-  title: 'Settings | Presenton',
-  description: 'Settings page',
-}
-const page = async () => {
-  const status = await getServerAuthStatus()
+  title: pageTitle("Settings"),
+};
 
-  return getSettingsView(status.role) === 'admin'
-    ? <SettingPage />
-    : <UserAccountSettings username={status.username ?? 'User'} />
+/**
+ * Not part of the embed. Provider keys come from the environment
+ * (CAN_CHANGE_KEYS=false), so there is nothing here for a user to change, and
+ * the page also exposes upstream's cloud-provider connection UI.
+ *
+ * SettingPage/UserAccountSettings are left in the tree, just not mounted.
+ */
+export default function Page() {
+  redirect("/dashboard");
 }
-
-export default page

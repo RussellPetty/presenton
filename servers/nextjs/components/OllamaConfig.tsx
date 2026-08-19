@@ -148,7 +148,7 @@ export default function OllamaConfig({
         notify.success(
           "Using in-container Ollama",
           requestedUrl
-            ? "host.docker.internal did not respond, so Presenton switched Ollama URL to localhost."
+            ? "host.docker.internal did not respond, so the Ollama URL switched to localhost."
             : "host.docker.internal did not respond, so this check used localhost."
         );
       }

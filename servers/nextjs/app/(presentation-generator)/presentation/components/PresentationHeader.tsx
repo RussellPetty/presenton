@@ -14,6 +14,7 @@ import {
   X,
   AlertTriangle,
   MousePointer2,
+  ChevronLeft,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -566,14 +567,21 @@ const PresentationHeader = ({
     <>
       <div className="py-[18px] px-4 sticky top-0 bg-white z-50 shadow-sm font-syne flex justify-between items-center gap-4">
         <div className="flex items-center gap-3">
-          <img
+          {/* White-label: the upstream logo used to be the way back to the
+              library. A labelled control says what it does and carries no
+              branding. */}
+          <button
+            type="button"
             onClick={() => {
               router.push("/dashboard");
             }}
-            src="/logo-with-bg.png"
-            alt=""
-            className="w-10 h-10 cursor-pointer object-contain"
-          />
+            aria-label="Go to library"
+            title="Go to library"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Library
+          </button>
           {presentationData && !isStreaming && !isEditingTitle ? (
             <ToolTip content="Rename presentation">{titleBlock}</ToolTip>
           ) : (

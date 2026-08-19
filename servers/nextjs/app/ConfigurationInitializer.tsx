@@ -9,7 +9,8 @@ import { isOllamaModelAvailable } from '@/utils/providerUtils';
 import { LLMConfig } from '@/types/llm_config';
 import { getApiUrl } from '@/utils/api';
 import { notify } from '@/components/ui/sonner';
-import { PRESENTON_SPLASH_MIN_DURATION_MS } from '@/components/ui/presenton-splash-loader';
+import { SPLASH_MIN_DURATION_MS } from '@/components/ui/splash-loader';
+import { PRODUCT_NAME } from "@/lib/branding";
 
 function ConfigurationLoadingScreen() {
   return (
@@ -21,7 +22,7 @@ function ConfigurationLoadingScreen() {
       <div className="flex flex-col items-center gap-7 whitespace-nowrap text-center">
         <div aria-hidden="true" className="configuration-loader" />
         <p className="font-syne text-[18px] font-normal leading-normal tracking-[-0.54px] text-[#191919]">
-          Loading Presenton...
+          Loading {PRODUCT_NAME}...
         </p>
       </div>
 
@@ -120,7 +121,7 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
 
     const timeout = window.setTimeout(() => {
       setHasMetSplashDuration(true);
-    }, PRESENTON_SPLASH_MIN_DURATION_MS);
+    }, SPLASH_MIN_DURATION_MS);
 
     return () => window.clearTimeout(timeout);
   }, [shouldShowStartupSplash]);

@@ -102,7 +102,7 @@ const FinalStep = () => {
                     <div className='flex items-center gap-3 mt-8 px-5 py-3.5 rounded-[10px] border border-[#EDEEEF] bg-white'>
                         <div>
                             <p className='text-sm font-medium text-[#191919] font-syne'>Usage analytics</p>
-                            <p className='text-[11px] text-[#9CA3AF] font-syne leading-tight mt-0.5'>Help improve Presenton by sharing anonymous usage data.</p>
+                            <p className='text-[11px] text-[#9CA3AF] font-syne leading-tight mt-0.5'>Help improve this app by sharing anonymous usage data.</p>
                         </div>
                         <Switch
                             checked={trackingEnabled}

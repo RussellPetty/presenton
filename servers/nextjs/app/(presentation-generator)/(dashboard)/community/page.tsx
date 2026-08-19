@@ -1,12 +1,16 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import CommunityPage from "./components/CommunityPage";
+import { pageTitle } from "@/lib/branding";
 
-export const metadata: Metadata = {
-  title: "Community | Presenton",
-  description: "Explore community presentation designs and prompts.",
+export const metadata = {
+  title: pageTitle(),
 };
 
+/**
+ * The community gallery is served by upstream's hosted cloud and is branded as
+ * theirs, so it is not reachable from the embed. CommunityPage is left in the
+ * tree, just not mounted.
+ */
 export default function Page() {
-  return <CommunityPage />;
+  redirect("/dashboard");
 }

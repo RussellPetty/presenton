@@ -4,6 +4,7 @@ import { Manrope, Syne, Unbounded } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Providers } from "./providers";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/branding";
 import MixpanelInitializer from "./MixpanelInitializer";
 import ClerkAuthBridge from "@/components/ClerkAuthBridge";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,47 +42,12 @@ const unbounded = Unbounded({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://presenton.ai"),
-  title: "Presenton - Open Source AI presentation generator",
-  description:
-    "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-  keywords: [
-    "AI presentation generator",
-    "data storytelling",
-    "data visualization tool",
-    "AI data presentation",
-    "presentation generator",
-    "data to presentation",
-    "interactive presentations",
-    "professional slides",
-  ],
-  openGraph: {
-    title: "Presenton - Open Source AI presentation generator",
-    description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    url: "https://presenton.ai",
-    siteName: "Presenton",
-    images: [
-      {
-        url: "https://presenton.ai/presenton-feature-graphics.png",
-        width: 1200,
-        height: 630,
-        alt: "Presenton Logo",
-      },
-    ],
-    type: "website",
-    locale: "en_US",
-  },
-  alternates: {
-    canonical: "https://presenton.ai",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Presenton - Open Source AI presentation generator",
-    description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    images: ["https://presenton.ai/presenton-feature-graphics.png"],
-  },
+  // White-label build: no upstream product name, no presenton.ai URLs, and no
+  // OG/canonical metadata at all. This runs inside an iframe in Broker
+  // Marketplace and is never meant to be indexed or shared as its own site.
+  title: `${PRODUCT_NAME} - ${PRODUCT_TAGLINE}`,
+  description: PRODUCT_TAGLINE,
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

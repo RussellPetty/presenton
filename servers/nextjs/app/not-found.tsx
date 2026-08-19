@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { pageTitle } from "@/lib/branding";
 
 export const metadata: Metadata = {
-  title: "Page not found | Presenton",
+  title: pageTitle("Page not found"),
 };
 
 /**

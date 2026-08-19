@@ -6,9 +6,9 @@ import { getApiUrl } from "@/utils/api";
 import { isAuthDisabled } from "@/utils/auth";
 import { formatFastApiDetail, UNAUTHORIZED_DETAIL } from "@/utils/authErrors";
 import {
-  PRESENTON_SPLASH_MIN_DURATION_MS,
-  PresentonSplashLoader,
-} from "@/components/ui/presenton-splash-loader";
+  SPLASH_MIN_DURATION_MS,
+  SplashLoader,
+} from "@/components/ui/splash-loader";
 import { notify } from "@/components/ui/sonner";
 import { sanitizeAnalyticsError } from "@/utils/analytics";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
@@ -41,7 +41,7 @@ export default function AuthGate() {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setHasMetSplashDuration(true);
-    }, PRESENTON_SPLASH_MIN_DURATION_MS);
+    }, SPLASH_MIN_DURATION_MS);
 
     return () => window.clearTimeout(timeout);
   }, []);
@@ -328,7 +328,7 @@ export default function AuthGate() {
     status.authenticated ||
     !hasMetSplashDuration
   ) {
-    return <PresentonSplashLoader message="Preparing your workspace..." />;
+    return <SplashLoader message="Preparing your workspace..." />;
   }
 
   return (
@@ -337,13 +337,7 @@ export default function AuthGate() {
         <div className="mb-7">
           <div className="flex items-center gap-4">
             <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[4px] bg-[#F4F3FF] p-3">
-              <Image
-                src="/logo-with-bg.png"
-                alt=""
-                width={161}
-                height={166}
-                className="h-10 w-auto object-contain"
-              />
+              {/* White-label: upstream logo removed; the embedding app owns branding. */}
             </div>
             <div>
               <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7A5AF8]">

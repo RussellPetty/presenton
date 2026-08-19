@@ -81,11 +81,7 @@ export function TemplateEditorHeader({
     <header className="flex h-[68px] shrink-0 items-center justify-between border-b border-[#EDEEEF] bg-white">
       <div className="flex h-full min-w-0 flex-1 items-center gap-[12px] px-5 text-left sm:w-[347px] sm:flex-none sm:px-[24px]">
         <button onClick={onBack} aria-label="Dashboard" type="button">
-          <img
-            src="/logo-with-bg.png"
-            alt="Presenton"
-            className="h-10 w-10 cursor-pointer object-contain"
-          />
+          {/* White-label: upstream logo removed; the embedding app owns branding. */}
         </button>
         <label
           className={cn(
