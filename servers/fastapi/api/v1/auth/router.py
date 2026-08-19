@@ -153,6 +153,11 @@ async def verify_session(
     return {
         "authenticated": True,
         **serialize_user(user),
+        # The principal is what authorization is actually enforced on, and it is
+        # not always the row's is_superuser: a Clerk bearer and the export
+        # session cookie are deliberately never admin. Report the effective
+        # role so callers cannot grant more than the request itself carries.
+        "role": "admin" if principal.is_admin else "user",
         "method": principal.method,
     }
 

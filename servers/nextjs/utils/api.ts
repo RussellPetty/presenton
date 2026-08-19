@@ -25,7 +25,7 @@ function withLeadingSlash(path: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-function getConfiguredFastApiUrl(): string | null {
+export function getConfiguredFastApiUrl(): string | null {
   if (typeof window !== "undefined" && window.env?.NEXT_PUBLIC_FAST_API) {
     return window.env.NEXT_PUBLIC_FAST_API;
   }

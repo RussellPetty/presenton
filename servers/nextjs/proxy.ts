@@ -63,11 +63,25 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 async function getAuthStatus(request: NextRequest): Promise<AuthStatus> {
   const cookieHeader = request.headers.get("cookie");
-  const authStatusUrl = `${getFastApiBaseUrl()}/api/v1/auth/status`;
+  const authorization = request.headers.get("authorization") || "";
+
+  // /auth/status only reads the session cookie. Under Clerk the browser
+  // authenticates with a bearer token and carries no cookie, so relying on
+  // /status here rejected every embedded user before their request ever
+  // reached the route. /auth/verify runs the full principal resolution.
+  const endpoint = authorization
+    ? "/api/v1/auth/verify"
+    : "/api/v1/auth/status";
+  const authStatusUrl = `${getFastApiBaseUrl()}${endpoint}`;
+
+  const headers: Record<string, string> = {};
+  if (cookieHeader) headers.Cookie = cookieHeader;
+  if (authorization) headers.Authorization = authorization;
+
   try {
     const response = await fetch(authStatusUrl, {
       method: "GET",
-      headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+      headers: Object.keys(headers).length ? headers : undefined,
       cache: "no-store",
     });
     if (!response.ok) {
@@ -75,7 +89,11 @@ async function getAuthStatus(request: NextRequest): Promise<AuthStatus> {
     }
     const payload = (await response.json()) as Partial<AuthStatus>;
     return {
-      configured: Boolean(payload.configured),
+      // /verify has no `configured` field: a 200 from it means a principal
+      // resolved, which implies the instance is configured.
+      configured: endpoint.endsWith("/verify")
+        ? true
+        : Boolean(payload.configured),
       authenticated: Boolean(payload.authenticated),
     };
   } catch {

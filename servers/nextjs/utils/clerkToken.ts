@@ -14,6 +14,8 @@
  * server-side JWT verification; the postMessage origin check is defense-in-depth.
  */
 
+import { getConfiguredFastApiUrl } from "@/utils/api";
+
 export type PresentonBranding = {
   primaryColor?: string;
   secondaryColor?: string;
@@ -321,8 +323,25 @@ export async function getToken(): Promise<string | null> {
  * than inside getApiUrl(), so the token does not end up in the query string —
  * and therefore in server logs — of every ordinary request.
  */
+function isTrustedApiOrigin(url: string): boolean {
+  try {
+    const resolved = new URL(url, window.location.href);
+    if (resolved.origin === window.location.origin) return true;
+    // Only the origin configured for this deployment counts. Notably NOT the
+    // `fastapiUrl` query parameter: getApiUrl() will happily build an absolute
+    // URL from it, and it is attacker-controllable via the embed URL, so
+    // trusting it here would hand the user's JWT to any host of their choosing.
+    const configured = getConfiguredFastApiUrl();
+    if (!configured) return false;
+    return new URL(configured, window.location.href).origin === resolved.origin;
+  } catch {
+    return false;
+  }
+}
+
 export function withSseToken(url: string): string {
   if (typeof window === "undefined" || !isEmbedClerkMode()) return url;
+  if (!isTrustedApiOrigin(url)) return url;
   const token = getTokenSync();
   if (!token) return url;
   const separator = url.includes("?") ? "&" : "?";
