@@ -45,6 +45,7 @@ import {
   type TemplateV2ActivateSurfaceDetail,
   type TemplateV2SurfaceSelectedDetail,
 } from "@/components/slide-editor/events/events";
+import { isEditableTarget } from "@/components/slide-editor/model/core";
 
 function hasTemplateV2Layouts(layout: unknown): boolean {
   if (!layout || typeof layout !== "object") return false;
@@ -482,6 +483,44 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
       ? Math.min(Math.max(selectedSlide, 0), totalSlides - 1)
       : 0;
   const activeEditorSlide = presentationData?.slides?.[activeSlideIndex];
+
+  useEffect(() => {
+    if (isPresentMode || totalSlides <= 1) return;
+
+    const handleEditorArrowNavigation = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.repeat ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      const previousSlide =
+        event.key === "ArrowLeft" || event.key === "ArrowUp";
+      const nextSlide =
+        event.key === "ArrowRight" || event.key === "ArrowDown";
+      if (!previousSlide && !nextSlide) return;
+
+      event.preventDefault();
+      setSelectedSlide((current) =>
+        Math.min(
+          Math.max(current + (previousSlide ? -1 : 1), 0),
+          totalSlides - 1,
+        ),
+      );
+    };
+
+    window.addEventListener("keydown", handleEditorArrowNavigation);
+    return () =>
+      window.removeEventListener("keydown", handleEditorArrowNavigation);
+  }, [isPresentMode, totalSlides]);
+
   // Mutation traces normally identify the exact slide. Fall back to the slide
   // the user is viewing so an active edit never happens without feedback.
   const updatingSlideIndex = isChatMutating
