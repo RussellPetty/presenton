@@ -6,6 +6,10 @@ import {
   bundledExportPackageAvailable,
   runBundledPresentationExport,
 } from "@/lib/run-bundled-presentation-export";
+import {
+  getFastApiAuthHeaders,
+  getFastApiBaseUrl,
+} from "@/lib/fastapi-internal";
 
 function isValidFormat(value: unknown): value is BundledPresentationExportFormat {
   return value === "pdf" || value === "pptx";
@@ -28,6 +32,35 @@ function buildExportDownloadUrl(outPath: string): string {
   }
 
   return `/api/export-presentation/file?name=${encodeURIComponent(relativePath)}`;
+}
+
+async function resizeExportedPptx(
+  presentationId: string,
+  outPath: string,
+  cookieHeader: string
+): Promise<void> {
+  const response = await fetch(
+    `${getFastApiBaseUrl()}/api/v1/ppt/presentation/${encodeURIComponent(
+      presentationId
+    )}/resize-export`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getFastApiAuthHeaders(),
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      body: JSON.stringify({ filename: path.basename(outPath) }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(
+      `PPTX ratio adjustment failed (${response.status}): ${detail}`
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -61,6 +94,10 @@ export async function POST(req: NextRequest) {
       title,
       cookieHeader,
     });
+
+    if (format === "pptx") {
+      await resizeExportedPptx(String(id), outPath, cookieHeader);
+    }
 
     return NextResponse.json({
       success: true,

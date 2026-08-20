@@ -256,6 +256,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
         slides={presentationData?.slides!}
         currentSlide={presentSlideFromUrl}
         theme={presentationData?.theme ?? undefined}
+        aspectRatio={presentationData?.aspect_ratio || "16:9"}
         isFullscreen={isFullscreen}
         onFullscreenToggle={toggleFullscreen}
         onExit={handlePresentExit}

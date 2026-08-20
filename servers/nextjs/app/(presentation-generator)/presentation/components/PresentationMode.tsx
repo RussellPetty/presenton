@@ -16,11 +16,13 @@ import { Slide } from "../../types/slide";
 import SlideScale from "../../components/PresentationRender";
 import type { Theme } from "../../services/api/types";
 import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
+import type { PresentationAspectRatio } from "../utils/slideAspectRatio";
 
 interface PresentationModeProps {
   slides: Slide[];
   currentSlide: number;
   theme?: Theme | null;
+  aspectRatio?: PresentationAspectRatio;
   isFullscreen: boolean;
   onFullscreenToggle: () => void;
   onExit: () => void;
@@ -33,6 +35,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
   slides,
   currentSlide,
   theme,
+  aspectRatio = "16:9",
   isFullscreen,
   onFullscreenToggle,
   onExit,
@@ -250,6 +253,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
               key={activeSlide.id ?? `slide-${currentSlide}`}
               slide={activeSlide}
               theme={theme ?? undefined}
+              aspectRatio={aspectRatio}
               isEditMode={false}
               presentMode
             />

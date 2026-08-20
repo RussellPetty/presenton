@@ -142,6 +142,25 @@ export function setupExportHandlers() {
         return { success: false, message: "Export finished but output file was not found." };
       }
 
+      if (exportAs === "pptx") {
+        const fastApiBaseUrl = (
+          process.env.NEXT_PUBLIC_FAST_API || "http://127.0.0.1:8000"
+        ).replace(/\/+$/, "");
+        const resizeResponse = await fetch(
+          `${fastApiBaseUrl}/api/v1/ppt/presentation/${encodeURIComponent(id)}/resize-export`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: path.basename(exportFilePath) }),
+          }
+        );
+        if (!resizeResponse.ok) {
+          throw new Error(
+            `PPTX ratio adjustment failed (${resizeResponse.status}): ${await resizeResponse.text()}`
+          );
+        }
+      }
+
       const destinationPath = path.join(getDownloadsDir(), path.basename(exportFilePath));
       await moveFile(exportFilePath, destinationPath);
       showFileDownloadedDialogInBackground(destinationPath);

@@ -176,6 +176,7 @@ const SidePanel = ({
                     slide={slide}
                     index={index}
                     selected={selectedSlide === index}
+                    aspectRatio={presentationData.aspect_ratio || "16:9"}
                     onClick={() => onSlideClick(slide.index ?? index)}
                   />
                 ))
@@ -197,6 +198,7 @@ const SidePanel = ({
                           index={index}
                           selectedSlide={selectedSlide}
                           onSlideClick={onSlideClick}
+                          aspectRatio={presentationData.aspect_ratio || "16:9"}
                         />
                       )
                     )}

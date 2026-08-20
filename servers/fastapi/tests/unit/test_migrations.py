@@ -2,7 +2,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 
 import migrations
 
@@ -70,8 +70,9 @@ def test_upgrade_from_baseline_stamp_skips_existing_theme_column(tmp_path):
                 for row in connection.execute(text("PRAGMA table_info(presentations)"))
             }
 
-        assert version == "c7b70d0f31b1"
+        assert version == "4e4b28a43120"
         assert "theme" in columns
+        assert "aspect_ratio" in columns
     finally:
         engine.dispose()
 
@@ -120,7 +121,7 @@ def test_upgrade_from_theme_stamp_skips_existing_template_create_infos_table(tmp
                 )
             }
 
-        assert version == "c7b70d0f31b1"
+        assert version == "4e4b28a43120"
         assert "template_create_infos" in tables
     finally:
         engine.dispose()
@@ -170,11 +171,32 @@ def test_upgrade_from_template_stamp_skips_existing_chat_history_table(tmp_path)
                 )
             }
 
-        assert version == "c7b70d0f31b1"
+        assert version == "4e4b28a43120"
         assert {
             "ix_chat_history_messages_conversation_id",
             "ix_chat_history_messages_position",
             "ix_chat_history_messages_presentation_id",
         }.issubset(indexes)
+    finally:
+        engine.dispose()
+
+
+def test_schema_inference_does_not_skip_aspect_ratio_migration(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'chat-without-ratio.db'}"
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE TABLE presentations (id TEXT PRIMARY KEY)"))
+            connection.execute(text("CREATE TABLE chat_history_messages (id TEXT)"))
+
+        with engine.connect() as connection:
+            inspector = inspect(connection)
+            revision = migrations._infer_revision_from_schema(
+                inspector,
+                set(inspector.get_table_names()),
+                "4e4b28a43120",
+            )
+
+        assert revision == migrations.REVISION_CHAT_HISTORY
     finally:
         engine.dispose()

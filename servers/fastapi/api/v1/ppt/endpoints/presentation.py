@@ -73,7 +73,12 @@ from utils.process_slides import (
     process_slide_and_fetch_assets,
 )
 from utils.get_layout_by_name import get_layout_by_name
+from utils.get_env import get_app_data_directory_env
 from utils.llm_utils import message_content_to_text
+from utils.pptx_aspect_ratio import (
+    PresentationAspectRatio,
+    resize_pptx_aspect_ratio,
+)
 from utils.simple_auth import (
     SESSION_COOKIE_NAME,
     create_session_token,
@@ -525,6 +530,7 @@ async def update_presentation(
     n_slides: Annotated[Optional[int], Body()] = None,
     title: Annotated[Optional[str], Body()] = None,
     theme: Annotated[Optional[dict], Body()] = None,
+    aspect_ratio: Annotated[Optional[PresentationAspectRatio], Body()] = None,
     slides: Annotated[Optional[List[SlideModel]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
@@ -539,6 +545,8 @@ async def update_presentation(
         presentation_update_dict["title"] = title
     if theme or theme is None:
         presentation_update_dict["theme"] = theme
+    if aspect_ratio is not None:
+        presentation_update_dict["aspect_ratio"] = aspect_ratio
 
     if presentation_update_dict:
         presentation.sqlmodel_update(presentation_update_dict)
@@ -567,6 +575,51 @@ async def update_presentation(
         slides=response_slides,
         fonts=fonts,
     )
+
+
+@PRESENTATION_ROUTER.post("/{id}/resize-export")
+async def resize_presentation_export(
+    id: uuid.UUID,
+    filename: Annotated[str, Body(embed=True)],
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+
+    app_data_directory = (get_app_data_directory_env() or "").strip()
+    if not app_data_directory:
+        raise HTTPException(status_code=500, detail="APP_DATA_DIRECTORY is required")
+
+    if not filename or os.path.basename(filename) != filename:
+        raise HTTPException(status_code=400, detail="Invalid export filename")
+
+    exports_directory = os.path.realpath(
+        os.path.join(app_data_directory, "exports")
+    )
+    export_path = os.path.realpath(os.path.join(exports_directory, filename))
+    if (
+        os.path.dirname(export_path) != exports_directory
+        or not export_path.lower().endswith(".pptx")
+        or not os.path.isfile(export_path)
+    ):
+        raise HTTPException(status_code=404, detail="PPTX export not found")
+
+    try:
+        resize_pptx_aspect_ratio(
+            export_path,
+            presentation.aspect_ratio,  # type: ignore[arg-type]
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "success": True,
+        "aspect_ratio": presentation.aspect_ratio,
+        "filename": filename,
+    }
+
+
 async def check_if_api_request_is_valid(
     request: GeneratePresentationRequest,
     sql_session: AsyncSession = Depends(get_async_session),
@@ -963,6 +1016,7 @@ async def generate_presentation_handler(
             presentation.title or str(uuid.uuid4()),
             request.export_as,
             cookie_header=export_cookie_header,
+            aspect_ratio=presentation.aspect_ratio,  # type: ignore[arg-type]
         )
 
         response = PresentationPathAndEditPath(
@@ -1130,6 +1184,7 @@ async def edit_presentation_with_new_content(
         presentation.title or str(uuid.uuid4()),
         data.export_as,
         cookie_header=_build_export_cookie_header(request_http),
+        aspect_ratio=presentation.aspect_ratio,  # type: ignore[arg-type]
     )
 
     return PresentationPathAndEditPath(
@@ -1174,6 +1229,7 @@ async def derive_presentation_from_existing_one(
         new_presentation.title or str(uuid.uuid4()),
         data.export_as,
         cookie_header=_build_export_cookie_header(request_http),
+        aspect_ratio=new_presentation.aspect_ratio,  # type: ignore[arg-type]
     )
 
     return PresentationPathAndEditPath(

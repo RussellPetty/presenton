@@ -1,11 +1,16 @@
 import React, { forwardRef } from "react";
 import type { Slide } from "../../types/slide";
 import { V1ContentRender } from "../../components/V1ContentRender";
+import {
+  getSlideDimensions,
+  type PresentationAspectRatio,
+} from "../utils/slideAspectRatio";
 
 interface SlideThumbnailCardProps extends React.HTMLAttributes<HTMLDivElement> {
   slide: Slide;
   index: number;
   selected: boolean;
+  aspectRatio?: PresentationAspectRatio;
 }
 
 const SCALE = 0.061;
@@ -13,7 +18,8 @@ const SCALE = 0.061;
 export const SlideThumbnailCard = forwardRef<
   HTMLDivElement,
   SlideThumbnailCardProps
->(({ slide, index, selected, className = "", style, ...props }, ref) => {
+>(({ slide, index, selected, aspectRatio = "16:9", className = "", style, ...props }, ref) => {
+  const dimensions = getSlideDimensions(aspectRatio);
   return (
     <div
       ref={ref}
@@ -33,18 +39,32 @@ export const SlideThumbnailCard = forwardRef<
 
       <div
         className="relative"
-        style={{ height: `${720 * SCALE}px`, overflow: "hidden" }}
+        style={{
+          height: `${dimensions.height * SCALE}px`,
+          overflow: "hidden",
+          backgroundColor: "var(--background-color, #ffffff)",
+        }}
       >
         <div
           className="absolute top-0 left-0 rounded-[10px] overflow-hidden pointer-events-none"
           style={{
             width: 1280,
-            height: 720,
+            height: dimensions.height,
             transformOrigin: "top left",
             transform: `scale(${SCALE})`,
+            backgroundColor: "var(--background-color, #ffffff)",
           }}
         >
-          <V1ContentRender slide={slide} isEditMode={true} />
+          <div
+            className="absolute left-0"
+            style={{
+              top: dimensions.contentOffsetY,
+              width: 1280,
+              height: 720,
+            }}
+          >
+            <V1ContentRender slide={slide} isEditMode={true} />
+          </div>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import {
   Check,
   X,
   AlertTriangle,
+  RectangleHorizontal,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -30,6 +31,7 @@ import { usePresentationUndoRedo } from "../hooks/PresentationUndoRedo";
 import ToolTip from "@/components/ToolTip";
 import {
   clearPresentationData,
+  updateAspectRatio,
   updateTitle,
 } from "@/store/slices/presentationGeneration";
 import { clearHistory } from "@/store/slices/undoRedoSlice";
@@ -48,6 +50,10 @@ import ThemeApi from "../../services/api/theme";
 import { Theme } from "../../services/api/types";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { cn } from "@/lib/utils";
+import {
+  PRESENTATION_ASPECT_RATIOS,
+  type PresentationAspectRatio,
+} from "../utils/slideAspectRatio";
 
 const MAX_EXPORT_TITLE_LENGTH = 40;
 
@@ -163,6 +169,21 @@ const PresentationHeader = ({
   const cancelTitleEdit = () => {
     setDraftTitle(presentationData?.title || "");
     setIsEditingTitle(false);
+  };
+
+  const handleAspectRatioChange = (aspectRatio: PresentationAspectRatio) => {
+    if (!presentationData || presentationData.aspect_ratio === aspectRatio) {
+      return;
+    }
+
+    const previousAspectRatio = presentationData.aspect_ratio || "16:9";
+    dispatch(updateAspectRatio(aspectRatio));
+    trackEvent(MixpanelEvent.Presentation_Aspect_Ratio_Changed, {
+      pathname,
+      presentation_id,
+      previous_aspect_ratio: previousAspectRatio,
+      next_aspect_ratio: aspectRatio,
+    });
   };
 
   const handleTitleBlur = () => {
@@ -499,6 +520,54 @@ const PresentationHeader = ({
                 themes={themes}
               />
             )}
+
+          {presentationData && !isStreaming && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Slide ratio ${
+                    presentationData.aspect_ratio || "16:9"
+                  }`}
+                  className="flex h-[38px] items-center gap-2 rounded-[80px] border border-[#EDECEC] bg-white px-3.5 text-xs font-semibold text-[#101323] transition-colors hover:border-[#BDB4FE] hover:text-[#5141e5]"
+                >
+                  <RectangleHorizontal className="h-3.5 w-3.5" />
+                  Ratio {presentationData.aspect_ratio || "16:9"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[190px] bg-white p-2">
+                <p className="px-2 pb-2 pt-1 text-xs font-medium text-[#101323]/60">
+                  Slide ratio
+                </p>
+                <div className="space-y-1">
+                  {PRESENTATION_ASPECT_RATIOS.map((aspectRatio) => {
+                    const selected =
+                      (presentationData.aspect_ratio || "16:9") === aspectRatio;
+                    return (
+                      <button
+                        key={aspectRatio}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selected}
+                        onClick={() => handleAspectRatioChange(aspectRatio)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                          selected
+                            ? "bg-[#F0EEFF] font-semibold text-[#5141e5]"
+                            : "text-[#101323] hover:bg-[#F6F6F9]"
+                        )}
+                      >
+                        <span>
+                          {aspectRatio === "1:1" ? "1:1 (4:4)" : aspectRatio}
+                        </span>
+                        {selected && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           <div className="flex items-center gap-2 bg-[#F6F6F9] px-3.5 h-[38px] border border-[#EDECEC] rounded-[80px]">
             <ToolTip content="Regenerate Presentation">

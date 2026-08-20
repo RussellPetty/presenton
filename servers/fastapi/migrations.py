@@ -14,6 +14,7 @@ LEGACY_BASELINE_REVISION = "00b3c27a13bc"
 # Revision before 95b5127e93cd (template_create_infos); used when DB has theme but not that table.
 REVISION_BEFORE_TEMPLATE_CREATE_INFO = "82abdbc476a7"
 REVISION_TEMPLATE_CREATE_INFO = "95b5127e93cd"
+REVISION_CHAT_HISTORY = "c7b70d0f31b1"
 
 
 async def migrate_database_on_startup() -> None:
@@ -93,7 +94,12 @@ def _repair_orphan_alembic_revision(config: Config, database_url: str) -> None:
 def _infer_revision_from_schema(inspector, tables: set[str], head_revision: str) -> str:
     """Best-effort: map existing SQLite/Postgres schema to our linear migration chain."""
     if "chat_history_messages" in tables:
-        return head_revision
+        presentation_columns = {
+            column["name"] for column in inspector.get_columns("presentations")
+        }
+        if "aspect_ratio" in presentation_columns:
+            return head_revision
+        return REVISION_CHAT_HISTORY
     if "template_create_infos" in tables:
         return REVISION_TEMPLATE_CREATE_INFO
     if "presentations" in tables:

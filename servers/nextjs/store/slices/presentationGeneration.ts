@@ -1,6 +1,7 @@
 import { Theme } from "@/app/(presentation-generator)/services/api/types";
 import { Slide } from "@/app/(presentation-generator)/types/slide";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import type { PresentationAspectRatio } from "@/app/(presentation-generator)/presentation/utils/slideAspectRatio";
 
 export interface PresentationData {
   id: string;
@@ -14,6 +15,7 @@ export interface PresentationData {
   title: string;
   slides: any;
   theme: Theme | null;
+  aspect_ratio: PresentationAspectRatio;
 }
 
 interface PresentationGenerationState {
@@ -84,6 +86,14 @@ const presentationGenerationSlice = createSlice({
     updateTitle: (state, action: PayloadAction<string>) => {
       if (state.presentationData) {
         state.presentationData.title = action.payload;
+      }
+    },
+    updateAspectRatio: (
+      state,
+      action: PayloadAction<PresentationAspectRatio>
+    ) => {
+      if (state.presentationData) {
+        state.presentationData.aspect_ratio = action.payload;
       }
     },
     deleteSlideOutline: (state, action: PayloadAction<{ index: number }>) => {
@@ -405,6 +415,7 @@ export const {
   deleteSlideOutline,
   setPresentationData,
   updateTitle,
+  updateAspectRatio,
   setOutlines,
   // slides operations
   addSlide,

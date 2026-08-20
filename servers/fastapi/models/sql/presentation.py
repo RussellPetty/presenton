@@ -42,6 +42,10 @@ class PresentationModel(SQLModel, table=True):
     include_title_slide: bool = Field(sa_column=Column(Boolean), default=True)
     web_search: bool = Field(sa_column=Column(Boolean), default=False)
     theme: Optional[dict] = Field(sa_column=Column(JSON), default=None)
+    aspect_ratio: str = Field(
+        sa_column=Column(String, nullable=False, server_default="16:9"),
+        default="16:9",
+    )
 
     def get_new_presentation(self):
         return PresentationModel(
@@ -59,6 +63,7 @@ class PresentationModel(SQLModel, table=True):
             verbosity=self.verbosity,
             include_table_of_contents=self.include_table_of_contents,
             include_title_slide=self.include_title_slide,
+            aspect_ratio=self.aspect_ratio,
         )
 
     def get_presentation_outline(self):

@@ -421,7 +421,9 @@ def test_export_includes_optional_fastapi_param():
         mock_pptx = AsyncMock(return_value=fake_result)
         with patch.dict(
             os.environ, {"NEXT_PUBLIC_FAST_API": ""}, clear=False
-        ), patch.object(EXPORT_TASK_SERVICE, "export_from_url", mock_pptx):
+        ), patch.object(EXPORT_TASK_SERVICE, "export_from_url", mock_pptx), patch(
+            "utils.export_utils.resize_pptx_aspect_ratio"
+        ):
             await export_presentation(dummy, title="two", export_as="pptx")
         pptx_call = mock_pptx.await_args.kwargs
         assert pptx_call["fastapi_url"] is None

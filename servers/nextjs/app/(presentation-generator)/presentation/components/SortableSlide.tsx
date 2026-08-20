@@ -3,14 +3,16 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Slide } from '../../types/slide';
 import { useRef } from 'react';
 import { SlideThumbnailCard } from './SlideThumbnailCard';
+import type { PresentationAspectRatio } from '../utils/slideAspectRatio';
 interface SortableSlideProps {
     slide: Slide;
     index: number;
     selectedSlide: number;
     onSlideClick: (index: any) => void;
+    aspectRatio?: PresentationAspectRatio;
 }
 
-export function SortableSlide({ slide, index, selectedSlide, onSlideClick }: SortableSlideProps) {
+export function SortableSlide({ slide, index, selectedSlide, onSlideClick, aspectRatio = "16:9" }: SortableSlideProps) {
     const lastClickTime = useRef(0);
     const {
         attributes,
@@ -48,6 +50,7 @@ export function SortableSlide({ slide, index, selectedSlide, onSlideClick }: Sor
             slide={slide}
             index={index}
             selected={selectedSlide === index}
+            aspectRatio={aspectRatio}
             style={style}
             {...attributes}
             {...listeners}

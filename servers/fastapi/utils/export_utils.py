@@ -10,6 +10,7 @@ from models.presentation_and_path import PresentationAndPath
 from utils.filename_utils import safe_export_basename
 from services.export_task_service import EXPORT_TASK_SERVICE
 from utils.runtime_limits import log_memory
+from utils.pptx_aspect_ratio import PresentationAspectRatio, resize_pptx_aspect_ratio
 
 
 LOGGER = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ async def export_presentation(
     title: str,
     export_as: Literal["pptx", "pdf"],
     cookie_header: str | None = None,
+    aspect_ratio: PresentationAspectRatio = "16:9",
 ) -> PresentationAndPath:
     log_memory(
         LOGGER,
@@ -56,6 +58,8 @@ async def export_presentation(
         fastapi_url=fastapi_url,
         cookie_header=cookie_header,
     )
+    if export_as == "pptx":
+        resize_pptx_aspect_ratio(export_result.path, aspect_ratio)
     log_memory(
         LOGGER,
         "presentation.export.finish",

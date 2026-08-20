@@ -37,6 +37,7 @@ export enum MixpanelEvent {
   Presentation_Slide_Deleted = 'Presentation Slide Deleted',
   Presentation_Theme_Changed = 'Presentation Theme Changed',
   Presentation_Theme_Reset = 'Presentation Theme Reset',
+  Presentation_Aspect_Ratio_Changed = 'Presentation Aspect Ratio Changed',
   Presentation_Export_Started = 'Presentation Export Started',
   Presentation_Regenerated = 'Presentation Regenerated',
 

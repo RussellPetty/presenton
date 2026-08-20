@@ -19,4 +19,5 @@ class PresentationWithSlides(BaseModel):
     verbosity: Optional[str] = None
     slides: List[SlideModel]
     theme: Optional[dict] = None
+    aspect_ratio: str = "16:9"
     fonts: Optional[Any] = None

@@ -155,6 +155,7 @@ const SlideContent = ({
             <SlideScale
               slide={slide}
               theme={presentationData?.theme || null}
+              aspectRatio={presentationData?.aspect_ratio || "16:9"}
               showEditScan={isChatEditing}
             />
           </div>
