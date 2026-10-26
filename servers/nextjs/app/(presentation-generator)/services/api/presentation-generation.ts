@@ -2,6 +2,7 @@ import { getHeader, getHeaderForFormData } from "./header";
 import { IconSearch, ImageGenerate, ImageSearch, PreviousGeneratedImagesResponse } from "./params";
 import { ApiResponseHandler } from "./api-error-handler";
 import { getApiUrl, resolveBackendAssetUrl } from "@/utils/api";
+import { getBranding } from "@/utils/clerkToken";
 
 export class PresentationGenerationApi {
   static async uploadDoc(documents: File[]) {
@@ -95,6 +96,9 @@ export class PresentationGenerationApi {
             include_table_of_contents,
             include_title_slide,
             web_search,
+            // Embedded only: lets the server brand the new deck (theme, logo,
+            // presenter details) at creation. Undefined standalone.
+            branding: getBranding() ?? undefined,
           }),
           cache: "no-cache",
         }

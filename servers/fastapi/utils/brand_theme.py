@@ -123,6 +123,36 @@ def build_brand_theme(
     }
 
 
+def build_presenter_instructions(branding: Optional[dict[str, Any]]) -> Optional[str]:
+    """Presenter details for the slide writer, so cover/closing "Presented by"
+    style fields get the user's real name/company instead of an AI placeholder
+    (e.g. "Financial Advisor"). Returns None when there's no name or company.
+    """
+    if not isinstance(branding, dict) or not branding:
+        return None
+
+    name = _pick(branding, "fullName", "full_name")
+    company = _pick(branding, "companyName", "company")
+    if not (name or company):
+        return None
+
+    fields = [
+        ("Name", name),
+        ("Title", _pick(branding, "title")),
+        ("Company", company),
+        ("NMLS #", _pick(branding, "nmls")),
+        ("Phone", _pick(branding, "phone")),
+        ("Email", _pick(branding, "email")),
+        ("Website", _pick(branding, "website")),
+    ]
+    details = "; ".join(f"{label}: {value}" for label, value in fields if value)
+    return (
+        f"Presenter details: {details}. Use these exact values wherever a slide has "
+        "a presenter, author, \"presented by\", company, or contact field, instead of "
+        "a placeholder or generic role. Do not add them to slides that have no such field."
+    )
+
+
 async def apply_brand_theme(
     *,
     sql_session: Any,
