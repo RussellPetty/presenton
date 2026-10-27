@@ -123,6 +123,30 @@ def build_brand_theme(
     }
 
 
+def brand_theme_application_result(theme: dict[str, Any]) -> dict[str, Any]:
+    """Describe only the branding actually saved on the deck."""
+    logo_applied = bool(theme.get("logo_url"))
+    company_name_applied = bool(theme.get("company_name"))
+    fields = ["colors", "font"]
+    if logo_applied:
+        fields.append("logo")
+    if company_name_applied:
+        fields.append("company name")
+    message = f"Applied your {', '.join(fields)} across all slides."
+    if not logo_applied:
+        message += (
+            " No logo is saved in your branding, so no logo was added. "
+            "Add your logo in profile settings, then try again."
+        )
+    return {
+        "applied": True,
+        "theme_name": theme.get("name"),
+        "logo_applied": logo_applied,
+        "company_name_applied": company_name_applied,
+        "message": message,
+    }
+
+
 async def apply_brand_theme(
     *,
     sql_session: Any,
