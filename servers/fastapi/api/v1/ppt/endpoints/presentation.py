@@ -54,7 +54,11 @@ from models.sql.async_presentation_generation_status import (
     AsyncPresentationGenerationTaskModel,
 )
 from utils.asset_directory_utils import get_images_directory
-from utils.brand_theme import apply_brand_theme, brand_theme_application_result
+from utils.brand_theme import (
+    apply_brand_theme,
+    brand_theme_application_result,
+    build_presenter_instructions,
+)
 from utils.llm_calls.generate_presentation_structure import (
     generate_presentation_structure,
 )
@@ -244,6 +248,7 @@ async def create_presentation(
     include_table_of_contents: Annotated[bool, Body()] = False,
     include_title_slide: Annotated[bool, Body()] = True,
     web_search: Annotated[bool, Body()] = False,
+    branding: Annotated[Optional[dict], Body()] = None,
     scope: Scope = Depends(get_scope),
 ):
     sql_session = scope.session
@@ -271,6 +276,12 @@ async def create_presentation(
     # DB schema stores an int; 0 is used as internal marker for auto slide count.
     n_slides_to_store = n_slides if n_slides is not None else 0
 
+    presenter_instructions = build_presenter_instructions(branding)
+    if presenter_instructions:
+        instructions = "\n\n".join(
+            part for part in (instructions, presenter_instructions) if part
+        )
+
     presentation = PresentationModel(
         id=presentation_id,
         user_id=scope.user_id,
@@ -288,6 +299,23 @@ async def create_presentation(
 
     sql_session.add(presentation)
     await sql_session.commit()
+
+    # Embedded decks start on the user's brand (colors, logo, company badge)
+    # instead of the template's default palette. Best-effort: a branding failure
+    # must never block creating the deck.
+    if branding:
+        try:
+            await apply_brand_theme(
+                sql_session=sql_session,
+                user_id=scope.user_id,
+                presentation=presentation,
+                branding=branding,
+            )
+        except Exception:
+            logger.exception("create: failed to apply brand theme to %s", presentation_id)
+            await sql_session.rollback()
+            # rollback expires loaded rows; reload so the response can serialize.
+            await sql_session.refresh(presentation)
 
     return presentation
 
