@@ -54,7 +54,11 @@ from models.sql.async_presentation_generation_status import (
     AsyncPresentationGenerationTaskModel,
 )
 from utils.asset_directory_utils import get_images_directory
-from utils.brand_theme import apply_brand_theme, build_presenter_instructions
+from utils.brand_theme import (
+    apply_brand_theme,
+    brand_theme_application_result,
+    build_presenter_instructions,
+)
 from utils.llm_calls.generate_presentation_structure import (
     generate_presentation_structure,
 )
@@ -620,6 +624,8 @@ class ApplyBrandingResponse(BaseModel):
     theme_name: Optional[str] = None
     message: Optional[str] = None
     theme: Optional[dict] = None
+    logo_applied: bool = False
+    company_name_applied: bool = False
 
 
 @PRESENTATION_ROUTER.post("/apply-branding", response_model=ApplyBrandingResponse)
@@ -656,9 +662,8 @@ async def apply_branding_to_presentation(
         )
     return ApplyBrandingResponse(
         presentation_id=str(presentation_id),
-        applied=True,
-        theme_name=str(theme.get("name") or "Brand"),
         theme=theme,
+        **brand_theme_application_result(theme),
     )
 
 

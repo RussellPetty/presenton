@@ -96,7 +96,7 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({
                   <img
                     src={(slideData as any)?._logo_url__}
                     alt="logo"
-                    className="w-6 h-6"
+                    className="h-8 w-auto max-w-[160px] object-contain"
                   />
                 )}
                 {(slideData as any)?.__companyName__ && (

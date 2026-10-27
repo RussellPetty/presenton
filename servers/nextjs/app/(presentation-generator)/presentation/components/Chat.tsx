@@ -290,9 +290,15 @@ const TOOL_LABELS: Record<string, string> = {
   saveSlide: "Slide saver",
   deleteSlide: "Slide remover",
   setPresentationTheme: "Theme applier",
+  applyUserBranding: "Branding applier",
 };
 
-const MUTATING_TOOLS = new Set(["saveSlide", "deleteSlide", "setPresentationTheme"]);
+const MUTATING_TOOLS = new Set([
+  "saveSlide",
+  "deleteSlide",
+  "setPresentationTheme",
+  "applyUserBranding",
+]);
 // Only focus slides when the agent is actively mutating them.
 // Read/open traces (e.g. getSlideAtIndex) can happen ahead of edits and feel jumpy.
 const SLIDE_FOCUS_TOOLS = new Set(["saveSlide", "deleteSlide"]);
@@ -799,10 +805,7 @@ const Chat = ({
   }, [onPresentationChanged]);
 
   const refreshPresentationIfNeeded = async (toolCalls: string[]) => {
-    const hasSlideMutation =
-      toolCalls.includes("saveSlide") ||
-      toolCalls.includes("deleteSlide") ||
-      toolCalls.includes("setPresentationTheme");
+    const hasSlideMutation = toolCalls.some((tool) => MUTATING_TOOLS.has(tool));
     if (
       !hasSlideMutation ||
       !onPresentationChanged ||
