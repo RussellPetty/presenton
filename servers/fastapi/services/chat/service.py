@@ -541,6 +541,7 @@ class PresentationChatService:
             "saveSlide": "Saving the slide",
             "deleteSlide": "Deleting the slide",
             "setPresentationTheme": "Applying presentation theme",
+            "applyUserBranding": "Applying your branding",
         }
         return labels.get(tool_name, f"Running {tool_name}")
 

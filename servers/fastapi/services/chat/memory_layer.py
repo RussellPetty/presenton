@@ -25,7 +25,7 @@ from utils.asset_directory_utils import (
 )
 from utils.icon_weights import DEFAULT_ICON_WEIGHT
 from services.chat.branding_assets import apply_brand_assets_to_content
-from utils.brand_theme import apply_brand_theme
+from utils.brand_theme import apply_brand_theme, brand_theme_application_result
 from utils.process_slides import (
     process_old_and_new_slides_and_fetch_assets,
     process_slide_and_fetch_assets,
@@ -800,14 +800,7 @@ class PresentationChatMemoryLayer:
                     "Ask them to set their branding in Settings, then try again."
                 ),
             }
-        return {
-            "applied": True,
-            "theme_name": theme.get("name"),
-            "message": (
-                f"Applied the user's brand ('{theme.get('name')}') to the deck — "
-                "colors, font, logo and company name now appear across all slides."
-            ),
-        }
+        return brand_theme_application_result(theme)
 
     async def get_presentation_theme_catalog(self) -> dict[str, Any]:
         presentation = await self._sql_session.get(PresentationModel, self._presentation_id)

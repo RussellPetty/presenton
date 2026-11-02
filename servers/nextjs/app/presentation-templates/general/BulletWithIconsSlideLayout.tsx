@@ -80,7 +80,7 @@ const BulletWithIconsSlideLayout: React.FC<BulletWithIconsSlideLayoutProps> = ({
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1">
 
-                                {(slideData as any)?._logo_url__ && <img src={(slideData as any)?._logo_url__} alt="logo" className="w-6 h-6" />}
+                                {(slideData as any)?._logo_url__ && <img src={(slideData as any)?._logo_url__} alt="logo" className="h-8 w-auto max-w-[160px] object-contain" />}
                                 {(slideData as any)?.__companyName__ && <span className="text-sm sm:text-base font-semibold" style={{ color: 'var(--background-text, #111827)' }}>
                                     {(slideData as any)?.__companyName__ || 'Company Name'}
                                 </span>}
